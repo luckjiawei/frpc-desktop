@@ -1,0 +1,62 @@
+{
+  "name": "Frpc-Desktop",
+  "version": "1.0.0",
+  "main": "dist-electron/main/index.js",
+  "description": "一个frpc桌面客户端",
+  "author": "刘嘉伟 <8473136@qq.com>",
+  "license": "MIT",
+  "private": true,
+  "keywords": [
+    "electron",
+    "rollup",
+    "vite",
+    "vue3",
+    "vue"
+  ],
+  "debug": {
+    "env": {
+      "VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build && electron-builder",
+    "build:win": "vue-tsc --noEmit && vite build && electron-builder -w",
+    "preview": "vite preview",
+    "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
+  },
+  "devDependencies": {
+    "@iconify/vue": "^4.1.1",
+    "@types/nedb": "^1.8.16",
+    "@vitejs/plugin-vue": "^4.3.3",
+    "@vue/eslint-config-prettier": "^7.1.0",
+    "@vueuse/core": "^9.13.0",
+    "autoprefixer": "^10.4.15",
+    "cssnano": "^6.0.1",
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.3",
+    "element-plus": "^2.4.2",
+    "eslint-plugin-prettier": "^4.2.1",
+    "moment": "^2.29.4",
+    "nedb": "^1.8.0",
+    "node-cmd": "^5.0.0",
+    "prettier": "^2.8.8",
+    "sass": "^1.66.1",
+    "sass-loader": "^13.3.2",
+    "tailwindcss": "^3.3.3",
+    "tree-kill": "^1.2.2",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9",
+    "vite-plugin-electron": "^0.15.3",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vue-tsc": "^1.8.8",
+    "vue-types": "^5.1.1",
+    "electron-icon-builder": "^2.0.1",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
+  },
+  "dependencies": {
+    "electron-dl": "^3.5.1",
+    "tar": "^6.2.0"
+  }
+}
