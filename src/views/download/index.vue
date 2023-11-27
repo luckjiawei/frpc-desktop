@@ -9,14 +9,16 @@ defineComponent({
   name: "Download"
 });
 
+type Asset = {
+  name: string
+}
+
 type Version = {
   id: string;
   name: string;
   published_at: string;
   download_completed: boolean;
-  assets: Array<{
-    name: string;
-  }>[]
+  assets: Asset[]
 };
 
 const versions = ref<Array<Version>>([]);
