@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const {download} = require("electron-dl");
+const unzipper = require('unzipper');
 
 
 const versionRelation = {
@@ -12,12 +13,12 @@ const versionRelation = {
     "win32_arm64": ["window", "arm64"],
     "win32_ia32": ["window", "386"],
     "darwin_arm64": ["darwin", "arm64"],
+    // "darwin_arm64": ["window", "amd64"],
     "darwin_amd64": ["darwin", "amd64"],
 }
 
-const unTarGZ = tarGzPath => {
+const unTarGZ = (tarGzPath: string, targetPath: string) => {
     const tar = require("tar");
-    const targetPath = path.resolve(path.join(app.getPath("userData"), "frp"));
     const unzip = zlib.createGunzip();
     const readStream = fs.createReadStream(tarGzPath);
     if (!fs.existsSync(unzip)) {
@@ -34,6 +35,23 @@ const unTarGZ = tarGzPath => {
     //   console.log("解压完成！");
     // });
 };
+
+const unZip = (zipPath: string, targetPath: string) => {
+    if (!fs.existsSync(path.join(targetPath, path.basename(zipPath, ".zip")))) {
+        fs.mkdirSync(path.join(targetPath, path.basename(zipPath, ".zip")), {recursive: true});
+    }
+    fs.createReadStream(zipPath)
+        .pipe(unzipper.ParseOne('frpc'))
+        .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
+        .on('finish', () => {
+            console.log('File extracted successfully.');
+        })
+        .on('error', (err) => {
+            console.error('Error extracting file:', err);
+        });
+    return path.join("frp", path.basename(zipPath, ".zip"))
+}
+
 export const initGitHubApi = () => {
     // 版本
     let versions = [];
@@ -114,12 +132,26 @@ export const initGitHubApi = () => {
                 });
             },
             onCompleted: () => {
-                const frpcVersionPath = unTarGZ(
-                    path.join(
-                        path.join(app.getPath("userData"), "download"),
-                        `${asset.name}`
-                    )
-                );
+                const targetPath = path.resolve(path.join(app.getPath("userData"), "frp"));
+                const ext = path.extname(asset.name)
+                let frpcVersionPath = ""
+                if (ext === '.zip') {
+                    frpcVersionPath = unZip(path.join(
+                            path.join(app.getPath("userData"), "download"),
+                            `${asset.name}`
+                        ),
+                        targetPath)
+                    console.log(frpcVersionPath, '1')
+                } else if (ext === '.gz' && asset.name.includes(".tar.gz")) {
+                    frpcVersionPath = unTarGZ(
+                        path.join(
+                            path.join(app.getPath("userData"), "download"),
+                            `${asset.name}`
+                        ),
+                        targetPath
+                    );
+                }
+
                 version["frpcVersionPath"] = frpcVersionPath;
                 insertVersion(version, (err, document) => {
                     if (!err) {

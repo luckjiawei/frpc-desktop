@@ -157,10 +157,18 @@ export const initFrpcApi = () => {
             config.currentVersion,
             (frpcVersionPath: string) => {
               generateConfig(config, configPath => {
-                startFrpcProcess(
-                  path.join(frpcVersionPath, "frpc"),
-                  configPath
-                );
+                const platform = process.platform;
+                if (platform === 'win32') {
+                  startFrpcProcess(
+                      path.join(frpcVersionPath, "frpc.exe"),
+                      configPath
+                  );
+                }else {
+                  startFrpcProcess(
+                      path.join(frpcVersionPath, "frpc"),
+                      configPath
+                  );
+                }
               });
             }
           );

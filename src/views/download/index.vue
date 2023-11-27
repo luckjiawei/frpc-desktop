@@ -96,7 +96,7 @@ onUnmounted(() => {
           <div class="left">
             <div class="mb-2">
               <el-tag>{{ version.name }}</el-tag>
-              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>
+<!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
             </div>
             <div class="text-sm">
               发布时间：<span class="text-gray-00">{{
