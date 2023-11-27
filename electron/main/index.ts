@@ -129,6 +129,10 @@ ipcMain.handle("open-win", (_, arg) => {
   }
 });
 
+ipcMain.on('open-url', (event, url) => {
+  shell.openExternal(url).then(r => {});
+});
+
 initGitHubApi();
 initConfigApi();
 initProxyApi();
