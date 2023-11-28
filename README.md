@@ -21,20 +21,25 @@
   </p>
 </div>
 
+## 演示
+
+![connect server](https://github.com/luckjiawei/frpc-desktop/raw/master/demo/conn.png)
+
 [//]: # (## 里程碑)
 
 [//]: # (- 2023-11-28: 发布v1.0版本)
+
 
 ## License
 
 [MIT](LICENSE)
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [forks-url]: https://github.com/luckjiawei/frpc-desktop/network/members
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/github/stars/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [stars-url]: https://github.com/luckjiawei/frpc-desktop/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [issues-url]: https://github.com/luckjiawei/frpc-desktop/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [license-url]: https://github.com/luckjiawei/frpc-desktop/blob/master/LICENSE.txt
