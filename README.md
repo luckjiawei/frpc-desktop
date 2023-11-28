@@ -1,13 +1,6 @@
 <a name="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
@@ -23,7 +16,7 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉🎉🎉 庆祝一个Frp Client的桌面管理器
+    🎉 一个Frp Client 跨平台桌面端
     <br />
   </p>
 </div>
@@ -35,3 +28,13 @@
 ## License
 
 [MIT](LICENSE)
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-url]: https://github.com/luckjiawei/frpc-desktop/network/members
+[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-url]: https://github.com/luckjiawei/frpc-desktop/stargazers
+[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-url]: https://github.com/luckjiawei/frpc-desktop/issues
+[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[license-url]: https://github.com/luckjiawei/frpc-desktop/blob/master/LICENSE.txt
