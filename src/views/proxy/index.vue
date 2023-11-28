@@ -274,8 +274,7 @@ onUnmounted(() => {
                 </div>
                 <div>
                   <el-dropdown size="small">
-                    <a
-                      href="#"
+                    <a href="javascript:void(0)"
                       class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
                     >
                       <Icon icon="material-symbols:more-vert" />
