@@ -13,6 +13,8 @@ export type Config = {
   serverPort: number;
   authMethod: string;
   authToken: string;
+  logLevel: string;
+  logMaxDays: number;
 };
 
 /**

@@ -48,4 +48,4 @@
 [issues-shield]: https://img.shields.io/github/issues/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [issues-url]: https://github.com/luckjiawei/frpc-desktop/issues
 [license-shield]: https://img.shields.io/github/license/luckjiawei/frpc-desktop.svg?style=for-the-badge
-[license-url]: https://github.com/luckjiawei/frpc-desktop/blob/master/LICENSE.txt
+[license-url]: https://github.com/luckjiawei/frpc-desktop/blob/master/LICENSE
