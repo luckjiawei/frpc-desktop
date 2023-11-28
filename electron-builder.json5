@@ -18,7 +18,7 @@
     "target": [
       "dmg"
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${arch}-${version}-Installer.${ext}"
   },
   "win": {
     "target": [
@@ -29,7 +29,7 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "${productName}-Windows-${arch}-${version}-Setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
@@ -41,6 +41,6 @@
     "target": [
       "AppImage"
     ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
+    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
   },
 }
