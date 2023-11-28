@@ -23,7 +23,13 @@
 
 ## 演示
 
-![connect server](https://github.com/luckjiawei/frpc-desktop/raw/master/demo/conn.png)
+![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/conn.png?raw=true)
+
+![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/proxys.png?raw=true)
+
+![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/versions.png?raw=true)
+
+![log](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/log.png?raw=true)
 
 [//]: # (## 里程碑)
 
