@@ -1,4 +1,4 @@
-import {app, ipcMain} from "electron";
+import {app, ipcMain, Notification} from "electron";
 import {Config, getConfig} from "../storage/config";
 import {listProxy} from "../storage/proxy";
 import {getVersionById} from "../storage/version";
@@ -6,15 +6,13 @@ import treeKill from "tree-kill";
 
 const fs = require("fs");
 const path = require("path");
-
 const {exec, spawn} = require("child_process");
-
 export let frpcProcess = null;
-
 const runningCmd = {
     commandPath: null,
     configPath: null
 };
+let frpcStatusListener = null;
 
 /**
  * 获取选择版本的工作目录
@@ -125,8 +123,22 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
         console.log("启动错误", data)
         stopFrpcProcess()
     });
+    frpcStatusListener = setInterval(() => {
+        const status = frpcProcessStatus()
+        if (!status) {
+            console.log("连接已断开")
+            new Notification({
+                title: "Frpc Desktop",
+                body: "连接已断开，请前往日志查看原因"
+            }).show()
+            clearInterval(frpcStatusListener)
+        }
+    }, 3000)
 };
 
+/**
+ *  重载frpc配置
+ */
 export const reloadFrpcProcess = () => {
     if (frpcProcess && !frpcProcess.killed) {
         getConfig((err1, config) => {
@@ -146,6 +158,9 @@ export const reloadFrpcProcess = () => {
     }
 };
 
+/**
+ * 停止frpc子进程
+ */
 export const stopFrpcProcess = () => {
     if (frpcProcess) {
         treeKill(frpcProcess.pid, (error: Error) => {
@@ -153,18 +168,33 @@ export const stopFrpcProcess = () => {
                 console.log("关闭失败", frpcProcess.pid, error)
             } else {
                 frpcProcess = null
+                clearInterval(frpcStatusListener)
             }
         })
     }
 }
 
+/**
+ * 获取frpc子进程状态
+ */
+export const frpcProcessStatus = () => {
+    if (!frpcProcess) {
+        return false;
+    }
+    try {
+        // 发送信号给进程，如果进程存在，会正常返回
+        process.kill(frpcProcess.pid, 0);
+        return true;
+    } catch (error) {
+        // 进程不存在，抛出异常
+        return false;
+    }
+}
+
+
 export const initFrpcApi = () => {
     ipcMain.handle("frpc.running", async (event, args) => {
-        if (!frpcProcess) {
-            return false;
-        } else {
-            return !frpcProcess.killed;
-        }
+        return frpcProcessStatus()
     });
 
     ipcMain.on("frpc.start", async (event, args) => {
