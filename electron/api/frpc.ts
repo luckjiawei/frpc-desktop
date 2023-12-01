@@ -2,24 +2,19 @@ import {app, ipcMain} from "electron";
 import {Config, getConfig} from "../storage/config";
 import {listProxy} from "../storage/proxy";
 import {getVersionById} from "../storage/version";
+import treeKill from "tree-kill";
 
 const fs = require("fs");
 const path = require("path");
 
 const {exec, spawn} = require("child_process");
+
 export let frpcProcess = null;
 
 const runningCmd = {
     commandPath: null,
     configPath: null
 };
-
-// const getFrpc = (config: Config) => {
-//   getVersionById(config.currentVersion, (err, document) => {
-//     if (!err) {
-//     }
-//   });
-// };
 
 /**
  * 获取选择版本的工作目录
@@ -78,14 +73,24 @@ log.level = "${config.logLevel}"
 log.maxDays = ${config.logMaxDays}
 webServer.addr = "127.0.0.1"
 webServer.port = 57400
+transport.tls.enable = ${config.tlsConfigEnable}
+${config.tlsConfigEnable ? `
+transport.tls.certFile = "${config.tlsConfigCertFile}"
+transport.tls.keyFile = "${config.tlsConfigKeyFile}"
+transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"
+transport.tls.serverName = "${config.tlsConfigServerName}"
+` : ""}
 
-${proxyToml}
+
+${proxyToml.join("")}
       `;
 
             // const configPath = path.join("frp.toml");
             const filename = "frp.toml";
+            const configPath = path.join(app.getPath("userData"), filename)
+            console.debug("生成配置成功", configPath)
             fs.writeFile(
-                path.join(app.getPath("userData"), filename), // 配置文件目录
+                configPath, // 配置文件目录
                 toml, // 配置文件内容
                 {flag: "w"},
                 err => {
@@ -106,6 +111,7 @@ ${proxyToml}
  */
 const startFrpcProcess = (commandPath: string, configPath: string) => {
     const command = `${commandPath} -c ${configPath}`;
+    console.info("启动", command)
     frpcProcess = spawn(command, {
         cwd: app.getPath("userData"),
         shell: true
@@ -113,11 +119,11 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
     runningCmd.commandPath = commandPath;
     runningCmd.configPath = configPath;
     frpcProcess.stdout.on("data", data => {
-        console.log(`命令输出: ${data}`);
+        console.debug(`命令输出: ${data}`);
     });
     frpcProcess.stdout.on("error", data => {
-        console.log(`执行错误: ${data}`);
-        frpcProcess.kill("SIGINT");
+        console.log("启动错误", data)
+        stopFrpcProcess()
     });
 };
 
@@ -128,7 +134,7 @@ export const reloadFrpcProcess = () => {
                 if (config) {
                     generateConfig(config, configPath => {
                         const command = `${runningCmd.commandPath} reload -c ${configPath}`;
-                        console.log("重启", command);
+                        console.info("重启", command);
                         exec(command, {
                             cwd: app.getPath("userData"),
                             shell: true
@@ -139,6 +145,18 @@ export const reloadFrpcProcess = () => {
         });
     }
 };
+
+export const stopFrpcProcess = () => {
+    if (frpcProcess) {
+        treeKill(frpcProcess.pid, (error: Error) => {
+            if (error) {
+                console.log("关闭失败", frpcProcess.pid, error)
+            } else {
+                frpcProcess = null
+            }
+        })
+    }
+}
 
 export const initFrpcApi = () => {
     ipcMain.handle("frpc.running", async (event, args) => {
@@ -184,8 +202,7 @@ export const initFrpcApi = () => {
 
     ipcMain.on("frpc.stop", () => {
         if (frpcProcess && !frpcProcess.killed) {
-            console.log("关闭");
-            frpcProcess.kill();
+            stopFrpcProcess()
         }
     });
 };
