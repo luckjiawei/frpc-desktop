@@ -120,7 +120,9 @@ export const createTray = () => {
             label: '退出',
             click: () => {
                 isQuiting = true;
-                app.quit();
+                stopFrpcProcess(() => {
+                    app.quit();
+                })
             }
         }
     ];
@@ -143,8 +145,11 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
     win = null;
-    if (process.platform !== "darwin") app.quit();
-    stopFrpcProcess()
+    if (process.platform !== "darwin") {
+        stopFrpcProcess(() => {
+            app.quit();
+        })
+    }
 });
 
 app.on("second-instance", () => {

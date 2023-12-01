@@ -161,15 +161,17 @@ export const reloadFrpcProcess = () => {
 /**
  * 停止frpc子进程
  */
-export const stopFrpcProcess = () => {
+export const stopFrpcProcess = (callback?:() => void) => {
     if (frpcProcess) {
         treeKill(frpcProcess.pid, (error: Error) => {
             if (error) {
                 console.log("关闭失败", frpcProcess.pid, error)
             } else {
+                console.log('关闭成功')
                 frpcProcess = null
                 clearInterval(frpcStatusListener)
             }
+            callback()
         })
     }
 }
