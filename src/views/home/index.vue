@@ -95,6 +95,8 @@ onUnmounted(() => {
             <div class="pl-8 h-28 w-52 flex flex-col justify-between">
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
+                  <Icon v-if="running" class="text-[#7EC050] inline-block relative top-1" icon="material-symbols:check-circle-rounded" />
+                  <Icon v-else class="text-[#E47470] inline-block relative top-1" icon="material-symbols:error" />
                   Frpc {{ running ? "已启动" : "已断开" }}
                 </div>
               </transition>
