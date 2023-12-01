@@ -173,17 +173,25 @@ onUnmounted(() => {
                   ></el-option>
                 </el-select>
                 <div class="w-full flex justify-end">
-                  <el-button type="text" @click="handleLoadVersions">
+                  <el-link type="primary" @click="handleLoadVersions">
                     <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>
                     手动刷新
-                  </el-button>
-                  <el-button
-                      type="text"
-                      @click="$router.replace({ name: 'Download' })"
-                  >
+                  </el-link>
+<!--                  <el-button type="text" @click="handleLoadVersions">-->
+<!--                    <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>-->
+<!--                    手动刷新-->
+<!--                  </el-button>-->
+                  <el-link class="ml-2" type="primary" @click="$router.replace({ name: 'Download' })">
                     <Icon class="mr-1" icon="material-symbols:download-2"/>
                     点击这里去下载
-                  </el-button>
+                  </el-link>
+<!--                  <el-button-->
+<!--                      type="text"-->
+<!--                      @click="$router.replace({ name: 'Download' })"-->
+<!--                  >-->
+<!--                    <Icon class="mr-1" icon="material-symbols:download-2"/>-->
+<!--                    点击这里去下载-->
+<!--                  </el-button>-->
                 </div>
               </el-form-item>
             </el-col>
