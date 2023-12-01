@@ -4,7 +4,7 @@ import node_path, {join} from "node:path";
 import {initGitHubApi} from "../api/github";
 import {initConfigApi} from "../api/config";
 import {initProxyApi} from "../api/proxy";
-import {initFrpcApi} from "../api/frpc";
+import {initFrpcApi, stopFrpcProcess} from "../api/frpc";
 import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
 // The built directory structure
@@ -144,6 +144,7 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
     win = null;
     if (process.platform !== "darwin") app.quit();
+    stopFrpcProcess()
 });
 
 app.on("second-instance", () => {
