@@ -84,9 +84,9 @@ async function createWindow() {
     const {Menu} = require("electron");
     Menu.setApplicationMenu(null);
     // hide menu for Mac
-    if (process.platform !== "darwin") {
-        app.dock.hide();
-    }
+    // if (process.platform !== "darwin") {
+    //     app.dock.hide();
+    // }
 
     win.on('minimize', function (event) {
         event.preventDefault();
@@ -128,6 +128,11 @@ export const createTray = () => {
     tray.setToolTip('Frpc Desktop')
     const contextMenu = Menu.buildFromTemplate(menu)
     tray.setContextMenu(contextMenu)
+
+    // 托盘双击打开
+    tray.on('double-click', () => {
+        win.show();
+    })
 }
 
 app.whenReady().then(() => {
