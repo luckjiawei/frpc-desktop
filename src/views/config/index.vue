@@ -19,6 +19,12 @@ type Config = {
   authToken: string;
   logLevel: string;
   logMaxDays: number;
+  tlsConfigEnable: boolean;
+  tlsConfigCertFile: string;
+  tlsConfigKeyFile: string;
+  tlsConfigTrustedCaFile: string;
+  tlsConfigServerName: string;
+
 };
 
 type Version = {
@@ -33,7 +39,12 @@ const formData = ref<Config>({
   authMethod: "",
   authToken: "",
   logLevel: "info",
-  logMaxDays: 3
+  logMaxDays: 3,
+  tlsConfigEnable: false,
+  tlsConfigCertFile: "",
+  tlsConfigKeyFile: "",
+  tlsConfigTrustedCaFile: "",
+  tlsConfigServerName: "",
 });
 
 const loading = ref(1);
@@ -54,7 +65,12 @@ const rules = reactive<FormRules>({
   // authMethod: [{ required: true, message: "请选择验证方式", trigger: "blur" }],
   authToken: [{required: true, message: "请输入token值 ", trigger: "blur"}],
   logLevel: [{required: true, message: "请选择日志级别 ", trigger: "blur"}],
-  logMaxDays: [{required: true, message: "请输入日志保留天数 ", trigger: "blur"}]
+  logMaxDays: [{required: true, message: "请输入日志保留天数 ", trigger: "blur"}],
+  tlsConfigEnable: [{required: true, message: "请选择TLS状态", trigger: "change"}],
+  tlsConfigCertFile: [{required: true, message: "请选择TLS证书文件", trigger: "change"}],
+  tlsConfigKeyFile: [{required: true, message: "请选择TLS密钥文件", trigger: "change"}],
+  tlsConfigTrustedCaFile: [{required: true, message: "请选择CA证书文件", trigger: "change"}],
+  tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}]
 });
 
 const versions = ref<Array<Version>>([]);
@@ -103,6 +119,24 @@ onMounted(() => {
   });
 });
 
+const handleSelectFile = (type: number, ext: string[]) => {
+  ipcRenderer.invoke("file.selectFile", ext).then(r => {
+    switch (type) {
+      case 1:
+        formData.value.tlsConfigCertFile = r[0]
+        break;
+      case 2:
+        formData.value.tlsConfigKeyFile = r[0]
+        break;
+      case 3:
+        formData.value.tlsConfigTrustedCaFile = r[0]
+        break;
+    }
+    console.log(r)
+
+  })
+}
+
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Config.getConfig.hook");
   ipcRenderer.removeAllListeners("Config.saveConfig.hook");
@@ -121,7 +155,7 @@ onUnmounted(() => {
             :rules="rules"
             label-position="right"
             ref="formRef"
-            label-width="120"
+            label-width="140"
         >
           <el-row :gutter="10">
             <el-col :span="24">
@@ -197,6 +231,60 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="24">
+              <div class="h2">TSL Config</div>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="是否启用TSL：" prop="tlsConfigEnable">
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.tlsConfigEnable"/>
+              </el-form-item>
+            </el-col>
+            <template v-if="formData.tlsConfigEnable">
+              <el-col :span="24">
+                <el-form-item label="TLS证书文件：" prop="tlsConfigCertFile">
+                  <el-input
+                      class="button-input"
+                      v-model="formData.tlsConfigCertFile"
+                      placeholder="请选择TLS证书文件"
+                      readonly
+                  />
+                  <el-button class="ml-2" type="primary" @click="handleSelectFile(1, ['crt'])">选择</el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="TLS密钥文件：" prop="tlsConfigKeyFile">
+                  <el-input
+                      class="button-input"
+                      v-model="formData.tlsConfigKeyFile"
+                      placeholder="请选择TLS密钥文件"
+                      readonly
+                  />
+                  <el-button class="ml-2" type="primary" @click="handleSelectFile(2, ['key'])">选择</el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="CA证书文件：" prop="tlsConfigTrustedCaFile">
+                  <el-input
+                      class="button-input"
+                      v-model="formData.tlsConfigTrustedCaFile"
+                      placeholder="请选择CA证书文件"
+                      readonly
+                  />
+                  <el-button class="ml-2" type="primary" @click="handleSelectFile(3, ['crt'])">选择</el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="TLS Server名称：" prop="tlsConfigServerName">
+                  <el-input
+                      v-model="formData.tlsConfigServerName"
+                      placeholder="请输入TLS Server名称"
+                  />
+                </el-form-item>
+              </el-col>
+            </template>
+            <el-col :span="24">
               <div class="h2">日志配置</div>
             </el-col>
             <el-col :span="12">
@@ -241,5 +329,9 @@ onUnmounted(() => {
   border-radius: 4px;
   background-color: #EEEBF6;
   margin-bottom: 18px;
+}
+
+.button-input {
+  width: calc(100% - 68px);
 }
 </style>

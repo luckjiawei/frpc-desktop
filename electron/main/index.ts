@@ -6,6 +6,7 @@ import { initConfigApi } from "../api/config";
 import { initProxyApi } from "../api/proxy";
 import { initFrpcApi } from "../api/frpc";
 import { initLoggerApi } from "../api/logger";
+import {initFileApi} from "../api/file";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -138,3 +139,4 @@ initConfigApi();
 initProxyApi();
 initFrpcApi();
 initLoggerApi();
+initFileApi();
