@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, net} from "electron";
+import {app, BrowserWindow, ipcMain, net, shell} from "electron";
 import {insertVersion} from "../storage/version";
 
 const fs = require("fs");
@@ -162,4 +162,11 @@ export const initGitHubApi = () => {
             }
         });
     });
+
+    /**
+     * 打开GitHub
+     */
+    ipcMain.on("github.open", () => {
+        shell.openExternal("https://github.com/luckjiawei/frpc-desktop");
+    })
 };

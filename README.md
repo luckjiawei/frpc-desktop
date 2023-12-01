@@ -21,6 +21,10 @@
   </p>
 </div>
 
+## 里程碑
+- 2023-12-01: 发布v1.0.1版本
+- 2023-11-28: 发布v1.0版本
+
 ## 演示
 
 ![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/conn.png?raw=true)
@@ -30,11 +34,6 @@
 ![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/versions.png?raw=true)
 
 ![log](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/log.png?raw=true)
-
-[//]: # (## 里程碑)
-
-[//]: # (- 2023-11-28: 发布v1.0版本)
-
 
 ## License
 

@@ -13,6 +13,13 @@ export type Config = {
   serverPort: number;
   authMethod: string;
   authToken: string;
+  logLevel: string;
+  logMaxDays: number;
+  tlsConfigEnable: boolean;
+  tlsConfigCertFile: string;
+  tlsConfigKeyFile: string;
+  tlsConfigTrustedCaFile: string;
+  tlsConfigServerName: string;
 };
 
 /**
