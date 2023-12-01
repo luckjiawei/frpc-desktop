@@ -3,6 +3,7 @@ import { computed, defineComponent, onMounted, ref } from "vue";
 import { Icon } from "@iconify/vue";
 import router from "@/router";
 import { RouteRecordRaw } from "vue-router";
+import {ipcRenderer} from "electron";
 
 defineComponent({
   name: "AppMain"
@@ -27,6 +28,10 @@ const handleMenuChange = (route: RouteRecordRaw) => {
   });
 };
 
+const handleOpenGitHub = () => {
+  ipcRenderer.send("github.open")
+}
+
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
     f => !f.meta?.hidden
@@ -48,6 +53,12 @@ onMounted(() => {
         @click="handleMenuChange(r)"
       >
         <Icon :icon="r?.meta?.icon as string" />
+      </li>
+      <li
+          class="menu"
+          @click="handleOpenGitHub"
+      >
+        <Icon icon="mdi:github" />
       </li>
     </ul>
   </div>
