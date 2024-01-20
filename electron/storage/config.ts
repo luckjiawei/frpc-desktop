@@ -20,6 +20,8 @@ export type Config = {
   tlsConfigKeyFile: string;
   tlsConfigTrustedCaFile: string;
   tlsConfigServerName: string;
+  proxyConfigEnable: boolean;
+  proxyConfigProxyUrl: string;
 };
 
 /**

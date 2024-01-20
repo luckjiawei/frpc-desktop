@@ -78,6 +78,9 @@ transport.tls.keyFile = "${config.tlsConfigKeyFile}"
 transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"
 transport.tls.serverName = "${config.tlsConfigServerName}"
 ` : ""}
+${config.proxyConfigEnable ? `
+transport.proxyURL = "${config.proxyConfigProxyUrl}"
+` : ""}
 
 
 ${proxyToml.join("")}
@@ -161,7 +164,7 @@ export const reloadFrpcProcess = () => {
 /**
  * 停止frpc子进程
  */
-export const stopFrpcProcess = (callback?:() => void) => {
+export const stopFrpcProcess = (callback?: () => void) => {
     if (frpcProcess) {
         treeKill(frpcProcess.pid, (error: Error) => {
             if (error) {
