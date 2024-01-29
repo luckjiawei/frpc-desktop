@@ -24,7 +24,8 @@ type Config = {
   tlsConfigKeyFile: string;
   tlsConfigTrustedCaFile: string;
   tlsConfigServerName: string;
-
+  proxyConfigEnable: boolean;
+  proxyConfigProxyUrl: string;
 };
 
 type Version = {
@@ -45,6 +46,8 @@ const formData = ref<Config>({
   tlsConfigKeyFile: "",
   tlsConfigTrustedCaFile: "",
   tlsConfigServerName: "",
+  proxyConfigEnable: false,
+  proxyConfigProxyUrl: ""
 });
 
 const loading = ref(1);
@@ -70,7 +73,16 @@ const rules = reactive<FormRules>({
   tlsConfigCertFile: [{required: true, message: "请选择TLS证书文件", trigger: "change"}],
   tlsConfigKeyFile: [{required: true, message: "请选择TLS密钥文件", trigger: "change"}],
   tlsConfigTrustedCaFile: [{required: true, message: "请选择CA证书文件", trigger: "change"}],
-  tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}]
+  tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}],
+  proxyConfigEnable: [{required: true, message: "请选择代理状态", trigger: "change"}],
+  proxyConfigProxyUrl: [
+      {required: true, message: "请输入代理地址", trigger: "change"},
+    {
+      pattern: /^https?\:\/\/(\w+:\w+@)?([a-zA-Z0-9.-]+)(:\d+)?$/,
+      message: "请输入正确的代理地址",
+      trigger: "blur"
+    }
+  ],
 });
 
 const versions = ref<Array<Version>>([]);
@@ -177,21 +189,21 @@ onUnmounted(() => {
                     <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>
                     手动刷新
                   </el-link>
-<!--                  <el-button type="text" @click="handleLoadVersions">-->
-<!--                    <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>-->
-<!--                    手动刷新-->
-<!--                  </el-button>-->
+                  <!--                  <el-button type="text" @click="handleLoadVersions">-->
+                  <!--                    <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>-->
+                  <!--                    手动刷新-->
+                  <!--                  </el-button>-->
                   <el-link class="ml-2" type="primary" @click="$router.replace({ name: 'Download' })">
                     <Icon class="mr-1" icon="material-symbols:download-2"/>
                     点击这里去下载
                   </el-link>
-<!--                  <el-button-->
-<!--                      type="text"-->
-<!--                      @click="$router.replace({ name: 'Download' })"-->
-<!--                  >-->
-<!--                    <Icon class="mr-1" icon="material-symbols:download-2"/>-->
-<!--                    点击这里去下载-->
-<!--                  </el-button>-->
+                  <!--                  <el-button-->
+                  <!--                      type="text"-->
+                  <!--                      @click="$router.replace({ name: 'Download' })"-->
+                  <!--                  >-->
+                  <!--                    <Icon class="mr-1" icon="material-symbols:download-2"/>-->
+                  <!--                    点击这里去下载-->
+                  <!--                  </el-button>-->
                 </div>
               </el-form-item>
             </el-col>
@@ -289,6 +301,25 @@ onUnmounted(() => {
                       v-model="formData.tlsConfigServerName"
                       placeholder="请输入TLS Server名称"
                   />
+                </el-form-item>
+              </el-col>
+            </template>
+            <el-col :span="24">
+              <div class="h2">代理</div>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="是否启动代理：" prop="proxyConfigEnable">
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.proxyConfigEnable"/>
+              </el-form-item>
+            </el-col>
+            <template v-if="formData.proxyConfigEnable">
+              <el-col :span="24">
+                <el-form-item label="代理地址：" prop="proxyConfigProxyUrl">
+                  <el-input v-model="formData.proxyConfigProxyUrl"
+                            placeholder="http://user:pwd@192.168.1.128:8080"/>
                 </el-form-item>
               </el-col>
             </template>

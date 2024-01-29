@@ -1,6 +1,6 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist-electron/main/index.js",
   "description": "一个frpc桌面客户端",
   "author": "刘嘉伟 <8473136@qq.com>",
@@ -24,7 +24,7 @@
     "build:electron": "npm run build && electron-builder",
     "build:electron:mac": "npm run build && electron-builder --mac --x64 --arm64",
     "build:electron:win": "npm run build && electron-builder --win --arm64 --x64 --ia32",
-    "build:electron:linux": "npm run build && electron-builder --linux --arm64 --x64 --ia32",
+    "build:electron:linux": "npm run build && electron-builder --linux --arm64 --x64",
     "preview": "vite preview",
     "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
   },
