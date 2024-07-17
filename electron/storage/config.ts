@@ -22,6 +22,8 @@ export type Config = {
   tlsConfigServerName: string;
   proxyConfigEnable: boolean;
   proxyConfigProxyUrl: string;
+  systemSelfStart: boolean;
+  systemStartupConnect: boolean;
 };
 
 /**

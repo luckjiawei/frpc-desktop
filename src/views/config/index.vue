@@ -26,6 +26,8 @@ type Config = {
   tlsConfigServerName: string;
   proxyConfigEnable: boolean;
   proxyConfigProxyUrl: string;
+  systemSelfStart: boolean;
+  systemStartupConnect: boolean;
 };
 
 type Version = {
@@ -47,7 +49,9 @@ const formData = ref<Config>({
   tlsConfigTrustedCaFile: "",
   tlsConfigServerName: "",
   proxyConfigEnable: false,
-  proxyConfigProxyUrl: ""
+  proxyConfigProxyUrl: "",
+  systemSelfStart: false,
+  systemStartupConnect: false,
 });
 
 const loading = ref(1);
@@ -76,7 +80,7 @@ const rules = reactive<FormRules>({
   tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}],
   proxyConfigEnable: [{required: true, message: "请选择代理状态", trigger: "change"}],
   proxyConfigProxyUrl: [
-      {required: true, message: "请输入代理地址", trigger: "change"},
+    {required: true, message: "请输入代理地址", trigger: "change"},
     {
       pattern: /^https?\:\/\/(\w+:\w+@)?([a-zA-Z0-9.-]+)(:\d+)?$/,
       message: "请输入正确的代理地址",
@@ -339,6 +343,25 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="日志保留天数：" prop="logMaxDays">
                 <el-input-number class="!w-full" controls-position="right" v-model="formData.logMaxDays"/>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <div class="h2">系统配置</div>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="开机自启：" prop="systemSelfStart">
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.systemSelfStart"/>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="自动连接：" prop="systemStartupConnect">
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.systemStartupConnect"/>
               </el-form-item>
             </el-col>
             <el-col :span="24">
