@@ -1,5 +1,5 @@
 import {app, BrowserWindow, ipcMain, net, shell} from "electron";
-import {insertVersion} from "../storage/version";
+import {deleteVersionById, insertVersion} from "../storage/version";
 
 const fs = require("fs");
 const path = require("path");
@@ -86,7 +86,7 @@ export const initGitHubApi = () => {
     ipcMain.on("github.getFrpVersions", async event => {
         const request = net.request({
             method: "get",
-            url: "https://api.github.com/repos/fatedier/frp/releases"
+            url: "https://api.github.com/repos/fatedier/frp/releases?page=1&per_page=1000"
         });
         request.on("response", response => {
             let responseData: Buffer = Buffer.alloc(0);
@@ -104,6 +104,7 @@ export const initGitHubApi = () => {
                         const asset = getAdaptiveAsset(m.id);
                         if (asset) {
                             const absPath = `${downloadPath}/${asset.name}`;
+                            m.absPath = absPath;
                             m.download_completed = fs.existsSync(absPath);
                         }
                         return m;
@@ -162,6 +163,23 @@ export const initGitHubApi = () => {
             }
         });
     });
+
+    /**
+     * 删除下载
+     */
+    ipcMain.on("github.deleteVersion", async (event, args) => {
+        const {absPath, id} = args;
+        console.log('删除下载', args)
+        if (fs.existsSync(absPath)) {
+            deleteVersionById(id, () => {
+                fs.unlinkSync(absPath)
+            })
+        }
+        event.reply("Download.deleteVersion.hook", {
+            err: null,
+            data: "删除成功"
+        });
+    })
 
     /**
      * 打开GitHub

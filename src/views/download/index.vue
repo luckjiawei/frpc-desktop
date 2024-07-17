@@ -4,6 +4,7 @@ import {ipcRenderer} from "electron";
 import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {Icon} from "@iconify/vue";
+import {ElMessage} from "element-plus";
 
 defineComponent({
   name: "Download"
@@ -18,6 +19,7 @@ type Version = {
   name: string;
   published_at: string;
   download_completed: boolean;
+  absPath: string;
   assets: Asset[]
 };
 
@@ -42,6 +44,17 @@ const handleDownload = (version: Version) => {
   downloading.value.set(version.id, 0);
 };
 
+/**
+ * 删除下载
+ * @param version
+ */
+const handleDeleteVersion = (version: Version) => {
+  ipcRenderer.send("github.deleteVersion", {
+    id: version.id,
+    absPath: version.absPath
+  });
+}
+
 const handleInitDownloadHook = () => {
   ipcRenderer.on("Download.frpVersionHook", (event, args) => {
     loading.value--;
@@ -49,6 +62,7 @@ const handleInitDownloadHook = () => {
       m.published_at = moment(m.published_at).format("YYYY-MM-DD HH:mm:ss")
       return m as Version;
     }) as Array<Version>;
+    console.log(versions, 'versions')
   });
   // 进度监听
   ipcRenderer.on("Download.frpVersionDownloadOnProgress", (event, args) => {
@@ -67,6 +81,18 @@ const handleInitDownloadHook = () => {
       version.download_completed = true;
     }
   });
+  ipcRenderer.on("Download.deleteVersion.hook", (event, args) => {
+    const {err, data} = args
+    if (!err) {
+      loading.value++;
+      ElMessage({
+        type: "success",
+        message: "删除成功"
+      });
+      handleLoadVersions();
+    }
+
+  })
 };
 
 onMounted(() => {
@@ -81,6 +107,7 @@ onUnmounted(() => {
   ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnProgress");
   ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnCompleted");
   ipcRenderer.removeAllListeners("Download.frpVersionHook");
+  ipcRenderer.removeAllListeners("Download.deleteVersion.hook");
 });
 </script>
 <template>
@@ -96,7 +123,7 @@ onUnmounted(() => {
           <div class="left">
             <div class="mb-2">
               <el-tag>{{ version.name }}</el-tag>
-<!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
+              <!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
             </div>
             <div class="text-sm">
               发布时间：<span class="text-gray-00">{{
@@ -106,11 +133,25 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="right">
-          <span
-              class="primary-text text-sm font-bold ml-2"
-              v-if="version.download_completed"
-          >已下载</span
-          >
+            <div v-if="version.download_completed">
+              <el-button type="text">已下载</el-button>
+              <!--              <span-->
+              <!--                  class="primary-text text-sm font-bold ml-2"-->
+              <!--              >已下载</span>-->
+
+              <el-button type="text" class="danger-text" @click="handleDeleteVersion(version)">
+                <Icon class="mr-1" icon="material-symbols:delete"/>
+                删除
+              </el-button>
+              <!--              <div>-->
+              <!--                <Icon class="mr-1" icon="material-symbols:download-2"/>-->
+              <!--                <span-->
+              <!--                    class="danger-text text-sm font-bold ml-2"-->
+              <!--                >删除下载</span>-->
+              <!--              </div>-->
+
+            </div>
+
             <template v-else>
               <div class="w-32" v-if="downloading.has(version.id)">
                 <el-progress

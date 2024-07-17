@@ -1,6 +1,6 @@
 import {app, ipcMain, Notification} from "electron";
 import {Config, getConfig} from "../storage/config";
-import {listProxy} from "../storage/proxy";
+import {listProxy, Proxy} from "../storage/proxy";
 import {getVersionById} from "../storage/version";
 import treeKill from "tree-kill";
 
@@ -25,43 +25,42 @@ const getFrpcVersionWorkerPath = (
 ) => {
     getVersionById(versionId, (err2, version) => {
         if (!err2) {
-            callback(version["frpcVersionPath"]);
+            if (version) {
+                callback(version["frpcVersionPath"]);
+            }
         }
     });
 };
 
 /**
- * 生成配置文件
+ * 生成toml配置文件
+ * @param config
+ * @param proxys
  */
-export const generateConfig = (
-    config: Config,
-    callback: (configPath: string) => void
-) => {
-    listProxy((err3, proxys) => {
-        if (!err3) {
-            const proxyToml = proxys.map(m => {
-                let toml = `
+const genTomlConfig = (config: Config, proxys: Proxy[]) => {
+    const proxyToml = proxys.map(m => {
+        let toml = `
 [[proxies]]
 name = "${m.name}"
 type = "${m.type}"
 localIP = "${m.localIp}"
 localPort = ${m.localPort}
 `;
-                switch (m.type) {
-                    case "tcp":
-                        toml += `remotePort = ${m.remotePort}`;
-                        break;
-                    case "http":
-                    case "https":
-                        toml += `customDomains=[${m.customDomains.map(m => `"${m}"`)}]`;
-                        break;
-                    default:
-                        break;
-                }
+        switch (m.type) {
+            case "tcp":
+                toml += `remotePort = ${m.remotePort}`;
+                break;
+            case "http":
+            case "https":
+                toml += `customDomains=[${m.customDomains.map(m => `"${m}"`)}]`;
+                break;
+            default:
+                break;
+        }
 
-                return toml;
-            });
-            let toml = `
+        return toml;
+    });
+    const toml = `
 serverAddr = "${config.serverAddr}"
 serverPort = ${config.serverPort}
 auth.method = "${config.authMethod}"
@@ -82,17 +81,92 @@ ${config.proxyConfigEnable ? `
 transport.proxyURL = "${config.proxyConfigProxyUrl}"
 ` : ""}
 
-
 ${proxyToml.join("")}
       `;
+    return toml;
+}
 
-            // const configPath = path.join("frp.toml");
-            const filename = "frp.toml";
+
+/**
+ * 生成ini配置
+ * @param config
+ * @param proxys
+ */
+const genIniConfig = (config: Config, proxys: Proxy[]) => {
+    const proxyIni = proxys.map(m => {
+        let ini = `
+[${m.name}]
+type = "${m.type}"
+local_ip = "${m.localIp}"
+local_port = ${m.localPort}
+`;
+        switch (m.type) {
+            case "tcp":
+                ini += `remote_port = ${m.remotePort}`;
+                break;
+            case "http":
+            case "https":
+                ini += `custom_domains=[${m.customDomains.map(m => `"${m}"`)}]`;
+                break;
+            default:
+                break;
+        }
+
+        return ini;
+    });
+    const ini = `
+[common]
+server_addr = ${config.serverAddr}
+server_port = ${config.serverPort}
+authentication_method = "${config.authMethod}"
+auth_token = "${config.authToken}"
+log_file = "frpc.log"
+log_level = ${config.logLevel}
+log_max_days = ${config.logMaxDays}
+admin_addr = 127.0.0.1
+admin_port = 57400
+tls_enable = ${config.tlsConfigEnable}
+${config.tlsConfigEnable ? `
+tls_cert_file = ${config.tlsConfigCertFile}
+tls_key_file = ${config.tlsConfigKeyFile}
+tls_trusted_ca_file = ${config.tlsConfigTrustedCaFile}
+tls_server_name = ${config.tlsConfigServerName}
+` : ""}
+${config.proxyConfigEnable ? `
+http_proxy = "${config.proxyConfigProxyUrl}"
+` : ""}
+
+${proxyIni.join("")}
+    `
+    return ini;
+}
+
+/**
+ * 生成配置文件
+ */
+export const generateConfig = (
+    config: Config,
+    callback: (configPath: string) => void
+) => {
+    listProxy((err3, proxys) => {
+        if (!err3) {
+            console.log(config, 'config')
+            const {currentVersion} = config;
+            let filename = null;
+            let configContent = "";
+            if (currentVersion < 124395282) {
+                // 版本小于v0.52.0
+                filename = "frp.ini";
+                configContent = genIniConfig(config, proxys)
+            } else {
+                filename = "frp.toml";
+                configContent = genTomlConfig(config, proxys)
+            }
             const configPath = path.join(app.getPath("userData"), filename)
             console.debug("生成配置成功", configPath)
             fs.writeFile(
                 configPath, // 配置文件目录
-                toml, // 配置文件内容
+                configContent, // 配置文件内容
                 {flag: "w"},
                 err => {
                     if (!err) {
@@ -111,6 +185,7 @@ ${proxyToml.join("")}
  * @param configPath
  */
 const startFrpcProcess = (commandPath: string, configPath: string) => {
+    console.log(commandPath, 'commandP')
     const command = `${commandPath} -c ${configPath}`;
     console.info("启动", command)
     frpcProcess = spawn(command, {
@@ -124,7 +199,8 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
     });
     frpcProcess.stdout.on("error", data => {
         console.log("启动错误", data)
-        stopFrpcProcess()
+        stopFrpcProcess(() => {
+        })
     });
     frpcStatusListener = setInterval(() => {
         const status = frpcProcessStatus()
@@ -196,6 +272,35 @@ export const frpcProcessStatus = () => {
     }
 }
 
+/**
+ * 启动frpc流程
+ * @param config
+ */
+export const startFrpWorkerProcess = (config: Config) => {
+    getFrpcVersionWorkerPath(
+        config.currentVersion,
+        (frpcVersionPath: string) => {
+            console.log(1, '1')
+            if (frpcVersionPath) {
+                generateConfig(config, configPath => {
+                    const platform = process.platform;
+                    if (platform === 'win32') {
+                        startFrpcProcess(
+                            path.join(frpcVersionPath, "frpc.exe"),
+                            configPath
+                        );
+                    } else {
+                        startFrpcProcess(
+                            path.join(frpcVersionPath, "frpc"),
+                            configPath
+                        );
+                    }
+                });
+            }
+        }
+    );
+}
+
 
 export const initFrpcApi = () => {
     ipcMain.handle("frpc.running", async (event, args) => {
@@ -206,38 +311,21 @@ export const initFrpcApi = () => {
         getConfig((err1, config) => {
             if (!err1) {
                 if (config) {
-                    getFrpcVersionWorkerPath(
-                        config.currentVersion,
-                        (frpcVersionPath: string) => {
-                            generateConfig(config, configPath => {
-                                const platform = process.platform;
-                                if (platform === 'win32') {
-                                    startFrpcProcess(
-                                        path.join(frpcVersionPath, "frpc.exe"),
-                                        configPath
-                                    );
-                                } else {
-                                    startFrpcProcess(
-                                        path.join(frpcVersionPath, "frpc"),
-                                        configPath
-                                    );
-                                }
-                            });
-                        }
-                    );
+                    startFrpWorkerProcess(config)
                 } else {
                     event.reply(
-                        "Home.frpc.start.error.hook",
-                        "请先前往设置页面，修改配置后再启动"
+                        "Home.frpc.start.error.hook", "请先前往设置页面，修改配置后再启动"
                     );
                 }
             }
         });
+
     });
 
     ipcMain.on("frpc.stop", () => {
         if (frpcProcess && !frpcProcess.killed) {
-            stopFrpcProcess()
+            stopFrpcProcess(() => {
+            })
         }
     });
 };
