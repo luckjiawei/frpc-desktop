@@ -26,6 +26,10 @@ type Config = {
   tlsConfigServerName: string;
   proxyConfigEnable: boolean;
   proxyConfigProxyUrl: string;
+  systemSelfStart: boolean;
+  systemStartupConnect: boolean;
+  user: string;
+  metaToken: string;
 };
 
 type Version = {
@@ -47,7 +51,11 @@ const formData = ref<Config>({
   tlsConfigTrustedCaFile: "",
   tlsConfigServerName: "",
   proxyConfigEnable: false,
-  proxyConfigProxyUrl: ""
+  proxyConfigProxyUrl: "",
+  systemSelfStart: false,
+  systemStartupConnect: false,
+  user: "",
+  metaToken: ""
 });
 
 const loading = ref(1);
@@ -76,13 +84,16 @@ const rules = reactive<FormRules>({
   tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}],
   proxyConfigEnable: [{required: true, message: "请选择代理状态", trigger: "change"}],
   proxyConfigProxyUrl: [
-      {required: true, message: "请输入代理地址", trigger: "change"},
+    {required: true, message: "请输入代理地址", trigger: "change"},
     {
       pattern: /^https?\:\/\/(\w+:\w+@)?([a-zA-Z0-9.-]+)(:\d+)?$/,
       message: "请输入正确的代理地址",
       trigger: "blur"
     }
   ],
+  systemSelfStart: [
+    {required: true, message: "请选择是否开机自启", trigger: "change"},
+  ]
 });
 
 const versions = ref<Array<Version>>([]);
@@ -212,6 +223,22 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="24">
               <el-form-item label="服务器地址：" prop="serverAddr">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        Frps服务端地址 <br/> 支持 <span class="font-black text-[#5A3DAA]">域名</span> <span class="font-black text-[#5A3DAA]">IP</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  服务器地址：
+                </template>
                 <el-input
                     v-model="formData.serverAddr"
                     placeholder="127.0.0.1"
@@ -238,6 +265,7 @@ onUnmounted(() => {
                     clearable
                 >
                   <el-option label="token" value="token"></el-option>
+                  <el-option label="多用户" value="multiuser"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
@@ -247,6 +275,24 @@ onUnmounted(() => {
                     placeholder="token"
                     type="password"
                     v-model="formData.authToken"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
+              <el-form-item label="user：" prop="user">
+                <el-input
+                    placeholder="user"
+                    type="password"
+                    v-model="formData.user"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
+              <el-form-item label="meta_token：" prop="meta_token">
+                <el-input
+                    placeholder="meta_token"
+                    type="password"
+                    v-model="formData.meta_token"
                 />
               </el-form-item>
             </el-col>
@@ -339,6 +385,58 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="日志保留天数：" prop="logMaxDays">
                 <el-input-number class="!w-full" controls-position="right" v-model="formData.logMaxDays"/>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <div class="h2">系统配置</div>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="开机自启：" prop="systemSelfStart">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        开机自动启动 <br/><span class="font-black text-[#5A3DAA]">Frpc Desktop</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  开机自启：
+                </template>
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.systemSelfStart"/>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="自动连接：" prop="systemStartupConnect">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        启动软件后是否<span class="font-black text-[#5A3DAA]">自动连接</span>服务器
+
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  自动连接：
+                </template>
+                <el-switch active-text="开"
+                           inline-prompt
+                           inactive-text="关"
+                           v-model="formData.systemStartupConnect"/>
               </el-form-item>
             </el-col>
             <el-col :span="24">
