@@ -7,6 +7,7 @@ import treeKill from "tree-kill";
 const fs = require("fs");
 const path = require("path");
 const {exec, spawn} = require("child_process");
+const log = require('electron-log');
 export let frpcProcess = null;
 const runningCmd = {
     commandPath: null,
@@ -200,9 +201,8 @@ export const generateConfig = (
  * @param configPath
  */
 const startFrpcProcess = (commandPath: string, configPath: string) => {
-    console.log(app.getPath("userData") + "\\" + commandPath, 'commandP')
+    log.info(`启动frpc 目录：${app.getPath("userData")} 命令：${commandPath}`,)
     const command = `${commandPath} -c ${configPath}`;
-    console.info("启动", command)
     frpcProcess = spawn(command, {
         cwd: app.getPath("userData"),
         shell: true
@@ -210,17 +210,17 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
     runningCmd.commandPath = commandPath;
     runningCmd.configPath = configPath;
     frpcProcess.stdout.on("data", data => {
-        console.debug(`命令输出: ${data}`);
+        log.debug(`启动输出：${data}`)
     });
     frpcProcess.stdout.on("error", data => {
-        console.log("启动错误", data)
+        log.error(`启动错误：${data}`)
         stopFrpcProcess(() => {
         })
     });
     frpcStatusListener = setInterval(() => {
         const status = frpcProcessStatus()
         if (!status) {
-            console.log("连接已断开")
+            log.info("连接已断开")
             new Notification({
                 title: "Frpc Desktop",
                 body: "连接已断开，请前往日志查看原因"
@@ -240,7 +240,7 @@ export const reloadFrpcProcess = () => {
                 if (config) {
                     generateConfig(config, configPath => {
                         const command = `${runningCmd.commandPath} reload -c ${configPath}`;
-                        console.info("重启", command);
+                        log.info(`重启：${command}`)
                         exec(command, {
                             cwd: app.getPath("userData"),
                             shell: true

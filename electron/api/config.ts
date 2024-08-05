@@ -2,12 +2,14 @@ import {app, ipcMain} from "electron";
 import {getConfig, saveConfig} from "../storage/config";
 import {listVersion} from "../storage/version";
 
+const log = require('electron-log');
+
 export const initConfigApi = () => {
     ipcMain.on("config.saveConfig", async (event, args) => {
         saveConfig(args, (err, numberOfUpdated, upsert) => {
             if (!err) {
                 const start = args.systemSelfStart || false;
-                console.log('开机自启', start)
+                log.info("开启自启状态", start)
                 app.setLoginItemSettings({
                     openAtLogin: start, //win
                     openAsHidden: start,  //macOs
