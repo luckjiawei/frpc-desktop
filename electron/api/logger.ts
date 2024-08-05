@@ -18,6 +18,7 @@ export const initLoggerApi = () => {
       event.reply("Logger.getLog.hook", content);
     });
   });
+
   ipcMain.on("logger.update", (event, args) => {
     fs.watch(logPath, (eventType, filename) => {
       if (eventType === "change") {

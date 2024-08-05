@@ -38,7 +38,7 @@ export const saveConfig = (
     cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
 ) => {
     document["_id"] = "1";
-    log.debug("保存日志", document)
+    log.debug(`保存日志 ${JSON.stringify(document)}`)
     configDB.update({_id: "1"}, document, {upsert: true}, cb);
 };
 

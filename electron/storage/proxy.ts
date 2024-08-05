@@ -1,6 +1,7 @@
 import Datastore from "nedb";
 import path from "path";
 import { app } from "electron";
+const log = require('electron-log');
 
 const proxyDB = new Datastore({
   autoload: true,
@@ -25,7 +26,7 @@ export const insertProxy = (
   proxy: Proxy,
   cb?: (err: Error | null, document: Proxy) => void
 ) => {
-  console.log("新增", proxy);
+  log.debug(`新增代理：${JSON.stringify(proxy)}`);
   proxyDB.insert(proxy, cb);
 };
 
@@ -38,6 +39,7 @@ export const deleteProxyById = (
   _id: string,
   cb?: (err: Error | null, n: number) => void
 ) => {
+  log.debug(`删除代理：${_id}`);
   proxyDB.remove({ _id: _id }, cb);
 };
 
@@ -48,6 +50,7 @@ export const updateProxyById = (
   proxy: Proxy,
   cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
 ) => {
+  log.debug(`修改代理：${proxy}`);
   proxyDB.update({ _id: proxy._id }, proxy, {}, cb);
 };
 

@@ -8,6 +8,7 @@ import {initFrpcApi, startFrpWorkerProcess, stopFrpcProcess} from "../api/frpc";
 import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
 import {getConfig} from "../storage/config";
+import log from "electron-log";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -47,6 +48,8 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 let isQuiting;
+log.transports.file.level = 'debug';
+log.transports.console.level = "debug";
 
 async function createWindow() {
     win = new BrowserWindow({
@@ -114,6 +117,7 @@ async function createWindow() {
 }
 
 export const createTray = () => {
+    log.info(`当前环境 platform：${process.platform} arch：${process.arch}`)
     let menu: Array<(MenuItemConstructorOptions) | (MenuItem)> = [
         {
             label: '显示主窗口', click: function () {
@@ -147,6 +151,7 @@ export const createTray = () => {
         if (!err) {
             if (config) {
                 if (config.systemStartupConnect) {
+                    log.info(`已开启自动连接 正在自动连接服务器`)
                     startFrpWorkerProcess(config)
                 }
             }
@@ -187,6 +192,7 @@ app.on("activate", () => {
 });
 
 app.on('before-quit', () => {
+    log.info("退出")
     isQuiting = true;
 })
 
@@ -208,8 +214,7 @@ ipcMain.handle("open-win", (_, arg) => {
 });
 
 ipcMain.on('open-url', (event, url) => {
-    shell.openExternal(url).then(r => {
-    });
+    shell.openExternal(url).then(r => {});
 });
 
 initGitHubApi();

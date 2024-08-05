@@ -1,7 +1,7 @@
 import Datastore from "nedb";
 import path from "path";
-import {Proxy} from "./proxy";
 import {app} from "electron";
+const log = require('electron-log');
 
 const versionDB = new Datastore({
     autoload: true,
@@ -17,6 +17,7 @@ export const insertVersion = (
     version: any,
     cb?: (err: Error | null, document: any) => void
 ) => {
+    log.debug(`新增版本：${JSON.stringify(version)}`);
     versionDB.insert(version, cb);
 };
 
@@ -38,5 +39,6 @@ export const getVersionById = (
 };
 
 export const deleteVersionById = (id: string, callback: (err: Error | null, document: any) => void) => {
+    log.debug(`删除版本：${id}`);
     versionDB.remove({id: id}, callback);
 }

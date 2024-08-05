@@ -49,7 +49,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Logger.getLog.hook");
-  ipcRenderer.removeAllListeners("Logger.update.hook");
 });
 </script>
 <template>

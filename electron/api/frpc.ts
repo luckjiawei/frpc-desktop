@@ -165,11 +165,9 @@ export const generateConfig = (
 ) => {
     listProxy((err3, proxys) => {
         if (!err3) {
-            console.log(config, 'config')
             const {currentVersion} = config;
             let filename = null;
             let configContent = "";
-            console.log(currentVersion, "currentVersion")
             if (currentVersion < 124395282) {
                 // 版本小于v0.52.0
                 filename = "frp.ini";
@@ -179,7 +177,7 @@ export const generateConfig = (
                 configContent = genTomlConfig(config, proxys)
             }
             const configPath = path.join(app.getPath("userData"), filename)
-            console.debug("生成配置成功", configPath)
+            log.info(`生成配置成功 配置路径：${configPath}`)
             fs.writeFile(
                 configPath, // 配置文件目录
                 configContent, // 配置文件内容
@@ -219,8 +217,8 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
     });
     frpcStatusListener = setInterval(() => {
         const status = frpcProcessStatus()
+        log.debug(`监听frpc子进程状态：${status}`)
         if (!status) {
-            log.info("连接已断开")
             new Notification({
                 title: "Frpc Desktop",
                 body: "连接已断开，请前往日志查看原因"
@@ -240,7 +238,7 @@ export const reloadFrpcProcess = () => {
                 if (config) {
                     generateConfig(config, configPath => {
                         const command = `${runningCmd.commandPath} reload -c ${configPath}`;
-                        log.info(`重启：${command}`)
+                        log.info(`重载配置：${command}`)
                         exec(command, {
                             cwd: app.getPath("userData"),
                             shell: true
@@ -259,9 +257,9 @@ export const stopFrpcProcess = (callback?: () => void) => {
     if (frpcProcess) {
         treeKill(frpcProcess.pid, (error: Error) => {
             if (error) {
-                console.log("关闭失败", frpcProcess.pid, error)
+                log.error(`关闭frpc子进程失败 pid：${frpcProcess.pid} error：${error}`)
             } else {
-                console.log('关闭成功')
+                log.info(`关闭frpc子进程成功`)
                 frpcProcess = null
                 clearInterval(frpcStatusListener)
             }
@@ -295,7 +293,6 @@ export const startFrpWorkerProcess = async (config: Config) => {
     getFrpcVersionWorkerPath(
         config.currentVersion,
         (frpcVersionPath: string) => {
-            console.log(1, '1')
             if (frpcVersionPath) {
                 generateConfig(config, configPath => {
                     const platform = process.platform;
@@ -340,6 +337,7 @@ export const initFrpcApi = () => {
     ipcMain.on("frpc.stop", () => {
         if (frpcProcess && !frpcProcess.killed) {
             stopFrpcProcess(() => {
+
             })
         }
     });

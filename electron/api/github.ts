@@ -7,7 +7,7 @@ const zlib = require("zlib");
 const {download} = require("electron-dl");
 const unzipper = require('unzipper');
 const AdmZip = require('adm-zip');
-
+const log = require('electron-log');
 
 const versionRelation = {
     "win32_x64": ["window", "amd64"],
@@ -21,6 +21,7 @@ const versionRelation = {
 const unTarGZ = (tarGzPath: string, targetPath: string) => {
     const tar = require("tar");
     const unzip = zlib.createGunzip();
+    log.debug(`开始解压tar.gz：${tarGzPath} 目标目录：${targetPath}`);
     const readStream = fs.createReadStream(tarGzPath);
     if (!fs.existsSync(unzip)) {
         fs.mkdirSync(targetPath, {recursive: true});
@@ -31,7 +32,9 @@ const unTarGZ = (tarGzPath: string, targetPath: string) => {
             filter: filePath => path.basename(filePath) === "frpc"
         })
     );
-    return path.join("frp", path.basename(tarGzPath, ".tar.gz"));
+    const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
+    log.debug(`解压完成 解压后目录：${frpcPath}`);
+    return frpcPath;
     // .on("finish", () => {
     //   console.log("解压完成！");
     // });
@@ -41,24 +44,27 @@ const unZip = (zipPath: string, targetPath: string) => {
     if (!fs.existsSync(path.join(targetPath, path.basename(zipPath, ".zip")))) {
         fs.mkdirSync(path.join(targetPath, path.basename(zipPath, ".zip")), {recursive: true});
     }
+    log.debug(`开始解压zip：${zipPath} 目标目录：${targetPath}`);
     /**
      * unzipper解压
      */
-    // fs.createReadStream(zipPath)
-    //     .pipe(unzipper.Extract({ path: targetPath }))
-    //     // 只解压frpc.exe
-    //     // .pipe(unzipper.ParseOne('frpc'))
-    //     // .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
-    //     .on('finish', () => {
-    //         console.log('File extracted successfully.');
-    //     })
-    //     .on('error', (err) => {
-    //         console.error('Error extracting file:', err);
-    //     });
+        // fs.createReadStream(zipPath)
+        //     .pipe(unzipper.Extract({ path: targetPath }))
+        //     // 只解压frpc.exe
+        //     // .pipe(unzipper.ParseOne('frpc'))
+        //     // .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
+        //     .on('finish', () => {
+        //         console.log('File extracted successfully.');
+        //     })
+        //     .on('error', (err) => {
+        //         console.error('Error extracting file:', err);
+        //     });
 
     const zip = new AdmZip(zipPath)
     zip.extractAllTo(targetPath, true); // 第二个参数为 true，表示覆盖已存在的文件
-    return path.join("frp", path.basename(zipPath, ".zip"))
+    const frpcPath = path.join("frp", path.basename(zipPath, ".zip"));
+    log.debug(`解压完成 解压后目录：${frpcPath}`);
+    return frpcPath
 }
 
 export const initGitHubApi = () => {
@@ -73,7 +79,6 @@ export const initGitHubApi = () => {
         const {assets} = getVersion(versionId);
         const arch = process.arch;
         const platform = process.platform;
-        console.log(platform + '_' +arch)
         const asset = assets.find(
             f => {
                 const a = versionRelation[`${platform}_${arch}`]
@@ -85,7 +90,7 @@ export const initGitHubApi = () => {
             }
         );
         if (asset) {
-            console.log(asset.name)
+            log.info(`找到对应版本 ${asset.name}`)
         }
         return asset;
     };
@@ -119,6 +124,7 @@ export const initGitHubApi = () => {
                         }
                         return m;
                     });
+                log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
                 event.reply("Download.frpVersionHook", returnVersionsData);
             });
         });
@@ -131,6 +137,7 @@ export const initGitHubApi = () => {
     ipcMain.on("github.download", async (event, args) => {
         const version = getVersion(args);
         const asset = getAdaptiveAsset(args);
+        log.info(`开始下载frp version：${version} asset：${asset}`)
         const {browser_download_url} = asset;
         // 数据目录
         await download(BrowserWindow.getFocusedWindow(), browser_download_url, {
@@ -143,6 +150,7 @@ export const initGitHubApi = () => {
                 });
             },
             onCompleted: () => {
+                log.info(`frp下载完成 version：${version} asset：${asset}`)
                 const targetPath = path.resolve(path.join(app.getPath("userData"), "frp"));
                 const ext = path.extname(asset.name)
                 let frpcVersionPath = ""
@@ -152,7 +160,6 @@ export const initGitHubApi = () => {
                             `${asset.name}`
                         ),
                         targetPath)
-                    console.log(frpcVersionPath, '1')
                 } else if (ext === '.gz' && asset.name.includes(".tar.gz")) {
                     frpcVersionPath = unTarGZ(
                         path.join(
@@ -179,7 +186,6 @@ export const initGitHubApi = () => {
      */
     ipcMain.on("github.deleteVersion", async (event, args) => {
         const {absPath, id} = args;
-        console.log('删除下载', args)
         if (fs.existsSync(absPath)) {
             deleteVersionById(id, () => {
                 fs.unlinkSync(absPath)
