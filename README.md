@@ -27,7 +27,8 @@
 - [ ] 适配多用户
 ## 社区
 微信扫描加入开源项目交流群 广告勿进！！！
-![wechat-qr.png](wechat-qr.png)
+
+ <img src="wechat-qr.png" alt="Logo" width="120">
 
 ## 里程碑
 - 2024-07-17: 发布v1.0.3版本 修复已知bug 增加开机自启 增加删除frp版本
