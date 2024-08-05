@@ -63,8 +63,16 @@ localPort = ${m.localPort}
     const toml = `
 serverAddr = "${config.serverAddr}"
 serverPort = ${config.serverPort}
-auth.method = "${config.authMethod}"
+${config.authMethod === 'token' ? `
+auth.method = "token"
 auth.token = "${config.authToken}"
+` : ""}
+${config.authMethod === 'multiuser' ? `
+user = ${config.user}
+metadatas.token = ${config.metaToken}
+` : ""}
+
+
 log.to = "frpc.log"
 log.level = "${config.logLevel}"
 log.maxDays = ${config.logMaxDays}
@@ -118,8 +126,14 @@ local_port = ${m.localPort}
 [common]
 server_addr = ${config.serverAddr}
 server_port = ${config.serverPort}
-authentication_method = "${config.authMethod}"
-auth_token = "${config.authToken}"
+${config.authMethod === 'token' ? `
+authentication_method = ${config.authMethod}
+token = ${config.authToken}
+` : ""}
+${config.authMethod === 'multiuser' ? `
+user = ${config.user}
+meta_token = ${config.metaToken}
+` : ""}
 log_file = "frpc.log"
 log_level = ${config.logLevel}
 log_max_days = ${config.logMaxDays}
@@ -154,6 +168,7 @@ export const generateConfig = (
             const {currentVersion} = config;
             let filename = null;
             let configContent = "";
+            console.log(currentVersion, "currentVersion")
             if (currentVersion < 124395282) {
                 // 版本小于v0.52.0
                 filename = "frp.ini";
@@ -185,7 +200,7 @@ export const generateConfig = (
  * @param configPath
  */
 const startFrpcProcess = (commandPath: string, configPath: string) => {
-    console.log(commandPath, 'commandP')
+    console.log(app.getPath("userData") + "\\" + commandPath, 'commandP')
     const command = `${commandPath} -c ${configPath}`;
     console.info("启动", command)
     frpcProcess = spawn(command, {
@@ -276,7 +291,7 @@ export const frpcProcessStatus = () => {
  * 启动frpc流程
  * @param config
  */
-export const startFrpWorkerProcess = (config: Config) => {
+export const startFrpWorkerProcess = async (config: Config) => {
     getFrpcVersionWorkerPath(
         config.currentVersion,
         (frpcVersionPath: string) => {
