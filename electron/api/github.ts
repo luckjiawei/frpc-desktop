@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, net, shell} from "electron";
+import electron, {app, BrowserWindow, ipcMain, net, shell} from "electron";
 import {deleteVersionById, insertVersion} from "../storage/version";
 
 const fs = require("fs");
@@ -197,4 +197,8 @@ export const initGitHubApi = () => {
     ipcMain.on("github.open", () => {
         shell.openExternal("https://github.com/luckjiawei/frpc-desktop");
     })
+
+    electron.ipcMain.on("github.openReleases", () => {
+        electron.shell.openExternal("https://github.com/luckjiawei/frpc-desktop/releases");
+    });
 };

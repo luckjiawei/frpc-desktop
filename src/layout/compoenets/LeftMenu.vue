@@ -32,6 +32,11 @@ const handleOpenGitHub = () => {
   ipcRenderer.send("github.open")
 }
 
+const handleOpenGitHubReleases = () => {
+  ipcRenderer.send("github.openReleases")
+}
+
+
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
       f => !f.meta?.hidden
@@ -63,7 +68,7 @@ onMounted(() => {
         <Icon icon="mdi:github"/>
       </li>
     </ul>
-    <div class="version">
+    <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">
       v1.0.4
     </div>
   </div>

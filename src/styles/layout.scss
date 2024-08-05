@@ -55,6 +55,10 @@ $danger-color: #F56C6C;
     margin-top: auto;
     font-weight: bold;
     font-size: 14px;
+    cursor: pointer;
+  }
+  .version:hover {
+    animation: heartBeat 1s;
   }
 
   .menu-container {
