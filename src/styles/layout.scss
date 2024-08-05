@@ -67,16 +67,23 @@ $danger-color: #F56C6C;
       font-size: 20px;
       color: #ADADAD;
       margin-bottom: 10px;
+
+
     }
+
 
     .menu-selected {
       background: #EBE6F7;
       color: $primary-color;
     }
 
-    .menu:hover {
+    .menu:hover, .menu:focus, .menu:active, {
       color: $primary-color;
       cursor: pointer;
+
+      & > svg {
+        animation: swing 0.5s;
+      }
     }
 
 

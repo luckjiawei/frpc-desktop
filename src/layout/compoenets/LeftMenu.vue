@@ -45,14 +45,16 @@ onMounted(() => {
       <img src="/logo/64x64.png" class="logo" alt="Logo"/>
     </div>
     <ul class="menu-container">
+      <!--      enter-active-class="animate__animated animate__bounceIn"-->
+      <!--      leave-active-class="animate__animated animate__fadeOut"-->
       <li
-          class="menu"
+          class="menu animate__animated"
           :class="currentRoute?.name === r.name ? 'menu-selected' : ''"
           v-for="r in routes"
           :key="r.name"
           @click="handleMenuChange(r)"
       >
-        <Icon :icon="r?.meta?.icon as string"/>
+        <Icon class="animate__animated" :icon="r?.meta?.icon as string"/>
       </li>
       <li
           class="menu"
