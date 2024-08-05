@@ -5,6 +5,7 @@ import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {Icon} from "@iconify/vue";
 import {ElMessage} from "element-plus";
+import {useDebounceFn} from "@vueuse/core";
 
 defineComponent({
   name: "Download"
@@ -39,21 +40,21 @@ const handleLoadVersions = () => {
  * 下载
  * @param version
  */
-const handleDownload = (version: Version) => {
+const handleDownload = useDebounceFn((version: Version) => {
   ipcRenderer.send("github.download", version.id);
   downloading.value.set(version.id, 0);
-};
+}, 300);
 
 /**
  * 删除下载
  * @param version
  */
-const handleDeleteVersion = (version: Version) => {
+const handleDeleteVersion = useDebounceFn((version: Version) => {
   ipcRenderer.send("github.deleteVersion", {
     id: version.id,
     absPath: version.absPath
   });
-}
+}, 300);
 
 const handleInitDownloadHook = () => {
   ipcRenderer.on("Download.frpVersionHook", (event, args) => {

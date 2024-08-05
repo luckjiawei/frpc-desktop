@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {defineComponent, onMounted, onUnmounted, reactive, ref} from "vue";
 import {ipcRenderer} from "electron";
-import {ElMessage, FormInstance, FormRules} from "element-plus";
+import {ElMessage, ElMessageBox, FormInstance, FormRules} from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {useDebounceFn} from "@vueuse/core";
 import {clone} from "@/utils/clone";
@@ -79,15 +79,15 @@ const rules = reactive<FormRules>({
   metaToken: [
     {required: true, message: "请输入多用户令牌", trigger: "blur"}
   ],
-  authMethod: [{ required: true, message: "请选择验证方式", trigger: "blur" }],
-  authToken: [{required: true, message: "请输入token值 ", trigger: "blur"}],
+  authMethod: [{required: true, message: "请选择验证方式", trigger: "blur"}],
+  authToken: [{required: true, message: "请输入 Token 值 ", trigger: "blur"}],
   logLevel: [{required: true, message: "请选择日志级别 ", trigger: "blur"}],
   logMaxDays: [{required: true, message: "请输入日志保留天数 ", trigger: "blur"}],
-  tlsConfigEnable: [{required: true, message: "请选择TLS状态", trigger: "change"}],
-  tlsConfigCertFile: [{required: true, message: "请选择TLS证书文件", trigger: "change"}],
-  tlsConfigKeyFile: [{required: true, message: "请选择TLS密钥文件", trigger: "change"}],
-  tlsConfigTrustedCaFile: [{required: true, message: "请选择CA证书文件", trigger: "change"}],
-  tlsConfigServerName: [{required: true, message: "请输入TLS Server名称", trigger: "blur"}],
+  tlsConfigEnable: [{required: true, message: "请选择 TLS 状态", trigger: "change"}],
+  tlsConfigCertFile: [{required: true, message: "请选择 TLS 证书文件", trigger: "change"}],
+  tlsConfigKeyFile: [{required: true, message: "请选择 TLS 密钥文件", trigger: "change"}],
+  tlsConfigTrustedCaFile: [{required: true, message: "请选择 CA 证书文件", trigger: "change"}],
+  tlsConfigServerName: [{required: true, message: "请输入 TLS Server 名称", trigger: "blur"}],
   proxyConfigEnable: [{required: true, message: "请选择代理状态", trigger: "change"}],
   proxyConfigProxyUrl: [
     {required: true, message: "请输入代理地址", trigger: "change"},
@@ -119,6 +119,17 @@ const handleSubmit = useDebounceFn(() => {
 const handleLoadVersions = () => {
   ipcRenderer.send("config.versions");
 };
+
+const handleAuthMethodChange = e => {
+  if (e === 'multiuser') {
+    ElMessageBox.alert("多用户插件需要 Frp版本 >= <span class=\"font-black text-[#5A3DAA]\">v0.31.0</span> 请自行选择正确版本", "提示", {
+      // if you want to disable its autofocus
+      autofocus: false,
+      confirmButtonText: "知道了",
+      dangerouslyUseHTMLString: true,
+    })
+  }
+}
 
 onMounted(() => {
   ipcRenderer.send("config.getConfig");
@@ -184,7 +195,7 @@ onUnmounted(() => {
             :rules="rules"
             label-position="right"
             ref="formRef"
-            label-width="140"
+            label-width="130"
         >
           <el-row :gutter="10">
             <el-col :span="24">
@@ -229,6 +240,23 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="24">
               <el-form-item label="服务器地址：" prop="serverAddr">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        Frps服务端地址 <br/> 支持 <span class="font-black text-[#5A3DAA]">域名</span>、<span
+                          class="font-black text-[#5A3DAA]">IP</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  服务器地址：
+                </template>
                 <el-input
                     v-model="formData.serverAddr"
                     placeholder="127.0.0.1"
@@ -249,21 +277,107 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="12">
               <el-form-item label="验证方式：" prop="authMethod">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        width="200"
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]">auth.method</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  验证方式：
+                </template>
                 <el-select
                     v-model="formData.authMethod"
                     placeholder="请选择验证方式"
+                    @change="handleAuthMethodChange"
                     clearable
                 >
-                  <el-option label="token" value="token"></el-option>
+                  <el-option label="令牌（token）" value="token"></el-option>
+                  <el-option label="多用户" value="multiuser"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="24" v-if="formData.authMethod === 'token'">
-              <el-form-item label="token：" prop="authToken">
+              <el-form-item label="令牌：" prop="authToken">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                        width="200"
+                    >
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]">auth.token</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  令牌：
+                </template>
                 <el-input
                     placeholder="token"
                     type="password"
                     v-model="formData.authToken"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
+              <el-form-item label="用户：" prop="user">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]">user</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  用户：
+                </template>
+                <el-input
+                    placeholder="请输入用户"
+                    v-model="formData.user"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
+              <el-form-item label="用户令牌：" prop="metaToken">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        width="200"
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]">meta_token</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  用户令牌：
+                </template>
+                <el-input
+                    placeholder="请输入用户令牌"
+                    type="password"
+                    v-model="formData.metaToken"
                 />
               </el-form-item>
             </el-col>
@@ -280,7 +394,24 @@ onUnmounted(() => {
             </el-col>
             <template v-if="formData.tlsConfigEnable">
               <el-col :span="24">
-                <el-form-item label="TLS证书文件：" prop="tlsConfigCertFile">
+                <el-form-item label="TLS证书文件：" prop="tlsConfigCertFile" label-width="180">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover
+                          width="260"
+                          placement="top"
+                          trigger="hover"
+                      >
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.certFile</span>
+                        </template>
+                        <template #reference>
+                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        </template>
+                      </el-popover>
+                    </div>
+                    TLS 证书文件：
+                  </template>
                   <el-input
                       class="button-input"
                       v-model="formData.tlsConfigCertFile"
@@ -291,18 +422,52 @@ onUnmounted(() => {
                 </el-form-item>
               </el-col>
               <el-col :span="24">
-                <el-form-item label="TLS密钥文件：" prop="tlsConfigKeyFile">
+                <el-form-item label="TLS密钥文件：" prop="tlsConfigKeyFile" label-width="180">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover
+                          width="260"
+                          placement="top"
+                          trigger="hover"
+                      >
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.keyFile</span>
+                        </template>
+                        <template #reference>
+                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        </template>
+                      </el-popover>
+                    </div>
+                    TLS 密钥文件：
+                  </template>
                   <el-input
                       class="button-input"
                       v-model="formData.tlsConfigKeyFile"
-                      placeholder="请选择TLS密钥文件"
+                      placeholder="请选择 TLS 密钥文件"
                       readonly
                   />
                   <el-button class="ml-2" type="primary" @click="handleSelectFile(2, ['key'])">选择</el-button>
                 </el-form-item>
               </el-col>
               <el-col :span="24">
-                <el-form-item label="CA证书文件：" prop="tlsConfigTrustedCaFile">
+                <el-form-item label="CA证书文件：" prop="tlsConfigTrustedCaFile" label-width="180">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover
+                          width="310"
+                          placement="top"
+                          trigger="hover"
+                      >
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.trustedCaFile</span>
+                        </template>
+                        <template #reference>
+                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        </template>
+                      </el-popover>
+                    </div>
+                    CA 证书文件：
+                  </template>
                   <el-input
                       class="button-input"
                       v-model="formData.tlsConfigTrustedCaFile"
@@ -313,10 +478,27 @@ onUnmounted(() => {
                 </el-form-item>
               </el-col>
               <el-col :span="24">
-                <el-form-item label="TLS Server名称：" prop="tlsConfigServerName">
+                <el-form-item label="TLS Server 名称：" prop="tlsConfigServerName" label-width="180">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover
+                          width="300"
+                          placement="top"
+                          trigger="hover"
+                      >
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.serverName</span>
+                        </template>
+                        <template #reference>
+                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        </template>
+                      </el-popover>
+                    </div>
+                    TLS Server 名称：
+                  </template>
                   <el-input
                       v-model="formData.tlsConfigServerName"
-                      placeholder="请输入TLS Server名称"
+                      placeholder="请输入TLS Server 名称"
                   />
                 </el-form-item>
               </el-col>
@@ -335,6 +517,23 @@ onUnmounted(() => {
             <template v-if="formData.proxyConfigEnable">
               <el-col :span="24">
                 <el-form-item label="代理地址：" prop="proxyConfigProxyUrl">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover
+                          width="300"
+                          placement="top"
+                          trigger="hover"
+                      >
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]">transport.proxyURL</span>
+                        </template>
+                        <template #reference>
+                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        </template>
+                      </el-popover>
+                    </div>
+                    代理地址：
+                  </template>
                   <el-input v-model="formData.proxyConfigProxyUrl"
                             placeholder="http://user:pwd@192.168.1.128:8080"/>
                 </el-form-item>

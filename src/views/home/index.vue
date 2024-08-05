@@ -5,6 +5,7 @@ import {ipcRenderer} from "electron";
 import {Icon} from "@iconify/vue";
 import {ElMessageBox} from "element-plus";
 import router from "@/router";
+import {useDebounceFn} from "@vueuse/core";
 
 defineComponent({
   name: "Home"
@@ -20,13 +21,13 @@ const handleStopFrpc = () => {
   ipcRenderer.send("frpc.stop");
 };
 
-const handleButtonClick = () => {
+const handleButtonClick = useDebounceFn(() => {
   if (running.value) {
     handleStopFrpc();
   } else {
     handleStartFrpc();
   }
-};
+}, 300);
 
 onMounted(() => {
   setInterval(() => {
@@ -95,18 +96,19 @@ onUnmounted(() => {
             <div class="pl-8 h-28 w-52 flex flex-col justify-between">
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
-                  <Icon v-if="running" class="text-[#7EC050] inline-block relative top-1" icon="material-symbols:check-circle-rounded" />
-                  <Icon v-else class="text-[#E47470] inline-block relative top-1" icon="material-symbols:error" />
+                  <Icon v-if="running" class="text-[#7EC050] inline-block relative top-1"
+                        icon="material-symbols:check-circle-rounded"/>
+                  <Icon v-else class="text-[#E47470] inline-block relative top-1" icon="material-symbols:error"/>
                   Frpc {{ running ? "已启动" : "已断开" }}
                 </div>
               </transition>
-<!--              <el-button-->
-<!--                  class="block"-->
-<!--                  type="text"-->
-<!--                  v-if="running"-->
-<!--                  @click="$router.replace({ name: 'Logger' })"-->
-<!--              >查看日志-->
-<!--              </el-button>-->
+              <!--              <el-button-->
+              <!--                  class="block"-->
+              <!--                  type="text"-->
+              <!--                  v-if="running"-->
+              <!--                  @click="$router.replace({ name: 'Logger' })"-->
+              <!--              >查看日志-->
+              <!--              </el-button>-->
               <div class="w-full justify-center text-center">
                 <el-link v-if="running" type="primary" @click="$router.replace({ name: 'Logger' })">查看日志</el-link>
               </div>
