@@ -52,8 +52,12 @@ async function createWindow() {
     win = new BrowserWindow({
         title: "Frpc Desktop",
         icon: join(process.env.VITE_PUBLIC, "logo/16x16.png"),
+        width: 800,
+        height: 600,
         minWidth: 800,
         minHeight: 600,
+        maxWidth: 800,
+        maxHeight: 600,
         webPreferences: {
             preload,
             // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production

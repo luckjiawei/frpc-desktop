@@ -45,6 +45,17 @@ $danger-color: #F56C6C;
   background: #fff;
   width: 60px;
   height: 100vh;
+  display: flex; /* 设置为 flexbox */
+  flex-direction: column; /* 纵向排列子元素 */
+
+  .version {
+    height: 40px;
+    color: $primary-color;
+    text-align: center;
+    margin-top: auto;
+    font-weight: bold;
+    font-size: 14px;
+  }
 
   .menu-container {
 
@@ -67,6 +78,9 @@ $danger-color: #F56C6C;
       color: $primary-color;
       cursor: pointer;
     }
+
+
+
   }
 }
 
