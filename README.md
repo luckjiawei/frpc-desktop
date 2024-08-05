@@ -16,14 +16,29 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉 一个Frp Client 跨平台桌面端
+    🎉 一个 Frp 跨平台桌面客户端 支持多个frp版本
     <br />
   </p>
 </div>
 
+## TODO
+- [x] 开机自启动
+- [ ] 支持配置的导出导入
+- [ ] 适配多用户 user & meta_token
+- [ ] 优化配置
+- [ ] 便携版
+
 ## 里程碑
+- 2024-07-17: 发布v1.0.3版本 修复已知bug 增加开机自启 增加删除frp版本
+- 2024-01-29: 发布v1.0.2版本 增加Linux客户端和代理模式
 - 2023-12-01: 发布v1.0.1版本
 - 2023-11-28: 发布v1.0版本
+
+## 社区
+微信扫描加入开源项目交流群 广告勿进！！！
+
+ <img src="wechat-qr.png" alt="Logo" width="200">
+
 
 ## 演示
 
@@ -39,6 +54,8 @@
 
 [MIT](LICENSE)
 
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/luckjiawei/frpc-desktop.svg?variant=adaptive)](https://starchart.cc/luckjiawei/frpc-desktop)
 <!-- MARKDOWN LINKS & IMAGES -->
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [forks-url]: https://github.com/luckjiawei/frpc-desktop/network/members

@@ -4,9 +4,10 @@ import node_path, {join} from "node:path";
 import {initGitHubApi} from "../api/github";
 import {initConfigApi} from "../api/config";
 import {initProxyApi} from "../api/proxy";
-import {initFrpcApi, stopFrpcProcess} from "../api/frpc";
+import {initFrpcApi, startFrpWorkerProcess, stopFrpcProcess} from "../api/frpc";
 import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
+import {getConfig} from "../storage/config";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -134,6 +135,16 @@ export const createTray = () => {
     // 托盘双击打开
     tray.on('double-click', () => {
         win.show();
+    })
+
+    getConfig((err, config) => {
+        if (!err) {
+            if (config) {
+                if (config.systemStartupConnect) {
+                    startFrpWorkerProcess(config)
+                }
+            }
+        }
     })
 }
 

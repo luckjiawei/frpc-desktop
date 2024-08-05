@@ -1,5 +1,6 @@
 $main-bg: #F3F3F3;
 $primary-color: #5F3BB0;
+$danger-color: #F56C6C;
 
 .main-container {
   background: $main-bg;
@@ -83,4 +84,8 @@ $primary-color: #5F3BB0;
 
 .primary-text {
   color: $primary-color;
+}
+
+.danger-text {
+  color: $danger-color !important;
 }

@@ -229,23 +229,6 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="24">
               <el-form-item label="服务器地址：" prop="serverAddr">
-                <template #label>
-                  <div class="h-full flex items-center mr-1">
-                    <el-popover
-                        placement="top"
-                        trigger="hover"
-                    >
-                      <template #default>
-                        Frps服务端地址 <br/> 支持 <span class="font-black text-[#5A3DAA]">域名</span>、<span
-                          class="font-black text-[#5A3DAA]">IP</span>
-                      </template>
-                      <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
-                      </template>
-                    </el-popover>
-                  </div>
-                  服务器地址：
-                </template>
                 <el-input
                     v-model="formData.serverAddr"
                     placeholder="127.0.0.1"
@@ -266,89 +249,21 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="12">
               <el-form-item label="验证方式：" prop="authMethod">
-                <template #label>
-                  <div class="h-full flex items-center mr-1">
-                    <el-popover
-                        width="200"
-                        placement="top"
-                        trigger="hover"
-                    >
-                      <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]">auth.method</span>
-                      </template>
-                      <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
-                      </template>
-                    </el-popover>
-                  </div>
-                  验证方式：
-                </template>
                 <el-select
                     v-model="formData.authMethod"
                     placeholder="请选择验证方式"
                     clearable
                 >
-                  <el-option label="令牌（token）" value="token"></el-option>
-                  <el-option label="多用户" value="multiuser"></el-option>
+                  <el-option label="token" value="token"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="24" v-if="formData.authMethod === 'token'">
-              <el-form-item label="令牌（token）：" prop="authToken">
+              <el-form-item label="token：" prop="authToken">
                 <el-input
                     placeholder="token"
                     type="password"
                     v-model="formData.authToken"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
-              <el-form-item label="用户：" prop="user">
-                <template #label>
-                  <div class="h-full flex items-center mr-1">
-                    <el-popover
-                        placement="top"
-                        trigger="hover"
-                    >
-                      <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]">user</span>
-                      </template>
-                      <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
-                      </template>
-                    </el-popover>
-                  </div>
-                  用户：
-                </template>
-                <el-input
-                    placeholder="请输入用户"
-                    v-model="formData.user"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12" v-if="formData.authMethod === 'multiuser'">
-              <el-form-item label="用户令牌：" prop="metaToken">
-                <template #label>
-                  <div class="h-full flex items-center mr-1">
-                    <el-popover
-                        width="200"
-                        placement="top"
-                        trigger="hover"
-                    >
-                      <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]">meta_token</span>
-                      </template>
-                      <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
-                      </template>
-                    </el-popover>
-                  </div>
-                  用户令牌：
-                </template>
-                <el-input
-                    placeholder="请输入用户令牌"
-                    type="password"
-                    v-model="formData.metaToken"
                 />
               </el-form-item>
             </el-col>

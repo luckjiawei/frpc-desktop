@@ -19,7 +19,7 @@ const currentRoute = computed(() => {
  * 菜单切换
  * @param mi 菜单索引
  */
-const handleMenuChange = (route: RouteRecordRaw) => {
+const handleMenuChange = (route: any) => {
   if (currentRoute.value.name === route.name) {
     return;
   }

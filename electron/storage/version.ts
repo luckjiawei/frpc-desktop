@@ -1,11 +1,11 @@
 import Datastore from "nedb";
 import path from "path";
-import { Proxy } from "./proxy";
-import { app } from "electron";
+import {Proxy} from "./proxy";
+import {app} from "electron";
 
 const versionDB = new Datastore({
-  autoload: true,
-  filename: path.join(app.getPath("userData"), "version.db")
+    autoload: true,
+    filename: path.join(app.getPath("userData"), "version.db")
 });
 
 /**
@@ -14,10 +14,10 @@ const versionDB = new Datastore({
  * @param cb
  */
 export const insertVersion = (
-  version: any,
-  cb?: (err: Error | null, document: any) => void
+    version: any,
+    cb?: (err: Error | null, document: any) => void
 ) => {
-  versionDB.insert(version, cb);
+    versionDB.insert(version, cb);
 };
 
 /**
@@ -25,14 +25,18 @@ export const insertVersion = (
  * @param cb
  */
 export const listVersion = (
-  callback: (err: Error | null, documents: any[]) => void
+    callback: (err: Error | null, documents: any[]) => void
 ) => {
-  versionDB.find({}, callback);
+    versionDB.find({}, callback);
 };
 
 export const getVersionById = (
-  id: string,
-  callback: (err: Error | null, document: any) => void
+    id: string,
+    callback: (err: Error | null, document: any) => void
 ) => {
-  versionDB.findOne({ id: id }, callback);
+    versionDB.findOne({id: id}, callback);
 };
+
+export const deleteVersionById = (id: string, callback: (err: Error | null, document: any) => void) => {
+    versionDB.remove({id: id}, callback);
+}
