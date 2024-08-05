@@ -58,6 +58,7 @@
     "vue-types": "^5.1.1"
   },
   "dependencies": {
+    "adm-zip": "^0.5.14",
     "electron-dl": "^3.5.1",
     "tar": "^6.2.0",
     "unzipper": "^0.10.14"

@@ -6,6 +6,7 @@ const path = require("path");
 const zlib = require("zlib");
 const {download} = require("electron-dl");
 const unzipper = require('unzipper');
+const AdmZip = require('adm-zip');
 
 
 const versionRelation = {
@@ -40,15 +41,23 @@ const unZip = (zipPath: string, targetPath: string) => {
     if (!fs.existsSync(path.join(targetPath, path.basename(zipPath, ".zip")))) {
         fs.mkdirSync(path.join(targetPath, path.basename(zipPath, ".zip")), {recursive: true});
     }
-    fs.createReadStream(zipPath)
-        .pipe(unzipper.ParseOne('frpc'))
-        .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
-        .on('finish', () => {
-            console.log('File extracted successfully.');
-        })
-        .on('error', (err) => {
-            console.error('Error extracting file:', err);
-        });
+    /**
+     * unzipper解压
+     */
+    // fs.createReadStream(zipPath)
+    //     .pipe(unzipper.Extract({ path: targetPath }))
+    //     // 只解压frpc.exe
+    //     // .pipe(unzipper.ParseOne('frpc'))
+    //     // .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
+    //     .on('finish', () => {
+    //         console.log('File extracted successfully.');
+    //     })
+    //     .on('error', (err) => {
+    //         console.error('Error extracting file:', err);
+    //     });
+
+    const zip = new AdmZip(zipPath)
+    zip.extractAllTo(targetPath, true); // 第二个参数为 true，表示覆盖已存在的文件
     return path.join("frp", path.basename(zipPath, ".zip"))
 }
 
@@ -64,6 +73,7 @@ export const initGitHubApi = () => {
         const {assets} = getVersion(versionId);
         const arch = process.arch;
         const platform = process.platform;
+        console.log(platform + '_' +arch)
         const asset = assets.find(
             f => {
                 const a = versionRelation[`${platform}_${arch}`]
