@@ -16,7 +16,7 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉 一个Frp Client 跨平台桌面端
+    🎉 一个 Frp 跨平台桌面客户端 支持多个frp版本
     <br />
   </p>
 </div>
