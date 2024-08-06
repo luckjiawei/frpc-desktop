@@ -6,4 +6,9 @@
 
 ### 🖼️ 错误截图：
 
-### 🔊 日志
+### 🔊 日志：
+
+ 日志目录:
+* Window: `%APPDATA%\Frpc-Desktop\logs\`
+* MacOS: `~/Library/Logs/Frpc-Desktop/logs/`
+* Linux: `~/Library/Logs/Frpc-Desktop/`
