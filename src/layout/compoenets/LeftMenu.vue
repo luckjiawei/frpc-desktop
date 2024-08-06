@@ -47,7 +47,7 @@ onMounted(() => {
 <template>
   <div class="left-menu-container drop-shadow-xl">
     <div class="logo-container">
-      <img src="/logo/64x64.png" class="logo" alt="Logo"/>
+      <img src="/logo/only/128x128.png" class="logo" alt="Logo"/>
     </div>
     <ul class="menu-container">
       <!--      enter-active-class="animate__animated animate__bounceIn"-->

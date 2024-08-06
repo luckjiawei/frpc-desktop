@@ -10,7 +10,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/luckjiawei/frpc-desktop">
-    <img src="public/logo/512x512.png" alt="Logo" width="80" height="80">
+    <img src="public/logo/pack/1024x1024.png" alt="Logo" width="100" height="100">
   </a>
 
 <h3 align="center">Frpc-Desktop</h3>
