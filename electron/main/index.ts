@@ -117,7 +117,7 @@ async function createWindow() {
 }
 
 export const createTray = () => {
-    log.info(`当前环境 platform：${process.platform} arch：${process.arch}`)
+    log.info(`当前环境 platform：${process.platform} arch：${process.arch} appData：${app.getPath("userData")}`)
     let menu: Array<(MenuItemConstructorOptions) | (MenuItem)> = [
         {
             label: '显示主窗口', click: function () {
@@ -214,7 +214,8 @@ ipcMain.handle("open-win", (_, arg) => {
 });
 
 ipcMain.on('open-url', (event, url) => {
-    shell.openExternal(url).then(r => {});
+    shell.openExternal(url).then(r => {
+    });
 });
 
 initGitHubApi();

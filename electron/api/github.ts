@@ -14,9 +14,15 @@ const versionRelation = {
     "win32_arm64": ["window", "arm64"],
     "win32_ia32": ["window", "386"],
     "darwin_arm64": ["darwin", "arm64"],
+    "darwin_x64": ["darwin", "amd64"],
     // "darwin_arm64": ["window", "amd64"],
     "darwin_amd64": ["darwin", "amd64"],
 }
+const platform = process.platform;
+const arch = process.arch;
+let currArch = `${platform}_${arch}`
+// currArch = `darwin_x64`
+const frpArch = versionRelation[currArch]
 
 const unTarGZ = (tarGzPath: string, targetPath: string) => {
     const tar = require("tar");
@@ -77,11 +83,10 @@ export const initGitHubApi = () => {
 
     const getAdaptiveAsset = versionId => {
         const {assets} = getVersion(versionId);
-        const arch = process.arch;
-        const platform = process.platform;
         const asset = assets.find(
             f => {
-                const a = versionRelation[`${platform}_${arch}`]
+                // const a = versionRelation[currArch]
+                const a = frpArch
                 if (a) {
                     const flag = a.every(item => f.name.includes(item))
                     return flag;
@@ -113,6 +118,7 @@ export const initGitHubApi = () => {
                 // const borderContent: Electron.WebContents =
                 //   BrowserWindow.getFocusedWindow().webContents;
                 const downloadPath = path.join(app.getPath("userData"), "download");
+                log.info(`开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch}`)
                 const returnVersionsData = versions
                     .filter(f => getAdaptiveAsset(f.id))
                     .map(m => {
@@ -124,7 +130,7 @@ export const initGitHubApi = () => {
                         }
                         return m;
                     });
-                log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
+                // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
                 event.reply("Download.frpVersionHook", returnVersionsData);
             });
         });
@@ -137,8 +143,8 @@ export const initGitHubApi = () => {
     ipcMain.on("github.download", async (event, args) => {
         const version = getVersion(args);
         const asset = getAdaptiveAsset(args);
-        log.info(`开始下载frp version：${version} asset：${asset}`)
         const {browser_download_url} = asset;
+        log.info(`开始下载frp url：${browser_download_url} asset：${asset.name}`)
         // 数据目录
         await download(BrowserWindow.getFocusedWindow(), browser_download_url, {
             filename: `${asset.name}`,
@@ -150,7 +156,7 @@ export const initGitHubApi = () => {
                 });
             },
             onCompleted: () => {
-                log.info(`frp下载完成 version：${version} asset：${asset}`)
+                log.info(`frp下载完成 url：${browser_download_url} asset：${asset.name}`)
                 const targetPath = path.resolve(path.join(app.getPath("userData"), "frp"));
                 const ext = path.extname(asset.name)
                 let frpcVersionPath = ""

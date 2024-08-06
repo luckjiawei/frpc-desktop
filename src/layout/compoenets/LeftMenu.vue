@@ -69,7 +69,7 @@ onMounted(() => {
       </li>
     </ul>
     <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">
-      v1.0.4
+      v1.0.5
     </div>
   </div>
 </template>

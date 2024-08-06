@@ -1,6 +1,6 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist-electron/main/index.js",
   "description": "一个frpc桌面客户端",
   "repository": "https://github.com/luckjiawei/frpc-desktop",

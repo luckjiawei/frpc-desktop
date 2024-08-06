@@ -114,6 +114,11 @@ onUnmounted(() => {
 <template>
   <div class="main">
     <breadcrumb/>
+    <!--    <breadcrumb>-->
+    <!--      <div class="flex items-center">-->
+    <!--        <el-checkbox>加速下载</el-checkbox>-->
+    <!--      </div>-->
+    <!--    </breadcrumb>-->
     <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
       <template v-if="versions && versions.length > 0">
         <div
