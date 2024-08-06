@@ -69,8 +69,8 @@ auth.method = "token"
 auth.token = "${config.authToken}"
 ` : ""}
 ${config.authMethod === 'multiuser' ? `
-user = ${config.user}
-metadatas.token = ${config.metaToken}
+user = "${config.user}"
+metadatas.token = "${config.metaToken}"
 ` : ""}
 
 
