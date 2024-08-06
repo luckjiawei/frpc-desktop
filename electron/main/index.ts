@@ -54,7 +54,7 @@ log.transports.console.level = "debug";
 async function createWindow() {
     win = new BrowserWindow({
         title: "Frpc Desktop",
-        icon: join(process.env.VITE_PUBLIC, "logo/16x16.png"),
+        icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
         width: 800,
         height: 600,
         minWidth: 800,
@@ -137,7 +137,7 @@ export const createTray = () => {
             }
         }
     ];
-    tray = new Tray(node_path.join(process.env.VITE_PUBLIC, "logo/16x16.png"))
+    tray = new Tray(node_path.join(process.env.VITE_PUBLIC, "logo/only/16x16.png"))
     tray.setToolTip('Frpc Desktop')
     const contextMenu = Menu.buildFromTemplate(menu)
     tray.setContextMenu(contextMenu)
