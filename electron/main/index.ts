@@ -192,7 +192,7 @@ app.on("activate", () => {
 });
 
 app.on('before-quit', () => {
-    log.info("退出")
+    log.info("before-quit")
     isQuiting = true;
 })
 

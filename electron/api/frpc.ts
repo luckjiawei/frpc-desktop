@@ -258,13 +258,16 @@ export const stopFrpcProcess = (callback?: () => void) => {
         treeKill(frpcProcess.pid, (error: Error) => {
             if (error) {
                 log.error(`关闭frpc子进程失败 pid：${frpcProcess.pid} error：${error}`)
+                callback()
             } else {
                 log.info(`关闭frpc子进程成功`)
                 frpcProcess = null
                 clearInterval(frpcStatusListener)
+                callback()
             }
-            callback()
         })
+    } else {
+        callback()
     }
 }
 
