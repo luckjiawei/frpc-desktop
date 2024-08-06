@@ -8,7 +8,7 @@
 
 ### 🔊 日志：
 
- 日志目录:
+> 日志目录:
 * Window: `%APPDATA%\Frpc-Desktop\logs\`
 * MacOS: `~/Library/Logs/Frpc-Desktop/logs/`
 * Linux: `~/Library/Logs/Frpc-Desktop/`
