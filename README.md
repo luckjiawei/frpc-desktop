@@ -10,7 +10,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/luckjiawei/frpc-desktop">
-    <img src="public/logo/512x512.png" alt="Logo" width="80" height="80">
+    <img src="public/logo/pack/1024x1024.png" alt="Logo" width="140">
   </a>
 
 <h3 align="center">Frpc-Desktop</h3>
@@ -27,8 +27,10 @@
 - [ ] 支持配置的导出导入
 - [ ] 优化配置
 - [ ] 便携版
+- [ ] 在线更新
 
 ## 里程碑
+- 2024-08-06: 发布v1.0.5版本
 - 2024-08-06: 发布v1.0.4版本 适配支持多用户插件
 - 2024-07-17: 发布v1.0.3版本 修复已知bug 增加开机自启 增加删除frp版本
 - 2024-01-29: 发布v1.0.2版本 增加Linux客户端和代理模式

@@ -9,7 +9,7 @@
   "directories": {
     "output": "release/${version}"
   },
-  "icon": "./public/logo/512x512.png",
+  "icon": "./public/logo/pack/512x512.png",
   "files": [
     "dist",
     "dist-electron"
