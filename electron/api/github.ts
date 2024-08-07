@@ -5,7 +5,6 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const {download} = require("electron-dl");
-const unzipper = require('unzipper');
 const AdmZip = require('adm-zip');
 const log = require('electron-log');
 
