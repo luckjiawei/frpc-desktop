@@ -16,8 +16,8 @@ const handleCopyInfo = () => {
     type: 'success',
   })
   clipboard.writeText(`
-      Frpc Desktop
-     v${pkg.version}
+                             Frpc Desktop
+                                  v${pkg.version}
 更简单的内网穿透工具！免费开源 / 桌面客户端 / 开机启动
   `)
 }
