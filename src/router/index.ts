@@ -59,7 +59,18 @@ const routes: RouteRecordRaw[] = [
           hidden: false
         },
         component: () => import("@/views/logger/index.vue")
-      }
+      },
+      {
+        path: "/about",
+        name: "About",
+        meta: {
+          title: "关于",
+          icon: "material-symbols:info-sharp",
+          keepAlive: true,
+          hidden: false
+        },
+        component: () => import("@/views/about/index.vue")
+      },
       // {
       //   path: "/comingSoon",
       //   name: "ComingSoon",

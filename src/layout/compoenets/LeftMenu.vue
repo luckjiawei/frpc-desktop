@@ -28,14 +28,6 @@ const handleMenuChange = (route: any) => {
   });
 };
 
-const handleOpenGitHub = () => {
-  ipcRenderer.send("github.open")
-}
-
-const handleOpenGitHubReleases = () => {
-  ipcRenderer.send("github.openReleases")
-}
-
 
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
@@ -61,15 +53,6 @@ onMounted(() => {
       >
         <Icon class="animate__animated" :icon="r?.meta?.icon as string"/>
       </li>
-      <li
-          class="menu"
-          @click="handleOpenGitHub"
-      >
-        <Icon icon="mdi:github"/>
-      </li>
     </ul>
-    <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">
-      v1.0.5
-    </div>
   </div>
 </template>

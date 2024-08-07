@@ -207,7 +207,7 @@ export const initGitHubApi = () => {
      * 打开GitHub
      */
     ipcMain.on("github.open", () => {
-        shell.openExternal("https://github.com/luckjiawei/frpc-desktop");
+        shell.openExternal("https://github.com/luckjiawei/frpc-desktop/issues");
     })
 
     electron.ipcMain.on("github.openReleases", () => {
