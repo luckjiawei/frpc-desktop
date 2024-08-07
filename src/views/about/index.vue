@@ -34,7 +34,7 @@ defineComponent({
     <div
       class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center flex-col"
     >
-      <img src="/logo/only/1024x1024.png" class="w-[95px] h-[95px]" alt="Logo"/>
+      <img src="/logo/only/1024x1024.png" class="w-[95px] h-[95px] mt-[-50px]" alt="Logo"/>
       <div class="mt-[8px] text-2xl">Frpc Desktop</div>
       <div class="mt-[8px] text-neutral-400 flex items-center">
         v{{pkg.version}}
