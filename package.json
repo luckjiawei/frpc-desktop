@@ -1,19 +1,19 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist-electron/main/index.js",
   "description": "一个frpc桌面客户端",
-  "repository": "https://github.com/luckjiawei/frpc-desktop",
+  "repository": "github:luckjiawei/frpc-desktop",
   "author": "刘嘉伟 <8473136@qq.com>",
   "license": "MIT",
   "private": true,
   "keywords": [
-    "electron",
-    "rollup",
-    "vite",
-    "vue3",
-    "vue"
+    "frp",
+    "frpc"
   ],
+  "engines": {
+    "node": ">=12 <18"
+  },
   "debug": {
     "env": {
       "VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
@@ -23,9 +23,9 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "npm run build && electron-builder",
-    "build:electron:mac": "npm run build && electron-builder --mac --x64 --arm64",
-    "build:electron:win": "npm run build && electron-builder --win --arm64 --x64 --ia32",
-    "build:electron:linux": "npm run build && electron-builder --linux --arm64 --x64",
+    "build:electron:mac": "npm run build && electron-builder --mac",
+    "build:electron:win": "npm run build && electron-builder --win",
+    "build:electron:linux": "npm run build && electron-builder --linux",
     "build:electron:all": "npm run build:electron:win && npm run build:electron:mac && npm run build:electron:linux",
     "preview": "vite preview",
     "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
@@ -33,14 +33,16 @@
   "devDependencies": {
     "@iconify/vue": "^4.1.1",
     "@types/nedb": "^1.8.16",
+    "@types/node": "^18.15.11",
     "@vitejs/plugin-vue": "^4.3.3",
     "@vue/eslint-config-prettier": "^7.1.0",
-    "@vueuse/core": "^9.13.0",
+    "@vueuse/core": "^8.9.4",
     "autoprefixer": "^10.4.15",
     "cssnano": "^6.0.1",
-    "electron": "^26.0.0",
+    "electron": "^25.9.7",
     "electron-builder": "^24.6.3",
     "element-plus": "^2.4.2",
+    "eslint": "^7.32.0",
     "eslint-plugin-prettier": "^4.2.1",
     "moment": "^2.29.4",
     "nedb": "^1.8.0",
@@ -55,6 +57,7 @@
     "vite-plugin-electron": "^0.15.3",
     "vite-plugin-electron-renderer": "^0.14.5",
     "vue": "^3.3.4",
+    "vue-demi": "^0.14.10",
     "vue-router": "^4.2.4",
     "vue-tsc": "^2.0.22",
     "vue-types": "^5.1.1"

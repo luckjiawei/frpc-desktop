@@ -40,7 +40,7 @@
 ## 社区
 微信扫描加入开源项目交流群 广告勿进！！！
 
- <img src="wechat-qr.png" alt="Logo" width="200">
+ <img src="screenshots/wechat-qr.png" alt="Logo" width="200">
 
 
 ## 演示
