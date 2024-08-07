@@ -9,6 +9,7 @@ import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
 import {getConfig} from "../storage/config";
 import log from "electron-log";
+import {initUpdaterApi} from "../api/update";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -160,6 +161,23 @@ export const createTray = () => {
 }
 
 app.whenReady().then(() => {
+    initGitHubApi();
+    initConfigApi();
+    initProxyApi();
+    initFrpcApi();
+    initLoggerApi();
+    initFileApi();
+    // initUpdaterApi();
+
+
+    //更新测试打开
+    Object.defineProperty(app, 'isPackaged', {
+        get() {
+            return true;
+        }
+    });
+
+
     createWindow().then(r => {
         createTray()
     })
@@ -212,11 +230,3 @@ ipcMain.handle("open-win", (_, arg) => {
         childWindow.loadFile(indexHtml, {hash: arg});
     }
 });
-
-
-initGitHubApi();
-initConfigApi();
-initProxyApi();
-initFrpcApi();
-initLoggerApi();
-initFileApi();
