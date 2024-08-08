@@ -49,9 +49,10 @@
           "x64",
           "arm64",
           "universal"
-        ]
+        ],
       }
     ],
+    "artifactName": "${productName}-Mac-${arch}-${version}.${ext}",
     category: "public.app-category.utilities"
   },
   "win": {
@@ -63,7 +64,7 @@
           "ia32"
         ]
       },
-//      {
+      //      {
       //        "target": "appx",
       //        "arch": [
       //          "x64",
@@ -85,16 +86,17 @@
         ]
       }
     ],
+    "artifactName": "${productName}-Windows-${arch}-${version}.${ext}"
   },
   "nsis": {
-    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "artifactName": "${productName}-Windows-${arch}-${version}-Setup.${ext}",
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false
   },
   "portable": {
-    "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "artifactName": "${productName}-Windows-${arch}-${version}.${ext}"
   },
   "linux": {
     "target": [
@@ -103,7 +105,7 @@
         "arch": [
           "x64",
           "arm64",
-//          "armv7l"
+          //          "armv7l"
         ]
       },
       {
@@ -111,7 +113,7 @@
         "arch": [
           "x64",
           "arm64",
-//          "armv7l"
+          //          "armv7l"
         ]
       },
       {
@@ -120,14 +122,15 @@
           "x64"
         ]
       },
-//      {
-//        "target": "snap",
-//        "arch": [
-//          "x64"
-//        ]
-//      }
+      //      {
+      //        "target": "snap",
+      //        "arch": [
+      //          "x64"
+      //        ]
+      //      }
     ],
     "category": "Network",
+    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
   },
   "publish": [
     {
