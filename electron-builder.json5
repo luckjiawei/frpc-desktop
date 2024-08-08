@@ -52,13 +52,7 @@
         ]
       }
     ],
-    "extraResources": {
-      "from": "./extra/darwin/${arch}/",
-      "to": "./",
-      "filter": [
-        "**/*"
-      ]
-    },
+    category: "public.app-category.utilities"
   },
   "win": {
     "target": [
@@ -91,13 +85,6 @@
         ]
       }
     ],
-    "extraResources": {
-      "from": "./extra/win32/${arch}/",
-      "to": "./",
-      "filter": [
-        "**/*"
-      ]
-    }
   },
   "nsis": {
     "artifactName": "${productName}-Setup-${version}.${ext}",
@@ -133,27 +120,21 @@
           "x64"
         ]
       },
-      {
-        "target": "snap",
-        "arch": [
-          "x64"
-        ]
-      }
+//      {
+//        "target": "snap",
+//        "arch": [
+//          "x64"
+//        ]
+//      }
     ],
-    "extraResources": {
-      "from": "./extra/linux/${arch}/",
-      "to": "./",
-      "filter": [
-        "**/*"
-      ]
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "luckjiawei",
-        "repo": "frpc-desktop",
-        "releaseType": "draft",
-      },
-    ]
+    "category": "Network",
   },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "luckjiawei",
+      "repo": "frpc-desktop",
+      "releaseType": "draft",
+    },
+  ]
 }
