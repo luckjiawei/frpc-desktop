@@ -9,7 +9,6 @@ import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
 import {getConfig} from "../storage/config";
 import log from "electron-log";
-import {initUpdaterApi} from "../api/update";
 // The built directory structure
 //
 // ├─┬ dist-electron

@@ -1,12 +1,13 @@
-import {app, dialog, autoUpdater } from "electron";
+import {app, dialog, autoUpdater} from "electron";
 
 const log = require('electron-log');
 
 
 export const initUpdaterApi = () => {
+    log.info("自动更新")
     const server = 'https://hazel-jplav4y84-uiluck.vercel.app'
     const url = `${server}/update/${process.platform}/${app.getVersion()}`
-    autoUpdater.setFeedURL({ url })
+    autoUpdater.setFeedURL({url})
     setInterval(() => {
     }, 60000)
     autoUpdater.checkForUpdates()
