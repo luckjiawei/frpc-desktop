@@ -31,6 +31,11 @@
 - [ ] 支持配的导出导入
 - [ ] 优化配置
 
+## 常见问题
+
+### Mac提示已损坏
+执行命令：`sudo xattr -cr Frpc-Desktop.app`
+
 ## 里程碑
 - 2024-08-09: 发布v1.0.6版本
 - 2024-08-06: 发布v1.0.5版本
@@ -48,13 +53,13 @@
 
 ## 演示
 
-![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/conn.png?raw=true)
+![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/conn.png?raw=true)
 
-![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/proxys.png?raw=true)
+![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/proxys.png?raw=true)
 
-![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/versions.png?raw=true)
+![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/versions.png?raw=true)
 
-![log](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/log.png?raw=true)
+![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/log.png?raw=true)
 
 ## License
 
