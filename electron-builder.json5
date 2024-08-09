@@ -52,7 +52,7 @@
         ],
       }
     ],
-    "artifactName": "${productName}-Mac-${arch}-${version}.${ext}",
+//    "artifactName": "${productName}-mac-${arch}-${version}.${ext}",
     category: "public.app-category.utilities"
   },
   "win": {
@@ -86,17 +86,17 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${arch}-${version}.${ext}"
+//    "artifactName": "${productName}-win-${arch}-${version}.${ext}"
   },
   "nsis": {
-    "artifactName": "${productName}-Windows-${arch}-${version}-Setup.${ext}",
+//    "artifactName": "${productName}-win-${arch}-${version}-Setup.${ext}",
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false
   },
   "portable": {
-    "artifactName": "${productName}-Windows-${arch}-${version}.${ext}"
+//    "artifactName": "${productName}-win-${arch}-${version}.${ext}"
   },
   "linux": {
     "target": [
@@ -131,7 +131,7 @@
 
     ],
     "category": "Network",
-    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
+//    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
   },
   "publish": [
     {

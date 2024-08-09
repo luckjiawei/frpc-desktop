@@ -7,6 +7,7 @@ import {initProxyApi} from "../api/proxy";
 import {initFrpcApi, startFrpWorkerProcess, stopFrpcProcess} from "../api/frpc";
 import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
+import {initUpdaterApi} from "../api/update";
 import {getConfig} from "../storage/config";
 import log from "electron-log";
 // The built directory structure
