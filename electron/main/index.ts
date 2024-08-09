@@ -161,25 +161,16 @@ export const createTray = () => {
 }
 
 app.whenReady().then(() => {
-    initGitHubApi();
-    initConfigApi();
-    initProxyApi();
-    initFrpcApi();
-    initLoggerApi();
-    initFileApi();
-    // initUpdaterApi();
-
-
-    //更新测试打开
-    Object.defineProperty(app, 'isPackaged', {
-        get() {
-            return true;
-        }
-    });
-
-
     createWindow().then(r => {
         createTray()
+        // 初始化各个API
+        initGitHubApi();
+        initConfigApi();
+        initProxyApi();
+        initFrpcApi();
+        initLoggerApi();
+        initFileApi();
+        // initUpdaterApi(win);
     })
 });
 

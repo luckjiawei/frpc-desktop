@@ -1,10 +1,15 @@
-import {app, dialog, autoUpdater} from "electron";
+import {app, dialog, autoUpdater, BrowserWindow} from "electron";
 
 const log = require('electron-log');
 
 
-export const initUpdaterApi = () => {
-
+export const initUpdaterApi = (win: BrowserWindow) => {
+    //更新测试打开
+    Object.defineProperty(app, 'isPackaged', {
+        get() {
+            return true;
+        }
+    });
     const server = 'https://hazel-git-master-uiluck.vercel.app'
     let packageName = null
     const platform = process.platform;
@@ -12,9 +17,9 @@ export const initUpdaterApi = () => {
     switch (platform) {
         case "darwin":
             if (arch == "arm64") {
-                packageName = "dmg_arm64";
+                packageName = "darwin_arm64";
             } else {
-                packageName = "dmg";
+                packageName = "darwin";
             }
             break;
         case "win32":
@@ -31,18 +36,19 @@ export const initUpdaterApi = () => {
     }
     const url = `${server}/update/${packageName}/${app.getVersion()}`
     log.info(`开启自动更新 ${url}`);
-    autoUpdater.setFeedURL({url})
+    autoUpdater.setFeedURL({url: url})
 
     autoUpdater.on('checking-for-update', () => {
         log.info("正在检查更新")
     })
 
-    autoUpdater.on('update-available', () => {
-        log.info("有可用更新")
+    autoUpdater.on('update-available', (event, info) => {
+        log.info(`发现新版本`)
     })
 
     autoUpdater.on('update-not-available', () => {
         log.info('没有可用的更新')
+
     })
 
     autoUpdater.on('error', (err) => {
@@ -50,9 +56,6 @@ export const initUpdaterApi = () => {
 
     })
 
-    // autoUpdater.on('download-progress', (progressObj) => {
-    //     log.debug(`下载进度 ${progressObj.percent}%`)
-    // })
 
     autoUpdater.on('update-downloaded', () => {
         console.log('update-downloaded')
