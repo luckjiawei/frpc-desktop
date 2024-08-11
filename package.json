@@ -72,6 +72,7 @@
     "electron-dl": "^3.5.1",
     "electron-log": "^5.1.7",
     "isbinaryfile": "4.0.10",
+    "js-base64": "^3.7.7",
     "tar": "^6.2.0",
     "unused-filename": "^4.0.1"
   }
