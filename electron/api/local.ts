@@ -12,7 +12,7 @@ type LocalPort = {
 export const initLocalApi = () => {
     const command = process.platform === 'win32'
         ? 'netstat -a -n'
-        : 'netstat -tuln';
+        : 'netstat -an | grep LISTEN\n';
 
     ipcMain.on("local.getLocalPorts", async (event, args) => {
         log.info("开始获取本地端口")
@@ -30,37 +30,67 @@ export const initLocalApi = () => {
             log.debug(`sc ${stdout}`)
             let ports = [];
             if (stdout) {
-                ports = stdout.split('\r\n')
-                    .filter(f => f.indexOf('TCP') > 0 || f.indexOf('UDP') > 0)
-                    .map(m => {
-                        const cols = m.split(' ')
-                            .filter(f => f != '')
-                        const local = cols[1]
-                        const s = local.lastIndexOf(":")
-                        let localIP = local.slice(0, s);
-                        let localPort = local.slice(s - local.length + 1);
-                        console.log(1)
-                        // if (local.indexOf('[') == -1) {
-                        //     // ipv4
-                        //     const tmp = cols[1].split(":")
-                        //     localIP = tmp[0]
-                        //     localPort = tmp[1]
-                        // } else {
-                        //     // ipv6
-                        //     console.log(1)
-                        // }
+                if (process.platform === 'win32') {
+                    // window
+                    ports = stdout.split('\r\n')
+                        .filter(f => f.indexOf('TCP') > 0 || f.indexOf('UDP') > 0)
+                        .map(m => {
+                            const cols = m.split(' ')
+                                .filter(f => f != '')
+                            const local = cols[1]
+                            const s = local.lastIndexOf(":")
+                            let localIP = local.slice(0, s);
+                            let localPort = local.slice(s - local.length + 1);
+                            console.log(1)
+                            // if (local.indexOf('[') == -1) {
+                            //     // ipv4
+                            //     const tmp = cols[1].split(":")
+                            //     localIP = tmp[0]
+                            //     localPort = tmp[1]
+                            // } else {
+                            //     // ipv6
+                            //     console.log(1)
+                            // }
 
-                        const singe: LocalPort = {
-                            protocol: cols[0],
-                            ip: localIP,
-                            port: localPort
-                        }
+                            const singe: LocalPort = {
+                                protocol: cols[0],
+                                ip: localIP,
+                                port: localPort
+                            }
 
-                        return singe;
-                    })
+                            return singe;
+                        })
+                } else if (process.platform === 'darwin') {
+                    // mac
+                    ports = stdout.split('\n')
+                        .filter(m => {
+                            const cols = m.split(' ')
+                                .filter(f => f != '')
+                            const local = cols[3]
+                            return local
+                        })
+                        .map(m => {
+                            const cols = m.split(' ')
+                                .filter(f => f != '')
+                            const local = cols[3]
+                            console.log(local, '1')
+                            const s = local.lastIndexOf(".")
+                            let localIP = local.slice(0, s);
+                            let localPort = local.slice(s - local.length + 1);
+                            const singe: LocalPort = {
+                                protocol: cols[0],
+                                ip: localIP,
+                                port: localPort
+                            }
+                            return singe;
+                        })
+                    // .filter(f => f.indexOf('TCP') > 0 || f.indexOf('UDP') > 0)
+
+                }
+
             }
 
-           ports.sort((a, b) => a.port - b.port);
+            ports.sort((a, b) => a.port - b.port);
 
             event.reply("local.getLocalPorts.hook", {
                 data: ports
