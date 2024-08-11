@@ -5,6 +5,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {ipcRenderer} from "electron";
 import {clone} from "@/utils/clone";
+import {useDebounceFn} from "@vueuse/core";
 
 defineComponent({
   name: "Proxy"
@@ -20,6 +21,12 @@ type Proxy = {
   customDomains: string[];
 };
 
+type LocalPort = {
+  protocol: string;
+  ip: string;
+  port: number;
+}
+
 /**
  * 代理列表
  */
@@ -29,8 +36,12 @@ const proxys = ref<Array<Proxy>>([]);
  */
 const loading = ref({
   list: 1,
-  form: 0
+  form: 0,
+  localPorts: 1
 });
+
+const localPorts = ref<Array<LocalPort>>([]);
+const listPortsVisible = ref(false);
 
 /**
  * 弹出层属性
@@ -170,6 +181,12 @@ const handleInitHook = () => {
   ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
     InsertOrUpdateHook("修改成功", args);
   });
+
+  ipcRenderer.on("local.getLocalPorts.hook", (event, args) => {
+    loading.value.localPorts--;
+    localPorts.value = args.data;
+    console.log('本地端口', localPorts.value)
+  })
   // ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
   //   loading.value.form--;
   //   const { err } = args;
@@ -216,6 +233,26 @@ const handleOpenUpdate = (proxy: Proxy) => {
   };
 };
 
+const handleLoadLocalPorts = () => {
+  loading.value.localPorts = 1;
+  ipcRenderer.send("local.getLocalPorts")
+}
+
+
+const handleSelectLocalPort = useDebounceFn((port: number) => {
+  editForm.value.localPort = port;
+  handleCloseLocalPortDialog();
+})
+
+const handleCloseLocalPortDialog = () => {
+  listPortsVisible.value = false;
+}
+
+const handleOpenLocalPortDialog = () => {
+  listPortsVisible.value = true;
+  handleLoadLocalPorts();
+};
+
 onMounted(() => {
   handleInitHook();
   handleLoadProxys();
@@ -226,6 +263,7 @@ onUnmounted(() => {
   ipcRenderer.removeAllListeners("Proxy.updateProxy.hook");
   ipcRenderer.removeAllListeners("Proxy.deleteProxyById.hook");
   ipcRenderer.removeAllListeners("Proxy.getProxys.hook");
+  ipcRenderer.removeAllListeners("local.getLocalPorts.hook");
 });
 </script>
 <template>
@@ -330,8 +368,8 @@ onUnmounted(() => {
     <el-dialog
         v-model="edit.visible"
         :title="edit.title"
-        class="w-[400px]"
-        top="30px"
+        width="400"
+        top="5%"
     >
       <el-form
           v-loading="loading.form"
@@ -357,21 +395,25 @@ onUnmounted(() => {
               <el-input v-model="editForm.name" placeholder="代理名称"/>
             </el-form-item>
           </el-col>
-          <el-col :span="16">
+          <el-col :span="24">
             <el-form-item label="内网地址：" prop="localIp">
               <el-input v-model="editForm.localIp" placeholder="127.0.0.1"/>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="24">
             <el-form-item label="内网端口：" prop="localPort">
               <el-input-number
                   placeholder="8080"
-                  class="!w-full"
+                  class="local-port-input"
                   :min="0"
                   :max="65535"
                   v-model="editForm.localPort"
                   controls-position="right"
               />
+              <el-button class="ml-[10px]" plain type="primary" @click="handleOpenLocalPortDialog">
+                <Icon class="cursor-pointer mr-2" icon="material-symbols:bring-your-own-ip-rounded"/>
+                本地端口
+              </el-button>
             </el-form-item>
           </el-col>
           <template v-if="editForm.type === 'tcp' || editForm.type === 'udp'">
@@ -443,15 +485,43 @@ onUnmounted(() => {
           <el-col :span="24">
             <el-form-item>
               <div class="w-full flex justify-end">
-                <el-button @click="edit.visible = false">关 闭</el-button>
+                <el-button @click="edit.visible = false">
+                  <Icon class="cursor-pointer mr-2" icon="material-symbols:cancel-presentation"/>
+                  关 闭</el-button>
                 <el-button plain type="primary" @click="handleSubmit"
-                >保 存
+                ><Icon class="cursor-pointer mr-2" icon="material-symbols:save-rounded"/>
+                  保 存
                 </el-button>
               </div>
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
+    </el-dialog>
+
+    <el-dialog v-model="listPortsVisible"
+               title="本地端口"
+               width="600"
+               top="5%">
+      <el-table :data="localPorts" stripe
+                v-loading="loading.localPorts"
+                border height="400">
+        <el-table-column label="协议" :width="60" prop="protocol"/>
+        <el-table-column label="IP" prop="ip"/>
+        <el-table-column label="端口" :width="80" prop="port"/>
+        <el-table-column label="操作" :width="80">
+          <template #default="scope">
+            <el-button type="text" @click="handleSelectLocalPort(scope.row.port)">
+              <Icon class="cursor-pointer mr-2" icon="material-symbols:gesture-select"/>
+              选择
+            </el-button>
+          </template>
+
+        </el-table-column>
+      </el-table>
+      <!--      <div class="h-[400px] overflow-y-scroll">-->
+      <!--       -->
+      <!--      </div>-->
     </el-dialog>
   </div>
 </template>
@@ -475,6 +545,10 @@ onUnmounted(() => {
 
 .domain-input {
   width: calc(100% - 115px);
+}
+
+.local-port-input {
+  width: calc(100% - 120px);
 }
 
 .domain-input-button {

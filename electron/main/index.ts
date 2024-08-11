@@ -7,10 +7,10 @@ import {initProxyApi} from "../api/proxy";
 import {initFrpcApi, startFrpWorkerProcess, stopFrpcProcess} from "../api/frpc";
 import {initLoggerApi} from "../api/logger";
 import {initFileApi} from "../api/file";
-import {initUpdaterApi} from "../api/update";
 import {getConfig} from "../storage/config";
 import log from "electron-log";
 import {initCommonApi} from "../api/common";
+import {initLocalApi} from "../api/local";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -172,6 +172,7 @@ app.whenReady().then(() => {
         initLoggerApi();
         initFileApi();
         initCommonApi();
+        initLocalApi();
         // initUpdaterApi(win);
     })
 });

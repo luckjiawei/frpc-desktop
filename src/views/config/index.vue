@@ -814,20 +814,22 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <el-dialog v-model="visibles.copyServerConfig" title="复制链接" width="500">
+    <el-dialog v-model="visibles.copyServerConfig" title="复制链接" width="500" top="5%">
       <el-alert class="mb-4" title="生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用" type="warning"
                 :closable="false"/>
       <el-input class="h-30" v-model="copyServerConfigBase64" type="textarea" :rows="8"></el-input>
     </el-dialog>
 
-    <el-dialog v-model="visibles.pasteServerConfig" title="导入链接" width="500">
+    <el-dialog v-model="visibles.pasteServerConfig" title="导入链接" width="500" top="5%">
       <el-input class="h-30"
                 v-model="pasteServerConfigBase64"
                 type="textarea" placeholder="frp://......"
                 :rows="8"></el-input>
       <template #footer>
         <div class="dialog-footer">
-          <el-button plain type="primary" @click="handlePasteServerConfigBase64">导入</el-button>
+
+          <el-button plain type="primary" @click="handlePasteServerConfigBase64">
+            <Icon class="cursor-pointer mr-2" icon="material-symbols:label-important-rounded"/>导 入</el-button>
         </div>
       </template>
 
