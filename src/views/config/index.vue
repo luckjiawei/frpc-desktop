@@ -133,6 +133,7 @@ const copyServerConfigBase64 = ref();
 const pasteServerConfigBase64 = ref();
 
 const formRef = ref<FormInstance>();
+const protocol = ref("frp://");
 
 const visibles = reactive({
   copyServerConfig: false,
@@ -235,7 +236,7 @@ const handleCopyServerConfig2Base64 = useDebounceFn(() => {
   const base64str = Base64.encode(
       JSON.stringify(shareConfig)
   )
-  copyServerConfigBase64.value = base64str;
+  copyServerConfigBase64.value = protocol.value + base64str;
   visibles.copyServerConfig = true;
 
 }, 300);
@@ -248,32 +249,34 @@ const handlePasteServerConfig4Base64 = useDebounceFn(() => {
 }, 300);
 
 const handlePasteServerConfigBase64 = useDebounceFn(() => {
-  const plain = Base64.decode(pasteServerConfigBase64.value)
-  console.log('plain', plain)
-  let serverConfig: ShareLinkConfig = null;
-  try {
-    serverConfig = JSON.parse(plain)
-  } catch {
+  const tips = () => {
     ElMessage({
       type: "warning",
       message: "链接不正确 请输入正确的链接"
     });
-    return;
+  }
+  if (!pasteServerConfigBase64.value.startsWith(protocol.value)) {
+    tips()
+    return
+  }
+  const ciphertext = pasteServerConfigBase64.value.replace("frp://", "")
+  const plaintext = Base64.decode(ciphertext)
+  console.log('plain', plaintext)
+  let serverConfig: ShareLinkConfig = null;
+  try {
+    serverConfig = JSON.parse(plaintext)
+  } catch {
+    tips()
+    return
   }
 
   if (!serverConfig && !serverConfig.serverAddr) {
-    ElMessage({
-      type: "warning",
-      message: "链接不正确 请输入正确的链接"
-    });
-    return;
+    tips()
+    return
   }
   if (!serverConfig && !serverConfig.serverPort) {
-    ElMessage({
-      type: "warning",
-      message: "链接不正确 请输入正确的链接"
-    });
-    return;
+    tips()
+    return
   }
   formData.value.serverAddr = serverConfig.serverAddr
   formData.value.serverPort = serverConfig.serverPort
@@ -285,6 +288,7 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
   formData.value.metaToken = serverConfig.metaToken
 
   handleSubmit();
+  pasteServerConfigBase64.value = "";
   visibles.pasteServerConfig = false;
 
 }, 300)
@@ -810,16 +814,16 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <el-dialog v-model="visibles.copyServerConfig" title="分享服务器" width="500">
+    <el-dialog v-model="visibles.copyServerConfig" title="复制链接" width="500">
       <el-alert class="mb-4" title="生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用" type="warning"
                 :closable="false"/>
       <el-input class="h-30" v-model="copyServerConfigBase64" type="textarea" :rows="8"></el-input>
     </el-dialog>
 
-    <el-dialog v-model="visibles.pasteServerConfig" title="导入服务器" width="500">
+    <el-dialog v-model="visibles.pasteServerConfig" title="导入链接" width="500">
       <el-input class="h-30"
                 v-model="pasteServerConfigBase64"
-                type="textarea" placeholder="在此输入分享链接"
+                type="textarea" placeholder="frp://......"
                 :rows="8"></el-input>
       <template #footer>
         <div class="dialog-footer">
