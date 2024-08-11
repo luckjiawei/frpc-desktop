@@ -26,9 +26,10 @@
 - [x] 开机自启动
 - [x] 适配多用户 user & meta_token
 - [x] 便携版
-- [ ] 在线更新
+- [x] 增加udp代理类型
+- [x] 支持快速分享frps
+- [x] 增加快速选择本地端口
 - [ ] 支持stcp代理类型
-- [ ] 支持快速分享frps
 - [ ] 支持配的导出导入
 - [ ] 优化配置
 
@@ -38,6 +39,7 @@
 执行命令：`sudo xattr -cr Frpc-Desktop.app`
 
 ## 里程碑
+- 2024-08-11: 发布v1.0.7版本
 - 2024-08-09: 发布v1.0.6版本
 - 2024-08-06: 发布v1.0.5版本
 - 2024-08-06: 发布v1.0.4版本 适配支持多用户插件
@@ -60,7 +62,11 @@
 
 ![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/versions.png?raw=true)
 
+![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/config.png?raw=true)
+
 ![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/log.png?raw=true)
+
+![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
 
 ## License
 

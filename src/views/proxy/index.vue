@@ -548,7 +548,7 @@ onUnmounted(() => {
 }
 
 .local-port-input {
-  width: calc(100% - 120px);
+  width: calc(100% - 125px);
 }
 
 .domain-input-button {
