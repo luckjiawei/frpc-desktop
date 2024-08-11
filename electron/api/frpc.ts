@@ -49,6 +49,7 @@ localPort = ${m.localPort}
 `;
         switch (m.type) {
             case "tcp":
+            case "udp":
                 toml += `remotePort = ${m.remotePort}`;
                 break;
             case "http":
@@ -117,6 +118,7 @@ local_port = ${m.localPort}
 `;
         switch (m.type) {
             case "tcp":
+            case "udp":
                 ini += `remote_port = ${m.remotePort}`;
                 break;
             case "http":
