@@ -71,7 +71,7 @@ onMounted(() => {
       }).then(() => {
         handleOpenNewVersion()
       })
-    }else {
+    } else {
       ElMessage({
         message: "当前已是最新版本",
         type: "success"
@@ -100,11 +100,11 @@ defineComponent({
           class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center flex-col"
       >
         <img src="/logo/pack/1024x1024.png"
-             class="w-[95px] h-[95px] mt-[-50px] animate__animated animate__lightSpeedInLeft" alt="Logo"/>
+             class="w-[95px] h-[95px] mt-[-50px] animate__animated animate__flip" alt="Logo"/>
         <div class="mt-[8px] text-2xl">Frpc Desktop</div>
         <div class="mt-[8px] text-neutral-400 flex items-center">
 
-<!--          <span class="font-bold">  v{{ pkg.version }}</span>-->
+          <!--          <span class="font-bold">  v{{ pkg.version }}</span>-->
           <el-link
               :class="!isLastVersion? 'line-through': ''"
               class="ml-2 font-bold">v{{ pkg.version }}
@@ -117,7 +117,7 @@ defineComponent({
           <!--          <span class="ml-2 text-[#67C23A] font-bold"-->
           <!--                @click="handleOpenNewVersion"-->
           <!--                v-if="!isLastVersion && latestVersionInfo">v{{ latestVersionInfo.name }}</span>-->
-          <Icon class="ml-1.5 cursor-pointer" icon="material-symbols:refresh-rounded"
+          <Icon class="ml-1.5 cursor-pointer check-update" icon="material-symbols:refresh-rounded"
                 @click="handleGetLastVersion"></Icon>
         </div>
         <div class="mt-[8px] text-sm text-center">
@@ -142,3 +142,9 @@ defineComponent({
     </div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.check-update:hover {
+  color: #5F3BB0;
+}
+</style>
