@@ -14,33 +14,131 @@
     "dist",
     "dist-electron"
   ],
+  "dmg": {
+    "window": {
+      "width": 540,
+      "height": 380
+    },
+    "contents": [
+      {
+        "x": 410,
+        "y": 230,
+        "type": "link",
+        "path": "/Applications"
+      },
+      {
+        "x": 130,
+        "y": 230,
+        "type": "file"
+      }
+    ]
+  },
   "mac": {
     "target": [
-      "dmg"
+      {
+        target: "dmg",
+        "arch": [
+          "x64",
+          "arm64",
+          "universal"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64",
+          "arm64",
+          "universal"
+        ],
+      }
     ],
-    "artifactName": "${productName}-Mac-${arch}-${version}-Installer.${ext}"
+//    "artifactName": "${productName}-mac-${arch}-${version}.${ext}",
+    category: "public.app-category.utilities"
   },
   "win": {
     "target": [
       {
         "target": "nsis",
         "arch": [
-          "x64"
+          "x64",
+          "ia32"
+        ]
+      },
+      //      {
+      //        "target": "appx",
+      //        "arch": [
+      //          "x64",
+      //          "ia32"
+      //        ]
+      //      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64",
+          "ia32"
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${arch}-${version}-Setup.${ext}"
+//    "artifactName": "${productName}-win-${arch}-${version}.${ext}"
   },
   "nsis": {
+//    "artifactName": "${productName}-win-${arch}-${version}-Setup.${ext}",
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false
   },
+  "portable": {
+//    "artifactName": "${productName}-win-${arch}-${version}.${ext}"
+  },
   "linux": {
     "target": [
-      "AppImage"
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64",
+          "arm64",
+          //          "armv7l"
+        ]
+      },
+      {
+        "target": "deb",
+        "arch": [
+          "x64",
+          "arm64",
+          //          "armv7l"
+        ]
+      },
+      {
+        "target": "rpm",
+        "arch": [
+          "x64"
+        ]
+      },
+      //      {
+      //        "target": "snap",
+      //        "arch": [
+      //          "x64"
+      //        ]
+      //      }
+
     ],
-    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
+    "category": "Network",
+//    "artifactName": "${productName}-Linux-${arch}-${version}.${ext}"
   },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "luckjiawei",
+      "repo": "frpc-desktop",
+      "releaseType": "draft",
+    },
+  ]
 }

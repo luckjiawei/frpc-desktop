@@ -1,19 +1,21 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist-electron/main/index.js",
   "description": "一个frpc桌面客户端",
-  "repository": "https://github.com/luckjiawei/frpc-desktop",
+  "repository": "github:luckjiawei/frpc-desktop",
   "author": "刘嘉伟 <8473136@qq.com>",
   "license": "MIT",
   "private": true,
   "keywords": [
-    "electron",
-    "rollup",
-    "vite",
-    "vue3",
-    "vue"
+    "frp",
+    "frpc",
+    "proxy",
+    "electron-app"
   ],
+  "engines": {
+    "node": ">= 18"
+  },
   "debug": {
     "env": {
       "VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
@@ -22,11 +24,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "build:electron": "npm run build && electron-builder",
-    "build:electron:mac": "npm run build && electron-builder --mac --x64 --arm64",
-    "build:electron:win": "npm run build && electron-builder --win --arm64 --x64 --ia32",
-    "build:electron:linux": "npm run build && electron-builder --linux --arm64 --x64",
-    "build:electron:all": "npm run build:electron:win && npm run build:electron:mac && npm run build:electron:linux",
+    "build:electron": "npm run build && electron-builder  --mac --win --linux",
+    "build:electron:mac": "npm run build && electron-builder --mac",
+    "build:electron:win": "npm run build && electron-builder --win",
+    "build:electron:linux": "npm run build && electron-builder --linux",
+    "release": "npm run build && electron-builder --mac --win --linux -p always",
+    "release:mac": "npm run build && electron-builder --mac -p always",
+    "release:win": "npm run build && electron-builder --win -p always",
+    "release:linux": "npm run build && electron-builder --linux -p always",
     "preview": "vite preview",
     "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
   },
@@ -38,16 +43,18 @@
     "@vueuse/core": "^9.13.0",
     "autoprefixer": "^10.4.15",
     "cssnano": "^6.0.1",
-    "electron": "^26.0.0",
-    "electron-builder": "^24.6.3",
+    "electron": "^26.6.10",
+    "electron-builder": "^24.13.3",
+    "electron-builder-squirrel-windows": "^24.13.3",
     "element-plus": "^2.4.2",
+    "eslint": "^7.28.0",
     "eslint-plugin-prettier": "^4.2.1",
     "moment": "^2.29.4",
     "nedb": "^1.8.0",
     "node-cmd": "^5.0.0",
+    "postcss": "^8.4.31",
     "prettier": "^2.8.8",
     "sass": "^1.66.1",
-    "sass-loader": "^13.3.2",
     "tailwindcss": "^3.3.3",
     "tree-kill": "^1.2.2",
     "typescript": "^5.1.6",
@@ -64,7 +71,9 @@
     "animate.css": "^4.1.1",
     "electron-dl": "^3.5.1",
     "electron-log": "^5.1.7",
+    "isbinaryfile": "4.0.10",
+    "js-base64": "^3.7.7",
     "tar": "^6.2.0",
-    "unzipper": "^0.10.14"
+    "unused-filename": "^4.0.1"
   }
 }

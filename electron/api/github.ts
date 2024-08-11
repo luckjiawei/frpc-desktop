@@ -5,7 +5,6 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const {download} = require("electron-dl");
-const unzipper = require('unzipper');
 const AdmZip = require('adm-zip');
 const log = require('electron-log');
 
@@ -15,13 +14,13 @@ const versionRelation = {
     "win32_ia32": ["window", "386"],
     "darwin_arm64": ["darwin", "arm64"],
     "darwin_x64": ["darwin", "amd64"],
-    // "darwin_arm64": ["window", "amd64"],
     "darwin_amd64": ["darwin", "amd64"],
+    "linux_x64": ["linux", "amd64"],
+    "linux_arm64": ["linux", "arm64"],
 }
 const platform = process.platform;
 const arch = process.arch;
 let currArch = `${platform}_${arch}`
-// currArch = `darwin_x64`
 const frpArch = versionRelation[currArch]
 
 const unTarGZ = (tarGzPath: string, targetPath: string) => {

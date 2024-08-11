@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
-import { Icon } from "@iconify/vue";
+import {defineComponent, onMounted, onUnmounted, reactive, ref} from "vue";
+import {Icon} from "@iconify/vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ElMessage, FormInstance, FormRules } from "element-plus";
-import { ipcRenderer } from "electron";
-import { clone } from "@/utils/clone";
+import {ElMessage, FormInstance, FormRules} from "element-plus";
+import {ipcRenderer} from "electron";
+import {clone} from "@/utils/clone";
 
 defineComponent({
   name: "Proxy"
@@ -58,24 +58,24 @@ const editForm = ref<Proxy>({
  */
 const editFormRules = reactive<FormRules>({
   name: [
-    { required: true, message: "请输入名称", trigger: "blur" },
+    {required: true, message: "请输入名称", trigger: "blur"},
     // {
     //   pattern: /^[a-zA-Z]+$/,
     //   message: "名称只能是英文",
     //   trigger: "blur"
     // }
   ],
-  type: [{ required: true, message: "请选择类型", trigger: "blur" }],
+  type: [{required: true, message: "请选择类型", trigger: "blur"}],
   localIp: [
-    { required: true, message: "请输入内网地址", trigger: "blur" },
+    {required: true, message: "请输入内网地址", trigger: "blur"},
     {
       pattern: /^[\w-]+(\.[\w-]+)+$/,
       message: "请输入正确的内网地址",
       trigger: "blur"
     }
   ],
-  localPort: [{ required: true, message: "请输入本地端口", trigger: "blur" }],
-  remotePort: [{ required: true, message: "请输入远程端口", trigger: "blur" }]
+  localPort: [{required: true, message: "请输入本地端口", trigger: "blur"}],
+  remotePort: [{required: true, message: "请输入远程端口", trigger: "blur"}]
 });
 
 /**
@@ -152,7 +152,7 @@ const handleResetForm = () => {
 const handleInitHook = () => {
   const InsertOrUpdateHook = (message: string, args: any) => {
     loading.value.form--;
-    const { err } = args;
+    const {err} = args;
     if (!err) {
       ElMessage({
         type: "success",
@@ -185,13 +185,13 @@ const handleInitHook = () => {
   // });
   ipcRenderer.on("Proxy.getProxys.hook", (event, args) => {
     loading.value.list--;
-    const { err, data } = args;
+    const {err, data} = args;
     if (!err) {
       proxys.value = data;
     }
   });
   ipcRenderer.on("Proxy.deleteProxyById.hook", (event, args) => {
-    const { err, data } = args;
+    const {err, data} = args;
     if (!err) {
       handleLoadProxys();
       ElMessage({
@@ -233,65 +233,65 @@ onUnmounted(() => {
   <div class="main">
     <breadcrumb>
       <div
-        class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"
-        @click="handleOpenInsert"
+          class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"
+          @click="handleOpenInsert"
       >
-        <Icon icon="material-symbols:add" />
+        <Icon icon="material-symbols:add"/>
       </div>
     </breadcrumb>
     <div class="app-container-breadcrumb" v-loading="loading.list > 0">
       <template v-if="proxys && proxys.length > 0">
         <el-row :gutter="20">
           <el-col
-            v-for="proxy in proxys"
-            :key="proxy._id"
-            :lg="6"
-            :md="8"
-            :sm="12"
-            :xl="6"
-            :xs="24"
-            class="mb-[20px]"
+              v-for="proxy in proxys"
+              :key="proxy._id"
+              :lg="6"
+              :md="8"
+              :sm="12"
+              :xl="6"
+              :xs="24"
+              class="mb-[20px]"
           >
             <div class="bg-white w-full rounded drop-shadow-xl p-4">
               <div class="w-full flex justify-between">
                 <div class="flex">
                   <div
-                    class="w-12 h-12 rounded mr-4 flex justify-center items-center"
-                    :class="proxy.type"
+                      class="w-12 h-12 rounded mr-4 flex justify-center items-center"
+                      :class="proxy.type"
                   >
                     <span class="text-white text-sm">{{ proxy.type }}</span>
                   </div>
                   <div class="h-12 relative">
                     <div class="text-sm font-bold">{{ proxy.name }}</div>
-<!--                    <el-tag-->
-<!--                      size="small"-->
-<!--                      class="absolute bottom-0"-->
-<!--                      type="success"-->
-<!--                      effect="plain"-->
-<!--                      >正常-->
-<!--                    </el-tag>-->
+                    <!--                    <el-tag-->
+                    <!--                      size="small"-->
+                    <!--                      class="absolute bottom-0"-->
+                    <!--                      type="success"-->
+                    <!--                      effect="plain"-->
+                    <!--                      >正常-->
+                    <!--                    </el-tag>-->
                   </div>
                 </div>
                 <div>
                   <el-dropdown size="small">
                     <a href="javascript:void(0)"
-                      class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
+                       class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
                     >
-                      <Icon icon="material-symbols:more-vert" />
+                      <Icon icon="material-symbols:more-vert"/>
                     </a>
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item @click="handleOpenUpdate(proxy)">
                           <Icon
-                            icon="material-symbols:edit"
-                            class="primary-text text-[14px]"
+                              icon="material-symbols:edit"
+                              class="primary-text text-[14px]"
                           />
                           <span class="ml-1">修 改</span>
                         </el-dropdown-item>
                         <el-dropdown-item @click="handleDeleteProxy(proxy)">
                           <Icon
-                            icon="material-symbols:delete-rounded"
-                            class="text-red-500 text-[14px]"
+                              icon="material-symbols:delete-rounded"
+                              class="text-red-500 text-[14px]"
                           />
                           <span class="ml-1">删 除</span>
                         </el-dropdown-item>
@@ -320,81 +320,83 @@ onUnmounted(() => {
         </el-row>
       </template>
       <div
-        v-else
-        class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
+          v-else
+          class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
       >
-        <el-empty description="暂无代理" />
+        <el-empty description="暂无代理"/>
       </div>
     </div>
 
     <el-dialog
-      v-model="edit.visible"
-      :title="edit.title"
-      class="w-[400px]"
-      top="30px"
+        v-model="edit.visible"
+        :title="edit.title"
+        class="w-[400px]"
+        top="30px"
     >
       <el-form
-        v-loading="loading.form"
-        label-position="top"
-        :model="editForm"
-        :rules="editFormRules"
-        ref="editFormRef"
+          v-loading="loading.form"
+          label-position="top"
+          :model="editForm"
+          :rules="editFormRules"
+          ref="editFormRef"
       >
         <el-row :gutter="10">
           <el-col :span="24">
             <el-form-item label="代理类型：" prop="proxyType">
               <el-radio-group v-model="editForm.type">
-                <el-radio label="http" model-value="http" />
-                <el-radio label="https" model-value="https" />
-                <el-radio label="tcp" model-value="tcp" />
+                <el-radio label="http" model-value="http"/>
+                <el-radio label="https" model-value="https"/>
+                <el-radio label="tcp" model-value="tcp"/>
+                <el-radio label="udp" model-value="udp"/>
+                <!--                <el-radio label="stcp" model-value="stcp" />-->
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="代理名称：" prop="proxyName">
-              <el-input v-model="editForm.name" placeholder="代理名称" />
+              <el-input v-model="editForm.name" placeholder="代理名称"/>
             </el-form-item>
           </el-col>
           <el-col :span="16">
             <el-form-item label="内网地址：" prop="localIp">
-              <el-input v-model="editForm.localIp" placeholder="127.0.0.1" />
+              <el-input v-model="editForm.localIp" placeholder="127.0.0.1"/>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="内网端口：" prop="localPort">
               <el-input-number
-                placeholder="8080"
-                class="!w-full"
-                :min="0"
-                :max="65535"
-                v-model="editForm.localPort"
-                controls-position="right"
+                  placeholder="8080"
+                  class="!w-full"
+                  :min="0"
+                  :max="65535"
+                  v-model="editForm.localPort"
+                  controls-position="right"
               />
             </el-form-item>
           </el-col>
-          <template v-if="editForm.type === 'tcp'">
+          <template v-if="editForm.type === 'tcp' || editForm.type === 'udp'">
             <el-col :span="8">
               <el-form-item label="外网端口：" prop="remotePort">
                 <el-input-number
-                  :min="0"
-                  :max="65535"
-                  placeholder="8080"
-                  v-model="editForm.remotePort"
-                  controls-position="right"
+                    :min="0"
+                    :max="65535"
+                    placeholder="8080"
+                    v-model="editForm.remotePort"
+                    controls-position="right"
                 />
               </el-form-item>
             </el-col>
           </template>
           <template
-            v-if="editForm.type === 'http' || editForm.type === 'https'"
+              v-if="editForm.type === 'http' || editForm.type === 'https'"
           >
             <el-col :span="24">
               <el-form-item
-                v-for="(d, di) in editForm.customDomains"
-                :key="'domain' + di"
-                :label="di === 0 ? '自定义域名：' : ''"
-                :prop="`customDomains.${di}`"
-                :rules="[
+                  v-for="(d, di) in editForm.customDomains"
+                  :key="'domain' + di"
+                  :label="di === 0 ? '自定义域名：' : ''"
+                  :prop="`customDomains.${di}`"
+                  :rules="[
                   {
                     required: true,
                     message: `自定义域名不能为空`,
@@ -409,28 +411,28 @@ onUnmounted(() => {
                 ]"
               >
                 <el-input
-                  class="domain-input"
-                  placeholder="github.com"
-                  v-model="editForm.customDomains[di]"
+                    class="domain-input"
+                    placeholder="github.com"
+                    v-model="editForm.customDomains[di]"
                 />
                 <!--                <div class="domain-input-button !bg-[#67c23a]">-->
                 <!--                  <Icon icon="material-symbols:add" />-->
                 <!--                </div>-->
                 <el-button
-                  class="ml-[10px]"
-                  type="primary"
-                  plain
-                  @click="handleAddDomain"
+                    class="ml-[10px]"
+                    type="primary"
+                    plain
+                    @click="handleAddDomain"
                 >
-                  <Icon icon="material-symbols:add" />
+                  <Icon icon="material-symbols:add"/>
                 </el-button>
                 <el-button
-                  type="danger"
-                  plain
-                  @click="handleDeleteDomain(di)"
-                  :disabled="editForm.customDomains.length === 1"
+                    type="danger"
+                    plain
+                    @click="handleDeleteDomain(di)"
+                    :disabled="editForm.customDomains.length === 1"
                 >
-                  <Icon icon="material-symbols:delete-rounded" />
+                  <Icon icon="material-symbols:delete-rounded"/>
                 </el-button>
                 <!--                <div class="domain-input-button !bg-[#d3585b]">-->
                 <!--                  <Icon icon="material-symbols:delete-rounded" />-->
@@ -443,7 +445,7 @@ onUnmounted(() => {
               <div class="w-full flex justify-end">
                 <el-button @click="edit.visible = false">关 闭</el-button>
                 <el-button plain type="primary" @click="handleSubmit"
-                  >保 存
+                >保 存
                 </el-button>
               </div>
             </el-form-item>
@@ -465,6 +467,10 @@ onUnmounted(() => {
 
 .https {
   background: #5f3bb0;
+}
+
+.udp {
+  background: #5ec7fe;
 }
 
 .domain-input {

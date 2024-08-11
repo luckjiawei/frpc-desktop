@@ -49,6 +49,7 @@ localPort = ${m.localPort}
 `;
         switch (m.type) {
             case "tcp":
+            case "udp":
                 toml += `remotePort = ${m.remotePort}`;
                 break;
             case "http":
@@ -71,6 +72,12 @@ auth.token = "${config.authToken}"
 ${config.authMethod === 'multiuser' ? `
 user = "${config.user}"
 metadatas.token = "${config.metaToken}"
+` : ""}
+${config.transportHeartbeatInterval ? `
+transport.heartbeatInterval = ${config.transportHeartbeatInterval}
+` : ""}
+${config.transportHeartbeatTimeout ? `
+transport.heartbeatTimeout = ${config.transportHeartbeatTimeout}
 ` : ""}
 
 
@@ -111,6 +118,7 @@ local_port = ${m.localPort}
 `;
         switch (m.type) {
             case "tcp":
+            case "udp":
                 ini += `remote_port = ${m.remotePort}`;
                 break;
             case "http":
@@ -135,6 +143,14 @@ ${config.authMethod === 'multiuser' ? `
 user = ${config.user}
 meta_token = ${config.metaToken}
 ` : ""}
+
+${config.transportHeartbeatInterval ? `
+heartbeat_interval = ${config.transportHeartbeatInterval}
+` : ""}
+${config.transportHeartbeatTimeout ? `
+heartbeat_timeout = ${config.transportHeartbeatTimeout}
+` : ""}
+
 log_file = "frpc.log"
 log_level = ${config.logLevel}
 log_max_days = ${config.logMaxDays}

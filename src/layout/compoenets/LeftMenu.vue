@@ -54,5 +54,9 @@ onMounted(() => {
         <Icon class="animate__animated" :icon="r?.meta?.icon as string"/>
       </li>
     </ul>
+    <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">
+      v1.0.6
+    </div>
+
   </div>
 </template>

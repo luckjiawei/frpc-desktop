@@ -16,7 +16,7 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉 一个 Frp 跨平台桌面客户端 支持多个frp版本
+    🎉 Frp 跨平台桌面客户端 支持所有frp版本 
     <br />
   </p>
 </div>
@@ -24,12 +24,20 @@
 ## TODO
 - [x] 开机自启动
 - [x] 适配多用户 user & meta_token
-- [ ] 支持配置的导出导入
-- [ ] 优化配置
-- [ ] 便携版
+- [x] 便携版
 - [ ] 在线更新
+- [ ] 支持stcp代理类型
+- [ ] 支持快速分享frps
+- [ ] 支持配的导出导入
+- [ ] 优化配置
+
+## 常见问题
+
+### Mac提示已损坏
+执行命令：`sudo xattr -cr Frpc-Desktop.app`
 
 ## 里程碑
+- 2024-08-09: 发布v1.0.6版本
 - 2024-08-06: 发布v1.0.5版本
 - 2024-08-06: 发布v1.0.4版本 适配支持多用户插件
 - 2024-07-17: 发布v1.0.3版本 修复已知bug 增加开机自启 增加删除frp版本
@@ -40,18 +48,18 @@
 ## 社区
 微信扫描加入开源项目交流群 广告勿进！！！
 
- <img src="wechat-qr.png" alt="Logo" width="200">
+ <img src="screenshots/wechat-qr.png" alt="Logo" width="200">
 
 
 ## 演示
 
-![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/conn.png?raw=true)
+![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/conn.png?raw=true)
 
-![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/proxys.png?raw=true)
+![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/proxys.png?raw=true)
 
-![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/versions.png?raw=true)
+![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/versions.png?raw=true)
 
-![log](https://github.com/luckjiawei/frpc-desktop/blob/main/demo/log.png?raw=true)
+![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/log.png?raw=true)
 
 ## License
 
