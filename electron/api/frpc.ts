@@ -72,6 +72,12 @@ ${config.authMethod === 'multiuser' ? `
 user = "${config.user}"
 metadatas.token = "${config.metaToken}"
 ` : ""}
+${config.transportHeartbeatInterval ? `
+transport.heartbeatInterval = ${config.transportHeartbeatInterval}
+` : ""}
+${config.transportHeartbeatTimeout ? `
+transport.heartbeatTimeout = ${config.transportHeartbeatTimeout}
+` : ""}
 
 
 log.to = "frpc.log"
@@ -135,6 +141,14 @@ ${config.authMethod === 'multiuser' ? `
 user = ${config.user}
 meta_token = ${config.metaToken}
 ` : ""}
+
+${config.transportHeartbeatInterval ? `
+heartbeat_interval = ${config.transportHeartbeatInterval}
+` : ""}
+${config.transportHeartbeatTimeout ? `
+heartbeat_timeout = ${config.transportHeartbeatTimeout}
+` : ""}
+
 log_file = "frpc.log"
 log_level = ${config.logLevel}
 log_max_days = ${config.logMaxDays}

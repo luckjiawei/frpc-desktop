@@ -6,6 +6,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {useDebounceFn} from "@vueuse/core";
 import {clone} from "@/utils/clone";
 import {Icon} from "@iconify/vue";
+import {Base64} from "js-base64";
 
 defineComponent({
   name: "Config"
@@ -30,6 +31,8 @@ type Config = {
   systemStartupConnect: boolean;
   user: string;
   metaToken: string;
+  transportHeartbeatInterval: number;
+  transportHeartbeatTimeout: number;
 };
 
 type Version = {
@@ -37,7 +40,18 @@ type Version = {
   name: string;
 }
 
-const formData = ref<Config>({
+type ShareLinkConfig = {
+  serverAddr: string,
+  serverPort: number,
+  authMethod: string,
+  authToken: string,
+  transportHeartbeatInterval: number,
+  transportHeartbeatTimeout: number,
+  user: string,
+  metaToken: string,
+}
+
+const defaultFormData = ref<Config>({
   currentVersion: "",
   serverAddr: "",
   serverPort: 7000,
@@ -55,8 +69,13 @@ const formData = ref<Config>({
   systemSelfStart: false,
   systemStartupConnect: false,
   user: "",
-  metaToken: ""
+  metaToken: "",
+  transportHeartbeatInterval: 30,
+  transportHeartbeatTimeout: 90,
 });
+
+
+const formData = ref<Config>(defaultFormData.value);
 
 const loading = ref(1);
 
@@ -99,12 +118,27 @@ const rules = reactive<FormRules>({
   ],
   systemSelfStart: [
     {required: true, message: "请选择是否开机自启", trigger: "change"},
-  ]
+  ],
+  transportHeartbeatInterval: [
+    {required: true, message: "心跳间隔时间不能为空", trigger: "change"},
+  ],
+  transportHeartbeatTimeout: [
+    {required: true, message: "心跳超时时间不能为空", trigger: "change"},
+  ],
+
 });
 
 const versions = ref<Array<Version>>([]);
+const copyServerConfigBase64 = ref();
+const pasteServerConfigBase64 = ref();
 
 const formRef = ref<FormInstance>();
+
+const visibles = reactive({
+  copyServerConfig: false,
+  pasteServerConfig: false,
+});
+
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
   formRef.value.validate(valid => {
@@ -138,6 +172,13 @@ onMounted(() => {
     const {err, data} = args;
     if (!err) {
       if (data) {
+        console.log('data', data)
+        if (!data.transportHeartbeatInterval) {
+          data.transportHeartbeatInterval = defaultFormData.value.transportHeartbeatInterval
+        }
+        if (!data.transportHeartbeatTimeout) {
+          data.transportHeartbeatTimeout = defaultFormData.value.transportHeartbeatTimeout
+        }
         formData.value = data;
       }
     }
@@ -176,6 +217,78 @@ const handleSelectFile = (type: number, ext: string[]) => {
 
   })
 }
+
+/**
+ * 分享配置
+ */
+const handleCopyServerConfig2Base64 = useDebounceFn(() => {
+  const shareConfig: ShareLinkConfig = {
+    serverAddr: formData.value.serverAddr,
+    serverPort: formData.value.serverPort,
+    authMethod: formData.value.authMethod,
+    authToken: formData.value.authToken,
+    transportHeartbeatInterval: formData.value.transportHeartbeatInterval,
+    transportHeartbeatTimeout: formData.value.transportHeartbeatTimeout,
+    user: formData.value.user,
+    metaToken: formData.value.metaToken,
+  };
+  const base64str = Base64.encode(
+      JSON.stringify(shareConfig)
+  )
+  copyServerConfigBase64.value = base64str;
+  visibles.copyServerConfig = true;
+
+}, 300);
+
+/**
+ * 导入配置
+ */
+const handlePasteServerConfig4Base64 = useDebounceFn(() => {
+  visibles.pasteServerConfig = true;
+}, 300);
+
+const handlePasteServerConfigBase64 = useDebounceFn(() => {
+  const plain = Base64.decode(pasteServerConfigBase64.value)
+  console.log('plain', plain)
+  let serverConfig: ShareLinkConfig = null;
+  try {
+    serverConfig = JSON.parse(plain)
+  } catch {
+    ElMessage({
+      type: "warning",
+      message: "链接不正确 请输入正确的链接"
+    });
+    return;
+  }
+
+  if (!serverConfig && !serverConfig.serverAddr) {
+    ElMessage({
+      type: "warning",
+      message: "链接不正确 请输入正确的链接"
+    });
+    return;
+  }
+  if (!serverConfig && !serverConfig.serverPort) {
+    ElMessage({
+      type: "warning",
+      message: "链接不正确 请输入正确的链接"
+    });
+    return;
+  }
+  formData.value.serverAddr = serverConfig.serverAddr
+  formData.value.serverPort = serverConfig.serverPort
+  formData.value.authMethod = serverConfig.authMethod
+  formData.value.authToken = serverConfig.authToken
+  formData.value.transportHeartbeatInterval = serverConfig.transportHeartbeatInterval
+  formData.value.transportHeartbeatTimeout = serverConfig.transportHeartbeatTimeout
+  formData.value.user = serverConfig.user
+  formData.value.metaToken = serverConfig.metaToken
+
+  handleSubmit();
+  visibles.pasteServerConfig = false;
+
+}, 300)
+
 
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Config.getConfig.hook");
@@ -236,7 +349,16 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="24">
-              <div class="h2">服务器配置</div>
+              <div class="h2 flex justify-between">
+                <div>服务器配置</div>
+                <div class="flex items-center justify-center">
+                  <Icon @click="handleCopyServerConfig2Base64" class="mr-2 cursor-pointer text-xl font-bold"
+                        icon="material-symbols:content-copy"/>
+                  <Icon @click="handlePasteServerConfig4Base64" class="mr-2 cursor-pointer text-xl font-bold"
+                        icon="material-symbols:content-paste-go"/>
+                </div>
+              </div>
+
             </el-col>
             <el-col :span="24">
               <el-form-item label="服务器地址：" prop="serverAddr">
@@ -366,7 +488,7 @@ onUnmounted(() => {
                         trigger="hover"
                     >
                       <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]">meta_token</span>
+                        对应参数：<span class="font-black text-[#5A3DAA]">metadatas.token</span>
                       </template>
                       <template #reference>
                         <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
@@ -380,6 +502,70 @@ onUnmounted(() => {
                     type="password"
                     v-model="formData.metaToken"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="心跳间隔：" prop="transportHeartbeatInterval">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        width="300"
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        多长向服务端发发送一次心跳包 单位： <span class="font-black text-[#5A3DAA]">秒</span> <br/>
+                        对应参数：<span class="font-black text-[#5A3DAA]">transport.heartbeatInterval</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  心跳间隔：
+                </template>
+                <el-input-number class="w-full" v-model="formData.transportHeartbeatInterval" :min="1" :max="10"
+                                 controls-position="right"/>
+                <!--                <el-input-->
+                <!--                    placeholder="请输入心跳间隔"-->
+                <!--                    type="number"-->
+                <!--                    :min="0"-->
+                <!--                    v-model="formData.heartbeatInterval"-->
+                <!--                >-->
+                <!--                  <template #append>秒</template>-->
+                <!--                </el-input>-->
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="心跳超时：" prop="transportHeartbeatTimeout">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover
+                        width="300"
+                        placement="top"
+                        trigger="hover"
+                    >
+                      <template #default>
+                        心跳超时时间 单位： <span class="font-black text-[#5A3DAA]">秒</span> <br/>
+                        对应参数：<span class="font-black text-[#5A3DAA]">transport.heartbeatTimeout</span>
+                      </template>
+                      <template #reference>
+                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                      </template>
+                    </el-popover>
+                  </div>
+                  心跳超时：
+                </template>
+                <el-input-number class="w-full" v-model="formData.transportHeartbeatTimeout" :min="1" :max="10"
+                                 controls-position="right"/>
+                <!--                <el-input-->
+                <!--                    placeholder="请输入心跳超时时间"-->
+                <!--                    :min="0"-->
+                <!--                    type="number"-->
+                <!--                    v-model="formData.heartbeatTimeout"-->
+                <!--                >-->
+                <!--                  <template #append>秒</template>-->
+                <!--                </el-input>-->
               </el-form-item>
             </el-col>
             <el-col :span="24">
@@ -540,6 +726,7 @@ onUnmounted(() => {
                 </el-form-item>
               </el-col>
             </template>
+
             <el-col :span="24">
               <div class="h2">日志配置</div>
             </el-col>
@@ -622,6 +809,25 @@ onUnmounted(() => {
         </el-form>
       </div>
     </div>
+
+    <el-dialog v-model="visibles.copyServerConfig" title="分享服务器" width="500">
+      <el-alert class="mb-4" title="生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用" type="warning"
+                :closable="false"/>
+      <el-input class="h-30" v-model="copyServerConfigBase64" type="textarea" :rows="8"></el-input>
+    </el-dialog>
+
+    <el-dialog v-model="visibles.pasteServerConfig" title="导入服务器" width="500">
+      <el-input class="h-30"
+                v-model="pasteServerConfigBase64"
+                type="textarea" placeholder="在此输入分享链接"
+                :rows="8"></el-input>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button plain type="primary" @click="handlePasteServerConfigBase64">导入</el-button>
+        </div>
+      </template>
+
+    </el-dialog>
   </div>
 </template>
 
@@ -642,4 +848,5 @@ onUnmounted(() => {
 .button-input {
   width: calc(100% - 68px);
 }
+
 </style>

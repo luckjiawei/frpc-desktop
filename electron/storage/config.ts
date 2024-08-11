@@ -28,6 +28,8 @@ export type Config = {
     systemStartupConnect: boolean;
     user: string;
     metaToken: string;
+    transportHeartbeatInterval: number;
+    transportHeartbeatTimeout: number;
 };
 
 /**
