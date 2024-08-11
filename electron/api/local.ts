@@ -12,7 +12,7 @@ type LocalPort = {
 export const initLocalApi = () => {
     const command = process.platform === 'win32'
         ? 'netstat -a -n'
-        : 'netstat -an | grep LISTEN\n';
+        : 'netstat -an | grep LISTEN';
 
     ipcMain.on("local.getLocalPorts", async (event, args) => {
         log.info("开始获取本地端口")
@@ -86,6 +86,28 @@ export const initLocalApi = () => {
                         })
                     // .filter(f => f.indexOf('TCP') > 0 || f.indexOf('UDP') > 0)
 
+                } else if (process.platform === 'linux') {
+                    ports = stdout.split('\n')
+                        .filter(f =>
+                            f.indexOf('tcp') !== -1||
+                            f.indexOf('tcp6') !== -1||
+                            f.indexOf('udp') !== -1 ||
+                            f.indexOf('udp6') !== -1
+                        ).map(m => {
+                            const cols = m.split(' ')
+                                .filter(f => f != '')
+                            const local = cols[3]
+                            const s = local.lastIndexOf(":")
+                            let localIP = local.slice(0, s);
+                            let localPort = local.slice(s - local.length + 1);
+                            console.log(1)
+                            const singe: LocalPort = {
+                                protocol: cols[0],
+                                ip: localIP,
+                                port: localPort
+                            }
+                            return singe;
+                        })
                 }
 
             }
