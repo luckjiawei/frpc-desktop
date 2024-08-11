@@ -67,7 +67,7 @@ const routes: RouteRecordRaw[] = [
           title: "关于",
           icon: "material-symbols:info-sharp",
           keepAlive: true,
-          hidden: false
+          hidden: true
         },
         component: () => import("@/views/about/index.vue")
       },

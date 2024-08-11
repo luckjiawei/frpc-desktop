@@ -3,7 +3,7 @@ import {computed, defineComponent, onMounted, ref} from "vue";
 import {Icon} from "@iconify/vue";
 import router from "@/router";
 import {RouteRecordRaw} from "vue-router";
-import {ipcRenderer} from "electron";
+import pkg from '../../../package.json';
 
 defineComponent({
   name: "AppMain"
@@ -28,6 +28,13 @@ const handleMenuChange = (route: any) => {
   });
 };
 
+const handleOpenGitHubReleases = () => {
+  // ipcRenderer.send("github.openReleases")
+  router.push({
+    name: "About"
+  })
+}
+
 
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
@@ -39,7 +46,7 @@ onMounted(() => {
 <template>
   <div class="left-menu-container drop-shadow-xl">
     <div class="logo-container">
-      <img src="/logo/only/128x128.png" class="logo" alt="Logo"/>
+      <img src="/logo/only/128x128.png" class="logo animate__animated animate__lightSpeedInLeft" alt="Logo"/>
     </div>
     <ul class="menu-container">
       <!--      enter-active-class="animate__animated animate__bounceIn"-->
@@ -55,7 +62,7 @@ onMounted(() => {
       </li>
     </ul>
     <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">
-      v1.0.6
+      {{ pkg.version }}
     </div>
 
   </div>

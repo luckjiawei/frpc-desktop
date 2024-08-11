@@ -203,13 +203,39 @@ export const initGitHubApi = () => {
     })
 
     /**
-     * 打开GitHub
+     * 获取最后版本
      */
-    ipcMain.on("github.open", () => {
-        shell.openExternal("https://github.com/luckjiawei/frpc-desktop/issues");
+    ipcMain.on("github.getFrpcDesktopLastVersions", async event => {
+        const request = net.request({
+            method: "get",
+            url: "https://api.github.com/repos/luckjiawei/frpc-desktop/releases/latest"
+        });
+        request.on("response", response => {
+            let responseData: Buffer = Buffer.alloc(0);
+            response.on("data", (data: Buffer) => {
+                responseData = Buffer.concat([responseData, data]);
+            });
+            response.on("end", () => {
+                versions = JSON.parse(responseData.toString());
+                // const borderContent: Electron.WebContents =
+                //   BrowserWindow.getFocusedWindow().webContents;
+                // const downloadPath = path.join(app.getPath("userData"), "download");
+                // log.info(`开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch}`)
+                // const returnVersionsData = versions
+                //     .filter(f => getAdaptiveAsset(f.id))
+                //     .map(m => {
+                //         const asset = getAdaptiveAsset(m.id);
+                //         if (asset) {
+                //             const absPath = `${downloadPath}/${asset.name}`;
+                //             m.absPath = absPath;
+                //             m.download_completed = fs.existsSync(absPath);
+                //         }
+                //         return m;
+                //     });
+                // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
+                event.reply("github.getFrpcDesktopLastVersionsHook", versions);
+            });
+        });
+        request.end();
     })
-
-    electron.ipcMain.on("github.openReleases", () => {
-        electron.shell.openExternal("https://github.com/luckjiawei/frpc-desktop/releases");
-    });
 };

@@ -10,6 +10,7 @@ import {initFileApi} from "../api/file";
 import {initUpdaterApi} from "../api/update";
 import {getConfig} from "../storage/config";
 import log from "electron-log";
+import {initCommonApi} from "../api/common";
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -170,6 +171,7 @@ app.whenReady().then(() => {
         initFrpcApi();
         initLoggerApi();
         initFileApi();
+        initCommonApi();
         // initUpdaterApi(win);
     })
 });

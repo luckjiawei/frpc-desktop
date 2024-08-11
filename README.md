@@ -16,8 +16,9 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉 Frp 跨平台桌面客户端 支持所有frp版本 
+    🎉 FRP跨平台桌面客户端，可视化配置，轻松实现内网穿透！
     <br />
+    支持所有frp版本 / 开机自启 / 可视化配置 / 免费开源
   </p>
 </div>
 
