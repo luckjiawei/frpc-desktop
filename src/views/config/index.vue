@@ -166,6 +166,13 @@ const handleAuthMethodChange = e => {
   }
 }
 
+const checkAndResetVersion = () => {
+  const currentVersion = formData.value.currentVersion;
+  if (currentVersion && !versions.value.some(item => item.id === currentVersion)) {
+    formData.value.currentVersion = "";
+  }
+}
+
 onMounted(() => {
   ipcRenderer.send("config.getConfig");
   handleLoadVersions();
@@ -197,6 +204,7 @@ onMounted(() => {
     const {err, data} = args;
     if (!err) {
       versions.value = data;
+      checkAndResetVersion();
     }
   });
 });

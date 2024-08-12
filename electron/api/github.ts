@@ -1,5 +1,5 @@
 import electron, {app, BrowserWindow, ipcMain, net, shell} from "electron";
-import {deleteVersionById, insertVersion} from "../storage/version";
+import {deleteVersionById, insertVersion, listVersion} from "../storage/version";
 
 const fs = require("fs");
 const path = require("path");
@@ -178,8 +178,11 @@ export const initGitHubApi = () => {
                 version["frpcVersionPath"] = frpcVersionPath;
                 insertVersion(version, (err, document) => {
                     if (!err) {
-                        event.reply("Download.frpVersionDownloadOnCompleted", args);
-                        version.download_completed = true;
+                        listVersion((err, doc) => {
+                            event.reply("Config.versions.hook", { err, data: doc });
+                            event.reply("Download.frpVersionDownloadOnCompleted", args);
+                            version.download_completed = true;
+                        });
                     }
                 });
             }
@@ -196,9 +199,9 @@ export const initGitHubApi = () => {
                 fs.unlinkSync(absPath)
             })
         }
-        event.reply("Download.deleteVersion.hook", {
-            err: null,
-            data: "删除成功"
+        listVersion((err, doc) => {
+            event.reply("Config.versions.hook", { err, data: doc });
+            event.reply("Download.deleteVersion.hook", { err: null, data: "删除成功" });
         });
     })
 
