@@ -11,20 +11,7 @@ defineComponent({
   name: "Download"
 });
 
-type Asset = {
-  name: string
-}
-
-type Version = {
-  id: string;
-  name: string;
-  published_at: string;
-  download_completed: boolean;
-  absPath: string;
-  assets: Asset[]
-};
-
-const versions = ref<Array<Version>>([]);
+const versions = ref<Array<FrpVersion>>([]);
 const loading = ref(1);
 const downloadPercentage = ref(0);
 const downloading = ref<Map<string, number>>(new Map<string, number>());
@@ -40,7 +27,7 @@ const handleLoadVersions = () => {
  * 下载
  * @param version
  */
-const handleDownload = useDebounceFn((version: Version) => {
+const handleDownload = useDebounceFn((version: FrpVersion) => {
   ipcRenderer.send("github.download", version.id);
   downloading.value.set(version.id, 0);
 }, 300);
@@ -49,7 +36,7 @@ const handleDownload = useDebounceFn((version: Version) => {
  * 删除下载
  * @param version
  */
-const handleDeleteVersion = useDebounceFn((version: Version) => {
+const handleDeleteVersion = useDebounceFn((version: FrpVersion) => {
   ipcRenderer.send("github.deleteVersion", {
     id: version.id,
     absPath: version.absPath
@@ -61,8 +48,8 @@ const handleInitDownloadHook = () => {
     loading.value--;
     versions.value = args.map(m => {
       m.published_at = moment(m.published_at).format("YYYY-MM-DD HH:mm:ss")
-      return m as Version;
-    }) as Array<Version>;
+      return m as FrpVersion;
+    }) as Array<FrpVersion>;
     console.log(versions, 'versions')
   });
   // 进度监听
@@ -75,7 +62,7 @@ const handleInitDownloadHook = () => {
   });
   ipcRenderer.on("Download.frpVersionDownloadOnCompleted", (event, args) => {
     downloading.value.delete(args);
-    const version: Version | undefined = versions.value.find(
+    const version: FrpVersion | undefined = versions.value.find(
         f => f.id === args
     );
     if (version) {

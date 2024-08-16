@@ -9,12 +9,12 @@ const versionDB = new Datastore({
 });
 
 /**
- * 新增代理
- * @param proxy
+ * 新增版本
+ * @param version
  * @param cb
  */
 export const insertVersion = (
-    version: any,
+    version: FrpVersion,
     cb?: (err: Error | null, document: any) => void
 ) => {
     log.debug(`新增版本：${JSON.stringify(version)}`);
@@ -26,14 +26,14 @@ export const insertVersion = (
  * @param cb
  */
 export const listVersion = (
-    callback: (err: Error | null, documents: any[]) => void
+    callback: (err: Error | null, documents: FrpVersion[]) => void
 ) => {
     versionDB.find({}, callback);
 };
 
 export const getVersionById = (
     id: string,
-    callback: (err: Error | null, document: any) => void
+    callback: (err: Error | null, document: FrpVersion) => void
 ) => {
     versionDB.findOne({id: id}, callback);
 };

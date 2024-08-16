@@ -1,22 +1,14 @@
 import Datastore from "nedb";
 import path from "path";
 import { app } from "electron";
-const log = require('electron-log');
+
+const log = require("electron-log");
 
 const proxyDB = new Datastore({
   autoload: true,
   filename: path.join(app.getPath("userData"), "proxy.db")
 });
 
-export type Proxy = {
-  _id: string;
-  name: string;
-  type: string;
-  localIp: string;
-  localPort: number;
-  remotePort: number;
-  customDomains: string[];
-};
 /**
  * 新增代理
  * @param proxy

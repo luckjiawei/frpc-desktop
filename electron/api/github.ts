@@ -74,7 +74,7 @@ const unZip = (zipPath: string, targetPath: string) => {
 
 export const initGitHubApi = () => {
     // 版本
-    let versions = [];
+    let versions: FrpVersion[] = [];
 
     const getVersion = versionId => {
         return versions.find(f => f.id === versionId);
