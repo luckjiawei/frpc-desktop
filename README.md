@@ -77,8 +77,9 @@
 
 [MIT](LICENSE)
 
-## Stargazers over time
-[![Stargazers over time](https://starchart.cc/luckjiawei/frpc-desktop.svg?variant=adaptive)](https://starchart.cc/luckjiawei/frpc-desktop)
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=luckjiawei/frpc-desktop&type=Date)](https://star-history.com/#luckjiawei/frpc-desktop&Date)
 <!-- MARKDOWN LINKS & IMAGES -->
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 [forks-url]: https://github.com/luckjiawei/frpc-desktop/network/members
