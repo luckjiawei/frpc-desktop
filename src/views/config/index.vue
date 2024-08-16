@@ -324,7 +324,13 @@ onUnmounted(() => {
         >
           <el-row :gutter="10">
             <el-col :span="24">
-              <el-form-item label="选择版本：" prop="currentVersion">
+              <div class="h2 flex justify-between">
+                <div>版本选择</div>
+              </div>
+
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="Frp版本：" prop="currentVersion">
                 <el-select
                     v-model="formData.currentVersion"
                     class="w-full"
