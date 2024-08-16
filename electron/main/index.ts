@@ -59,10 +59,10 @@ async function createWindow() {
         icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
         width: 800,
         height: 600,
-        minWidth: 800,
-        minHeight: 600,
-        maxWidth: 800,
-        maxHeight: 600,
+        minWidth: 640,
+        minHeight: 480,
+        maxWidth: 1280,
+        maxHeight: 960,
         webPreferences: {
             preload,
             // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
