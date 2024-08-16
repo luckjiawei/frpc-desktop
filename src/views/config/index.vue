@@ -345,8 +345,10 @@ onUnmounted(() => {
               <div class="h2 flex justify-between">
                 <div>服务器配置</div>
                 <div class="flex items-center justify-center">
-                  <IconifyIconOffline class="mr-2 cursor-pointer text-xl font-bold" icon="content-copy"/>
-                  <IconifyIconOffline class="mr-2 cursor-pointer text-xl font-bold" icon="content-paste-go"/>
+                  <IconifyIconOffline @click="handleCopyServerConfig2Base64"
+                                      class="mr-2 cursor-pointer text-xl font-bold" icon="content-copy"/>
+                  <IconifyIconOffline @click="handlePasteServerConfig4Base64"
+                                      class="mr-2 cursor-pointer text-xl font-bold" icon="content-paste-go"/>
                 </div>
               </div>
 

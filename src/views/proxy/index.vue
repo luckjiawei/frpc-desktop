@@ -254,6 +254,23 @@ const handleOpenLocalPortDialog = () => {
   handleLoadLocalPorts();
 };
 
+
+interface RestaurantItem {
+  value: string
+}
+
+const commonIp = ref<Array<RestaurantItem>>([])
+
+const handleIpFetchSuggestions = (queryString: string, cb: any) => {
+  const results = queryString
+      ? commonIp.value.filter(f => {
+        return f.value.toLowerCase().indexOf(queryString.toLowerCase()) !== -1
+      })
+      : commonIp.value
+  console.log(results, 'results')
+  cb(commonIp.value)
+}
+
 onMounted(() => {
   handleInitHook();
   handleLoadProxys();
@@ -369,7 +386,7 @@ onUnmounted(() => {
     <el-dialog
         v-model="edit.visible"
         :title="edit.title"
-        width="400"
+        width="500"
         top="5%"
     >
       <el-form
@@ -381,7 +398,7 @@ onUnmounted(() => {
       >
         <el-row :gutter="10">
           <el-col :span="24">
-            <el-form-item label="代理类型：" prop="proxyType">
+            <el-form-item label="代理类型：" prop="type">
               <el-radio-group v-model="editForm.type">
                 <el-radio label="http" model-value="http"/>
                 <el-radio label="https" model-value="https"/>
@@ -391,17 +408,23 @@ onUnmounted(() => {
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="24">
-            <el-form-item label="代理名称：" prop="proxyName">
-              <el-input v-model="editForm.name" placeholder="代理名称"/>
+          <el-col :span="12">
+            <el-form-item label="代理名称：" prop="name">
+              <el-input v-model="editForm.name" placeholder="代理名称" clearable/>
             </el-form-item>
           </el-col>
-          <el-col :span="24">
+          <el-col :span="12">
             <el-form-item label="内网地址：" prop="localIp">
-              <el-input v-model="editForm.localIp" placeholder="127.0.0.1"/>
+              <!--              <el-autocomplete-->
+              <!--                  v-model="editForm.localIp"-->
+              <!--                  :fetch-suggestions="handleIpFetchSuggestions"-->
+              <!--                  clearable-->
+              <!--                  placeholder="127.0.0.1"-->
+              <!--              />-->
+              <el-input v-model="editForm.localIp" placeholder="127.0.0.1" clearable/>
             </el-form-item>
           </el-col>
-          <el-col :span="24">
+          <el-col :span="12">
             <el-form-item label="内网端口：" prop="localPort">
               <el-input-number
                   placeholder="8080"
