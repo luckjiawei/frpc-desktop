@@ -121,47 +121,59 @@ onUnmounted(() => {
     <!--    </breadcrumb>-->
     <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
       <template v-if="versions && versions.length > 0">
-        <div
-            class="w-full bg-white mb-4 rounded p-4 drop-shadow-lg flex justify-between items-center"
-            v-for="version in versions"
-            :key="version.id"
-        >
-          <div class="left">
-            <div class="mb-2">
-              <el-tag>{{ version.name }}</el-tag>
-              <!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
-            </div>
-            <div class="text-sm">
-              发布时间：<span class="text-gray-00">{{
-                // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
-                version.published_at
-              }}</span>
-            </div>
-          </div>
-          <div class="right">
-            <div v-if="version.download_completed">
-              <el-button type="text">已下载</el-button>
-              <el-button type="text" class="danger-text" @click="handleDeleteVersion(version)">
-                <IconifyIconOffline class="mr-1" icon="delete-rounded"/>
-                删除
-              </el-button>
-
-            </div>
-
-            <template v-else>
-              <div class="w-32" v-if="downloading.has(version.id)">
-                <el-progress
-                    :percentage="downloading.get(version.id)"
-                    :text-inside="false"
-                />
+        <el-row :gutter="20">
+          <el-col
+              v-for="version in versions"
+              :key="version.id"
+              :lg="8"
+              :md="8"
+              :sm="12"
+              :xl="6"
+              :xs="24"
+              class="mb-[20px]"
+          >
+            <div
+                class="w-full bg-white rounded p-4 drop-shadow-lg flex justify-between items-center"
+            >
+              <div class="left">
+                <div class="mb-2">
+                  <el-tag>{{ version.name }}</el-tag>
+                  <!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
+                </div>
+                <div class="text-sm">
+                  发布时间：<span class="text-gray-00">{{
+                    // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
+                    version.published_at
+                  }}</span>
+                </div>
               </div>
-              <el-button v-else size="small" type="primary" @click="handleDownload(version)">
-                <IconifyIconOffline class="mr-1" icon="download"/>
-                下载
-              </el-button>
-            </template>
-          </div>
-        </div>
+              <div class="right">
+                <div v-if="version.download_completed">
+                  <el-button type="text">已下载</el-button>
+                  <el-button type="text" class="danger-text" @click="handleDeleteVersion(version)">
+                    <IconifyIconOffline class="mr-1" icon="delete-rounded"/>
+                    删除
+                  </el-button>
+
+                </div>
+
+                <template v-else>
+                  <div class="w-32" v-if="downloading.has(version.id)">
+                    <el-progress
+                        :percentage="downloading.get(version.id)"
+                        :text-inside="false"
+                    />
+                  </div>
+                  <el-button v-else size="small" type="primary" @click="handleDownload(version)">
+                    <IconifyIconOffline class="mr-1" icon="download"/>
+                    下载
+                  </el-button>
+                </template>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+
       </template>
       <div
           v-else
