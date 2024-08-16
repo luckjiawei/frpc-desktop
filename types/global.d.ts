@@ -53,7 +53,7 @@ declare global {
      * 全局配置
      */
     type FrpConfig = {
-        currentVersion: string;
+        currentVersion: number;
         serverAddr: string;
         serverPort: number;
         authMethod: string;

@@ -32,7 +32,7 @@ export const listVersion = (
 };
 
 export const getVersionById = (
-    id: string,
+    id: number,
     callback: (err: Error | null, document: FrpVersion) => void
 ) => {
     versionDB.findOne({id: id}, callback);

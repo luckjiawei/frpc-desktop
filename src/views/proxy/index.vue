@@ -43,7 +43,7 @@ const defaultForm = ref<Proxy>({
   localPort: 8080,
   remotePort: 8080,
   customDomains: [""],
-  stcpModel: "visitor",
+  stcpModel: "visitors",
   serverName: "",
   secretKey: "",
   bindAddr: "",
@@ -63,7 +63,7 @@ const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp"]);
 const stcpModels = ref([
   {
     label: "访问者",
-    value: "visitor"
+    value: "visitors"
   },
   {
     label: "被访问者",
@@ -469,7 +469,7 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <el-col :span="editForm.stcpModel === 'visitor' ? 12 : 24">
+          <el-col :span="editForm.stcpModel === 'visitors' ? 12 : 24">
             <el-form-item label="代理名称：" prop="name">
               <el-input
                 v-model="editForm.name"
@@ -625,7 +625,7 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template
-            v-if="editForm.type === 'stcp' && editForm.stcpModel === 'visitor'"
+            v-if="editForm.type === 'stcp' && editForm.stcpModel === 'visitors'"
           >
             <el-col :span="12">
               <el-form-item label="被访问者代理名称：" prop="serverName">
@@ -789,6 +789,10 @@ onUnmounted(() => {
 
 .udp {
   background: #5ec7fe;
+}
+
+.stcp {
+  background: #D63DA6;
 }
 
 .domain-input {
