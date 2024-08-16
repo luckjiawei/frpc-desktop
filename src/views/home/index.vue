@@ -86,7 +86,7 @@ onUnmounted(() => {
               />
             </transition>
             <div
-                class="bg-white z-10 w-full h-full bg-white absolute rounded-full flex justify-center items-center"
+                class="bg-white z-10 w-full h-full absolute rounded-full flex justify-center items-center"
             >
               <IconifyIconOffline icon="rocket-launch-rounded"/>
             </div>
