@@ -5,8 +5,8 @@ import {ElMessage, ElMessageBox, FormInstance, FormRules} from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {useDebounceFn} from "@vueuse/core";
 import {clone} from "@/utils/clone";
-import {Icon} from "@iconify/vue";
 import {Base64} from "js-base64";
+
 
 defineComponent({
   name: "Config"
@@ -331,24 +331,13 @@ onUnmounted(() => {
                 </el-select>
                 <div class="w-full flex justify-end">
                   <el-link type="primary" @click="handleLoadVersions">
-                    <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>
+                    <iconify-icon-offline class="mr-1" icon="refresh-rounded"/>
                     手动刷新
                   </el-link>
-                  <!--                  <el-button type="text" @click="handleLoadVersions">-->
-                  <!--                    <Icon class="mr-1" icon="material-symbols:refresh-rounded"/>-->
-                  <!--                    手动刷新-->
-                  <!--                  </el-button>-->
                   <el-link class="ml-2" type="primary" @click="$router.replace({ name: 'Download' })">
-                    <Icon class="mr-1" icon="material-symbols:download-2"/>
+                    <IconifyIconOffline class="mr-1" icon="download"/>
                     点击这里去下载
                   </el-link>
-                  <!--                  <el-button-->
-                  <!--                      type="text"-->
-                  <!--                      @click="$router.replace({ name: 'Download' })"-->
-                  <!--                  >-->
-                  <!--                    <Icon class="mr-1" icon="material-symbols:download-2"/>-->
-                  <!--                    点击这里去下载-->
-                  <!--                  </el-button>-->
                 </div>
               </el-form-item>
             </el-col>
@@ -356,10 +345,8 @@ onUnmounted(() => {
               <div class="h2 flex justify-between">
                 <div>服务器配置</div>
                 <div class="flex items-center justify-center">
-                  <Icon @click="handleCopyServerConfig2Base64" class="mr-2 cursor-pointer text-xl font-bold"
-                        icon="material-symbols:content-copy"/>
-                  <Icon @click="handlePasteServerConfig4Base64" class="mr-2 cursor-pointer text-xl font-bold"
-                        icon="material-symbols:content-paste-go"/>
+                  <IconifyIconOffline class="mr-2 cursor-pointer text-xl font-bold" icon="content-copy"/>
+                  <IconifyIconOffline class="mr-2 cursor-pointer text-xl font-bold" icon="content-paste-go"/>
                 </div>
               </div>
 
@@ -377,7 +364,7 @@ onUnmounted(() => {
                           class="font-black text-[#5A3DAA]">IP</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -414,7 +401,8 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">auth.method</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <!--                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -445,7 +433,7 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">auth.token</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -470,7 +458,7 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">user</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -495,7 +483,7 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">metadatas.token</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -522,7 +510,7 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">transport.heartbeatInterval</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -554,7 +542,7 @@ onUnmounted(() => {
                         对应参数：<span class="font-black text-[#5A3DAA]">transport.heartbeatTimeout</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -597,7 +585,7 @@ onUnmounted(() => {
                           对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.certFile</span>
                         </template>
                         <template #reference>
-                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                          <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                         </template>
                       </el-popover>
                     </div>
@@ -625,7 +613,7 @@ onUnmounted(() => {
                           对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.keyFile</span>
                         </template>
                         <template #reference>
-                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                          <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                         </template>
                       </el-popover>
                     </div>
@@ -653,7 +641,7 @@ onUnmounted(() => {
                           对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.trustedCaFile</span>
                         </template>
                         <template #reference>
-                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                          <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                         </template>
                       </el-popover>
                     </div>
@@ -681,7 +669,7 @@ onUnmounted(() => {
                           对应参数：<span class="font-black text-[#5A3DAA]">transport.tls.serverName</span>
                         </template>
                         <template #reference>
-                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                          <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                         </template>
                       </el-popover>
                     </div>
@@ -719,7 +707,7 @@ onUnmounted(() => {
                           对应参数：<span class="font-black text-[#5A3DAA]">transport.proxyURL</span>
                         </template>
                         <template #reference>
-                          <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                          <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                         </template>
                       </el-popover>
                     </div>
@@ -764,7 +752,7 @@ onUnmounted(() => {
                         开机自动启动 <br/><span class="font-black text-[#5A3DAA]">Frpc Desktop</span>
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -789,7 +777,7 @@ onUnmounted(() => {
 
                       </template>
                       <template #reference>
-                        <Icon class="text-base" color="#5A3DAA" icon="material-symbols:info"/>
+                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
                       </template>
                     </el-popover>
                   </div>
@@ -804,7 +792,7 @@ onUnmounted(() => {
             <el-col :span="24">
               <el-form-item>
                 <el-button plain type="primary" @click="handleSubmit">
-                  <Icon class="mr-1" icon="material-symbols:save"/>
+                  <IconifyIconOffline icon="save"/>
                   保 存
                 </el-button>
               </el-form-item>
@@ -829,7 +817,9 @@ onUnmounted(() => {
         <div class="dialog-footer">
 
           <el-button plain type="primary" @click="handlePasteServerConfigBase64">
-            <Icon class="cursor-pointer mr-2" icon="material-symbols:label-important-rounded"/>导 入</el-button>
+            <IconifyIconOffline class="cursor-pointer mr-2" icon="label-important-rounded"/>
+            导 入
+          </el-button>
         </div>
       </template>
 

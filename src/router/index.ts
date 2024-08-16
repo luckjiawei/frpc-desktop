@@ -14,7 +14,7 @@ const routes: RouteRecordRaw[] = [
         name: "Home",
         meta: {
           title: "连接",
-          icon: "material-symbols:rocket-launch-rounded",
+          icon: "rocket-launch-rounded",
           keepAlive: true
         },
         component: () => import("@/views/home/index.vue")
@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
         name: "Proxy",
         meta: {
           title: "穿透列表",
-          icon: "material-symbols:cloud",
+          icon: "cloud",
           keepAlive: true
         },
         component: () => import("@/views/proxy/index.vue")
@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
         name: "Download",
         meta: {
           title: "版本下载",
-          icon: "material-symbols:download-2",
+          icon: "download",
           keepAlive: true
         },
         component: () => import("@/views/download/index.vue")
@@ -44,7 +44,7 @@ const routes: RouteRecordRaw[] = [
         name: "Config",
         meta: {
           title: "系统配置",
-          icon: "material-symbols:settings",
+          icon: "settings",
           keepAlive: true
         },
         component: () => import("@/views/config/index.vue")
@@ -54,7 +54,7 @@ const routes: RouteRecordRaw[] = [
         name: "Logger",
         meta: {
           title: "日志",
-          icon: "material-symbols:file-copy-sharp",
+          icon: "file-copy-sharp",
           keepAlive: true,
           hidden: false
         },
@@ -65,7 +65,7 @@ const routes: RouteRecordRaw[] = [
         name: "About",
         meta: {
           title: "关于",
-          icon: "material-symbols:info-sharp",
+          icon: "info-sharp",
           keepAlive: true,
           hidden: true
         },

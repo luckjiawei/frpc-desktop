@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, defineComponent } from "vue";
 import router from "@/router";
 
+
 defineComponent({
   name: "Breadcrumb"
 });
@@ -15,10 +16,11 @@ const currentRoute = computed(() => {
 <template>
   <div class="flex justify-between">
     <div class="breadcrumb">
-      <Icon
-        class="inline-block mr-2"
-        :icon="currentRoute.meta['icon'] as string"
-      />
+      <IconifyIconOffline class="inline-block mr-2" :icon="currentRoute.meta['icon'] as string"/>
+<!--      <Icon-->
+      <!--        class="inline-block mr-2"-->
+      <!--        :icon="currentRoute.meta['icon'] as string"-->
+      <!--      />-->
       <span>{{ currentRoute.meta["title"] }}</span>
     </div>
     <div class="right">

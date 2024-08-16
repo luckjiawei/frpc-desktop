@@ -3,9 +3,9 @@ import {defineComponent, onMounted, onUnmounted, ref} from "vue";
 import {ipcRenderer} from "electron";
 import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import {Icon} from "@iconify/vue";
 import {ElMessage} from "element-plus";
 import {useDebounceFn} from "@vueuse/core";
+
 
 defineComponent({
   name: "Download"
@@ -141,20 +141,10 @@ onUnmounted(() => {
           <div class="right">
             <div v-if="version.download_completed">
               <el-button type="text">已下载</el-button>
-              <!--              <span-->
-              <!--                  class="primary-text text-sm font-bold ml-2"-->
-              <!--              >已下载</span>-->
-
               <el-button type="text" class="danger-text" @click="handleDeleteVersion(version)">
-                <Icon class="mr-1" icon="material-symbols:delete"/>
+                <IconifyIconOffline class="mr-1" icon="delete-rounded"/>
                 删除
               </el-button>
-              <!--              <div>-->
-              <!--                <Icon class="mr-1" icon="material-symbols:download-2"/>-->
-              <!--                <span-->
-              <!--                    class="danger-text text-sm font-bold ml-2"-->
-              <!--                >删除下载</span>-->
-              <!--              </div>-->
 
             </div>
 
@@ -166,7 +156,7 @@ onUnmounted(() => {
                 />
               </div>
               <el-button v-else size="small" type="primary" @click="handleDownload(version)">
-                <Icon class="mr-1" icon="material-symbols:download-2"/>
+                <IconifyIconOffline class="mr-1" icon="download"/>
                 下载
               </el-button>
             </template>

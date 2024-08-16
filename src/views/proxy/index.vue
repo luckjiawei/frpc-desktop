@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import {defineComponent, onMounted, onUnmounted, reactive, ref} from "vue";
-import {Icon} from "@iconify/vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {ipcRenderer} from "electron";
 import {clone} from "@/utils/clone";
 import {useDebounceFn} from "@vueuse/core";
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+
 
 defineComponent({
   name: "Proxy"
@@ -274,7 +275,7 @@ onUnmounted(() => {
           class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"
           @click="handleOpenInsert"
       >
-        <Icon icon="material-symbols:add"/>
+        <IconifyIconOffline icon="add"/>
       </div>
     </breadcrumb>
     <div class="app-container-breadcrumb" v-loading="loading.list > 0">
@@ -315,20 +316,20 @@ onUnmounted(() => {
                     <a href="javascript:void(0)"
                        class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
                     >
-                      <Icon icon="material-symbols:more-vert"/>
+                      <IconifyIconOffline icon="more-vert"/>
                     </a>
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item @click="handleOpenUpdate(proxy)">
-                          <Icon
-                              icon="material-symbols:edit"
+                          <IconifyIconOffline
+                              icon="edit"
                               class="primary-text text-[14px]"
                           />
                           <span class="ml-1">修 改</span>
                         </el-dropdown-item>
                         <el-dropdown-item @click="handleDeleteProxy(proxy)">
-                          <Icon
-                              icon="material-symbols:delete-rounded"
+                          <IconifyIconOffline
+                              icon="delete-rounded"
                               class="text-red-500 text-[14px]"
                           />
                           <span class="ml-1">删 除</span>
@@ -411,7 +412,7 @@ onUnmounted(() => {
                   controls-position="right"
               />
               <el-button class="ml-[10px]" plain type="primary" @click="handleOpenLocalPortDialog">
-                <Icon class="cursor-pointer mr-2" icon="material-symbols:bring-your-own-ip-rounded"/>
+                <IconifyIconOffline class="cursor-pointer mr-2" icon="bring-your-own-ip-rounded"/>
                 本地端口
               </el-button>
             </el-form-item>
@@ -457,16 +458,13 @@ onUnmounted(() => {
                     placeholder="github.com"
                     v-model="editForm.customDomains[di]"
                 />
-                <!--                <div class="domain-input-button !bg-[#67c23a]">-->
-                <!--                  <Icon icon="material-symbols:add" />-->
-                <!--                </div>-->
                 <el-button
                     class="ml-[10px]"
                     type="primary"
                     plain
                     @click="handleAddDomain"
                 >
-                  <Icon icon="material-symbols:add"/>
+                  <IconifyIconOffline icon="add"/>
                 </el-button>
                 <el-button
                     type="danger"
@@ -474,11 +472,8 @@ onUnmounted(() => {
                     @click="handleDeleteDomain(di)"
                     :disabled="editForm.customDomains.length === 1"
                 >
-                  <Icon icon="material-symbols:delete-rounded"/>
+                  <IconifyIconOffline icon="delete-rounded"/>
                 </el-button>
-                <!--                <div class="domain-input-button !bg-[#d3585b]">-->
-                <!--                  <Icon icon="material-symbols:delete-rounded" />-->
-                <!--                </div>-->
               </el-form-item>
             </el-col>
           </template>
@@ -486,10 +481,12 @@ onUnmounted(() => {
             <el-form-item>
               <div class="w-full flex justify-end">
                 <el-button @click="edit.visible = false">
-                  <Icon class="cursor-pointer mr-2" icon="material-symbols:cancel-presentation"/>
-                  关 闭</el-button>
+                  <iconify-icon-offline class="cursor-pointer mr-2" icon="cancel-presentation"/>
+                  关 闭
+                </el-button>
                 <el-button plain type="primary" @click="handleSubmit"
-                ><Icon class="cursor-pointer mr-2" icon="material-symbols:save-rounded"/>
+                >
+                  <IconifyIconOffline class="cursor-pointer mr-2" icon="save-rounded"/>
                   保 存
                 </el-button>
               </div>
@@ -512,16 +509,13 @@ onUnmounted(() => {
         <el-table-column label="操作" :width="80">
           <template #default="scope">
             <el-button type="text" @click="handleSelectLocalPort(scope.row.port)">
-              <Icon class="cursor-pointer mr-2" icon="material-symbols:gesture-select"/>
+              <IconifyIconOffline class="cursor-pointer mr-2" icon="gesture-select"/>
               选择
             </el-button>
           </template>
 
         </el-table-column>
       </el-table>
-      <!--      <div class="h-[400px] overflow-y-scroll">-->
-      <!--       -->
-      <!--      </div>-->
     </el-dialog>
   </div>
 </template>

@@ -36,6 +36,7 @@
     "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
   },
   "devDependencies": {
+    "@iconify-icons/material-symbols": "^1.2.58",
     "@iconify/vue": "^4.1.1",
     "@types/nedb": "^1.8.16",
     "@vitejs/plugin-vue": "^4.3.3",

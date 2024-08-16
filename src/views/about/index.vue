@@ -103,8 +103,6 @@ defineComponent({
              class="w-[95px] h-[95px] mt-[-50px] animate__animated animate__flip" alt="Logo"/>
         <div class="mt-[8px] text-2xl">Frpc Desktop</div>
         <div class="mt-[8px] text-neutral-400 flex items-center">
-
-          <!--          <span class="font-bold">  v{{ pkg.version }}</span>-->
           <el-link
               :class="!isLastVersion? 'line-through': ''"
               class="ml-2 font-bold">v{{ pkg.version }}
@@ -114,11 +112,8 @@ defineComponent({
                    class="ml-2 text-[#67C23A] font-bold"
                    type="success">v{{ latestVersionInfo.name }}
           </el-link>
-          <!--          <span class="ml-2 text-[#67C23A] font-bold"-->
-          <!--                @click="handleOpenNewVersion"-->
-          <!--                v-if="!isLastVersion && latestVersionInfo">v{{ latestVersionInfo.name }}</span>-->
-          <Icon class="ml-1.5 cursor-pointer check-update" icon="material-symbols:refresh-rounded"
-                @click="handleGetLastVersion"></Icon>
+          <IconifyIconOffline class="ml-1.5 cursor-pointer check-update" icon="refresh-rounded"
+                              @click="handleGetLastVersion"/>
         </div>
         <div class="mt-[8px] text-sm text-center">
           <p>
@@ -134,7 +129,7 @@ defineComponent({
             仓库地址
           </el-button>
           <el-button type="danger" plain @click="handleOpenGitHubIssues">
-            <Icon class="cursor-pointer mr-2" icon="material-symbols:question-mark"/>
+            <IconifyIconOffline class="cursor-pointer mr-2" icon="question-mark"/>
             反馈问题
           </el-button>
         </div>

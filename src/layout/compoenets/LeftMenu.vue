@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import {computed, defineComponent, onMounted, ref} from "vue";
-import {Icon} from "@iconify/vue";
 import router from "@/router";
 import {RouteRecordRaw} from "vue-router";
 import pkg from '../../../package.json';
+
 
 defineComponent({
   name: "AppMain"
@@ -58,7 +58,7 @@ onMounted(() => {
           :key="r.name"
           @click="handleMenuChange(r)"
       >
-        <Icon class="animate__animated" :icon="r?.meta?.icon as string"/>
+        <IconifyIconOffline class="animate__animated" :icon="r?.meta?.icon as string"></IconifyIconOffline>
       </li>
     </ul>
     <div class="version mb-2 animate__animated" @click="handleOpenGitHubReleases">

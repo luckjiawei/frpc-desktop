@@ -2,7 +2,6 @@
 import {defineComponent, onMounted, onUnmounted, ref} from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {ipcRenderer} from "electron";
-import {Icon} from "@iconify/vue";
 import {ElMessageBox} from "element-plus";
 import router from "@/router";
 import {useDebounceFn} from "@vueuse/core";
@@ -89,16 +88,22 @@ onUnmounted(() => {
             <div
                 class="bg-white z-10 w-full h-full bg-white absolute rounded-full flex justify-center items-center"
             >
-              <Icon icon="material-symbols:rocket-launch-rounded"/>
+              <IconifyIconOffline icon="rocket-launch-rounded"/>
             </div>
           </div>
           <div class="flex justify-center items-center">
             <div class="pl-8 h-28 w-52 flex flex-col justify-between">
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
-                  <Icon v-if="running" class="text-[#7EC050] inline-block relative top-1"
-                        icon="material-symbols:check-circle-rounded"/>
-                  <Icon v-else class="text-[#E47470] inline-block relative top-1" icon="material-symbols:error"/>
+                  <IconifyIconOffline
+                      v-if="running"
+                      class="text-[#7EC050]
+                       inline-block relative top-1"
+                      icon="check-circle-rounded"/>
+                  <IconifyIconOffline
+                      v-else
+                      class="text-[#E47470] inline-block relative top-1"
+                      icon="error"/>
                   Frpc {{ running ? "已启动" : "已断开" }}
                 </div>
               </transition>
