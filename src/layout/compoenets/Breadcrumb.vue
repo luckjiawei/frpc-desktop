@@ -15,7 +15,7 @@ const currentRoute = computed(() => {
 
 <template>
   <div class="flex justify-between">
-    <div class="breadcrumb">
+    <div class="breadcrumb animate__animated animate__lightSpeedInLeft">
       <IconifyIconOffline class="inline-block mr-2" :icon="currentRoute.meta['icon'] as string"/>
 <!--      <Icon-->
       <!--        class="inline-block mr-2"-->

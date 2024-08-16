@@ -312,7 +312,7 @@ onUnmounted(() => {
               <div class="w-full flex justify-between">
                 <div class="flex">
                   <div
-                      class="w-12 h-12 rounded mr-4 flex justify-center items-center"
+                      class="w-12 h-12 rounded mr-4 flex justify-center items-center font-bold"
                       :class="proxy.type"
                   >
                     <span class="text-white text-sm">{{ proxy.type }}</span>
@@ -476,6 +476,43 @@ onUnmounted(() => {
                   }
                 ]"
               >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover
+                            placement="top"
+                            trigger="hover"
+                        >
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]">customDomains</span>
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>
+                          </template>
+                        </el-popover>
+                      </div>
+                      自定义域名：
+                    </div>
+                  </div>
+<!--                  <el-popover-->
+<!--                      placement="top"-->
+<!--                      trigger="hover"-->
+<!--                  >-->
+<!--                    <template #default>-->
+<!--                      对应参数：<span class="font-black text-[#5A3DAA]">customDomains</span>-->
+<!--                    </template>-->
+<!--                    <template #reference>-->
+<!--                      <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
+<!--                    </template>-->
+<!--                  </el-popover>-->
+<!--                  <div class="flex items-center inin">-->
+<!--                    <div class="h-full flex items-center mr-1">-->
+<!--                      -->
+<!--                    </div>-->
+<!--                    <div>自定义域名：</div>-->
+<!--                  </div>-->
+                </template>
                 <el-input
                     class="domain-input"
                     placeholder="github.com"
