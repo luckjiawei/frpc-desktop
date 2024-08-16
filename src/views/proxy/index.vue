@@ -331,6 +331,21 @@ onUnmounted(() => {
                   </div>
                   <div class="h-12 relative">
                     <div class="text-sm font-bold">{{ proxy.name }}</div>
+                    <el-tag
+                      v-if="
+                        proxy.type === 'stcp' && proxy.stcpModel === 'visitors'
+                      "
+                      size="small"
+                    >
+                      访问者
+                    </el-tag>
+                    <el-tag
+                      size="small"
+                      v-if="
+                        proxy.type === 'stcp' && proxy.stcpModel === 'visited'
+                      "
+                      >被访问者
+                    </el-tag>
                     <!--                    <el-tag-->
                     <!--                      size="small"-->
                     <!--                      class="absolute bottom-0"-->
@@ -370,17 +385,48 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="flex justify-between mt-4">
-                <div class="text-sm text-left">
+                <div
+                  class="text-sm text-left"
+                  v-if="proxy.type !== 'stcp' || proxy.stcpModel !== 'visitors'"
+                >
                   <p class="text-[#ADADAD] font-bold">内网地址</p>
                   <p>{{ proxy.localIp }}</p>
                 </div>
+
                 <div class="text-sm text-center" v-if="proxy.type === 'tcp'">
                   <p class="text-[#ADADAD] font-bold">外网端口</p>
                   <p>{{ proxy.remotePort }}</p>
                 </div>
-                <div class="text-sm text-center">
+                <div
+                  class="text-sm text-center"
+                  v-if="proxy.type !== 'stcp' || proxy.stcpModel !== 'visitors'"
+                >
                   <p class="text-[#ADADAD] font-bold">内网端口</p>
                   <p>{{ proxy.localPort }}</p>
+                </div>
+
+                <div
+                  class="text-sm text-center"
+                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                >
+                  <p class="text-[#ADADAD] font-bold">访问者名称</p>
+                  <p>{{ proxy.serverName }}</p>
+                </div>
+
+                <div
+                  class="text-sm text-center"
+                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                >
+                  <p class="text-[#ADADAD] font-bold">绑定地址</p>
+                  <p>{{ proxy.bindAddr }}</p>
+                </div>
+
+                <div
+                  class="text-sm text-center"
+                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                >
+                  <p class="text-[#ADADAD] font-bold">绑定端口</p>
+                  <p>{{ proxy.bindPort }}</p>
                 </div>
               </div>
               <!--            <div class="text-sm text-[#ADADAD] py-2">本地地址 本地端口</div>-->
@@ -792,7 +838,7 @@ onUnmounted(() => {
 }
 
 .stcp {
-  background: #D63DA6;
+  background: #d63da6;
 }
 
 .domain-input {
