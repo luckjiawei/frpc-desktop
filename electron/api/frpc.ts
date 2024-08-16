@@ -41,7 +41,7 @@ const getFrpcVersionWorkerPath = (
 const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyToml = proxys.map(m => {
     let toml = `
-[[${m.type === 'stcp' && m.stcpModel === 'visitors' ? 'visitors' : 'proxies'}]]
+[[${m.type === "stcp" && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
 name = "${m.name}"
 type = "${m.type}"
 `;
@@ -79,6 +79,7 @@ localPort = ${m.localPort}`;
         toml += `
 secretKey="${m.secretKey}"
 `;
+        break;
       default:
         break;
     }
@@ -159,17 +160,42 @@ const genIniConfig = (config: FrpConfig, proxys: Proxy[]) => {
     let ini = `
 [${m.name}]
 type = "${m.type}"
-local_ip = "${m.localIp}"
-local_port = ${m.localPort}
 `;
     switch (m.type) {
       case "tcp":
       case "udp":
-        ini += `remote_port = ${m.remotePort}`;
+        ini += `
+local_ip = "${m.localIp}"
+local_port = ${m.localPort}
+remote_port = ${m.remotePort}
+`;
         break;
       case "http":
       case "https":
-        ini += `custom_domains=[${m.customDomains.map(m => `"${m}"`)}]`;
+        ini += `
+local_ip = "${m.localIp}"
+local_port = ${m.localPort}
+custom_domains=[${m.customDomains.map(m => `"${m}"`)}]
+`;
+        break;
+      case "stcp":
+        if (m.stcpModel === "visitors") {
+          // 访问者
+          ini += `
+role = visitor
+server_name = "${m.serverName}"
+bind_addr = "${m.bindAddr}"
+bind_port = ${m.bindPort}
+`;
+        } else if (m.stcpModel === "visited") {
+          // 被访问者
+          ini += `
+local_ip = "${m.localIp}"
+local_port = ${m.localPort}`;
+        }
+        ini += `
+sk="${m.secretKey}"
+`;
         break;
       default:
         break;
