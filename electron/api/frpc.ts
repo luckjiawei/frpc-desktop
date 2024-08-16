@@ -328,7 +328,7 @@ const startFrpcProcess = (commandPath: string, configPath: string) => {
   });
   frpcStatusListener = setInterval(() => {
     const status = frpcProcessStatus();
-    log.debug(`监听frpc子进程状态：${status}`);
+    log.debug(`监听frpc子进程状态：${status} ${frpcStatusListener}`);
     if (!status) {
       new Notification({
         title: "Frpc Desktop",
