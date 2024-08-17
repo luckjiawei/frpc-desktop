@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import {defineComponent, onMounted, onUnmounted, ref} from "vue";
-import {ipcRenderer} from "electron";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { ipcRenderer } from "electron";
 import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import {ElMessage} from "element-plus";
-import {useDebounceFn} from "@vueuse/core";
-
+import { ElMessage } from "element-plus";
+import { useDebounceFn } from "@vueuse/core";
 
 defineComponent({
   name: "Download"
@@ -14,7 +13,7 @@ defineComponent({
 const versions = ref<Array<FrpVersion>>([]);
 const loading = ref(1);
 const downloadPercentage = ref(0);
-const downloading = ref<Map<string, number>>(new Map<string, number>());
+const downloading = ref<Map<number, number>>(new Map<number, number>());
 
 /**
  * 获取版本
@@ -47,30 +46,30 @@ const handleInitDownloadHook = () => {
   ipcRenderer.on("Download.frpVersionHook", (event, args) => {
     loading.value--;
     versions.value = args.map(m => {
-      m.published_at = moment(m.published_at).format("YYYY-MM-DD HH:mm:ss")
+      m.published_at = moment(m.published_at).format("YYYY-MM-DD");
       return m as FrpVersion;
     }) as Array<FrpVersion>;
-    console.log(versions, 'versions')
+    console.log(versions, "versions");
   });
   // 进度监听
   ipcRenderer.on("Download.frpVersionDownloadOnProgress", (event, args) => {
-    const {id, progress} = args;
+    const { id, progress } = args;
     downloading.value.set(
-        id,
-        Number(Number(progress.percent * 100).toFixed(2))
+      id,
+      Number(Number(progress.percent * 100).toFixed(2))
     );
   });
   ipcRenderer.on("Download.frpVersionDownloadOnCompleted", (event, args) => {
     downloading.value.delete(args);
     const version: FrpVersion | undefined = versions.value.find(
-        f => f.id === args
+      f => f.id === args
     );
     if (version) {
       version.download_completed = true;
     }
   });
   ipcRenderer.on("Download.deleteVersion.hook", (event, args) => {
-    const {err, data} = args
+    const { err, data } = args;
     if (!err) {
       loading.value++;
       ElMessage({
@@ -79,8 +78,7 @@ const handleInitDownloadHook = () => {
       });
       handleLoadVersions();
     }
-
-  })
+  });
 };
 
 onMounted(() => {
@@ -100,7 +98,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <breadcrumb/>
+    <breadcrumb />
     <!--    <breadcrumb>-->
     <!--      <div class="flex items-center">-->
     <!--        <el-checkbox>加速下载</el-checkbox>-->
@@ -110,17 +108,17 @@ onUnmounted(() => {
       <template v-if="versions && versions.length > 0">
         <el-row :gutter="20">
           <el-col
-              v-for="version in versions"
-              :key="version.id"
-              :lg="8"
-              :md="8"
-              :sm="12"
-              :xl="6"
-              :xs="24"
-              class="mb-[20px]"
+            v-for="version in versions"
+            :key="version.id"
+            :lg="8"
+            :md="8"
+            :sm="12"
+            :xl="6"
+            :xs="24"
+            class="mb-[20px]"
           >
             <div
-                class="w-full bg-white rounded p-4 drop-shadow-lg flex justify-between items-center"
+              class="w-full bg-white rounded p-4 drop-shadow-lg flex justify-between items-center"
             >
               <div class="left">
                 <div class="mb-2">
@@ -128,7 +126,7 @@ onUnmounted(() => {
                   <!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
                 </div>
                 <div class="text-sm">
-                  发布时间：<span class="text-gray-00">{{
+                  发布时间：<span class="text-gray-00 text-sm text-primary font-bold">{{
                     // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
                     version.published_at
                   }}</span>
@@ -136,23 +134,41 @@ onUnmounted(() => {
               </div>
               <div class="right">
                 <div v-if="version.download_completed">
-                  <el-button type="text">已下载</el-button>
-                  <el-button type="text" class="danger-text" @click="handleDeleteVersion(version)">
-                    <IconifyIconOffline class="mr-1" icon="delete-rounded"/>
+                  <!--                  <span class="text-[12px] text-primary font-bold mr-2"-->
+                  <!--                    >已下载</span-->
+                  <!--                  >-->
+                  <el-button
+                    type="text"
+                    @click="handleDeleteVersion(version)"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="check-box" />
+                     已下载
+                  </el-button>
+                  <!--                  <el-button type="text"></el-button>-->
+                  <el-button
+                    type="text"
+                    class="danger-text"
+                    @click="handleDeleteVersion(version)"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="delete-rounded" />
                     删除
                   </el-button>
-
                 </div>
 
                 <template v-else>
                   <div class="w-32" v-if="downloading.has(version.id)">
                     <el-progress
-                        :percentage="downloading.get(version.id)"
-                        :text-inside="false"
+                      :percentage="downloading.get(version.id)"
+                      :text-inside="false"
                     />
                   </div>
-                  <el-button v-else size="small" type="primary" @click="handleDownload(version)">
-                    <IconifyIconOffline class="mr-1" icon="download"/>
+                  <el-button
+                    v-else
+                    size="small"
+                    type="primary"
+                    @click="handleDownload(version)"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="download" />
                     下载
                   </el-button>
                 </template>
@@ -160,13 +176,12 @@ onUnmounted(() => {
             </div>
           </el-col>
         </el-row>
-
       </template>
       <div
-          v-else
-          class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
+        v-else
+        class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
       >
-        <el-empty description="暂无可用版本"/>
+        <el-empty description="暂无可用版本" />
       </div>
     </div>
   </div>

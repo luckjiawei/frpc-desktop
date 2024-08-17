@@ -28,6 +28,7 @@ import Error from "@iconify-icons/material-symbols/error";
 import ContentCopy from "@iconify-icons/material-symbols/content-copy";
 import ContentPasteGo from "@iconify-icons/material-symbols/content-paste-go";
 import Edit from "@iconify-icons/material-symbols/edit";
+import CheckBox from "@iconify-icons/material-symbols/check-box";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -51,4 +52,5 @@ addIcon("error", Error);
 addIcon("content-copy", ContentCopy);
 addIcon("content-paste-go", ContentPasteGo);
 addIcon("edit", Edit);
+addIcon("check-box", CheckBox);
 

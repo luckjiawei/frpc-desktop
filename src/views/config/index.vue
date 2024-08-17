@@ -23,7 +23,7 @@ type ShareLinkConfig = {
 };
 
 const defaultFormData = ref<FrpConfig>({
-  currentVersion: "",
+  currentVersion: -1,
   serverAddr: "",
   serverPort: 7000,
   authMethod: "",
@@ -155,7 +155,7 @@ const checkAndResetVersion = () => {
     currentVersion &&
     !versions.value.some(item => item.id === currentVersion)
   ) {
-    formData.value.currentVersion = "";
+    formData.value.currentVersion = null;
   }
 };
 

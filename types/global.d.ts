@@ -25,7 +25,7 @@ declare global {
         serverName: string;
         secretKey: string;
         bindAddr: string;
-        bindPort: string;
+        bindPort: number;
     };
 
     /**
@@ -41,7 +41,7 @@ declare global {
      * 版本类型
      */
     type FrpVersion = {
-        id: string;
+        id: number;
         name: string;
         published_at: string;
         download_completed: boolean;

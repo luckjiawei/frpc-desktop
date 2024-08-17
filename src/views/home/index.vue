@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import {defineComponent, onMounted, onUnmounted, ref} from "vue";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import {ipcRenderer} from "electron";
-import {ElMessageBox} from "element-plus";
+import { ipcRenderer } from "electron";
+import { ElMessageBox } from "element-plus";
 import router from "@/router";
-import {useDebounceFn} from "@vueuse/core";
+import { useDebounceFn, useIntervalFn } from "@vueuse/core";
 
 defineComponent({
   name: "Home"
@@ -29,12 +29,12 @@ const handleButtonClick = useDebounceFn(() => {
 }, 300);
 
 onMounted(() => {
-  setInterval(() => {
+  useIntervalFn(() => {
     ipcRenderer.invoke("frpc.running").then(data => {
       running.value = data;
-      console.log('进程状态', data)
+      console.log("进程状态", data);
     });
-  }, 300);
+  }, 500);
 
   ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
     if (args) {
@@ -58,37 +58,37 @@ onUnmounted(() => {
 
 <template>
   <div class="main">
-    <breadcrumb/>
+    <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-          class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center"
+        class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center"
       >
         <div class="flex">
           <div
-              class="w-40 h-40 border-[#5A3DAA] text-[#5A3DAA] border-4 rounded-full flex justify-center items-center text-[100px] relative"
+            class="w-40 h-40 border-[#5A3DAA] text-[#5A3DAA] border-4 rounded-full flex justify-center items-center text-[100px] relative"
           >
             <transition name="fade">
               <div
-                  v-show="running"
-                  class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
+                v-show="running"
+                class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
               />
             </transition>
             <transition name="fade">
               <div
-                  v-show="running"
-                  class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
+                v-show="running"
+                class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
               />
             </transition>
             <transition name="fade">
               <div
-                  v-show="running"
-                  class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
+                v-show="running"
+                class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
               />
             </transition>
             <div
-                class="bg-white z-10 w-full h-full absolute rounded-full flex justify-center items-center"
+              class="bg-white z-10 w-full h-full absolute rounded-full flex justify-center items-center"
             >
-              <IconifyIconOffline icon="rocket-launch-rounded"/>
+              <IconifyIconOffline icon="rocket-launch-rounded" />
             </div>
           </div>
           <div class="flex justify-center items-center">
@@ -96,14 +96,15 @@ onUnmounted(() => {
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
                   <IconifyIconOffline
-                      v-if="running"
-                      class="text-[#7EC050]
-                       inline-block relative top-1"
-                      icon="check-circle-rounded"/>
+                    v-if="running"
+                    class="text-[#7EC050] inline-block relative top-1"
+                    icon="check-circle-rounded"
+                  />
                   <IconifyIconOffline
-                      v-else
-                      class="text-[#E47470] inline-block relative top-1"
-                      icon="error"/>
+                    v-else
+                    class="text-[#E47470] inline-block relative top-1"
+                    icon="error"
+                  />
                   Frpc {{ running ? "已启动" : "已断开" }}
                 </div>
               </transition>
@@ -115,11 +116,16 @@ onUnmounted(() => {
               <!--              >查看日志-->
               <!--              </el-button>-->
               <div class="w-full justify-center text-center">
-                <el-link v-if="running" type="primary" @click="$router.replace({ name: 'Logger' })">查看日志</el-link>
+                <el-link
+                  v-if="running"
+                  type="primary"
+                  @click="$router.replace({ name: 'Logger' })"
+                  >查看日志</el-link
+                >
               </div>
               <div
-                  class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"
-                  @click="handleButtonClick"
+                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"
+                @click="handleButtonClick"
               >
                 {{ running ? "断 开" : "启 动" }}
               </div>
