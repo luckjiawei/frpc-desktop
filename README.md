@@ -20,6 +20,8 @@
     <br />
     支持所有frp版本 / 开机自启 / 可视化配置 / 免费开源
   </p>
+
+  <p><a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">使用教程</a></p>
 </div>
 
 ## TODO
