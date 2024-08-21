@@ -45,6 +45,8 @@ declare global {
         name: string;
         published_at: string;
         download_completed: boolean;
+        size: string;
+        download_count: number;
         absPath: string;
         assets: Asset[]
     };
@@ -74,6 +76,11 @@ declare global {
         transportHeartbeatInterval: number;
         transportHeartbeatTimeout: number;
     };
+
+    type GitHubMirror = {
+        id: string;
+        name: string;
+    }
 
 
 }

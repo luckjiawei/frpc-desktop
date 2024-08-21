@@ -950,19 +950,6 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.h2 {
-  color: #5a3daa;
-  font-size: 16px;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-  font-weight: 700;
-  padding: 6px 10px 6px 15px;
-  border-left: 5px solid #5a3daa;
-  border-radius: 4px;
-  background-color: #eeebf6;
-  margin-bottom: 18px;
-}
-
 .button-input {
   width: calc(100% - 68px);
 }
