@@ -317,7 +317,7 @@ onUnmounted(() => {
             :md="8"
             :sm="12"
             :xl="6"
-            :xs="24"
+            :xs="12"
             class="mb-[20px]"
           >
             <div class="bg-white w-full rounded drop-shadow-xl p-4">
