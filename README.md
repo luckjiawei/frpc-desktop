@@ -59,7 +59,7 @@
 
  <img src="screenshots/wechat-qr.png" alt="二维码" width="200">
 
-**微信群超过200人无法 关注公众号进群 😔**
+**微信群超过200人无法扫码进群 关注公众号进群 😔**
 
  <img src="screenshots/mp_qr.jpg" alt="公众号二维码" width="200">
 
