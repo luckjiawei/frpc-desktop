@@ -300,12 +300,9 @@ onUnmounted(() => {
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
-      <div
-        class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"
-        @click="handleOpenInsert"
-      >
+      <el-button class="mr-2" plain type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
-      </div>
+      </el-button>
     </breadcrumb>
     <div class="app-container-breadcrumb pr-2" v-loading="loading.list > 0">
       <template v-if="proxys && proxys.length > 0">

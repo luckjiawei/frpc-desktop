@@ -21,24 +21,30 @@ $danger-color: #F56C6C;
   }
 
   .breadcrumb {
-    color: $primary-color;
-    font-size: 36px;
-    height: 50px;
+    margin-bottom: 15px;
 
-    svg {
-      vertical-align: top;
-    }
+    .breadcrumb-left {
+      color: $primary-color;
+      font-size: 36px;
+      height: 30px;
 
-    span {
-      vertical-align: top;
-      color: black;
-      font-size: 18px;
-      font-weight: bold;
-      transform: translateY(5px);
-      display: inline-block;
+      svg {
+        vertical-align: top;
+      }
 
+      span {
+        vertical-align: top;
+        color: black;
+        font-size: 18px;
+        font-weight: bold;
+        //transform: translateY(5px);
+        display: inline-block;
+
+      }
     }
   }
+
+
 }
 
 .left-menu-container {
@@ -57,6 +63,7 @@ $danger-color: #F56C6C;
     font-size: 14px;
     cursor: pointer;
   }
+
   .version:hover {
     animation: heartBeat 1s;
   }
@@ -91,7 +98,6 @@ $danger-color: #F56C6C;
     }
 
 
-
   }
 }
 
@@ -109,6 +115,10 @@ $danger-color: #F56C6C;
 
 .primary-text {
   color: $primary-color;
+}
+
+.bg-primary {
+  background:  $primary-color;
 }
 
 .danger-text {

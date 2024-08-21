@@ -6,6 +6,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
 import { clone } from "@/utils/clone";
 import { Base64 } from "js-base64";
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 
 defineComponent({
   name: "Config"
@@ -116,8 +117,11 @@ const protocol = ref("frp://");
 
 const visibles = reactive({
   copyServerConfig: false,
-  pasteServerConfig: false
+  pasteServerConfig: false,
+  exportConfig: false
 });
+
+const exportConfigType = ref("toml");
 
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
@@ -193,6 +197,14 @@ onMounted(() => {
     if (!err) {
       versions.value = data;
       checkAndResetVersion();
+    }
+  });
+  ipcRenderer.on("Config.exportConfig.hook", (event, args) => {
+    const { err, data } = args;
+    console.log(err, data, "export");
+    if (!err) {
+      const { configPath } = data;
+      ElMessageBox.alert(`配置路径：${configPath}`, `🎉 导出成功`);
     }
   });
 });
@@ -286,15 +298,34 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
   visibles.pasteServerConfig = false;
 }, 300);
 
+const handleShowExportDialog = () => {
+  visibles.exportConfig = true;
+};
+
+const handleExportConfig = useDebounceFn(() => {
+  ipcRenderer.send("config.exportConfig", exportConfigType.value);
+  visibles.exportConfig = false;
+}, 300);
+
+const handleImportConfig = () => {};
+
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Config.getConfig.hook");
   ipcRenderer.removeAllListeners("Config.saveConfig.hook");
   ipcRenderer.removeAllListeners("Config.versions.hook");
+  ipcRenderer.removeAllListeners("Config.exportConfig.hook");
 });
 </script>
 <template>
   <div class="main">
-    <breadcrumb />
+    <breadcrumb>
+      <el-button plain type="primary">
+        <IconifyIconOffline icon="uploadRounded" />
+      </el-button>
+      <el-button plain type="primary" @click="handleShowExportDialog">
+        <IconifyIconOffline icon="downloadRounded" />
+      </el-button>
+    </breadcrumb>
     <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
       <div class="w-full bg-white p-4 rounded drop-shadow-lg">
         <el-form
@@ -643,8 +674,8 @@ onUnmounted(() => {
                     class="ml-2"
                     type="primary"
                     @click="handleSelectFile(1, ['crt'])"
-                    >选择</el-button
-                  >
+                    >选择
+                  </el-button>
                 </el-form-item>
               </el-col>
               <el-col :span="24">
@@ -682,8 +713,8 @@ onUnmounted(() => {
                     class="ml-2"
                     type="primary"
                     @click="handleSelectFile(2, ['key'])"
-                    >选择</el-button
-                  >
+                    >选择
+                  </el-button>
                 </el-form-item>
               </el-col>
               <el-col :span="24">
@@ -721,8 +752,8 @@ onUnmounted(() => {
                     class="ml-2"
                     type="primary"
                     @click="handleSelectFile(3, ['crt'])"
-                    >选择</el-button
-                  >
+                    >选择
+                  </el-button>
                 </el-form-item>
               </el-col>
               <el-col :span="24">
@@ -896,7 +927,7 @@ onUnmounted(() => {
         </el-form>
       </div>
     </div>
-
+    <!--  链接导入服务器  -->
     <el-dialog
       v-model="visibles.copyServerConfig"
       title="复制链接"
@@ -916,7 +947,7 @@ onUnmounted(() => {
         :rows="8"
       ></el-input>
     </el-dialog>
-
+    <!--    链接导出服务器-->
     <el-dialog
       v-model="visibles.pasteServerConfig"
       title="导入链接"
@@ -942,6 +973,39 @@ onUnmounted(() => {
               icon="label-important-rounded"
             />
             导 入
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+    <!--    配置导出-->
+    <el-dialog
+      v-model="visibles.exportConfig"
+      title="导出配置"
+      width="500"
+      top="5%"
+    >
+      <el-alert
+        class="mb-4"
+        :title="`导出文件名为 frpc-desktop.${exportConfigType} 重复导出则覆盖`"
+        type="warning"
+        :closable="false"
+      />
+      <el-form>
+        <el-form-item label="导出类型">
+          <el-radio-group v-model="exportConfigType">
+            <el-radio-button label="toml" value="toml" />
+            <el-radio-button label="ini" value="ini" />
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button plain type="primary" @click="handleExportConfig">
+            <IconifyIconOffline
+              class="cursor-pointer mr-2"
+              icon="downloadRounded"
+            />
+            导 出
           </el-button>
         </div>
       </template>

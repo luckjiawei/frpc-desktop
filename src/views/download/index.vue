@@ -117,7 +117,7 @@ onUnmounted(() => {
     <breadcrumb>
       <div class="h-full flex items-center justify-center">
         <span class="text-sm font-bold">下载源： </span>
-        <el-select class="w-24" v-model="currMirror">
+        <el-select class="w-40" v-model="currMirror">
           <el-option
             v-for="m in mirrors"
             :label="m.name"

@@ -38,7 +38,7 @@ const getFrpcVersionWorkerPath = (
  * @param config
  * @param proxys
  */
-const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
+export const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyToml = proxys.map(m => {
     let toml = `
 [[${m.type === "stcp" && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
@@ -155,7 +155,7 @@ ${proxyToml.join("")}
  * @param config
  * @param proxys
  */
-const genIniConfig = (config: FrpConfig, proxys: Proxy[]) => {
+export const genIniConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyIni = proxys.map(m => {
     let ini = `
 [${m.name}]
