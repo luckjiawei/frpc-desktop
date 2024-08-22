@@ -30,3 +30,7 @@ export const getConfig = (
 ) => {
   configDB.findOne({ _id: "1" }, cb);
 };
+
+export const clearConfig = (cb?: (err: Error | null, n: number) => void) => {
+  configDB.remove({}, { multi: true }, cb);
+};

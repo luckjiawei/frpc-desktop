@@ -65,9 +65,11 @@
     "vue": "^3.3.4",
     "vue-router": "^4.2.4",
     "vue-tsc": "^2.0.22",
-    "vue-types": "^5.1.1"
+    "vue-types": "^5.1.1",
+    "uuid": "^10.0.0"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "adm-zip": "^0.5.14",
     "animate.css": "^4.1.1",
     "electron-dl": "^3.5.1",

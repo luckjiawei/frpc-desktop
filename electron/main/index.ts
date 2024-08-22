@@ -166,7 +166,7 @@ app.whenReady().then(() => {
         createTray()
         // 初始化各个API
         initGitHubApi();
-        initConfigApi();
+        initConfigApi(win);
         initProxyApi();
         initFrpcApi();
         initLoggerApi();

@@ -67,3 +67,7 @@ export const getProxyById = (
 ) => {
   proxyDB.findOne({ _id: id }, callback);
 };
+
+export const clearProxy = (cb?: (err: Error | null, n: number) => void) => {
+  proxyDB.remove({}, { multi: true }, cb);
+};

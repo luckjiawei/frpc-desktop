@@ -207,6 +207,29 @@ onMounted(() => {
       ElMessageBox.alert(`配置路径：${configPath}`, `🎉 导出成功`);
     }
   });
+  ipcRenderer.on("Config.clearAll.hook", (event, args) => {
+    ElMessageBox.alert("重置成功 请重启软件", `重置`, {
+      closeOnClickModal: false,
+      showClose: false,
+      confirmButtonText: "立即重启"
+    }).then(() => {
+      ipcRenderer.send("common.relaunch");
+    });
+  });
+  ipcRenderer.on("Config.importConfig.hook", (event, args) => {
+    const { success, data } = args;
+    if (success) {
+      ElMessageBox.alert("导入成功 请重启软件", `导入成功`, {
+        closeOnClickModal: false,
+        showClose: false,
+        confirmButtonText: "立即重启"
+      }).then(() => {
+        ipcRenderer.send("common.relaunch");
+      });
+    } else {
+      ElMessageBox.alert(data, `导入失败`);
+    }
+  });
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -307,23 +330,42 @@ const handleExportConfig = useDebounceFn(() => {
   visibles.exportConfig = false;
 }, 300);
 
-const handleImportConfig = () => {};
+const handleImportConfig = () => {
+  ipcRenderer.send("config.importConfig");
+};
+
+const handleResetConfig = () => {
+  ElMessageBox.alert("是否清空所有配置？", "提示", {
+    showCancelButton: true,
+    cancelButtonText: "取消",
+    confirmButtonText: "清空"
+  }).then(() => {
+    ipcRenderer.send("config.clearAll");
+  });
+};
 
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Config.getConfig.hook");
   ipcRenderer.removeAllListeners("Config.saveConfig.hook");
   ipcRenderer.removeAllListeners("Config.versions.hook");
   ipcRenderer.removeAllListeners("Config.exportConfig.hook");
+  ipcRenderer.removeAllListeners("Config.clearAll.hook");
 });
 </script>
 <template>
   <div class="main">
     <breadcrumb>
-      <el-button plain type="primary">
+      <el-button plain type="primary" @click="handleResetConfig">
+        <IconifyIconOffline icon="deviceReset" />
+      </el-button>
+      <el-button plain type="primary" @click="handleImportConfig">
         <IconifyIconOffline icon="uploadRounded" />
       </el-button>
       <el-button plain type="primary" @click="handleShowExportDialog">
         <IconifyIconOffline icon="downloadRounded" />
+      </el-button>
+      <el-button type="primary" @click="handleSubmit">
+        <IconifyIconOffline icon="save-rounded" />
       </el-button>
     </breadcrumb>
     <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
@@ -915,14 +957,14 @@ onUnmounted(() => {
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="24">
-              <el-form-item>
-                <el-button plain type="primary" @click="handleSubmit">
-                  <IconifyIconOffline icon="save" />
-                  保 存
-                </el-button>
-              </el-form-item>
-            </el-col>
+            <!--            <el-col :span="24">-->
+            <!--              <el-form-item>-->
+            <!--                <el-button plain type="primary" @click="handleSubmit">-->
+            <!--                  <IconifyIconOffline icon="save" />-->
+            <!--                  保 存-->
+            <!--                </el-button>-->
+            <!--              </el-form-item>-->
+            <!--            </el-col>-->
           </el-row>
         </el-form>
       </div>

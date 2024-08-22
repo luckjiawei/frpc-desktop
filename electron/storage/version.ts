@@ -1,11 +1,12 @@
 import Datastore from "nedb";
 import path from "path";
-import {app} from "electron";
-const log = require('electron-log');
+import { app } from "electron";
+
+const log = require("electron-log");
 
 const versionDB = new Datastore({
-    autoload: true,
-    filename: path.join(app.getPath("userData"), "version.db")
+  autoload: true,
+  filename: path.join(app.getPath("userData"), "version.db")
 });
 
 /**
@@ -14,11 +15,11 @@ const versionDB = new Datastore({
  * @param cb
  */
 export const insertVersion = (
-    version: FrpVersion,
-    cb?: (err: Error | null, document: any) => void
+  version: FrpVersion,
+  cb?: (err: Error | null, document: any) => void
 ) => {
-    log.debug(`新增版本：${JSON.stringify(version)}`);
-    versionDB.insert(version, cb);
+  log.debug(`新增版本：${JSON.stringify(version)}`);
+  versionDB.insert(version, cb);
 };
 
 /**
@@ -26,19 +27,26 @@ export const insertVersion = (
  * @param cb
  */
 export const listVersion = (
-    callback: (err: Error | null, documents: FrpVersion[]) => void
+  callback: (err: Error | null, documents: FrpVersion[]) => void
 ) => {
-    versionDB.find({}, callback);
+  versionDB.find({}, callback);
 };
 
 export const getVersionById = (
-    id: number,
-    callback: (err: Error | null, document: FrpVersion) => void
+  id: number,
+  callback: (err: Error | null, document: FrpVersion) => void
 ) => {
-    versionDB.findOne({id: id}, callback);
+  versionDB.findOne({ id: id }, callback);
 };
 
-export const deleteVersionById = (id: string, callback: (err: Error | null, document: any) => void) => {
-    log.debug(`删除版本：${id}`);
-    versionDB.remove({id: id}, callback);
-}
+export const deleteVersionById = (
+  id: string,
+  callback: (err: Error | null, document: any) => void
+) => {
+  log.debug(`删除版本：${id}`);
+  versionDB.remove({ id: id }, callback);
+};
+
+export const clearVersion = (cb?: (err: Error | null, n: number) => void) => {
+  versionDB.remove({}, { multi: true }, cb);
+};

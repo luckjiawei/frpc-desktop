@@ -32,6 +32,7 @@ import CheckBox from "@iconify-icons/material-symbols/check-box";
 import ExportNotesOutline from "@iconify-icons/material-symbols/export-notes-outline";
 import uploadRounded from "@iconify-icons/material-symbols/upload-rounded";
 import downloadRounded from "@iconify-icons/material-symbols/download-rounded";
+import deviceReset from "@iconify-icons/material-symbols/device-reset";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -59,5 +60,6 @@ addIcon("check-box", CheckBox);
 addIcon("export", ExportNotesOutline);
 addIcon("uploadRounded", uploadRounded);
 addIcon("downloadRounded", downloadRounded);
+addIcon("deviceReset", deviceReset);
 
 
