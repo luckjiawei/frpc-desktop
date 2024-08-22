@@ -208,7 +208,7 @@ onMounted(() => {
     }
   });
   ipcRenderer.on("Config.clearAll.hook", (event, args) => {
-    ElMessageBox.alert("重置成功 请重启软件", `重置`, {
+    ElMessageBox.alert("重置成功 请重启软件", `提示`, {
       closeOnClickModal: false,
       showClose: false,
       confirmButtonText: "立即重启"
@@ -219,7 +219,7 @@ onMounted(() => {
   ipcRenderer.on("Config.importConfig.hook", (event, args) => {
     const { success, data } = args;
     if (success) {
-      ElMessageBox.alert("导入成功 请重启软件", `导入成功`, {
+      ElMessageBox.alert("导入成功 请重启软件", `提示`, {
         closeOnClickModal: false,
         showClose: false,
         confirmButtonText: "立即重启"
@@ -227,7 +227,7 @@ onMounted(() => {
         ipcRenderer.send("common.relaunch");
       });
     } else {
-      ElMessageBox.alert(data, `导入失败`);
+      ElMessageBox.alert(data, `提示`);
     }
   });
 });

@@ -300,7 +300,7 @@ onUnmounted(() => {
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
-      <el-button class="mr-2" plain type="primary" @click="handleOpenInsert">
+      <el-button class="mr-2" type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
       </el-button>
     </breadcrumb>

@@ -38,7 +38,7 @@ onMounted(() => {
 
   ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
     if (args) {
-      ElMessageBox.alert(args, "启动失败", {
+      ElMessageBox.alert(args, "提示", {
         showCancelButton: true,
         cancelButtonText: "取消",
         confirmButtonText: "去设置"
