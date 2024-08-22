@@ -426,14 +426,21 @@ export const initFrpcApi = () => {
   ipcMain.on("frpc.start", async (event, args) => {
     getConfig((err1, config) => {
       if (!err1) {
-        if (config) {
-          startFrpWorkerProcess(config);
-        } else {
+        if (!config) {
           event.reply(
             "Home.frpc.start.error.hook",
             "请先前往设置页面，修改配置后再启动"
           );
+          return;
         }
+        if (!config.currentVersion) {
+          event.reply(
+            "Home.frpc.start.error.hook",
+            "请先前往设置页面，修改配置后再启动"
+          );
+          return;
+        }
+        startFrpWorkerProcess(config);
       }
     });
   });

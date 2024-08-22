@@ -227,7 +227,7 @@ export const initConfigApi = win => {
       } else {
         event.reply("Config.importConfig.hook", {
           success: false,
-          data: `暂不支持${fileExtension}格式文件`
+          data: `导入失败，暂不支持 ${fileExtension} 格式文件`
         });
       }
     }
