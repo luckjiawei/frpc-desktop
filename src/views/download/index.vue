@@ -3,7 +3,7 @@ import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { ipcRenderer } from "electron";
 import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 
@@ -52,9 +52,20 @@ const handleDownload = useDebounceFn((version: FrpVersion) => {
  * @param version
  */
 const handleDeleteVersion = useDebounceFn((version: FrpVersion) => {
-  ipcRenderer.send("github.deleteVersion", {
-    id: version.id,
-    absPath: version.absPath
+  ElMessageBox.alert(
+    `确认要删除 <span class="text-primary font-bold">${version.name} </span>  吗？`,
+    "提示",
+    {
+      showCancelButton: true,
+      cancelButtonText: "取消",
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: "删除"
+    }
+  ).then(() => {
+    ipcRenderer.send("github.deleteVersion", {
+      id: version.id,
+      absPath: version.absPath
+    });
   });
 }, 300);
 
@@ -200,11 +211,7 @@ onUnmounted(() => {
                     <!--                    >已下载</span-->
                     <!--                  >-->
                     <div>
-                      <el-button
-                        type="text"
-                        size="small"
-                        @click="handleDeleteVersion(version)"
-                      >
+                      <el-button type="text" size="small">
                         <IconifyIconOffline class="mr-1" icon="check-box" />
                         已下载
                       </el-button>
@@ -220,7 +227,7 @@ onUnmounted(() => {
                           class="mr-1"
                           icon="delete-rounded"
                         />
-                        删除
+                        删 除
                       </el-button>
                     </div>
 
