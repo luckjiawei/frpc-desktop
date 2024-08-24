@@ -7,7 +7,7 @@ import { useDebounceFn } from "@vueuse/core";
 import { clone } from "@/utils/clone";
 import { Base64 } from "js-base64";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-
+import confetti from "canvas-confetti/src/confetti.js";
 defineComponent({
   name: "Config"
 });
@@ -219,7 +219,14 @@ onMounted(() => {
   ipcRenderer.on("Config.importConfig.hook", (event, args) => {
     const { success, data } = args;
     if (success) {
-      ElMessageBox.alert("导入成功 请重启软件", `提示`, {
+      // 礼花
+      confetti({
+        zIndex: 12002,
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
         closeOnClickModal: false,
         showClose: false,
         confirmButtonText: "立即重启"

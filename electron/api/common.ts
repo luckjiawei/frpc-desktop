@@ -12,5 +12,6 @@ export const initCommonApi = () => {
 
   ipcMain.on("common.relaunch", () => {
     app.relaunch();
+    app.quit();
   });
 };

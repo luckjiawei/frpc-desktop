@@ -66,7 +66,7 @@
     "vue-router": "^4.2.4",
     "vue-tsc": "^2.0.22",
     "vue-types": "^5.1.1",
-    "uuid": "^10.0.0"
+    "canvas-confetti": "^1.9.0"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -77,6 +77,7 @@
     "isbinaryfile": "4.0.10",
     "js-base64": "^3.7.7",
     "tar": "^6.2.0",
-    "unused-filename": "^4.0.1"
+    "unused-filename": "^4.0.1",
+    "uuid": "^10.0.0"
   }
 }
