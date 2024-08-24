@@ -43,6 +43,7 @@
     "@vue/eslint-config-prettier": "^7.1.0",
     "@vueuse/core": "^9.13.0",
     "autoprefixer": "^10.4.15",
+    "canvas-confetti": "^1.9.0",
     "cssnano": "^6.0.1",
     "electron": "^26.6.10",
     "electron-builder": "^24.13.3",
@@ -65,8 +66,7 @@
     "vue": "^3.3.4",
     "vue-router": "^4.2.4",
     "vue-tsc": "^2.0.22",
-    "vue-types": "^5.1.1",
-    "canvas-confetti": "^1.9.0"
+    "vue-types": "^5.1.1"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -74,6 +74,7 @@
     "animate.css": "^4.1.1",
     "electron-dl": "^3.5.1",
     "electron-log": "^5.1.7",
+    "intro.js": "^8.0.0-beta.1",
     "isbinaryfile": "4.0.10",
     "js-base64": "^3.7.7",
     "tar": "^6.2.0",
