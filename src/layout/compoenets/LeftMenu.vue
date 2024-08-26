@@ -66,6 +66,18 @@ const handleOpenGitHubReleases = () => {
   });
 };
 
+const handleCompleteGuide: () => boolean = () => {
+  // 礼花
+  confetti({
+    zIndex: 12002,
+    particleCount: 200,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+  localStorage.setItem("guide", new Date().getTime().toString());
+  return true; // 确保返回 boolean
+};
+
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
     f => !f.meta?.hidden
@@ -73,16 +85,7 @@ onMounted(() => {
 
   if (!localStorage.getItem("guide")) {
     // 开始
-    Intro.onBeforeExit(function () {
-      // 礼花
-      confetti({
-        zIndex: 12002,
-        particleCount: 200,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-      localStorage.setItem("guide", new Date().getTime().toString());
-    }).start();
+    Intro.onBeforeExit(handleCompleteGuide).start();
   }
 });
 </script>
