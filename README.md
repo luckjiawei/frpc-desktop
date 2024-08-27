@@ -79,6 +79,10 @@
 
 ![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
 
+## 赞助
+
+![gratuity.jpg](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/gratuity.jpg?raw=true)
+
 ## 贡献者
 <a href="https://github.com/luckjiawei/frpc-desktop/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=luckjiawei/frpc-desktop" />
