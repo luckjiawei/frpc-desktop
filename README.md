@@ -81,7 +81,7 @@
 
 ## 赞助
 
-![gratuity.jpg](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/gratuity.jpg?raw=true)
+<img src="screenshots/gratuity.jpg" alt="赞助二维码" width="200">
 
 ## 贡献者
 <a href="https://github.com/luckjiawei/frpc-desktop/graphs/contributors">
