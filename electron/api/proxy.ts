@@ -66,4 +66,9 @@ export const initProxyApi = () => {
       });
     });
   });
+
+  ipcMain.on("proxy.updateProxyStatus", async (event, args) => {
+    if (!args._id) return;
+
+  });
 };

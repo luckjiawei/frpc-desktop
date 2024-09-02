@@ -26,6 +26,7 @@ declare global {
         secretKey: string;
         bindAddr: string;
         bindPort: number;
+        status: boolean
     };
 
     /**

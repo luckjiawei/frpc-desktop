@@ -33,6 +33,8 @@ import ExportNotesOutline from "@iconify-icons/material-symbols/export-notes-out
 import uploadRounded from "@iconify-icons/material-symbols/upload-rounded";
 import downloadRounded from "@iconify-icons/material-symbols/download-rounded";
 import deviceReset from "@iconify-icons/material-symbols/device-reset";
+import switchAccessOutlineRounded from "@iconify-icons/material-symbols/switch-access-outline-rounded";
+import switchAccessRounded from "@iconify-icons/material-symbols/switch-access-rounded";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -61,5 +63,7 @@ addIcon("export", ExportNotesOutline);
 addIcon("uploadRounded", uploadRounded);
 addIcon("downloadRounded", downloadRounded);
 addIcon("deviceReset", deviceReset);
+addIcon("switchAccessOutlineRounded", switchAccessOutlineRounded);
+addIcon("switchAccessRounded", switchAccessRounded);
 
 

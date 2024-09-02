@@ -219,6 +219,11 @@ const handleInitHook = () => {
     loading.value.list--;
     const { err, data } = args;
     if (!err) {
+      data.forEach(f => {
+        if (f.status === null || f.status === undefined) {
+          f.status = true;
+        }
+      });
       proxys.value = data;
     }
   });
@@ -246,6 +251,10 @@ const handleOpenUpdate = (proxy: Proxy) => {
     title: "修改代理",
     visible: true
   };
+};
+
+const handleReversalUpdate = (proxy: Proxy) => {
+  proxy.status = !proxy.status;
 };
 
 const handleLoadLocalPorts = () => {
@@ -327,7 +336,16 @@ onUnmounted(() => {
                     <span class="text-white text-sm">{{ proxy.type }}</span>
                   </div>
                   <div class="h-12 relative">
-                    <div class="text-sm font-bold">{{ proxy.name }}</div>
+                    <div class="text-sm font-bold">
+                      <span>{{ proxy.name }}</span>
+                    </div>
+                    <el-tag
+                      v-if="!proxy.status"
+                      class="mr-2"
+                      type="danger"
+                      size="small"
+                      >已禁用
+                    </el-tag>
                     <el-tag
                       v-if="
                         proxy.type === 'stcp' && proxy.stcpModel === 'visitors'
@@ -352,7 +370,7 @@ onUnmounted(() => {
                     <!--                    </el-tag>-->
                   </div>
                 </div>
-                <div>
+                <div class="flex items-start">
                   <el-dropdown size="small">
                     <a
                       href="javascript:void(0)"
@@ -368,6 +386,22 @@ onUnmounted(() => {
                             class="primary-text text-[14px]"
                           />
                           <span class="ml-1">修 改</span>
+                        </el-dropdown-item>
+                        <el-dropdown-item @click="handleReversalUpdate(proxy)">
+                          <IconifyIconOffline
+                            :icon="
+                              proxy.status
+                                ? 'switchAccessOutlineRounded'
+                                : 'switchAccessRounded'
+                            "
+                            class="primary-text text-[14px]"
+                            :class="
+                              proxy.status ? 'text-red-500' : 'text-green-500'
+                            "
+                          />
+                          <span class="ml-1">
+                            {{ proxy.status ? "禁 用" : "启 用" }}
+                          </span>
                         </el-dropdown-item>
                         <el-dropdown-item @click="handleDeleteProxy(proxy)">
                           <IconifyIconOffline
