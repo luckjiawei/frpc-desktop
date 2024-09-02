@@ -621,7 +621,7 @@ onUnmounted(() => {
                   class="w-full"
                   v-model="formData.transportHeartbeatInterval"
                   :min="1"
-                  :max="10"
+                  :max="600"
                   controls-position="right"
                 />
                 <!--                <el-input-->
@@ -661,7 +661,7 @@ onUnmounted(() => {
                   class="w-full"
                   v-model="formData.transportHeartbeatTimeout"
                   :min="1"
-                  :max="10"
+                  :max="600"
                   controls-position="right"
                 />
                 <!--                <el-input-->
