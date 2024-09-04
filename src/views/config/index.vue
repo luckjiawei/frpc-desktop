@@ -8,6 +8,7 @@ import { clone } from "@/utils/clone";
 import { Base64 } from "js-base64";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import confetti from "canvas-confetti/src/confetti.js";
+
 defineComponent({
   name: "Config"
 });
@@ -74,18 +75,18 @@ const rules = reactive<FormRules>({
   tlsConfigEnable: [
     { required: true, message: "请选择 TLS 状态", trigger: "change" }
   ],
-  tlsConfigCertFile: [
-    { required: true, message: "请选择 TLS 证书文件", trigger: "change" }
-  ],
-  tlsConfigKeyFile: [
-    { required: true, message: "请选择 TLS 密钥文件", trigger: "change" }
-  ],
-  tlsConfigTrustedCaFile: [
-    { required: true, message: "请选择 CA 证书文件", trigger: "change" }
-  ],
-  tlsConfigServerName: [
-    { required: true, message: "请输入 TLS Server 名称", trigger: "blur" }
-  ],
+  // tlsConfigCertFile: [
+  //   { required: true, message: "请选择 TLS 证书文件", trigger: "change" }
+  // ],
+  // tlsConfigKeyFile: [
+  //   { required: true, message: "请选择 TLS 密钥文件", trigger: "change" }
+  // ],
+  // tlsConfigTrustedCaFile: [
+  //   { required: true, message: "请选择 CA 证书文件", trigger: "change" }
+  // ],
+  // tlsConfigServerName: [
+  //   { required: true, message: "请输入 TLS Server 名称", trigger: "blur" }
+  // ],
   proxyConfigEnable: [
     { required: true, message: "请选择代理状态", trigger: "change" }
   ],
@@ -714,16 +715,25 @@ onUnmounted(() => {
                     TLS 证书文件：
                   </template>
                   <el-input
-                    class="button-input"
+                    class="button-input !cursor-pointer"
                     v-model="formData.tlsConfigCertFile"
-                    placeholder="请选择TLS证书文件"
+                    placeholder="点击选择TLS证书文件"
                     readonly
-                  />
-                  <el-button
-                    class="ml-2"
-                    type="primary"
+                    clearable
                     @click="handleSelectFile(1, ['crt'])"
-                    >选择
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(1, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="formData.tlsConfigCertFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="formData.tlsConfigCertFile = ''"
+                    >清除
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -755,14 +765,22 @@ onUnmounted(() => {
                   <el-input
                     class="button-input"
                     v-model="formData.tlsConfigKeyFile"
-                    placeholder="请选择 TLS 密钥文件"
+                    placeholder="点击选择 TLS 密钥文件"
                     readonly
-                  />
-                  <el-button
-                    class="ml-2"
-                    type="primary"
                     @click="handleSelectFile(2, ['key'])"
-                    >选择
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(2, ['key'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="formData.tlsConfigKeyFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="formData.tlsConfigKeyFile = ''"
+                    >清除
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -794,14 +812,22 @@ onUnmounted(() => {
                   <el-input
                     class="button-input"
                     v-model="formData.tlsConfigTrustedCaFile"
-                    placeholder="请选择CA证书文件"
+                    placeholder="点击选择 CA 证书文件"
                     readonly
-                  />
-                  <el-button
-                    class="ml-2"
-                    type="primary"
                     @click="handleSelectFile(3, ['crt'])"
-                    >选择
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="formData.tlsConfigTrustedCaFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="formData.tlsConfigTrustedCaFile = ''"
+                    >清除
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -833,6 +859,7 @@ onUnmounted(() => {
                   <el-input
                     v-model="formData.tlsConfigServerName"
                     placeholder="请输入TLS Server 名称"
+                    clearable
                   />
                 </el-form-item>
               </el-col>

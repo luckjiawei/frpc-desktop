@@ -128,15 +128,35 @@ webServer.addr = "127.0.0.1"
 webServer.port = 57400
 transport.tls.enable = ${config.tlsConfigEnable}
 ${
-  config.tlsConfigEnable
+  config.tlsConfigEnable && config.tlsConfigCertFile
     ? `
 transport.tls.certFile = "${config.tlsConfigCertFile}"
-transport.tls.keyFile = "${config.tlsConfigKeyFile}"
-transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"
-transport.tls.serverName = "${config.tlsConfigServerName}"
 `
     : ""
 }
+  ${
+    config.tlsConfigEnable && config.tlsConfigKeyFile
+      ? `
+transport.tls.keyFile = "${config.tlsConfigKeyFile}"
+`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigTrustedCaFile
+      ? `
+transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"
+`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigServerName
+      ? `
+transport.tls.serverName = "${config.tlsConfigServerName}"
+`
+      : ""
+  }
+  
+
 ${
   config.proxyConfigEnable
     ? `
@@ -245,16 +265,36 @@ log_max_days = ${config.logMaxDays}
 admin_addr = 127.0.0.1
 admin_port = 57400
 tls_enable = ${config.tlsConfigEnable}
+
 ${
-  config.tlsConfigEnable
+  config.tlsConfigEnable && config.tlsConfigCertFile
     ? `
 tls_cert_file = ${config.tlsConfigCertFile}
-tls_key_file = ${config.tlsConfigKeyFile}
-tls_trusted_ca_file = ${config.tlsConfigTrustedCaFile}
-tls_server_name = ${config.tlsConfigServerName}
 `
     : ""
 }
+  ${
+    config.tlsConfigEnable && config.tlsConfigKeyFile
+      ? `
+tls_key_file = ${config.tlsConfigKeyFile}
+`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigTrustedCaFile
+      ? `
+tls_trusted_ca_file = ${config.tlsConfigTrustedCaFile}
+`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigServerName
+      ? `
+tls_server_name = ${config.tlsConfigServerName}
+`
+      : ""
+  }
+
 ${
   config.proxyConfigEnable
     ? `
