@@ -675,10 +675,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="24">
-              <div class="h2">TSL Config</div>
+              <div class="h2">TLS Config</div>
             </el-col>
             <el-col :span="24">
-              <el-form-item label="是否启用TSL：" prop="tlsConfigEnable">
+              <el-form-item label="是否启用TLS：" prop="tlsConfigEnable">
                 <el-switch
                   active-text="开"
                   inline-prompt
