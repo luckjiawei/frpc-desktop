@@ -47,7 +47,8 @@ const defaultForm = ref<Proxy>({
   serverName: "",
   secretKey: "",
   bindAddr: "",
-  bindPort: null
+  bindPort: null,
+  status: true
 });
 
 /**
