@@ -162,7 +162,8 @@ export const initConfigApi = win => {
           serverName: "",
           secretKey: m?.secretKey || "",
           bindAddr: "",
-          bindPort: null
+          bindPort: null,
+          status: m?.status || true
         };
         return rm;
       });
@@ -184,7 +185,8 @@ export const initConfigApi = win => {
           serverName: m?.serverName,
           secretKey: m?.secretKey || "",
           bindAddr: m?.bindAddr,
-          bindPort: m?.bindPort
+          bindPort: m?.bindPort,
+          status: m?.status || true
         };
         return rm;
       });
