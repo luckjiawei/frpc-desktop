@@ -197,6 +197,13 @@ const handleInitHook = () => {
     InsertOrUpdateHook("修改成功", args);
   });
 
+  ipcRenderer.on("Proxy.updateProxyStatus.hook", (event, args) => {
+    if (args.data > 0) {
+      handleLoadProxys();
+    }
+    console.log("更新结果", args);
+  });
+
   ipcRenderer.on("local.getLocalPorts.hook", (event, args) => {
     loading.value.localPorts--;
     localPorts.value = args.data;
@@ -254,7 +261,11 @@ const handleOpenUpdate = (proxy: Proxy) => {
 };
 
 const handleReversalUpdate = (proxy: Proxy) => {
-  proxy.status = !proxy.status;
+  console.log("更新", proxy);
+  ipcRenderer.send("proxy.updateProxyStatus", {
+    _id: proxy._id,
+    status: !proxy.status
+  });
 };
 
 const handleLoadLocalPorts = () => {
@@ -300,6 +311,7 @@ onMounted(() => {
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Proxy.insertProxy.hook");
   ipcRenderer.removeAllListeners("Proxy.updateProxy.hook");
+  ipcRenderer.removeAllListeners("Proxy.updateProxyStatus.hook");
   ipcRenderer.removeAllListeners("Proxy.deleteProxyById.hook");
   ipcRenderer.removeAllListeners("Proxy.getProxys.hook");
   ipcRenderer.removeAllListeners("local.getLocalPorts.hook");

@@ -4,11 +4,10 @@ import {
   getProxyById,
   insertProxy,
   listProxy,
-  updateProxyById
+  updateProxyById,
+  updateProxyStatus
 } from "../storage/proxy";
 import { reloadFrpcProcess } from "./frpc";
-
-
 
 export const initProxyApi = () => {
   ipcMain.on("proxy.getProxys", async (event, args) => {
@@ -24,7 +23,7 @@ export const initProxyApi = () => {
     delete args["_id"];
     insertProxy(args, (err, documents) => {
       if (!err) {
-        reloadFrpcProcess()
+        reloadFrpcProcess();
       }
       event.reply("Proxy.insertProxy.hook", {
         err: err,
@@ -36,7 +35,7 @@ export const initProxyApi = () => {
   ipcMain.on("proxy.deleteProxyById", async (event, args) => {
     deleteProxyById(args, (err, documents) => {
       if (!err) {
-        reloadFrpcProcess()
+        reloadFrpcProcess();
       }
       event.reply("Proxy.deleteProxyById.hook", {
         err: err,
@@ -58,7 +57,7 @@ export const initProxyApi = () => {
     if (!args._id) return;
     updateProxyById(args, (err, documents) => {
       if (!err) {
-        reloadFrpcProcess()
+        reloadFrpcProcess();
       }
       event.reply("Proxy.updateProxy.hook", {
         err: err,
@@ -68,7 +67,16 @@ export const initProxyApi = () => {
   });
 
   ipcMain.on("proxy.updateProxyStatus", async (event, args) => {
+    console.log("更新状态", args);
     if (!args._id) return;
-
+    updateProxyStatus(args._id, args.status, (err, documents) => {
+      if (!err) {
+        reloadFrpcProcess();
+      }
+      event.reply("Proxy.updateProxyStatus.hook", {
+        err: err,
+        data: documents
+      });
+    });
   });
 };

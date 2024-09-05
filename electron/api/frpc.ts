@@ -320,13 +320,21 @@ export const generateConfig = (
       const { currentVersion } = config;
       let filename = null;
       let configContent = "";
+      const filtered = proxys
+        .map(m => {
+          if (m.status == null || m.status == undefined) {
+            m.status = true;
+          }
+          return m;
+        })
+        .filter(f => f.status);
       if (currentVersion < 124395282) {
         // 版本小于v0.52.0
         filename = "frp.ini";
-        configContent = genIniConfig(config, proxys);
+        configContent = genIniConfig(config, filtered);
       } else {
         filename = "frp.toml";
-        configContent = genTomlConfig(config, proxys);
+        configContent = genTomlConfig(config, filtered);
       }
       const configPath = path.join(app.getPath("userData"), filename);
       log.info(`生成配置成功 配置路径：${configPath}`);

@@ -68,6 +68,24 @@ export const getProxyById = (
   proxyDB.findOne({ _id: id }, callback);
 };
 
+/**
+ * 清空代理
+ * @param cb
+ */
 export const clearProxy = (cb?: (err: Error | null, n: number) => void) => {
   proxyDB.remove({}, { multi: true }, cb);
+};
+
+/**
+ * 更新代理状态
+ * @param id id
+ * @param st 状态
+ * @param cb 回调
+ */
+export const updateProxyStatus = (
+  id: string,
+  st: boolean,
+  cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
+) => {
+  proxyDB.update({ _id: id }, { $set: { status: st } }, {}, cb);
 };
