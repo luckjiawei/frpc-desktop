@@ -50,8 +50,8 @@ type = "${m.type}"
       case "udp":
         toml += `
 localIP = "${m.localIp}"
-localPort = ${m.localPort}
-remotePort = ${m.remotePort}
+localPort = "${m.localPort}"
+remotePort = "${m.remotePort}"
 `;
         break;
       case "http":

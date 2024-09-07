@@ -94,8 +94,22 @@ const editFormRules = reactive<FormRules>({
       trigger: "blur"
     }
   ],
-  localPort: [{ required: true, message: "请输入本地端口", trigger: "blur" }],
-  remotePort: [{ required: true, message: "请输入远程端口", trigger: "blur" }],
+  localPort: [
+    { required: true, message: "请输入内网端口", trigger: "blur" },
+    {
+      pattern: /^(?:\d{1,5}|\d{1,5}-\d{1,5})(?:,(?:\d{1,5}|\d{1,5}-\d{1,5}))*$/,
+      message: "请输入正确的端口",
+      trigger: "blur"
+    }
+  ],
+  remotePort: [
+    { required: true, message: "请输入外网端口", trigger: "blur" },
+    {
+      pattern: /^(?:\d{1,5}|\d{1,5}-\d{1,5})(?:,(?:\d{1,5}|\d{1,5}-\d{1,5}))*$/,
+      message: "请输入正确的端口",
+      trigger: "blur"
+    }
+  ],
   stcpModel: [{ required: true, message: "请选择stcp模式", trigger: "blur" }],
   secretKey: [
     { required: true, message: "请输入stcp共享密钥", trigger: "blur" }
@@ -209,7 +223,7 @@ const handleInitHook = () => {
   ipcRenderer.on("local.getLocalPorts.hook", (event, args) => {
     loading.value.localPorts--;
     localPorts.value = args.data;
-    console.log("本地端口", localPorts.value);
+    console.log("内网端口", localPorts.value);
   });
   // ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
   //   loading.value.form--;
@@ -518,7 +532,7 @@ onUnmounted(() => {
                   <p>{{ proxy.bindPort }}</p>
                 </div>
               </div>
-              <!--            <div class="text-sm text-[#ADADAD] py-2">本地地址 本地端口</div>-->
+              <!--            <div class="text-sm text-[#ADADAD] py-2">本地地址 内网端口</div>-->
             </div>
           </el-col>
         </el-row>
@@ -637,12 +651,19 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="内网端口：" prop="localPort">
                 <el-input-number
+                  v-if="editForm.type === 'http' || editForm.type === 'https'"
                   placeholder="8080"
                   class="local-port-input"
                   :min="0"
                   :max="65535"
                   v-model="editForm.localPort"
                   controls-position="right"
+                />
+                <el-input
+                  v-else
+                  class="local-port-input"
+                  placeholder="8080"
+                  v-model="editForm.localPort"
                 />
                 <el-button
                   class="ml-[10px]"
@@ -654,7 +675,7 @@ onUnmounted(() => {
                     class="cursor-pointer mr-2"
                     icon="bring-your-own-ip-rounded"
                   />
-                  本地端口
+                  内网端口
                 </el-button>
               </el-form-item>
             </el-col>
@@ -662,12 +683,17 @@ onUnmounted(() => {
           <template v-if="editForm.type === 'tcp' || editForm.type === 'udp'">
             <el-col :span="8">
               <el-form-item label="外网端口：" prop="remotePort">
-                <el-input-number
-                  :min="0"
-                  :max="65535"
+                <!--                <el-input-number-->
+                <!--                  :min="0"-->
+                <!--                  :max="65535"-->
+                <!--                  placeholder="8080"-->
+                <!--                  v-model="editForm.remotePort"-->
+                <!--                  controls-position="right"-->
+                <!--                />-->
+                <el-input
+                  class="w-full"
                   placeholder="8080"
                   v-model="editForm.remotePort"
-                  controls-position="right"
                 />
               </el-form-item>
             </el-col>
@@ -879,7 +905,7 @@ onUnmounted(() => {
       </el-form>
     </el-dialog>
 
-    <el-dialog v-model="listPortsVisible" title="本地端口" width="600" top="5%">
+    <el-dialog v-model="listPortsVisible" title="内网端口" width="600" top="5%">
       <el-table
         :data="localPorts"
         stripe
