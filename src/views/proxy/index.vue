@@ -41,8 +41,8 @@ const defaultForm = ref<Proxy>({
   name: "",
   type: "http",
   localIp: "",
-  localPort: 8080,
-  remotePort: 8080,
+  localPort: "8080",
+  remotePort: "8080",
   customDomains: [""],
   stcpModel: "visitors",
   serverName: "",
@@ -133,6 +133,40 @@ const editFormRules = reactive<FormRules>({
  */
 const editFormRef = ref<FormInstance>();
 
+const handleGetPortCount = (portString: string) => {
+  let count = 0;
+  const portRanges = portString.split(",");
+
+  portRanges.forEach(range => {
+    if (range.includes("-")) {
+      // 处理范围
+      const [start, end] = range.split("-").map(Number);
+      count += end - start + 1; // 包括起始和结束端口
+    } else {
+      // 处理单个端口
+      count += 1;
+    }
+  });
+
+  return count;
+};
+
+const handleRangePort = () => {
+  if (editForm.value.localPort.indexOf("-") !== -1) {
+    return true;
+  }
+  if (editForm.value.localPort.indexOf(",") !== -1) {
+    return true;
+  }
+  if (editForm.value.remotePort.indexOf("-") !== -1) {
+    return true;
+  }
+  if (editForm.value.remotePort.indexOf(",") !== -1) {
+    return true;
+  }
+  return false;
+};
+
 /**
  * 提交表单
  */
@@ -140,6 +174,18 @@ const handleSubmit = async () => {
   if (!editFormRef.value) return;
   await editFormRef.value.validate(valid => {
     if (valid) {
+      if (handleRangePort()) {
+        const lc = handleGetPortCount(editForm.value.localPort);
+        const rc = handleGetPortCount(editForm.value.remotePort);
+        console.log("范围端口 ", lc, rc);
+        if (lc !== rc) {
+          ElMessage({
+            type: "warning",
+            message: "请确保内网端口和外网端口数量一致"
+          });
+          return;
+        }
+      }
       loading.value.form = 1;
       const data = clone(editForm.value);
       if (data._id) {
@@ -290,7 +336,7 @@ const handleLoadLocalPorts = () => {
 };
 
 const handleSelectLocalPort = useDebounceFn((port: number) => {
-  editForm.value.localPort = port;
+  editForm.value.localPort = port?.toString();
   handleCloseLocalPortDialog();
 });
 
@@ -550,6 +596,7 @@ onUnmounted(() => {
       :title="edit.title"
       class="sm:w-[500px] md:w-[600px] lg:w-[800px]"
       top="5%"
+      @close="editForm = defaultForm"
     >
       <el-form
         v-loading="loading.form"
