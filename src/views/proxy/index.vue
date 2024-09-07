@@ -696,18 +696,49 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="内网端口：" prop="localPort">
-                <el-input-number
-                  v-if="editForm.type === 'http' || editForm.type === 'https'"
-                  placeholder="8080"
-                  class="local-port-input"
-                  :min="0"
-                  :max="65535"
-                  v-model="editForm.localPort"
-                  controls-position="right"
-                />
+              <el-form-item
+                label="内网端口："
+                prop="localPort"
+                :rules="
+                  editForm.type === 'tcp' || editForm.type === 'udp'
+                    ? [
+                        {
+                          required: true,
+                          message: `内网端口不能为空`,
+                          trigger: 'blur'
+                        },
+                        {
+                          pattern:
+                            /^(?:\d{1,5}|\d{1,5}-\d{1,5})(?:,(?:\d{1,5}|\d{1,5}-\d{1,5}))*$/,
+                          message: '请输入正确的端口',
+                          trigger: 'blur'
+                        }
+                      ]
+                    : [
+                        {
+                          required: true,
+                          message: `内网端口不能为空`,
+                          trigger: 'blur'
+                        },
+                        {
+                          pattern:
+                            /^([0-5]?[0-9]{0,4}|6[0-4][0-9]{0,3}|65[0-5][0-9]?|655[0-2][0-9]?|6553[0-5])$/,
+                          message: '请输入正确的端口',
+                          trigger: 'blur'
+                        }
+                      ]
+                "
+              >
+                <!--                <el-input-number-->
+                <!--                  v-if="editForm.type === 'http' || editForm.type === 'https'"-->
+                <!--                  placeholder="8080"-->
+                <!--                  class="local-port-input"-->
+                <!--                  :min="0"-->
+                <!--                  :max="65535"-->
+                <!--                  v-model="editForm.localPort"-->
+                <!--                  controls-position="right"-->
+                <!--                />-->
                 <el-input
-                  v-else
                   class="local-port-input"
                   placeholder="8080"
                   v-model="editForm.localPort"
