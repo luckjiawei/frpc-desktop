@@ -6,6 +6,7 @@ import { ipcRenderer } from "electron";
 import { clone } from "@/utils/clone";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import commonIps from "./commonIp.json";
 
 defineComponent({
   name: "Proxy"
@@ -292,16 +293,60 @@ interface RestaurantItem {
   value: string;
 }
 
-const commonIp = ref<Array<RestaurantItem>>([]);
+const commonIp = ref<Array<RestaurantItem>>(commonIps);
+
+const handleAutocompleteIP = (input: string) => {
+  const parts = input.split(".").map(part => part.trim());
+
+  const possibleIPs = [];
+  // 根据输入的部分生成可能的 IP 地址
+  if (parts.length === 1 && /^[0-9]{1,3}$/.test(parts[0])) {
+    // 只有一个部分，例如 "192"
+    for (let i = 0; i <= 255; i++) {
+      possibleIPs.push({ value: `${parts[0]}.${i}.0.1` });
+    }
+  } else if (
+    parts.length === 2 &&
+    /^[0-9]{1,3}$/.test(parts[0]) &&
+    /^[0-9]{1,3}$/.test(parts[1])
+  ) {
+    // 两个部分，例如 "192.168"
+    for (let i = 0; i <= 255; i++) {
+      possibleIPs.push({ value: `${parts[0]}.${parts[1]}.${i}.1` });
+    }
+  } else if (
+    parts.length === 3 &&
+    /^[0-9]{1,3}$/.test(parts[0]) &&
+    /^[0-9]{1,3}$/.test(parts[1]) &&
+    /^[0-9]{1,3}$/.test(parts[2])
+  ) {
+    // 三个部分，例如 "192.168.1"
+    for (let i = 1; i <= 255; i++) {
+      possibleIPs.push({ value: `${parts[0]}.${parts[1]}.${parts[2]}.${i}` });
+    }
+  } else if (
+    parts.length === 4 &&
+    /^[0-9]{1,3}$/.test(parts[0]) &&
+    /^[0-9]{1,3}$/.test(parts[1]) &&
+    /^[0-9]{1,3}$/.test(parts[2]) &&
+    /^[0-9]{1,3}$/.test(parts[3])
+  ) {
+    // 四个部分，例如 "192.168.1.1"
+    possibleIPs.push({ value: input }); // 如果输入了完整的 IP，直接返回
+  }
+  return possibleIPs;
+};
 
 const handleIpFetchSuggestions = (queryString: string, cb: any) => {
-  const results = queryString
-    ? commonIp.value.filter(f => {
-        return f.value.toLowerCase().indexOf(queryString.toLowerCase()) !== -1;
-      })
-    : commonIp.value;
-  console.log(results, "results");
-  cb(commonIp.value);
+  const auto = handleAutocompleteIP(queryString);
+  // const results = queryString
+  //   ? commonIp.value.filter(f => {
+  //       return f.value.toLowerCase().indexOf(queryString.toLowerCase()) !== -1;
+  //     })
+  //   : commonIp.value;
+  // const newVar = [...results, ...auto];
+  // return Array.from(newVar).map(ip => ({ value: ip }));
+  cb(auto);
 };
 
 onMounted(() => {
@@ -576,17 +621,17 @@ onUnmounted(() => {
           >
             <el-col :span="12">
               <el-form-item label="内网地址：" prop="localIp">
-                <!--              <el-autocomplete-->
-                <!--                  v-model="editForm.localIp"-->
-                <!--                  :fetch-suggestions="handleIpFetchSuggestions"-->
-                <!--                  clearable-->
-                <!--                  placeholder="127.0.0.1"-->
-                <!--              />-->
-                <el-input
+                <el-autocomplete
                   v-model="editForm.localIp"
-                  placeholder="127.0.0.1"
+                  :fetch-suggestions="handleIpFetchSuggestions"
                   clearable
+                  placeholder="127.0.0.1"
                 />
+                <!--                <el-input-->
+                <!--                  v-model="editForm.localIp"-->
+                <!--                  placeholder="127.0.0.1"-->
+                <!--                  clearable-->
+                <!--                />-->
               </el-form-item>
             </el-col>
             <el-col :span="12">
