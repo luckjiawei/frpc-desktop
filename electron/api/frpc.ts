@@ -40,19 +40,36 @@ const getFrpcVersionWorkerPath = (
  */
 export const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyToml = proxys.map(m => {
+    const rangePort =
+      (m.localPort.indexOf("-") !== -1 || m.localPort.indexOf(",") !== -1) &&
+      (m.type === "tcp" || m.type === "udp");
     let toml = `
+${
+  rangePort
+    ? `{{- range $_, $v := parseNumberRangePair "${m.localPort}" "${m.remotePort}" }}`
+    : ""
+}
 [[${m.type === "stcp" && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
-name = "${m.name}"
+${rangePort ? "" : `name = "${m.name}"\n`}
 type = "${m.type}"
 `;
+
     switch (m.type) {
       case "tcp":
       case "udp":
-        toml += `
+        if (rangePort) {
+          toml += `
+name = "${m.name}-{{ $v.First }}"
+localPort = {{ $v.First }}
+remotePort = {{ $v.Second }}
+          `;
+        } else {
+          toml += `
 localIP = "${m.localIp}"
-localPort = "${m.localPort}"
-remotePort = "${m.remotePort}"
+localPort = ${m.localPort}
+remotePort = ${m.remotePort}
 `;
+        }
         break;
       case "http":
       case "https":
@@ -84,6 +101,9 @@ secretKey="${m.secretKey}"
         break;
     }
 
+    if (rangePort) {
+      toml += `{{- end }}`;
+    }
     return toml;
   });
   const toml = `
