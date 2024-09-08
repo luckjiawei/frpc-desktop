@@ -35,8 +35,8 @@ const getFrpcVersionWorkerPath = (
 
 const isRangePort = (m: Proxy) => {
   return (
-    (m.localPort.indexOf("-") !== -1 || m.localPort.indexOf(",") !== -1) &&
-    (m.type === "tcp" || m.type === "udp")
+    (m.type === "tcp" || m.type === "udp") &&
+    (m.localPort.indexOf("-") !== -1 || m.localPort.indexOf(",") !== -1)
   );
 };
 
@@ -204,7 +204,7 @@ export const genIniConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyIni = proxys.map(m => {
     const rangePort = isRangePort(m);
     let ini = `
-[${rangePort ? 'range:' : ''}${m.name}]
+[${rangePort ? "range:" : ""}${m.name}]
 type = "${m.type}"
 `;
     switch (m.type) {
