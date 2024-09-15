@@ -1,5 +1,12 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineComponent,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref
+} from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ipcRenderer } from "electron";
@@ -7,6 +14,7 @@ import { clone } from "@/utils/clone";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
+import router from "@/router";
 
 defineComponent({
   name: "Proxy"
@@ -132,6 +140,38 @@ const editFormRules = reactive<FormRules>({
  * 表单dom
  */
 const editFormRef = ref<FormInstance>();
+
+const isTcp = computed(() => {
+  return editForm.value.type === "tcp";
+});
+
+const isUdp = computed(() => {
+  return editForm.value.type === "udp";
+});
+
+const isHttp = computed(() => {
+  return editForm.value.type === "http";
+});
+
+const isHttps = computed(() => {
+  return editForm.value.type === "https";
+});
+
+const isStcp = computed(() => {
+  return editForm.value.type === "stcp";
+});
+
+const isStcpVisited = computed(() => {
+  return (
+    editForm.value.type === "stcp" && editForm.value.stcpModel === "visited"
+  );
+});
+
+const isStcpVisitors = computed(() => {
+  return (
+    editForm.value.type === "stcp" && editForm.value.stcpModel === "visitors"
+  );
+});
 
 const handleGetPortCount = (portString: string) => {
   let count = 0;
@@ -618,7 +658,7 @@ onUnmounted(() => {
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <template v-if="editForm.type === 'stcp'">
+          <template v-if="isStcp">
             <el-col :span="12">
               <el-form-item label="stcp模式：" prop="stcpModel">
                 <el-radio-group v-model="editForm.stcpModel">
@@ -665,7 +705,7 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <el-col :span="editForm.stcpModel === 'visitors' ? 12 : 24">
+          <el-col :span="isStcpVisitors ? 12 : 24">
             <el-form-item label="代理名称：" prop="name">
               <el-input
                 v-model="editForm.name"
@@ -674,12 +714,7 @@ onUnmounted(() => {
               />
             </el-form-item>
           </el-col>
-          <template
-            v-if="
-              editForm.type !== 'stcp' ||
-              (editForm.type === 'stcp' && editForm.stcpModel === 'visited')
-            "
-          >
+          <template v-if="!isStcp || isStcpVisited">
             <el-col :span="12">
               <el-form-item label="内网地址：" prop="localIp">
                 <el-autocomplete
@@ -698,7 +733,7 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="内网端口：" prop="localPort">
                 <el-input-number
-                  v-if="editForm.type === 'http' || editForm.type === 'https'"
+                  v-if="isHttp || isHttps"
                   placeholder="8080"
                   class="local-port-input"
                   :min="0"
@@ -727,7 +762,8 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="editForm.type === 'tcp' || editForm.type === 'udp'">
+          <template v-if="isHttp || isHttps"></template>
+          <template v-if="isTcp || isUdp">
             <el-col :span="8">
               <el-form-item label="外网端口：" prop="remotePort">
                 <!--                <el-input-number-->
@@ -745,9 +781,7 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template
-            v-if="editForm.type === 'http' || editForm.type === 'https'"
-          >
+          <template v-if="isHttp || isHttps">
             <el-col :span="24">
               <el-form-item
                 v-for="(d, di) in editForm.customDomains"
@@ -832,9 +866,7 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template
-            v-if="editForm.type === 'stcp' && editForm.stcpModel === 'visitors'"
-          >
+          <template v-if="isStcpVisitors">
             <el-col :span="12">
               <el-form-item label="被访问者代理名称：" prop="serverName">
                 <el-input
