@@ -537,6 +537,7 @@ onUnmounted(() => {
                   placeholder="token"
                   type="password"
                   v-model="formData.authToken"
+                  :show-password="true"
                 />
               </el-form-item>
             </el-col>

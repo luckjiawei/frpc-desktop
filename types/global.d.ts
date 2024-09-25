@@ -26,7 +26,11 @@ declare global {
         secretKey: string;
         bindAddr: string;
         bindPort: number;
-        status: boolean
+        status: boolean;
+        subdomain: string;
+        basicAuth: boolean;
+        httpUser: string;
+        httpPassword: string;
     };
 
     /**

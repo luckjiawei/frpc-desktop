@@ -57,7 +57,11 @@ const defaultForm = ref<Proxy>({
   secretKey: "",
   bindAddr: "",
   bindPort: null,
-  status: true
+  status: true,
+  subdomain: "",
+  basicAuth: false,
+  httpUser: "",
+  httpPassword: ""
 });
 
 /**
@@ -133,7 +137,12 @@ const editFormRules = reactive<FormRules>({
       trigger: "blur"
     }
   ],
-  bindPort: [{ required: true, message: "请输入绑定的端口", trigger: "blur" }]
+  bindPort: [{ required: true, message: "请输入绑定的端口", trigger: "blur" }],
+  basicAuth: [
+    { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
+  ],
+  httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
+  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
 });
 
 /**
@@ -192,6 +201,9 @@ const handleGetPortCount = (portString: string) => {
 };
 
 const handleRangePort = () => {
+  if (isHttp || isHttps) {
+    return false;
+  }
   if (editForm.value.localPort.indexOf("-") !== -1) {
     return true;
   }
@@ -631,13 +643,20 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <el-dialog
-      v-model="edit.visible"
+    <el-drawer
       :title="edit.title"
-      class="sm:w-[500px] md:w-[600px] lg:w-[800px]"
-      top="5%"
+      v-model="edit.visible"
+      direction="rtl"
+      size="60%"
       @close="editForm = defaultForm"
     >
+      <!--    <el-dialog-->
+      <!--      v-model="edit.visible"-->
+      <!--      :title="edit.title"-->
+      <!--      class="sm:w-[500px] md:w-[600px] lg:w-[800px]"-->
+      <!--      top="5%"-->
+      <!--      @close="editForm = defaultForm"-->
+      <!--    >-->
       <el-form
         v-loading="loading.form"
         label-position="top"
@@ -693,7 +712,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      共享密钥：
+                       共享密钥：
                     </div>
                   </div>
                 </template>
@@ -701,6 +720,7 @@ onUnmounted(() => {
                   type="password"
                   v-model="editForm.secretKey"
                   placeholder="密钥"
+                  :show-password="true"
                 />
               </el-form-item>
             </el-col>
@@ -762,7 +782,6 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="isHttp || isHttps"></template>
           <template v-if="isTcp || isUdp">
             <el-col :span="8">
               <el-form-item label="外网端口：" prop="remotePort">
@@ -777,6 +796,44 @@ onUnmounted(() => {
                   class="w-full"
                   placeholder="8080"
                   v-model="editForm.remotePort"
+                />
+              </el-form-item>
+            </el-col>
+          </template>
+          <template v-if="isHttp || isHttps">
+            <el-col :span="12">
+              <el-form-item label="子域名：" prop="remotePort">
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover
+                          placement="top"
+                          trigger="hover"
+                          :width="180"
+                        >
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >subdomain</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      子域名：
+                    </div>
+                  </div>
+                </template>
+                <el-input
+                  class="w-full"
+                  placeholder="subdomain"
+                  v-model="editForm.subdomain"
                 />
               </el-form-item>
             </el-col>
@@ -824,23 +881,6 @@ onUnmounted(() => {
                       自定义域名：
                     </div>
                   </div>
-                  <!--                  <el-popover-->
-                  <!--                      placement="top"-->
-                  <!--                      trigger="hover"-->
-                  <!--                  >-->
-                  <!--                    <template #default>-->
-                  <!--                      对应参数：<span class="font-black text-[#5A3DAA]">customDomains</span>-->
-                  <!--                    </template>-->
-                  <!--                    <template #reference>-->
-                  <!--                      <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
-                  <!--                    </template>-->
-                  <!--                  </el-popover>-->
-                  <!--                  <div class="flex items-center inin">-->
-                  <!--                    <div class="h-full flex items-center mr-1">-->
-                  <!--                      -->
-                  <!--                    </div>-->
-                  <!--                    <div>自定义域名：</div>-->
-                  <!--                  </div>-->
                 </template>
                 <el-input
                   class="domain-input"
@@ -863,6 +903,38 @@ onUnmounted(() => {
                 >
                   <IconifyIconOffline icon="delete-rounded" />
                 </el-button>
+              </el-form-item>
+            </el-col>
+          </template>
+          <template v-if="isHttp || isHttps">
+            <el-col :span="24">
+              <el-form-item label="HTTP基本认证：" prop="basicAuth">
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.basicAuth"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="editForm.basicAuth">
+              <el-form-item label="认证用户名：" prop="httpUser">
+                <el-input
+                  class="w-full"
+                  placeholder="httpUser"
+                  v-model="editForm.httpUser"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="editForm.basicAuth">
+              <el-form-item label="认证密码：" prop="httpPassword">
+                <el-input
+                  type="password"
+                  class="w-full"
+                  placeholder="httpPassword"
+                  v-model="editForm.httpPassword"
+                  :show-password="true"
+                />
               </el-form-item>
             </el-col>
           </template>
@@ -982,7 +1054,8 @@ onUnmounted(() => {
           </el-col>
         </el-row>
       </el-form>
-    </el-dialog>
+    </el-drawer>
+    <!--    </el-dialog>-->
 
     <el-dialog v-model="listPortsVisible" title="内网端口" width="600" top="5%">
       <el-table
@@ -1054,5 +1127,13 @@ onUnmounted(() => {
   border-radius: 4px;
   margin-left: 10px;
   cursor: pointer;
+}
+
+:deep(.el-drawer__header) {
+  margin-bottom: 10px;
+}
+
+:deep(.el-drawer__body) {
+  //padding-top: 0;
 }
 </style>
