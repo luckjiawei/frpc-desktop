@@ -59,8 +59,8 @@ async function createWindow() {
         icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
         width: 800,
         height: 600,
-        minWidth: 640,
-        minHeight: 480,
+        minWidth: 800,
+        minHeight: 600,
         maxWidth: 1280,
         maxHeight: 960,
         webPreferences: {
