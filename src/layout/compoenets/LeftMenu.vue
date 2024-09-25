@@ -95,7 +95,7 @@ onMounted(() => {
     <div class="logo-container">
       <img
         src="/logo/only/128x128.png"
-        class="logo animate__animated animate__flip"
+        class="logo animate__animated animate__bounceInLeft"
         alt="Logo"
       />
     </div>

@@ -127,32 +127,38 @@ export const initGitHubApi = () => {
         responseData = Buffer.concat([responseData, data]);
       });
       response.on("end", () => {
-        versions = JSON.parse(responseData.toString());
+        log.info(
+          `开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch} 状态码：${response.statusCode}`
+        );
+        const downloadPath = path.join(app.getPath("userData"), "download");
+        if (response.statusCode === 200) {
+          versions = JSON.parse(responseData.toString());
+        }
         // const borderContent: Electron.WebContents =
         //   BrowserWindow.getFocusedWindow().webContents;
-        const downloadPath = path.join(app.getPath("userData"), "download");
-        log.info(
-          `开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch}`
-        );
-        const returnVersionsData = versions
-          .filter(f => getAdaptiveAsset(f.id))
-          .map(m => {
-            const asset = getAdaptiveAsset(m.id);
-            const download_count = m.assets.reduce(
-              (sum, item) => sum + item.download_count,
-              0
-            );
-            if (asset) {
-              const absPath = `${downloadPath}/${asset.name}`;
-              m.absPath = absPath;
-              m.download_completed = fs.existsSync(absPath);
-              m.download_count = download_count;
-              m.size = formatBytes(asset.size);
-            }
-            return m;
-          });
-        // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
-        event.reply("Download.frpVersionHook", returnVersionsData);
+        if (versions) {
+          const returnVersionsData = versions
+            .filter(f => getAdaptiveAsset(f.id))
+            .map(m => {
+              const asset = getAdaptiveAsset(m.id);
+              const download_count = m.assets.reduce(
+                (sum, item) => sum + item.download_count,
+                0
+              );
+              if (asset) {
+                const absPath = `${downloadPath}/${asset.name}`;
+                m.absPath = absPath;
+                m.download_completed = fs.existsSync(absPath);
+                m.download_count = download_count;
+                m.size = formatBytes(asset.size);
+              }
+              return m;
+            });
+          // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
+          event.reply("Download.frpVersionHook", returnVersionsData);
+        } else {
+          event.reply("Download.frpVersionHook", []);
+        }
       });
     });
     request.end();

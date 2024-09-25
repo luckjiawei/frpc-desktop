@@ -82,7 +82,14 @@ remotePort = ${m.remotePort}
 localIP = "${m.localIp}"
 localPort = ${m.localPort}
 customDomains=[${m.customDomains.map(m => `"${m}"`)}]
+subdomain="${m.subdomain}"
 `;
+        if (m.basicAuth) {
+          toml += `
+httpUser = "${m.httpUser}"
+httpPassword = "${m.httpPassword}"
+`;
+        }
         break;
       case "stcp":
         if (m.stcpModel === "visitors") {
@@ -222,7 +229,14 @@ remote_port = ${m.remotePort}
 local_ip = "${m.localIp}"
 local_port = ${m.localPort}
 custom_domains=[${m.customDomains.map(m => `"${m}"`)}]
+subdomain="${m.subdomain}"
 `;
+        if (m.basicAuth) {
+          ini += `
+httpUser = "${m.httpUser}"
+httpPassword = "${m.httpPassword}"
+`;
+        }
         break;
       case "stcp":
         if (m.stcpModel === "visitors") {
