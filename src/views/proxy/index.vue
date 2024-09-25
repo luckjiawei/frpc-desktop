@@ -238,6 +238,18 @@ const handleSubmit = async () => {
           return;
         }
       }
+      if (
+        !(
+          editForm.value.subdomain ||
+          editForm.value.customDomains.filter(f => f !== "").length > 0
+        )
+      ) {
+        ElMessage({
+          type: "warning",
+          message: "请至少添加一个 子域名 / 自定义域名"
+        });
+        return;
+      }
       loading.value.form = 1;
       const data = clone(editForm.value);
       if (data._id) {
@@ -514,7 +526,7 @@ onUnmounted(() => {
                       class="mr-2"
                       type="danger"
                       size="small"
-                    >已禁用
+                      >已禁用
                     </el-tag>
                     <el-tag
                       v-if="
@@ -529,7 +541,7 @@ onUnmounted(() => {
                       v-if="
                         proxy.type === 'stcp' && proxy.stcpModel === 'visited'
                       "
-                    >被访问者
+                      >被访问者
                     </el-tag>
                     <!--                    <el-tag-->
                     <!--                      size="small"-->
@@ -699,8 +711,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >secretKey</span
-                          >
+                              >secretKey</span
+                            >
                             只有访问者与被访问者共享密钥一致的用户才能访问该服务
                           </template>
                           <template #reference>
@@ -802,7 +814,7 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="12">
-              <el-form-item label="子域名：" prop="remotePort">
+              <el-form-item label="子域名：" prop="subdomain">
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -814,8 +826,8 @@ onUnmounted(() => {
                         >
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >subdomain</span
-                          >
+                              >subdomain</span
+                            >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -846,11 +858,11 @@ onUnmounted(() => {
                 :label="di === 0 ? '自定义域名：' : ''"
                 :prop="`customDomains.${di}`"
                 :rules="[
-                  {
-                    required: true,
-                    message: `自定义域名不能为空`,
-                    trigger: 'blur'
-                  },
+                  // {
+                  //   required: true,
+                  //   message: `自定义域名不能为空`,
+                  //   trigger: 'blur'
+                  // },
                   {
                     pattern:
                       /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/,
@@ -866,8 +878,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >customDomains</span
-                          >
+                              >customDomains</span
+                            >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -957,21 +969,21 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >bindAddr</span
-                          >
+                              >bindAddr</span
+                            >
                             要将被访问者的服务绑定到本地哪个<span
-                            class="font-black text-[#5A3DAA]"
-                          >IP</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >IP</span
+                            >
                             <br />
                             仅本机访问：<span class="font-black text-[#5A3DAA]"
-                          >127.0.0.1</span
-                          >
+                              >127.0.0.1</span
+                            >
                             <br />
                             支持局域网其他设备访问：<span
-                            class="font-black text-[#5A3DAA]"
-                          >0.0.0.0</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >0.0.0.0</span
+                            >
                             <br />
                           </template>
                           <template #reference>
@@ -1003,12 +1015,12 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >bindAddr</span
-                          >
+                              >bindAddr</span
+                            >
                             要将被访问者的服务绑定到本地哪个<span
-                            class="font-black text-[#5A3DAA]"
-                          >端口</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >端口</span
+                            >
                             <br />
                             请自行确保端口未被占用
                           </template>
