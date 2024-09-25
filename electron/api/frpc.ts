@@ -36,7 +36,7 @@ const getFrpcVersionWorkerPath = (
 const isRangePort = (m: Proxy) => {
   return (
     (m.type === "tcp" || m.type === "udp") &&
-    (m.localPort.indexOf("-") !== -1 || m.localPort.indexOf(",") !== -1)
+    (String(m.localPort).indexOf("-") !== -1 || String(m.localPort).indexOf(",") !== -1)
   );
 };
 
