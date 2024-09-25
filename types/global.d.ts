@@ -18,7 +18,7 @@ declare global {
         name: string;
         type: string;
         localIp: string;
-        localPort: string;
+        localPort: any;
         remotePort: string;
         customDomains: string[];
         stcpModel: string;

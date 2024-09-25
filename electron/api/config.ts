@@ -157,6 +157,10 @@ export const initConfigApi = win => {
           localPort: m?.localPort || null,
           remotePort: m?.remotePort || null,
           customDomains: m?.customDomains || [],
+          subdomain: m.subdomain || "",
+          basicAuth: m.basicAuth || false,
+          httpUser: m.httpUser || "",
+          httpPassword: m.httpPassword || "",
           // 以下为stcp参数
           stcpModel: "visited",
           serverName: "",
@@ -180,6 +184,10 @@ export const initConfigApi = win => {
           localPort: null,
           remotePort: null,
           customDomains: [],
+          subdomain: m.subdomain || "",
+          basicAuth: m.basicAuth || false,
+          httpUser: m.httpUser || "",
+          httpPassword: m.httpPassword || "",
           // 以下为stcp参数
           stcpModel: "visitors",
           serverName: m?.serverName,

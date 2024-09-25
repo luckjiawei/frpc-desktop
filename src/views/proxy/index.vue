@@ -201,7 +201,7 @@ const handleGetPortCount = (portString: string) => {
 };
 
 const handleRangePort = () => {
-  if (isHttp || isHttps) {
+  if (isHttp.value || isHttps.value) {
     return false;
   }
   if (editForm.value.localPort.indexOf("-") !== -1) {
@@ -238,7 +238,9 @@ const handleSubmit = async () => {
           return;
         }
       }
+
       if (
+        (isHttp.value || isHttps.value) &&
         !(
           editForm.value.subdomain ||
           editForm.value.customDomains.filter(f => f !== "").length > 0
