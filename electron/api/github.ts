@@ -127,13 +127,15 @@ export const initGitHubApi = () => {
         responseData = Buffer.concat([responseData, data]);
       });
       response.on("end", () => {
-        versions = JSON.parse(responseData.toString());
+        log.info(
+          `开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch} 状态码：${response.statusCode}`
+        );
+        const downloadPath = path.join(app.getPath("userData"), "download");
+        if (response.statusCode === 200) {
+          versions = JSON.parse(responseData.toString());
+        }
         // const borderContent: Electron.WebContents =
         //   BrowserWindow.getFocusedWindow().webContents;
-        const downloadPath = path.join(app.getPath("userData"), "download");
-        log.info(
-          `开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch}`
-        );
         if (versions) {
           const returnVersionsData = versions
             .filter(f => getAdaptiveAsset(f.id))
