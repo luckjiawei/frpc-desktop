@@ -81,9 +81,25 @@
 
 ![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
 
-## 赞助
+## 捐赠
 
-<img src="screenshots/gratuity.jpg" alt="赞助二维码" width="200">
+**捐赠方式**
+
+一块两块不嫌少，十块二十那更好。
+
+👉👉👉[点击去捐赠](https://jwinks.com/donate/)👈👈👈
+
+**捐赠名单**
+
+| 🕰 时间      | 📡 平台 | 🤲 捐赠者    | 💰 金额 | ✉️ 捐赠留言 |
+|------------|-------|-----------|-------|---------|
+| 2024-08-06 | 微信    | 三木        | 1 元   | 无       |
+| 2024-08-25 | 微信    | 晚风        | 1 元   | 无       |
+| 2024-08-27 | 微信    | x         | 1 元   | 无       |
+| 2024-10-09 | 微信    | 解脱        | 20 元  | 无       |
+| 2024-10-09 | 微信    | KMDN      | 20 元  | 无       |
+| 2024-10-14 | 微信    | 121       | 5 元   | 无       |
+| 2024-10-14 | 微信    | Different | 10 元  | 感谢您的开源  |
 
 ## 贡献者
 <a href="https://github.com/luckjiawei/frpc-desktop/graphs/contributors">
