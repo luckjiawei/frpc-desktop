@@ -537,7 +537,7 @@ const handleRandomProxyName = () => {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters[randomIndex];
   }
-  editForm.value.name = `df-${editForm.value.type}-${result}`.toUpperCase();
+  editForm.value.name = `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
 onMounted(() => {
