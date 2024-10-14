@@ -72,7 +72,7 @@ const editForm = ref<Proxy>(defaultForm.value);
 /**
  * 代理类型
  */
-const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp"]);
+const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp"]);
 
 const stcpModels = ref([
   {
@@ -170,15 +170,21 @@ const isStcp = computed(() => {
   return editForm.value.type === "stcp";
 });
 
+const isXtcp = computed(() => {
+  return editForm.value.type === "xtcp";
+});
+
 const isStcpVisited = computed(() => {
   return (
-    editForm.value.type === "stcp" && editForm.value.stcpModel === "visited"
+    (editForm.value.type === "stcp" || editForm.value.type === "xtcp") &&
+    editForm.value.stcpModel === "visited"
   );
 });
 
 const isStcpVisitors = computed(() => {
   return (
-    editForm.value.type === "stcp" && editForm.value.stcpModel === "visitors"
+    (editForm.value.type === "stcp" || editForm.value.type === "xtcp") &&
+    editForm.value.stcpModel === "visitors"
   );
 });
 
@@ -428,6 +434,9 @@ const allowCopyAccessAddress = (proxy: Proxy) => {
   if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
     return false;
   }
+  if (proxy.type === "xtcp" && proxy.stcpModel === "visited") {
+    return false;
+  }
   return true;
 };
 
@@ -441,12 +450,15 @@ const handleCopyAccessAddress = (proxy: Proxy) => {
   if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
     return;
   }
+  if (proxy.type === "xtcp" && proxy.stcpModel === "visited") {
+    return;
+  }
   let accessAddressStr = "";
   if (proxy.type === "http" || proxy.type === "https") {
     accessAddressStr = `${proxy.type}://${proxy.customDomains[0]}`;
   } else if (proxy.type === "tcp" || proxy.type === "udp") {
     accessAddressStr = `${frpcConfig.value.serverAddr}:${proxy.remotePort}`;
-  } else if (proxy.type === "stcp") {
+  } else if (proxy.type === "stcp" || proxy.type === "xtcp") {
     accessAddressStr = `${proxy.bindAddr}:${proxy.bindPort}`;
   }
   const { copy, copied } = useClipboard();
@@ -583,7 +595,8 @@ onUnmounted(() => {
                     </el-tag>
                     <el-tag
                       v-if="
-                        proxy.type === 'stcp' && proxy.stcpModel === 'visitors'
+                        (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                        proxy.stcpModel === 'visitors'
                       "
                       size="small"
                     >
@@ -592,7 +605,8 @@ onUnmounted(() => {
                     <el-tag
                       size="small"
                       v-if="
-                        proxy.type === 'stcp' && proxy.stcpModel === 'visited'
+                        (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                        proxy.stcpModel === 'visited'
                       "
                       >被访问者
                     </el-tag>
@@ -661,7 +675,10 @@ onUnmounted(() => {
               <div class="flex justify-between mt-4">
                 <div
                   class="text-sm text-left"
-                  v-if="proxy.type !== 'stcp' || proxy.stcpModel !== 'visitors'"
+                  v-if="
+                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp') ||
+                    proxy.stcpModel !== 'visitors'
+                  "
                 >
                   <p class="text-[#ADADAD] font-bold">内网地址</p>
                   <p>{{ proxy.localIp }}</p>
@@ -673,7 +690,10 @@ onUnmounted(() => {
                 </div>
                 <div
                   class="text-sm text-center"
-                  v-if="proxy.type !== 'stcp' || proxy.stcpModel !== 'visitors'"
+                  v-if="
+                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp') ||
+                    proxy.stcpModel !== 'visitors'
+                  "
                 >
                   <p class="text-[#ADADAD] font-bold">内网端口</p>
                   <p>{{ proxy.localPort }}</p>
@@ -681,7 +701,10 @@ onUnmounted(() => {
 
                 <div
                   class="text-sm text-center"
-                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                  v-if="
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    proxy.stcpModel === 'visitors'
+                  "
                 >
                   <p class="text-[#ADADAD] font-bold">访问者名称</p>
                   <p>{{ proxy.serverName }}</p>
@@ -689,7 +712,10 @@ onUnmounted(() => {
 
                 <div
                   class="text-sm text-center"
-                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                  v-if="
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    proxy.stcpModel === 'visitors'
+                  "
                 >
                   <p class="text-[#ADADAD] font-bold">绑定地址</p>
                   <p>{{ proxy.bindAddr }}</p>
@@ -697,7 +723,10 @@ onUnmounted(() => {
 
                 <div
                   class="text-sm text-center"
-                  v-if="proxy.type === 'stcp' && proxy.stcpModel === 'visitors'"
+                  v-if="
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    proxy.stcpModel === 'visitors'
+                  "
                 >
                   <p class="text-[#ADADAD] font-bold">绑定端口</p>
                   <p>{{ proxy.bindPort }}</p>
@@ -750,9 +779,9 @@ onUnmounted(() => {
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <template v-if="isStcp">
+          <template v-if="isStcp || isXtcp">
             <el-col :span="12">
-              <el-form-item label="stcp模式：" prop="stcpModel">
+              <el-form-item :label="`${editForm.type}模式：`" prop="stcpModel">
                 <el-radio-group v-model="editForm.stcpModel">
                   <el-radio
                     v-for="p in stcpModels"
@@ -807,7 +836,7 @@ onUnmounted(() => {
               />
             </el-form-item>
           </el-col>
-          <template v-if="!isStcp || isStcpVisited">
+          <template v-if="!(isStcp || isXtcp) || isStcpVisited">
             <el-col :span="12">
               <el-form-item label="内网地址：" prop="localIp">
                 <el-autocomplete
@@ -1179,6 +1208,10 @@ onUnmounted(() => {
 
 .stcp {
   background: #d63da6;
+}
+
+.xtcp {
+  background: #f8bf4b;
 }
 
 .domain-input {

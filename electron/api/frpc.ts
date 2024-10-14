@@ -54,7 +54,7 @@ ${
     ? `{{- range $_, $v := parseNumberRangePair "${m.localPort}" "${m.remotePort}" }}`
     : ""
 }
-[[${m.type === "stcp" && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
+[[${(m.type === "stcp" || m.type === "xtcp") && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
 ${rangePort ? "" : `name = "${m.name}"\n`}
 type = "${m.type}"
 `;
@@ -92,6 +92,7 @@ httpPassword = "${m.httpPassword}"
         }
         break;
       case "stcp":
+      case "xtcp":
         if (m.stcpModel === "visitors") {
           // 访问者
           toml += `
@@ -239,6 +240,7 @@ httpPassword = "${m.httpPassword}"
         }
         break;
       case "stcp":
+      case "xtcp":
         if (m.stcpModel === "visitors") {
           // 访问者
           ini += `
