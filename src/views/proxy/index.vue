@@ -11,7 +11,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ipcRenderer } from "electron";
 import { clone } from "@/utils/clone";
-import { useClipboard, useDebounceFn } from "@vueuse/core";
+import { formatDate, useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
 import router from "@/router";
@@ -529,6 +529,17 @@ const handleIpFetchSuggestions = (queryString: string, cb: any) => {
   cb(auto);
 };
 
+const handleRandomProxyName = () => {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 5; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters[randomIndex];
+  }
+  editForm.value.name = `df-${editForm.value.type}-${result}`.toUpperCase();
+};
+
 onMounted(() => {
   handleInitHook();
   handleLoadProxys();
@@ -827,13 +838,26 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <el-col :span="isStcpVisitors ? 12 : 24">
+          <el-col :span="24">
             <el-form-item label="代理名称：" prop="name">
               <el-input
                 v-model="editForm.name"
+                class="proxy-name-input"
                 placeholder="代理名称"
                 clearable
               />
+              <el-button
+                class="ml-[10px]"
+                plain
+                type="primary"
+                @click="handleRandomProxyName"
+              >
+                <IconifyIconOffline
+                  class="cursor-pointer mr-2"
+                  icon="charger-rounded"
+                />
+                生成
+              </el-button>
             </el-form-item>
           </el-col>
           <template v-if="!(isStcp || isXtcp) || isStcpVisited">
@@ -1219,7 +1243,11 @@ onUnmounted(() => {
 }
 
 .local-port-input {
-  width: calc(100% - 125px);
+  width: calc(100% - 120px);
+}
+
+.proxy-name-input {
+  width: calc(100% - 92px);
 }
 
 .domain-input-button {

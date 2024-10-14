@@ -35,6 +35,7 @@ import downloadRounded from "@iconify-icons/material-symbols/download-rounded";
 import deviceReset from "@iconify-icons/material-symbols/device-reset";
 import switchAccessOutlineRounded from "@iconify-icons/material-symbols/switch-access-outline-rounded";
 import switchAccessRounded from "@iconify-icons/material-symbols/switch-access-rounded";
+import chargerRounded from "@iconify-icons/material-symbols/charger-rounded";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -46,6 +47,7 @@ addIcon("refresh-rounded", refreshRounded);
 addIcon("more-vert", MoreVert);
 addIcon("add", Add);
 addIcon("bring-your-own-ip-rounded", BringYourOwnIpRounded);
+addIcon("charger-rounded", chargerRounded);
 addIcon("delete-rounded", DeleteRounded);
 addIcon("cancel-presentation", CancelPresentation);
 addIcon("gesture-select", GestureSelect);
