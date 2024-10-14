@@ -11,7 +11,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ipcRenderer } from "electron";
 import { clone } from "@/utils/clone";
-import { useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
 import router from "@/router";
@@ -182,6 +182,8 @@ const isStcpVisitors = computed(() => {
   );
 });
 
+const frpcConfig = ref<FrpConfig>();
+
 const handleGetPortCount = (portString: string) => {
   let count = 0;
   const portRanges = portString.split(",");
@@ -204,16 +206,17 @@ const handleRangePort = () => {
   if (isHttp.value || isHttps.value) {
     return false;
   }
-  if (editForm.value.localPort.indexOf("-") !== -1) {
+  console.log(editForm.value);
+  if (String(editForm.value.localPort).indexOf("-") !== -1) {
     return true;
   }
-  if (editForm.value.localPort.indexOf(",") !== -1) {
+  if (String(editForm.value.localPort).indexOf(",") !== -1) {
     return true;
   }
-  if (editForm.value.remotePort.indexOf("-") !== -1) {
+  if (String(editForm.value.remotePort).indexOf("-") !== -1) {
     return true;
   }
-  if (editForm.value.remotePort.indexOf(",") !== -1) {
+  if (String(editForm.value.remotePort).indexOf(",") !== -1) {
     return true;
   }
   return false;
@@ -415,6 +418,45 @@ const handleOpenLocalPortDialog = () => {
   handleLoadLocalPorts();
 };
 
+const allowCopyAccessAddress = (proxy: Proxy) => {
+  if (
+    (proxy.type === "http" || proxy.type === "https") &&
+    (proxy.customDomains.length < 1 || !proxy.customDomains[0])
+  ) {
+    return false;
+  }
+  if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
+    return false;
+  }
+  return true;
+};
+
+const handleCopyAccessAddress = (proxy: Proxy) => {
+  if (
+    (proxy.type === "http" || proxy.type === "https") &&
+    (proxy.customDomains.length < 1 || !proxy.customDomains[0])
+  ) {
+    return;
+  }
+  if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
+    return;
+  }
+  let accessAddressStr = "";
+  if (proxy.type === "http" || proxy.type === "https") {
+    accessAddressStr = `${proxy.type}://${proxy.customDomains[0]}`;
+  } else if (proxy.type === "tcp" || proxy.type === "udp") {
+    accessAddressStr = `${frpcConfig.value.serverAddr}:${proxy.remotePort}`;
+  } else if (proxy.type === "stcp") {
+    accessAddressStr = `${proxy.bindAddr}:${proxy.bindPort}`;
+  }
+  const { copy, copied } = useClipboard();
+  copy(accessAddressStr); // 执行复制操作
+  ElMessage({
+    type: "success",
+    message: "复制成功"
+  });
+};
+
 interface RestaurantItem {
   value: string;
 }
@@ -478,6 +520,15 @@ const handleIpFetchSuggestions = (queryString: string, cb: any) => {
 onMounted(() => {
   handleInitHook();
   handleLoadProxys();
+  ipcRenderer.send("config.getConfig");
+  ipcRenderer.on("Config.getConfig.hook", (event, args) => {
+    const { err, data } = args;
+    if (!err) {
+      if (data) {
+        frpcConfig.value = data;
+      }
+    }
+  });
 });
 
 onUnmounted(() => {
@@ -555,6 +606,14 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <div class="flex items-start">
+                  <a
+                    v-if="allowCopyAccessAddress(proxy)"
+                    href="javascript:void(0)"
+                    class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
+                    @click="handleCopyAccessAddress(proxy)"
+                  >
+                    <IconifyIconOffline icon="content-copy" />
+                  </a>
                   <el-dropdown size="small">
                     <a
                       href="javascript:void(0)"
