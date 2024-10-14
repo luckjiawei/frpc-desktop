@@ -102,6 +102,12 @@ const rules = reactive<FormRules>({
   systemSelfStart: [
     { required: true, message: "请选择是否开机自启", trigger: "change" }
   ],
+  systemSilentStartup: [
+    { required: true, message: "请选择是否开启静默启动", trigger: "change" }
+  ],
+  systemStartupConnect: [
+    { required: true, message: "请选择是否开启自动连接", trigger: "change" }
+  ],
   transportHeartbeatInterval: [
     { required: true, message: "心跳间隔时间不能为空", trigger: "change" }
   ],
