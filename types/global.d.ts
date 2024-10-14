@@ -76,6 +76,7 @@ declare global {
         proxyConfigProxyUrl: string;
         systemSelfStart: boolean;
         systemStartupConnect: boolean;
+        systemSilentStartup: boolean;
         user: string;
         metaToken: string;
         transportHeartbeatInterval: number;

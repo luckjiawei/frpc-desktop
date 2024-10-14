@@ -41,6 +41,7 @@ const defaultFormData = ref<FrpConfig>({
   proxyConfigProxyUrl: "",
   systemSelfStart: false,
   systemStartupConnect: false,
+  systemSilentStartup: false,
   user: "",
   metaToken: "",
   transportHeartbeatInterval: 30,
@@ -933,7 +934,7 @@ onUnmounted(() => {
             <el-col :span="24">
               <div class="h2">系统配置</div>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="开机自启：" prop="systemSelfStart">
                 <template #label>
                   <div class="h-full flex items-center mr-1">
@@ -963,7 +964,36 @@ onUnmounted(() => {
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="8">
+              <el-form-item label="静默启动：" prop="systemSilentStartup">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover placement="top" trigger="hover">
+                      <template #default>
+                        开启后启动时<span class="font-black text-[#5A3DAA]"
+                      >不打开界面</span
+                      >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  静默启动：
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="formData.systemSilentStartup"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
               <el-form-item label="自动连接：" prop="systemStartupConnect">
                 <template #label>
                   <div class="h-full flex items-center mr-1">

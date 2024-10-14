@@ -143,7 +143,8 @@ export const initConfigApi = win => {
       user: sourceConfig?.user || "",
       metaToken: sourceConfig?.metadatas?.token || "",
       systemSelfStart: false,
-      systemStartupConnect: false
+      systemStartupConnect: false,
+      systemSilentStartup: false
     };
     let frpcProxys = [];
     // 解析proxy
