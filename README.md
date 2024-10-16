@@ -25,6 +25,7 @@
 </div>
 
 ## TODO
+
 - [x] 开机自启动
 - [x] 适配多用户 user & meta_token
 - [x] 便携版
@@ -41,9 +42,11 @@
 ## 常见问题
 
 ### Mac提示已损坏
+
 执行命令：`sudo xattr -cr Frpc-Desktop.app`
 
 ## 里程碑
+
 - 2024-09-25: 发布v1.1.2版本 支持 http basic、子域名
 - 2024-09-07: 发布v1.1.0版本 支持批量端口、支持单条代理开关控制
 - 2024-08-24: 发布v1.0.9版本 支持镜像下载、导出导入配置
@@ -58,6 +61,7 @@
 - 2023-11-28: 发布v1.0版本
 
 ## 社区
+
 ~~微信扫描加入开源项目交流群 广告勿进！！！~~
 
  <img src="screenshots/wechat-qr.png" alt="二维码" width="200">
@@ -65,7 +69,6 @@
 **微信群超过200人无法扫码进群 关注公众号进群 **
 
  <img src="screenshots/mp_qr.jpg" alt="公众号二维码" width="200">
-
 
 ## 演示
 
@@ -91,17 +94,19 @@
 
 **捐赠名单**
 
-| 🕰 时间      | 📡 平台 | 🤲 捐赠者    | 💰 金额 | ✉️ 捐赠留言 |
-|------------|-------|-----------|-------|---------|
-| 2024-08-06 | 微信    | 三木        | 1 元   | 无       |
-| 2024-08-25 | 微信    | 晚风        | 1 元   | 无       |
-| 2024-08-27 | 微信    | x         | 1 元   | 无       |
-| 2024-10-09 | 微信    | 解脱        | 20 元  | 无       |
-| 2024-10-09 | 微信    | KMDN      | 20 元  | 无       |
-| 2024-10-14 | 微信    | 121       | 5 元   | 无       |
-| 2024-10-14 | 微信    | Different | 10 元  | 感谢您的开源  |
+| 🕰 时间      | 📡 平台 | 🤲 捐赠者    | 💰 金额 | ✉️ 捐赠留言    |
+|------------|-------|-----------|-------|------------|
+| 2024-08-06 | 微信    | 三木        | 1 元   | 无          |
+| 2024-08-25 | 微信    | 晚风        | 1 元   | 无          |
+| 2024-08-27 | 微信    | x         | 1 元   | 无          |
+| 2024-10-09 | 微信    | 解脱        | 20 元  | 无          |
+| 2024-10-09 | 微信    | KMDN      | 20 元  | 无          |
+| 2024-10-14 | 微信    | 121       | 5 元   | 无          |
+| 2024-10-14 | 微信    | Different | 10 元  | 感谢您的开源     |
+| 2024-10-16 | 微信    | 。 。 。     | 10 元  | 感谢开源的frp软件 |
 
 ## 贡献者
+
 <a href="https://github.com/luckjiawei/frpc-desktop/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=luckjiawei/frpc-desktop" />
 </a>
@@ -114,11 +119,19 @@
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luckjiawei/frpc-desktop&type=Date)](https://star-history.com/#luckjiawei/frpc-desktop&Date)
 <!-- MARKDOWN LINKS & IMAGES -->
+
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
 [forks-url]: https://github.com/luckjiawei/frpc-desktop/network/members
+
 [stars-shield]: https://img.shields.io/github/stars/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
 [stars-url]: https://github.com/luckjiawei/frpc-desktop/stargazers
+
 [issues-shield]: https://img.shields.io/github/issues/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
 [issues-url]: https://github.com/luckjiawei/frpc-desktop/issues
+
 [license-shield]: https://img.shields.io/github/license/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
 [license-url]: https://github.com/luckjiawei/frpc-desktop/blob/master/LICENSE
