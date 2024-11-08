@@ -923,7 +923,7 @@ onUnmounted(() => {
                 <el-select v-model="formData.logLevel">
                   <el-option label="info" value="info" />
                   <el-option label="debug" value="debug" />
-                  <el-option label="waring" value="waring" />
+                  <el-option label="warn" value="warn" />
                   <el-option label="error" value="error" />
                 </el-select>
               </el-form-item>
