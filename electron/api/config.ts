@@ -168,7 +168,9 @@ export const initConfigApi = win => {
           secretKey: m?.secretKey || "",
           bindAddr: "",
           bindPort: null,
-          status: m?.status || true
+          status: m?.status || true,
+          fallbackTo: m?.fallbackTo,
+          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500
         };
         return rm;
       });
@@ -195,7 +197,9 @@ export const initConfigApi = win => {
           secretKey: m?.secretKey || "",
           bindAddr: m?.bindAddr,
           bindPort: m?.bindPort,
-          status: m?.status || true
+          status: m?.status || true,
+          fallbackTo: m?.fallbackTo,
+          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500
         };
         return rm;
       });
