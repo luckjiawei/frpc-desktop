@@ -61,7 +61,9 @@ const defaultForm = ref<Proxy>({
   subdomain: "",
   basicAuth: false,
   httpUser: "",
-  httpPassword: ""
+  httpPassword: "",
+  fallbackTo: "",
+  fallbackTimeoutMs: 500
 });
 
 /**
@@ -391,6 +393,9 @@ const handleOpenInsert = () => {
 
 const handleOpenUpdate = (proxy: Proxy) => {
   editForm.value = clone(proxy);
+  if (!editForm.value.fallbackTimeoutMs) {
+    editForm.value.fallbackTimeoutMs = defaultForm.value.fallbackTimeoutMs;
+  }
   edit.value = {
     title: "修改代理",
     visible: true
@@ -537,7 +542,8 @@ const handleRandomProxyName = () => {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters[randomIndex];
   }
-  editForm.value.name = `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
+  editForm.value.name =
+    `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
 onMounted(() => {
@@ -1065,7 +1071,7 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isStcpVisitors">
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="被访问者代理名称：" prop="serverName">
                 <el-input
                   type="text"
@@ -1152,8 +1158,89 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input-number
+                  class="w-full"
+                  :min="-1"
+                  :step="1"
+                  controls-position="right"
                   v-model="editForm.bindPort"
                   placeholder="8080"
+                />
+              </el-form-item>
+            </el-col>
+          </template>
+          <template v-if="isXtcp && isStcpVisitors">
+            <el-col :span="12">
+              <el-form-item label="回退stcp代理名称" prop="fallbackTo">
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >fallbackTo</span
+                            >
+                            <br />
+                            xtcp 打洞失败会回退到使用 stcp-visitor 建立连接
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      回退stcp代理名称：
+                    </div>
+                  </div>
+                </template>
+                <el-input
+                  type="text"
+                  v-model="editForm.fallbackTo"
+                  placeholder="回退stcp代理名称"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="回退超时毫秒" prop="fallbackTimeoutMs">
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >fallbackTimeoutMs</span
+                            >
+                            <br />
+                            xtcp 打洞时间超过该时间会回退到使用 stcp-visitor
+                            建立连接 单位：<span
+                              class="font-black text-[#5A3DAA]"
+                              >毫秒</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      回退超时毫秒：
+                    </div>
+                  </div>
+                </template>
+                <el-input-number
+                  class="w-full"
+                  :min="0"
+                  :step="1"
+                  controls-position="right"
+                  v-model="editForm.fallbackTimeoutMs"
+                  placeholder="回退超时毫秒"
                 />
               </el-form-item>
             </el-col>

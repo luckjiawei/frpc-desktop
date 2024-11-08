@@ -31,6 +31,8 @@ declare global {
         basicAuth: boolean;
         httpUser: string;
         httpPassword: string;
+        fallbackTo: string;
+        fallbackTimeoutMs: number;
     };
 
     /**

@@ -36,7 +36,8 @@ const getFrpcVersionWorkerPath = (
 const isRangePort = (m: Proxy) => {
   return (
     (m.type === "tcp" || m.type === "udp") &&
-    (String(m.localPort).indexOf("-") !== -1 || String(m.localPort).indexOf(",") !== -1)
+    (String(m.localPort).indexOf("-") !== -1 ||
+      String(m.localPort).indexOf(",") !== -1)
   );
 };
 
@@ -54,7 +55,11 @@ ${
     ? `{{- range $_, $v := parseNumberRangePair "${m.localPort}" "${m.remotePort}" }}`
     : ""
 }
-[[${(m.type === "stcp" || m.type === "xtcp") && m.stcpModel === "visitors" ? "visitors" : "proxies"}]]
+[[${
+      (m.type === "stcp" || m.type === "xtcp") && m.stcpModel === "visitors"
+        ? "visitors"
+        : "proxies"
+    }]]
 ${rangePort ? "" : `name = "${m.name}"\n`}
 type = "${m.type}"
 `;
@@ -100,6 +105,12 @@ serverName = "${m.serverName}"
 bindAddr = "${m.bindAddr}"
 bindPort = ${m.bindPort}
 `;
+          if (m.fallbackTo) {
+            toml += `
+fallbackTo = "${m.fallbackTo}"
+fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}
+            `;
+          }
         } else if (m.stcpModel === "visited") {
           // 被访问者
           toml += `
@@ -249,6 +260,12 @@ server_name = "${m.serverName}"
 bind_addr = "${m.bindAddr}"
 bind_port = ${m.bindPort}
 `;
+          if (m.fallbackTo) {
+            ini += `
+fallback_to = ${m.fallbackTo}
+fallback_timeout_ms = ${m.fallbackTimeoutMs || 500}
+            `;
+          }
         } else if (m.stcpModel === "visited") {
           // 被访问者
           ini += `
