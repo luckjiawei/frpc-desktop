@@ -119,7 +119,8 @@ export const initGitHubApi = () => {
   ipcMain.on("github.getFrpVersions", async event => {
     const request = net.request({
       method: "get",
-      url: "https://api.github.com/repos/fatedier/frp/releases?page=1&per_page=1000"
+      // url: "https://api.github.com/repos/fatedier/frp/releases?page=1&per_page=1000"
+      url: "https://api.jwinks.com/github/releases"
     });
     request.on("response", response => {
       let responseData: Buffer = Buffer.alloc(0);

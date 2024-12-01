@@ -11,21 +11,21 @@ const loggerContent = ref('<div class="text-white">暂无日志</div>');
 
 const handleLog2Html = (logContent: string) => {
   const logs = logContent
-      .split("\n")
-      .filter(f => f)
-      .map(m => {
-        if (m.indexOf("[E]") !== -1) {
-          return `<div class="text-[#FF0006]">${m}</div> `;
-        } else if (m.indexOf("[I]") !== -1) {
-          return `<div class="text-[#48BB31]">${m}</div> `;
-        } else if (m.indexOf("[D]") !== -1) {
-          return `<div class="text-[#0070BB]">${m}</div> `;
-        } else if (m.indexOf("[W]") !== -1) {
-          return `<div class="text-[#BBBB23]">${m}</div> `;
-        } else {
-          return `<div class="text-[#BBBBBB]">${m}</div> `;
-        }
-      });
+    .split("\n")
+    .filter(f => f)
+    .map(m => {
+      if (m.indexOf("[E]") !== -1) {
+        return `<div class="text-[#FF0006]">${m}</div> `;
+      } else if (m.indexOf("[I]") !== -1) {
+        return `<div class="text-[#48BB31]">${m}</div> `;
+      } else if (m.indexOf("[D]") !== -1) {
+        return `<div class="text-[#0070BB]">${m}</div> `;
+      } else if (m.indexOf("[W]") !== -1) {
+        return `<div class="text-[#BBBB23]">${m}</div> `;
+      } else {
+        return `<div class="text-[#BBBBBB]">${m}</div> `;
+      }
+    });
   return logs.reverse().join("");
 };
 
@@ -41,6 +41,7 @@ onMounted(() => {
     ipcRenderer.send("logger.update");
   });
   ipcRenderer.on("Logger.update.hook", (event, args) => {
+    console.log("logger update hook", 1);
     if (args) {
       loggerContent.value = handleLog2Html(args);
     }
@@ -53,11 +54,11 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <breadcrumb/>
+    <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-          class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-          v-html="loggerContent"
+        class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
+        v-html="loggerContent"
       ></div>
     </div>
   </div>
