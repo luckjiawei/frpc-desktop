@@ -56,7 +56,8 @@ ${
     : ""
 }
 [[${
-      (m.type === "stcp" || m.type === "xtcp") && m.stcpModel === "visitors"
+      (m.type === "stcp" || m.type === "xtcp" || m.type === "sudp") &&
+      m.stcpModel === "visitors"
         ? "visitors"
         : "proxies"
     }]]
@@ -98,6 +99,7 @@ httpPassword = "${m.httpPassword}"
         break;
       case "stcp":
       case "xtcp":
+      case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
           toml += `
@@ -252,6 +254,7 @@ httpPassword = "${m.httpPassword}"
         break;
       case "stcp":
       case "xtcp":
+      case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
           ini += `
