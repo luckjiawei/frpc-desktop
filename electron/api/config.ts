@@ -144,7 +144,9 @@ export const initConfigApi = win => {
       metaToken: sourceConfig?.metadatas?.token || "",
       systemSelfStart: false,
       systemStartupConnect: false,
-      systemSilentStartup: false
+      systemSilentStartup: false,
+      webEnable: true,
+      webPort: sourceConfig?.webServer?.port || 57400
     };
     let frpcProxys = [];
     // 解析proxy
