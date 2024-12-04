@@ -1,7 +1,10 @@
 <script lang="ts" setup>
-import {defineComponent, onMounted, onUnmounted, ref} from "vue";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import { useDebounce, useDebounceFn } from "@vueuse/core";
+import { ElMessage } from "element-plus";
 
 defineComponent({
   name: "Logger"
@@ -46,7 +49,21 @@ onMounted(() => {
       loggerContent.value = handleLog2Html(args);
     }
   });
+
+  ipcRenderer.on("Logger.openLog.hook", (event, args) => {
+    if (args) {
+      ElMessage({
+        type: "success",
+        message: "打开日志成功"
+      });
+    }
+  });
 });
+
+const openLocalLog = useDebounceFn(() => {
+  console.log('打开啊日志');
+  ipcRenderer.send("logger.openLog");
+}, 300);
 
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Logger.getLog.hook");
@@ -54,7 +71,11 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <breadcrumb />
+    <breadcrumb>
+      <el-button plain type="primary" @click="openLocalLog">
+        <IconifyIconOffline icon="file-open-rounded"  />
+      </el-button>
+    </breadcrumb>
     <div class="app-container-breadcrumb">
       <div
         class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
