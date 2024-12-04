@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { createVNode, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ipcRenderer } from "electron";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
@@ -32,6 +32,10 @@ const handleLog2Html = (logContent: string) => {
   return logs.reverse().join("");
 };
 
+const refreshStatus = ref(false);
+
+const logLoading = ref(true);
+
 onMounted(() => {
   ipcRenderer.send("logger.getLog");
   ipcRenderer.on("Logger.getLog.hook", (event, args) => {
@@ -41,7 +45,16 @@ onMounted(() => {
     if (args) {
       loggerContent.value = handleLog2Html(args);
     }
-    ipcRenderer.send("logger.update");
+    logLoading.value = false;
+    if (refreshStatus.value) {
+      // 刷新逻辑
+      ElMessage({
+        type: "success",
+        message: "刷新成功"
+      });
+    } else {
+      ipcRenderer.send("logger.update");
+    }
   });
   ipcRenderer.on("Logger.update.hook", (event, args) => {
     console.log("logger update hook", 1);
@@ -61,8 +74,18 @@ onMounted(() => {
 });
 
 const openLocalLog = useDebounceFn(() => {
-  console.log('打开啊日志');
   ipcRenderer.send("logger.openLog");
+}, 1000);
+
+const refreshLog = useDebounceFn(() => {
+  // ElMessage({
+  //   type: "warning",
+  //   icon: "<IconifyIconOffline icon=\"file-open-rounded\" />",
+  //   message: "正在刷新日志..."
+  // });
+  refreshStatus.value = true;
+  logLoading.value = true;
+  ipcRenderer.send("logger.getLog");
 }, 300);
 
 onUnmounted(() => {
@@ -72,11 +95,14 @@ onUnmounted(() => {
 <template>
   <div class="main">
     <breadcrumb>
+      <el-button plain type="primary" @click="refreshLog">
+        <IconifyIconOffline icon="refresh-rounded" />
+      </el-button>
       <el-button plain type="primary" @click="openLocalLog">
-        <IconifyIconOffline icon="file-open-rounded"  />
+        <IconifyIconOffline icon="file-open-rounded" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb">
+    <div class="app-container-breadcrumb" v-loading="logLoading">
       <div
         class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
         v-html="loggerContent"
