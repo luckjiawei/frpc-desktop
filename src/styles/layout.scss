@@ -54,11 +54,18 @@ $danger-color: #F56C6C;
   display: flex; /* 设置为 flexbox */
   flex-direction: column; /* 纵向排列子元素 */
 
+  .menu-footer {
+    margin-top: auto;
+
+  }
+
   .version {
     height: 40px;
+    width: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     color: $primary-color;
-    text-align: center;
-    margin-top: auto;
     font-weight: bold;
     font-size: 14px;
     cursor: pointer;
@@ -68,7 +75,7 @@ $danger-color: #F56C6C;
     animation: heartBeat 1s;
   }
 
-  .menu-container {
+  .menu-container, .menu-footer {
 
     .menu {
       display: flex;

@@ -1,4 +1,4 @@
-import { app, ipcMain } from "electron";
+import { app, ipcMain, shell } from "electron";
 
 const fs = require("fs");
 const path = require("path");
@@ -25,6 +25,19 @@ export const initLoggerApi = () => {
         readLogger(content => {
           event.reply("Logger.update.hook", content);
         });
+      }
+    });
+  });
+
+  ipcMain.on("logger.openLog", (event, args) => {
+    console.log('正在打开日志');
+    shell.openPath(logPath).then((errorMessage) => {
+      if (errorMessage) {
+        console.error('Failed to open Logger:', errorMessage);
+        event.reply("Logger.openLog.hook", false);
+      } else {
+        console.log('Logger opened successfully');
+        event.reply("Logger.openLog.hook", true);
       }
     });
   });

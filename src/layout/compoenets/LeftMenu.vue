@@ -118,14 +118,28 @@ onMounted(() => {
         ></IconifyIconOffline>
       </li>
     </ul>
-    <div
-      class="version mb-2 animate__animated"
-      @click="handleOpenGitHubReleases"
-      :data-step="guideSteps.Version?.step"
-      :data-intro="guideSteps.Version?.intro"
-      data-position="top"
-    >
-      {{ pkg.version }}
+    <div class="menu-footer mb-2">
+<!--      <div-->
+<!--        class="menu animate__animated"-->
+<!--        @click="handleOpenGitHubReleases"-->
+<!--        :data-step="guideSteps.Version?.step"-->
+<!--        :data-intro="guideSteps.Version?.intro"-->
+<!--        data-position="top"-->
+<!--      >-->
+<!--        <IconifyIconOffline-->
+<!--          class="animate__animated"-->
+<!--          icon="attach-money-rounded"-->
+<!--        ></IconifyIconOffline>-->
+<!--      </div>-->
+      <div
+        class="version animate__animated"
+        @click="handleOpenGitHubReleases"
+        :data-step="guideSteps.Version?.step"
+        :data-intro="guideSteps.Version?.intro"
+        data-position="top"
+      >
+        {{ pkg.version }}
+      </div>
     </div>
   </div>
 </template>

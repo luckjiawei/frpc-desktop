@@ -83,6 +83,8 @@ declare global {
         metaToken: string;
         transportHeartbeatInterval: number;
         transportHeartbeatTimeout: number;
+        webEnable: boolean;
+        webPort: number;
     };
 
     type GitHubMirror = {

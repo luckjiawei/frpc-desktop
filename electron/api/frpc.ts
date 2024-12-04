@@ -56,7 +56,8 @@ ${
     : ""
 }
 [[${
-      (m.type === "stcp" || m.type === "xtcp") && m.stcpModel === "visitors"
+      (m.type === "stcp" || m.type === "xtcp" || m.type === "sudp") &&
+      m.stcpModel === "visitors"
         ? "visitors"
         : "proxies"
     }]]
@@ -98,6 +99,7 @@ httpPassword = "${m.httpPassword}"
         break;
       case "stcp":
       case "xtcp":
+      case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
           toml += `
@@ -169,7 +171,7 @@ log.to = "frpc.log"
 log.level = "${config.logLevel}"
 log.maxDays = ${config.logMaxDays}
 webServer.addr = "127.0.0.1"
-webServer.port = 57400
+webServer.port = ${config.webPort}
 transport.tls.enable = ${config.tlsConfigEnable}
 ${
   config.tlsConfigEnable && config.tlsConfigCertFile
@@ -252,6 +254,7 @@ httpPassword = "${m.httpPassword}"
         break;
       case "stcp":
       case "xtcp":
+      case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
           ini += `
@@ -322,7 +325,7 @@ log_file = "frpc.log"
 log_level = ${config.logLevel}
 log_max_days = ${config.logMaxDays}
 admin_addr = 127.0.0.1
-admin_port = 57400
+admin_port = ${config.webPort}
 tls_enable = ${config.tlsConfigEnable}
 
 ${

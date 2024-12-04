@@ -45,6 +45,22 @@ const handleOpenGitHub = () => {
 }
 
 /**
+ * 打开捐赠界面
+ */
+const handleOpenDonate = () => {
+  ipcRenderer.send("common.openUrl", "https://jwinks.com/donate")
+}
+
+
+/**
+ * 打开文档
+ */
+const handleOpenDoc = () => {
+  ipcRenderer.send("common.openUrl", "https://jwinks.com/p/frp")
+}
+
+
+/**
  * 获取最后一个版本
  */
 const handleGetLastVersion = () => {
@@ -124,6 +140,14 @@ defineComponent({
           </p>
         </div>
         <div class="mt-[12px]">
+          <el-button plain type="success" @click="handleOpenDoc">
+            <IconifyIconOffline class="cursor-pointer mr-2" icon="description"/>
+            使用教程
+          </el-button>
+          <el-button plain type="success" @click="handleOpenDonate">
+            <IconifyIconOffline class="cursor-pointer mr-2" icon="volunteer-activism-sharp"/>
+            捐赠名单
+          </el-button>
           <el-button plain type="primary" @click="handleOpenGitHub">
             <Icon class="cursor-pointer mr-2" icon="logos:github-icon"/>
             仓库地址

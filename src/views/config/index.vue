@@ -45,7 +45,9 @@ const defaultFormData = ref<FrpConfig>({
   user: "",
   metaToken: "",
   transportHeartbeatInterval: 30,
-  transportHeartbeatTimeout: 90
+  transportHeartbeatTimeout: 90,
+  webEnable: true,
+  webPort: 57400
 });
 
 const formData = ref<FrpConfig>(defaultFormData.value);
@@ -113,6 +115,12 @@ const rules = reactive<FormRules>({
   ],
   transportHeartbeatTimeout: [
     { required: true, message: "心跳超时时间不能为空", trigger: "change" }
+  ],
+  webEnable: [
+    { required: true, message: "web界面开关不能为空", trigger: "change" }
+  ],
+  webPort: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
   ]
 });
 
@@ -186,6 +194,10 @@ onMounted(() => {
         if (!data.transportHeartbeatTimeout) {
           data.transportHeartbeatTimeout =
             defaultFormData.value.transportHeartbeatTimeout;
+        }
+        if (data.webEnable == null || data.webEnable == undefined) {
+          data.webEnable = true;
+          data.webPort = 57400;
         }
         formData.value = data;
       }
@@ -687,7 +699,7 @@ onUnmounted(() => {
               <div class="h2">TLS Config</div>
             </el-col>
             <el-col :span="24">
-              <el-form-item label="是否启用TLS：" prop="tlsConfigEnable">
+              <el-form-item label="启用TLS：" prop="tlsConfigEnable">
                 <el-switch
                   active-text="开"
                   inline-prompt
@@ -876,7 +888,7 @@ onUnmounted(() => {
               <div class="h2">代理</div>
             </el-col>
             <el-col :span="24">
-              <el-form-item label="是否启动代理：" prop="proxyConfigEnable">
+              <el-form-item label="启用代理：" prop="proxyConfigEnable">
                 <el-switch
                   active-text="开"
                   inline-prompt
@@ -911,6 +923,73 @@ onUnmounted(() => {
                     v-model="formData.proxyConfigProxyUrl"
                     placeholder="http://user:pwd@192.168.1.128:8080"
                   />
+                </el-form-item>
+              </el-col>
+            </template>
+
+            <el-col :span="24">
+              <div class="h2">Web 界面</div>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="启用Web界面：" prop="webEnable">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                      热更新等功能依赖于web界面，<span class="font-black text-[#5A3DAA]"
+                    >不可停用Web</span
+                    >
+                    </el-popover>
+                  </div>
+                  启用Web：
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  disabled
+                  inactive-text="关"
+                  v-model="formData.webEnable"
+                />
+              </el-form-item>
+            </el-col>
+
+            <template v-if="formData.webEnable">
+              <el-col :span="12">
+                <el-form-item label="Web 端口：" prop="webPort">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]"
+                            >webServer.port</span
+                          ><br/>
+                          自行保证端口没有被占用，否则会导致启动失败
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    Web 端口：
+                  </template>
+                  <el-input-number
+                    placeholder="57400"
+                    v-model="formData.webPort"
+                    :min="0"
+                    :max="65535"
+                    controls-position="right"
+                  ></el-input-number>
                 </el-form-item>
               </el-col>
             </template>
@@ -977,8 +1056,8 @@ onUnmounted(() => {
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         开启后启动时<span class="font-black text-[#5A3DAA]"
-                      >不打开界面</span
-                      >
+                          >不打开界面</span
+                        >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
