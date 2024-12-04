@@ -31,6 +31,9 @@ import switchAccessOutlineRounded from "@iconify-icons/material-symbols/switch-a
 import switchAccessRounded from "@iconify-icons/material-symbols/switch-access-rounded";
 import chargerRounded from "@iconify-icons/material-symbols/charger-rounded";
 import fileOpenRounded from "@iconify-icons/material-symbols/file-open-rounded";
+import attachMoneyRounded from "@iconify-icons/material-symbols/attach-money-rounded";
+import volunteerActivismSharp from "@iconify-icons/material-symbols/volunteer-activism-sharp";
+import description from "@iconify-icons/material-symbols/description";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -62,5 +65,7 @@ addIcon("deviceReset", deviceReset);
 addIcon("switchAccessOutlineRounded", switchAccessOutlineRounded);
 addIcon("switchAccessRounded", switchAccessRounded);
 addIcon("file-open-rounded", fileOpenRounded);
-
+addIcon("attach-money-rounded", attachMoneyRounded);
+addIcon("volunteer-activism-sharp", volunteerActivismSharp);
+addIcon("description", description);
 
