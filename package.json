@@ -11,7 +11,10 @@
     "frp",
     "frpc",
     "proxy",
-    "electron-app"
+    "electron-app",
+    "vue",
+    "vue3",
+    "vite"
   ],
   "engines": {
     "node": ">= 18"
