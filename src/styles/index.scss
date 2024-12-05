@@ -1,8 +1,8 @@
-@import "reset";
-@import "layout";
-@import "element";
-@import "tailwind";
-@import "scrollbar";
+@use "reset";
+@use "layout";
+@use "element";
+@use "tailwind";
+@use "scrollbar";
 /* 自定义全局 CssVar */
 :root {
   --pure-transition-duration: 0.016s;

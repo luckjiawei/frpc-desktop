@@ -450,6 +450,9 @@ const allowCopyAccessAddress = (proxy: Proxy) => {
   if (proxy.type === "xtcp" && proxy.stcpModel === "visited") {
     return false;
   }
+  if (proxy.type === "sudp" && proxy.stcpModel === "visited") {
+    return false;
+  }
   return true;
 };
 
@@ -620,7 +623,7 @@ onUnmounted(() => {
                       class="mr-2"
                       type="danger"
                       size="small"
-                      >已禁用
+                    >已禁用
                     </el-tag>
                     <el-tag
                       v-if="
@@ -641,7 +644,7 @@ onUnmounted(() => {
                           proxy.type === 'sudp') &&
                         proxy.stcpModel === 'visited'
                       "
-                      >被访问者
+                    >被访问者
                     </el-tag>
                     <!--                    <el-tag-->
                     <!--                      size="small"-->
@@ -709,7 +712,7 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-left"
                   v-if="
-                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp') ||
+                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp' && proxy.type !== 'sudp') ||
                     proxy.stcpModel !== 'visitors'
                   "
                 >
@@ -724,7 +727,7 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp') ||
+                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp' && proxy.type !== 'sudp') ||
                     proxy.stcpModel !== 'visitors'
                   "
                 >
@@ -735,7 +738,7 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp'  || proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -746,7 +749,7 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp' || proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -757,7 +760,7 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp') &&
+                    (proxy.type === 'stcp' || proxy.type === 'xtcp'  || proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -834,8 +837,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >secretKey</span
-                            >
+                          >secretKey</span
+                          >
                             只有访问者与被访问者共享密钥一致的用户才能访问该服务
                           </template>
                           <template #reference>
@@ -962,8 +965,8 @@ onUnmounted(() => {
                         >
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >subdomain</span
-                            >
+                          >subdomain</span
+                          >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1014,8 +1017,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >customDomains</span
-                            >
+                          >customDomains</span
+                          >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1105,21 +1108,21 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >bindAddr</span
-                            >
+                          >bindAddr</span
+                          >
                             要将被访问者的服务绑定到本地哪个<span
-                              class="font-black text-[#5A3DAA]"
-                              >IP</span
-                            >
+                            class="font-black text-[#5A3DAA]"
+                          >IP</span
+                          >
                             <br />
                             仅本机访问：<span class="font-black text-[#5A3DAA]"
-                              >127.0.0.1</span
-                            >
+                          >127.0.0.1</span
+                          >
                             <br />
                             支持局域网其他设备访问：<span
-                              class="font-black text-[#5A3DAA]"
-                              >0.0.0.0</span
-                            >
+                            class="font-black text-[#5A3DAA]"
+                          >0.0.0.0</span
+                          >
                             <br />
                           </template>
                           <template #reference>
@@ -1151,12 +1154,12 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >bindAddr</span
-                            >
+                          >bindAddr</span
+                          >
                             要将被访问者的服务绑定到本地哪个<span
-                              class="font-black text-[#5A3DAA]"
-                              >端口</span
-                            >
+                            class="font-black text-[#5A3DAA]"
+                          >端口</span
+                          >
                             <br />
                             请自行确保端口未被占用
                           </template>
@@ -1194,8 +1197,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >fallbackTo</span
-                            >
+                          >fallbackTo</span
+                          >
                             <br />
                             xtcp 打洞失败会回退到使用 stcp-visitor 建立连接
                           </template>
@@ -1228,14 +1231,14 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                              >fallbackTimeoutMs</span
-                            >
+                          >fallbackTimeoutMs</span
+                          >
                             <br />
                             xtcp 打洞时间超过该时间会回退到使用 stcp-visitor
                             建立连接 单位：<span
-                              class="font-black text-[#5A3DAA]"
-                              >毫秒</span
-                            >
+                            class="font-black text-[#5A3DAA]"
+                          >毫秒</span
+                          >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
