@@ -49,6 +49,12 @@ const isRangePort = (m: Proxy) => {
 export const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyToml = proxys.map(m => {
     const rangePort = isRangePort(m);
+    config.tlsConfigKeyFile = config.tlsConfigKeyFile.replace(/\\/g, "\\\\");
+    config.tlsConfigCertFile = config.tlsConfigCertFile.replace(/\\/g, "\\\\");
+    config.tlsConfigTrustedCaFile = config.tlsConfigTrustedCaFile.replace(
+      /\\/g,
+      "\\\\"
+    );
     let toml = `
 ${
   rangePort
