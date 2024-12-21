@@ -248,7 +248,7 @@ remote_port = ${m.remotePort}
         ini += `
 local_ip = "${m.localIp}"
 local_port = ${m.localPort}
-custom_domains=[${m.customDomains.map(m => `"${m}"`)}]
+custom_domains=[${m.customDomains.map(m => `${m}`)}]
 subdomain="${m.subdomain}"
 `;
         if (m.basicAuth) {
