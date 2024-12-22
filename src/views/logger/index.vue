@@ -37,6 +37,7 @@ const refreshStatus = ref(false);
 const logLoading = ref(true);
 
 onMounted(() => {
+  console.log('logger mounted')
   ipcRenderer.send("logger.getLog");
   ipcRenderer.on("Logger.getLog.hook", (event, args) => {
     // console.log("日志", args, args.indexOf("\n"));
@@ -89,7 +90,9 @@ const refreshLog = useDebounceFn(() => {
 }, 300);
 
 onUnmounted(() => {
+  console.log('logger unmounted')
   ipcRenderer.removeAllListeners("Logger.getLog.hook");
+  ipcRenderer.removeAllListeners("Logger.openLog.hook");
 });
 </script>
 <template>

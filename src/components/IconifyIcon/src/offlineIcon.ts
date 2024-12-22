@@ -34,6 +34,7 @@ import fileOpenRounded from "@iconify-icons/material-symbols/file-open-rounded";
 import attachMoneyRounded from "@iconify-icons/material-symbols/attach-money-rounded";
 import volunteerActivismSharp from "@iconify-icons/material-symbols/volunteer-activism-sharp";
 import description from "@iconify-icons/material-symbols/description";
+import folderRounded from "@iconify-icons/material-symbols/folder-rounded";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -68,4 +69,5 @@ addIcon("file-open-rounded", fileOpenRounded);
 addIcon("attach-money-rounded", attachMoneyRounded);
 addIcon("volunteer-activism-sharp", volunteerActivismSharp);
 addIcon("description", description);
+addIcon("folder-rounded", folderRounded);
 
