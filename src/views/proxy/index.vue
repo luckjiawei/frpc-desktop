@@ -63,7 +63,10 @@ const defaultForm = ref<Proxy>({
   httpUser: "",
   httpPassword: "",
   fallbackTo: "",
-  fallbackTimeoutMs: 500
+  fallbackTimeoutMs: 500,
+  https2http: false,
+  https2httpCaFile: "",
+  https2httpKeyFile: ""
 });
 
 /**
@@ -727,7 +730,9 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp' && proxy.type !== 'sudp') ||
+                    (proxy.type !== 'stcp' &&
+                      proxy.type !== 'xtcp' &&
+                      proxy.type !== 'sudp') ||
                     proxy.stcpModel !== 'visitors'
                   "
                 >
@@ -738,7 +743,9 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp'  || proxy.type === 'sudp') &&
+                    (proxy.type === 'stcp' ||
+                      proxy.type === 'xtcp' ||
+                      proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -749,7 +756,9 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp' || proxy.type === 'sudp') &&
+                    (proxy.type === 'stcp' ||
+                      proxy.type === 'xtcp' ||
+                      proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -760,7 +769,9 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-center"
                   v-if="
-                    (proxy.type === 'stcp' || proxy.type === 'xtcp'  || proxy.type === 'sudp') &&
+                    (proxy.type === 'stcp' ||
+                      proxy.type === 'xtcp' ||
+                      proxy.type === 'sudp') &&
                     proxy.stcpModel === 'visitors'
                   "
                 >
@@ -1086,6 +1097,113 @@ onUnmounted(() => {
                   v-model="editForm.httpPassword"
                   :show-password="true"
                 />
+              </el-form-item>
+            </el-col>
+          </template>
+          <template v-if="isHttps">
+            <el-col :span="24">
+              <el-form-item label="https2http：" prop="https2http">
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.https2http"
+                />
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="24" v-if="editForm.https2http">
+              <el-form-item
+                label="证书文件："
+                prop="https2httpCaFile"
+                label-width="180"
+              >
+                <!-- <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="310" placement="top" trigger="hover">
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.tls.trustedCaFile</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  CA 证书文件：
+                </template> -->
+                <el-input
+                  class="button-input"
+                  v-model="editForm.https2httpCaFile"
+                  placeholder="点击选择证书文件"
+                  readonly
+                  @click="handleSelectFile(1, ['crt', 'pem'])"
+                />
+                <!--                  <el-button-->
+                <!--                    class="ml-2"-->
+                <!--                    type="primary"-->
+                <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                <!--                    >选择-->
+                <!--                  </el-button>-->
+                <el-button
+                  v-if="editForm.https2httpCaFile"
+                  class="ml-2"
+                  type="danger"
+                  @click="editForm.https2httpCaFile = ''"
+                  >清除
+                </el-button>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24" v-if="editForm.https2http">
+              <el-form-item
+                label="密钥文件："
+                prop="https2httpKeyFile"
+                label-width="180"
+              >
+                <!-- <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="310" placement="top" trigger="hover">
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.tls.trustedCaFile</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  CA 证书文件：
+                </template> -->
+                <el-input
+                  class="button-input cursor-pointer"
+                  v-model="editForm.https2httpKeyFile"
+                  placeholder="点击选择密钥文件"
+                  readonly
+                  @click="handleSelectFile(2, ['key'])"
+                />
+                <!--                  <el-button-->
+                <!--                    class="ml-2"-->
+                <!--                    type="primary"-->
+                <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                <!--                    >选择-->
+                <!--                  </el-button>-->
+                <el-button
+                  v-if="editForm.https2httpKeyFile"
+                  class="ml-2"
+                  type="danger"
+                  @click="editForm.https2httpKeyFile = ''"
+                  >清除
+                </el-button>
               </el-form-item>
             </el-col>
           </template>

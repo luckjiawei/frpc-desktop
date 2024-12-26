@@ -33,6 +33,9 @@ declare global {
         httpPassword: string;
         fallbackTo: string;
         fallbackTimeoutMs: number;
+        https2http: boolean;
+        https2httpCaFile: string;
+        https2httpKeyFile: string;
     };
 
     /**
