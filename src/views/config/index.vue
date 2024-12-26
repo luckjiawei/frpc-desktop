@@ -257,6 +257,15 @@ onMounted(() => {
       ElMessageBox.alert(data, `提示`);
     }
   });
+
+  ipcRenderer.on("Config.openDataFolder.hook", (event, args) => {
+    if (args) {
+      ElMessage({
+        type: "success",
+        message: "打开数据目录成功"
+      });
+    }
+  });
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -371,17 +380,28 @@ const handleResetConfig = () => {
   });
 };
 
+/**
+ * 打开数据目录
+ */
+const handleOpenDataFolder = useDebounceFn(() => {
+  ipcRenderer.send("config.openDataFolder");
+}, 1000);
+
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Config.getConfig.hook");
   ipcRenderer.removeAllListeners("Config.saveConfig.hook");
   ipcRenderer.removeAllListeners("Config.versions.hook");
   ipcRenderer.removeAllListeners("Config.exportConfig.hook");
   ipcRenderer.removeAllListeners("Config.clearAll.hook");
+  ipcRenderer.removeAllListeners("Config.openDataFolder.hook");
 });
 </script>
 <template>
   <div class="main">
     <breadcrumb>
+      <el-button plain type="primary" @click="handleOpenDataFolder">
+        <IconifyIconOffline icon="folder-rounded" />
+      </el-button>
       <el-button plain type="primary" @click="handleResetConfig">
         <IconifyIconOffline icon="deviceReset" />
       </el-button>
