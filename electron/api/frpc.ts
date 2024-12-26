@@ -90,18 +90,39 @@ remotePort = ${m.remotePort}
         break;
       case "http":
       case "https":
-        toml += `
-localIP = "${m.localIp}"
-localPort = ${m.localPort}
+        const customDomains = m.customDomains.filter(f1 => f1 !== "");
+        if (customDomains && customDomains.length > 0) {
+          toml += `
 customDomains=[${m.customDomains.map(m => `"${m}"`)}]
+        `;
+        }
+        if (m.subdomain) {
+          toml += `
 subdomain="${m.subdomain}"
 `;
+        }
         if (m.basicAuth) {
           toml += `
 httpUser = "${m.httpUser}"
 httpPassword = "${m.httpPassword}"
 `;
         }
+        if (m.https2http) {
+          toml += `
+[proxies.plugin]
+type = "https2http"
+localAddr =  "${m.localIp}:${m.localPort}"
+
+crtPath =  "${m.https2httpCaFile}"
+keyPath = "${m.https2httpCaFile}"
+`;
+        } else {
+          toml += `
+localIP = "${m.localIp}"
+localPort = ${m.localPort}
+          `;
+        }
+
         break;
       case "stcp":
       case "xtcp":

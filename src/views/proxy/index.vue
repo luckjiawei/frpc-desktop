@@ -147,7 +147,8 @@ const editFormRules = reactive<FormRules>({
     { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
   ],
   httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
-  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
+  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }],
+
 });
 
 /**
@@ -1497,5 +1498,9 @@ onUnmounted(() => {
 
 :deep(.el-drawer__body) {
   //padding-top: 0;
+}
+
+.button-input {
+  width: calc(100% - 68px);
 }
 </style>
