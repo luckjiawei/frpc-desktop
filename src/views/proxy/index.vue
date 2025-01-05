@@ -147,8 +147,7 @@ const editFormRules = reactive<FormRules>({
     { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
   ],
   httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
-  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }],
-
+  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
 });
 
 /**
@@ -565,6 +564,20 @@ const handleRandomProxyName = () => {
     `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
+const handleSelectFile = (type: number, ext: string[]) => {
+  ipcRenderer.invoke("file.selectFile", ext).then(r => {
+    switch (type) {
+      case 1:
+        editForm.value.https2httpCaFile = r[0];
+        break;
+      case 2:
+        editForm.value.https2httpKeyFile = r[0];
+        break;
+    }
+    console.log(r);
+  });
+};
+
 onMounted(() => {
   handleInitHook();
   handleLoadProxys();
@@ -627,7 +640,7 @@ onUnmounted(() => {
                       class="mr-2"
                       type="danger"
                       size="small"
-                    >已禁用
+                      >已禁用
                     </el-tag>
                     <el-tag
                       v-if="
@@ -648,7 +661,7 @@ onUnmounted(() => {
                           proxy.type === 'sudp') &&
                         proxy.stcpModel === 'visited'
                       "
-                    >被访问者
+                      >被访问者
                     </el-tag>
                     <!--                    <el-tag-->
                     <!--                      size="small"-->
@@ -716,7 +729,9 @@ onUnmounted(() => {
                 <div
                   class="text-sm text-left"
                   v-if="
-                    (proxy.type !== 'stcp' && proxy.type !== 'xtcp' && proxy.type !== 'sudp') ||
+                    (proxy.type !== 'stcp' &&
+                      proxy.type !== 'xtcp' &&
+                      proxy.type !== 'sudp') ||
                     proxy.stcpModel !== 'visitors'
                   "
                 >
@@ -849,8 +864,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >secretKey</span
-                          >
+                              >secretKey</span
+                            >
                             只有访问者与被访问者共享密钥一致的用户才能访问该服务
                           </template>
                           <template #reference>
@@ -977,8 +992,8 @@ onUnmounted(() => {
                         >
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >subdomain</span
-                          >
+                              >subdomain</span
+                            >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1029,8 +1044,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >customDomains</span
-                          >
+                              >customDomains</span
+                            >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1103,7 +1118,16 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttps">
             <el-col :span="24">
-              <el-form-item label="https2http：" prop="https2http">
+              <el-form-item
+                label="https2http："
+                prop="https2http"
+                :rules="[
+                  {
+                    required: true,
+                    trigger: 'blur'
+                  }
+                ]"
+              >
                 <el-switch
                   active-text="开"
                   inline-prompt
@@ -1118,6 +1142,13 @@ onUnmounted(() => {
                 label="证书文件："
                 prop="https2httpCaFile"
                 label-width="180"
+                :rules="[
+                  {
+                    required: true,
+                    message: '证书文件不能为空',
+                    trigger: 'blur'
+                  }
+                ]"
               >
                 <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
@@ -1165,6 +1196,13 @@ onUnmounted(() => {
                 label="密钥文件："
                 prop="https2httpKeyFile"
                 label-width="180"
+                :rules="[
+                  {
+                    required: true,
+                    message: '密钥文件不能为空',
+                    trigger: 'blur'
+                  }
+                ]"
               >
                 <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
@@ -1227,21 +1265,21 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >bindAddr</span
-                          >
+                              >bindAddr</span
+                            >
                             要将被访问者的服务绑定到本地哪个<span
-                            class="font-black text-[#5A3DAA]"
-                          >IP</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >IP</span
+                            >
                             <br />
                             仅本机访问：<span class="font-black text-[#5A3DAA]"
-                          >127.0.0.1</span
-                          >
+                              >127.0.0.1</span
+                            >
                             <br />
                             支持局域网其他设备访问：<span
-                            class="font-black text-[#5A3DAA]"
-                          >0.0.0.0</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >0.0.0.0</span
+                            >
                             <br />
                           </template>
                           <template #reference>
@@ -1273,12 +1311,12 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >bindAddr</span
-                          >
+                              >bindAddr</span
+                            >
                             要将被访问者的服务绑定到本地哪个<span
-                            class="font-black text-[#5A3DAA]"
-                          >端口</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >端口</span
+                            >
                             <br />
                             请自行确保端口未被占用
                           </template>
@@ -1316,8 +1354,8 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >fallbackTo</span
-                          >
+                              >fallbackTo</span
+                            >
                             <br />
                             xtcp 打洞失败会回退到使用 stcp-visitor 建立连接
                           </template>
@@ -1350,14 +1388,14 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             对应参数：<span class="font-black text-[#5A3DAA]"
-                          >fallbackTimeoutMs</span
-                          >
+                              >fallbackTimeoutMs</span
+                            >
                             <br />
                             xtcp 打洞时间超过该时间会回退到使用 stcp-visitor
                             建立连接 单位：<span
-                            class="font-black text-[#5A3DAA]"
-                          >毫秒</span
-                          >
+                              class="font-black text-[#5A3DAA]"
+                              >毫秒</span
+                            >
                           </template>
                           <template #reference>
                             <IconifyIconOffline

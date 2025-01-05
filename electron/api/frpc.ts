@@ -114,7 +114,7 @@ type = "https2http"
 localAddr =  "${m.localIp}:${m.localPort}"
 
 crtPath =  "${m.https2httpCaFile}"
-keyPath = "${m.https2httpCaFile}"
+keyPath = "${m.https2httpKeyFile}"
 `;
         } else {
           toml += `
@@ -265,18 +265,42 @@ remote_port = ${m.remotePort}
 `;
         break;
       case "http":
+        ini += `
+        local_ip = "${m.localIp}"
+        local_port = ${m.localPort}
+        custom_domains=[${m.customDomains.map(m => `${m}`)}]
+        subdomain="${m.subdomain}"
+        `;
+        if (m.basicAuth) {
+          ini += `
+        httpUser = "${m.httpUser}"
+        httpPassword = "${m.httpPassword}"
+        `;
+        }
+        break;
       case "https":
         ini += `
-local_ip = "${m.localIp}"
-local_port = ${m.localPort}
 custom_domains=[${m.customDomains.map(m => `${m}`)}]
 subdomain="${m.subdomain}"
-`;
+        `;
         if (m.basicAuth) {
           ini += `
 httpUser = "${m.httpUser}"
 httpPassword = "${m.httpPassword}"
-`;
+        `;
+        }
+        if (m.https2http) {
+          ini += `
+plugin = https2http
+plugin_local_addr = ${m.localIp}:${m.localPort}
+plugin_crt_path = ${m.https2httpCaFile}
+plugin_key_path = ${m.https2httpKeyFile}
+        `;
+        } else {
+          ini += `
+local_ip = "${m.localIp}"
+local_port = ${m.localPort}
+                  `;
         }
         break;
       case "stcp":
