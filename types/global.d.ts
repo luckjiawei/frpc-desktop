@@ -88,6 +88,12 @@ declare global {
         transportHeartbeatTimeout: number;
         webEnable: boolean;
         webPort: number;
+        transportProtocol: string;
+        transportDialServerTimeout: number;
+        transportDialServerKeepalive: number;
+        transportPoolCount: number;
+        transportTcpMux: boolean;
+        transportTcpMuxKeepaliveInterval: number;
     };
 
     type GitHubMirror = {

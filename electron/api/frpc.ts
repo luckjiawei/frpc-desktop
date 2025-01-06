@@ -55,8 +55,7 @@ export const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
       /\\/g,
       "\\\\"
     );
-    let toml = `
-${
+    let toml = `${
   rangePort
     ? `{{- range $_, $v := parseNumberRangePair "${m.localPort}" "${m.remotePort}" }}`
     : ""
@@ -67,7 +66,7 @@ ${
         ? "visitors"
         : "proxies"
     }]]
-${rangePort ? "" : `name = "${m.name}"\n`}
+${rangePort ? "" : `name = "${m.name}"`}
 type = "${m.type}"
 `;
 
@@ -75,52 +74,38 @@ type = "${m.type}"
       case "tcp":
       case "udp":
         if (rangePort) {
-          toml += `
-name = "${m.name}-{{ $v.First }}"
+          toml += `name = "${m.name}-{{ $v.First }}"
 localPort = {{ $v.First }}
-remotePort = {{ $v.Second }}
-          `;
+remotePort = {{ $v.Second }}`;
         } else {
-          toml += `
-localIP = "${m.localIp}"
+          toml += `localIP = "${m.localIp}"
 localPort = ${m.localPort}
-remotePort = ${m.remotePort}
-`;
+remotePort = ${m.remotePort}`;
         }
         break;
       case "http":
       case "https":
         const customDomains = m.customDomains.filter(f1 => f1 !== "");
         if (customDomains && customDomains.length > 0) {
-          toml += `
-customDomains=[${m.customDomains.map(m => `"${m}"`)}]
-        `;
+          toml += `customDomains=[${m.customDomains.map(m => `"${m}"`)}]`;
         }
         if (m.subdomain) {
-          toml += `
-subdomain="${m.subdomain}"
-`;
+          toml += `subdomain="${m.subdomain}"`;
         }
         if (m.basicAuth) {
-          toml += `
-httpUser = "${m.httpUser}"
-httpPassword = "${m.httpPassword}"
-`;
+          toml += `httpUser = "${m.httpUser}"
+httpPassword = "${m.httpPassword}"`;
         }
         if (m.https2http) {
-          toml += `
-[proxies.plugin]
+          toml += `[proxies.plugin]
 type = "https2http"
 localAddr =  "${m.localIp}:${m.localPort}"
 
 crtPath =  "${m.https2httpCaFile}"
-keyPath = "${m.https2httpKeyFile}"
-`;
+keyPath = "${m.https2httpKeyFile}"`;
         } else {
-          toml += `
-localIP = "${m.localIp}"
-localPort = ${m.localPort}
-          `;
+          toml += `localIP = "${m.localIp}"
+localPort = ${m.localPort}`;
         }
 
         break;
@@ -129,25 +114,19 @@ localPort = ${m.localPort}
       case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
-          toml += `
-serverName = "${m.serverName}"
+          toml += `serverName = "${m.serverName}"
 bindAddr = "${m.bindAddr}"
-bindPort = ${m.bindPort}
-`;
+bindPort = ${m.bindPort}`;
           if (m.fallbackTo) {
-            toml += `
-fallbackTo = "${m.fallbackTo}"
-fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}
-            `;
+            toml += `fallbackTo = "${m.fallbackTo}"
+fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}`;
           }
         } else if (m.stcpModel === "visited") {
           // 被访问者
-          toml += `
-localIP = "${m.localIp}"
+          toml += `localIP = "${m.localIp}"
 localPort = ${m.localPort}`;
         }
-        toml += `
-secretKey="${m.secretKey}"
+        toml += `secretKey="${m.secretKey}"
 `;
         break;
       default:
@@ -159,87 +138,88 @@ secretKey="${m.secretKey}"
     }
     return toml;
   });
-  const toml = `
-serverAddr = "${config.serverAddr}"
+  const toml = `serverAddr = "${config.serverAddr}"
 serverPort = ${config.serverPort}
 ${
   config.authMethod === "token"
-    ? `
-auth.method = "token"
-auth.token = "${config.authToken}"
-`
+    ? `auth.method = "token"
+auth.token = "${config.authToken}"`
     : ""
 }
 ${
   config.authMethod === "multiuser"
-    ? `
-user = "${config.user}"
-metadatas.token = "${config.metaToken}"
-`
+    ? `user = "${config.user}"
+metadatas.token = "${config.metaToken}"`
     : ""
 }
-${
-  config.transportHeartbeatInterval
-    ? `
-transport.heartbeatInterval = ${config.transportHeartbeatInterval}
-`
-    : ""
-}
-${
-  config.transportHeartbeatTimeout
-    ? `
-transport.heartbeatTimeout = ${config.transportHeartbeatTimeout}
-`
-    : ""
-}
-
-
 log.to = "frpc.log"
 log.level = "${config.logLevel}"
 log.maxDays = ${config.logMaxDays}
 webServer.addr = "127.0.0.1"
 webServer.port = ${config.webPort}
+${
+  config.transportProtocol
+    ? `transport.protocol = "${config.transportProtocol}"`
+    : ""
+}
+${
+  config.transportPoolCount
+    ? `transport.poolCount = ${config.transportPoolCount}`
+    : ""
+}
+${
+  config.transportDialServerTimeout
+    ? `transport.dialServerTimeout = ${config.transportDialServerTimeout}`
+    : ""
+}
+${
+  config.transportDialServerKeepalive
+    ? `transport.dialServerKeepalive = ${config.transportDialServerKeepalive}`
+    : ""
+}
+${
+  config.transportHeartbeatInterval
+    ? `transport.heartbeatInterval = ${config.transportHeartbeatInterval}`
+    : ""
+}
+${
+  config.transportHeartbeatTimeout
+    ? `transport.heartbeatTimeout = ${config.transportHeartbeatTimeout}`
+    : ""
+}
+${config.transportTcpMux ? `transport.tcpMux = ${config.transportTcpMux}` : ""}
+${
+  config.transportTcpMux && config.transportTcpMuxKeepaliveInterval
+    ? `transport.tcpMuxKeepaliveInterval = ${config.transportTcpMuxKeepaliveInterval}`
+    : ""
+}
 transport.tls.enable = ${config.tlsConfigEnable}
 ${
   config.tlsConfigEnable && config.tlsConfigCertFile
-    ? `
-transport.tls.certFile = "${config.tlsConfigCertFile}"
-`
+    ? `transport.tls.certFile = "${config.tlsConfigCertFile}"`
     : ""
 }
-  ${
+${
     config.tlsConfigEnable && config.tlsConfigKeyFile
-      ? `
-transport.tls.keyFile = "${config.tlsConfigKeyFile}"
-`
+      ? `transport.tls.keyFile = "${config.tlsConfigKeyFile}"`
       : ""
-  }
+}
   ${
     config.tlsConfigEnable && config.tlsConfigTrustedCaFile
-      ? `
-transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"
-`
+      ? `transport.tls.trustedCaFile = "${config.tlsConfigTrustedCaFile}"`
       : ""
   }
   ${
     config.tlsConfigEnable && config.tlsConfigServerName
-      ? `
-transport.tls.serverName = "${config.tlsConfigServerName}"
-`
+      ? `transport.tls.serverName = "${config.tlsConfigServerName}"`
       : ""
   }
-  
-
 ${
   config.proxyConfigEnable
-    ? `
-transport.proxyURL = "${config.proxyConfigProxyUrl}"
-`
+    ? `transport.proxyURL = "${config.proxyConfigProxyUrl}"`
     : ""
 }
-
-${proxyToml.join("")}
-      `;
+${proxyToml.join("")}`;
   return toml;
 };
 
@@ -251,8 +231,7 @@ ${proxyToml.join("")}
 export const genIniConfig = (config: FrpConfig, proxys: Proxy[]) => {
   const proxyIni = proxys.map(m => {
     const rangePort = isRangePort(m);
-    let ini = `
-[${rangePort ? "range:" : ""}${m.name}]
+    let ini = `[${rangePort ? "range:" : ""}${m.name}]
 type = "${m.type}"
 `;
     switch (m.type) {

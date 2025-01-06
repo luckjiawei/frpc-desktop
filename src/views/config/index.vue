@@ -47,7 +47,13 @@ const defaultFormData = ref<FrpConfig>({
   transportHeartbeatInterval: 30,
   transportHeartbeatTimeout: 90,
   webEnable: true,
-  webPort: 57400
+  webPort: 57400,
+  transportProtocol: "tcp",
+  transportDialServerTimeout: 10,
+  transportDialServerKeepalive: 7200,
+  transportPoolCount: 0,
+  transportTcpMux: true,
+  transportTcpMuxKeepaliveInterval: 30
 });
 
 const formData = ref<FrpConfig>(defaultFormData.value);
@@ -120,6 +126,24 @@ const rules = reactive<FormRules>({
     { required: true, message: "web界面开关不能为空", trigger: "change" }
   ],
   webPort: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportProtocol: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportDialServerTimeout: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportDialServerKeepalive: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportPoolCount: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportTcpMux: [
+    { required: true, message: "web界面端口不能为空", trigger: "change" }
+  ],
+  transportTcpMuxKeepaliveInterval: [
     { required: true, message: "web界面端口不能为空", trigger: "change" }
   ]
 });
@@ -196,9 +220,49 @@ onMounted(() => {
             defaultFormData.value.transportHeartbeatTimeout;
         }
         if (data.webEnable == null || data.webEnable == undefined) {
-          data.webEnable = true;
-          data.webPort = 57400;
+          data.webEnable = defaultFormData.value.webEnable;
+          data.webPort = defaultFormData.value.webPort;
         }
+        if (
+          data.transportProtocol === undefined ||
+          data.transportProtocol == null
+        ) {
+          data.transportProtocol = defaultFormData.value.transportProtocol;
+        }
+        if (
+          data.transportDialServerTimeout === undefined ||
+          data.transportDialServerTimeout == null
+        ) {
+          data.transportDialServerTimeout =
+            defaultFormData.value.transportDialServerTimeout;
+        }
+        if (
+          data.transportDialServerKeepalive === undefined ||
+          data.transportDialServerKeepalive == null
+        ) {
+          data.transportDialServerKeepalive =
+            defaultFormData.value.transportDialServerKeepalive;
+        }
+        if (
+          data.transportPoolCount === undefined ||
+          data.transportPoolCount == null
+        ) {
+          data.transportPoolCount = defaultFormData.value.transportPoolCount;
+        }
+        if (
+          data.transportTcpMux === undefined ||
+          data.transportTcpMux == null
+        ) {
+          data.transportTcpMux = defaultFormData.value.transportTcpMux;
+        }
+        if (
+          data.transportTcpMuxKeepaliveInterval === undefined ||
+          data.transportTcpMuxKeepaliveInterval == null
+        ) {
+          data.transportTcpMuxKeepaliveInterval =
+            defaultFormData.value.transportTcpMuxKeepaliveInterval;
+        }
+
         formData.value = data;
       }
     }
@@ -422,7 +486,7 @@ onUnmounted(() => {
           :rules="rules"
           label-position="right"
           ref="formRef"
-          label-width="130"
+          label-width="150"
         >
           <el-row :gutter="10">
             <el-col :span="24">
@@ -632,6 +696,72 @@ onUnmounted(() => {
                 />
               </el-form-item>
             </el-col>
+            <!-- <el-col :span="24">
+              <div class="h2">TLS Config</div>
+            </el-col> -->
+
+            <el-col :span="24">
+              <div class="h2">传输配置</div>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="传输协议：" prop="transportProtocol">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        和 frps 之间的通信协议。默认为 tcp。<br />
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.protocol</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  传输协议：
+                </template>
+                <el-select v-model="formData.transportProtocol">
+                  <el-option label="tcp" value="tcp" />
+                  <el-option label="kcp" value="kcp" />
+                  <el-option label="quic" value="quic" />
+                  <el-option label="websocket" value="websocket" />
+                  <el-option label="wss" value="wss" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="连接池大小：" prop="transportPoolCount">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.poolCount</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  连接池大小：
+                </template>
+                <el-input-number
+                  class="w-full"
+                  v-model="formData.transportPoolCount"
+                  controls-position="right"
+                ></el-input-number>
+              </el-form-item>
+            </el-col>
             <el-col :span="12">
               <el-form-item
                 label="心跳间隔："
@@ -715,9 +845,176 @@ onUnmounted(() => {
                 <!--                </el-input>-->
               </el-form-item>
             </el-col>
-            <el-col :span="24">
-              <div class="h2">TLS Config</div>
+            <el-col :span="12">
+              <el-form-item
+                label="连接超时："
+                prop="transportDialServerTimeout"
+              >
+              <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        与服务器建立连接的最长等待时间。默认值为10秒。单位：
+                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.dialServerTimeout</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  连接超时：
+                </template>
+                <el-input-number
+                  class="w-full"
+                  v-model="formData.transportDialServerTimeout"
+                  controls-position="right"
+                ></el-input-number>
+              </el-form-item>
             </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="保活探测间隔："
+                prop="transportDialServerKeepalive"
+              >
+              <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        客户端与服务端之间的连接在一定时间内没有任何数据传输，系统会定期发送一些心跳数据包来保持连接的活跃状态。如果为负，则禁用保活探测。
+                        单位：
+                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.dialServerKeepalive</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  保活探测间隔：
+                </template>
+                <el-input-number
+                  class="w-full"
+                  v-model="formData.transportDialServerKeepalive"
+                  controls-position="right"
+                ></el-input-number>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="多路复用：" prop="transportTcpMux">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        TCP 多路复用，默认启用。<br />
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.tcpMux</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  TCP 多路复用：
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="formData.transportTcpMux"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.transportTcpMux">
+              <el-form-item
+                label="多复心跳间隔："
+                prop="transportTcpMuxKeepaliveInterval"
+              >
+              <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover width="300" placement="top" trigger="hover">
+                      <template #default>
+                        多路复用的保活间隔，默认值为 30 秒。单位：
+                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
+                        对应参数：<span class="font-black text-[#5A3DAA]"
+                          >transport.tcpMuxKeepaliveInterval</span
+                        >
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  多复心跳间隔：
+                </template>
+                <el-input-number
+                  class="w-full"
+                  v-model="formData.transportTcpMuxKeepaliveInterval"
+                  controls-position="right"
+                ></el-input-number>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="启用代理：" prop="proxyConfigEnable">
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="formData.proxyConfigEnable"
+                />
+              </el-form-item>
+            </el-col>
+            <template v-if="formData.proxyConfigEnable">
+              <el-col :span="24">
+                <el-form-item label="代理地址：" prop="proxyConfigProxyUrl">
+                  <template #label>
+                    <div class="h-full flex items-center mr-1">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          对应参数：<span class="font-black text-[#5A3DAA]"
+                            >transport.proxyURL</span
+                          >
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    代理地址：
+                  </template>
+                  <el-input
+                    v-model="formData.proxyConfigProxyUrl"
+                    placeholder="http://user:pwd@192.168.1.128:8080"
+                  />
+                </el-form-item>
+              </el-col>
+            </template>
             <el-col :span="24">
               <el-form-item label="启用TLS：" prop="tlsConfigEnable">
                 <el-switch
@@ -904,48 +1201,6 @@ onUnmounted(() => {
                 </el-form-item>
               </el-col>
             </template>
-            <el-col :span="24">
-              <div class="h2">代理</div>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item label="启用代理：" prop="proxyConfigEnable">
-                <el-switch
-                  active-text="开"
-                  inline-prompt
-                  inactive-text="关"
-                  v-model="formData.proxyConfigEnable"
-                />
-              </el-form-item>
-            </el-col>
-            <template v-if="formData.proxyConfigEnable">
-              <el-col :span="24">
-                <el-form-item label="代理地址：" prop="proxyConfigProxyUrl">
-                  <template #label>
-                    <div class="h-full flex items-center mr-1">
-                      <el-popover width="300" placement="top" trigger="hover">
-                        <template #default>
-                          对应参数：<span class="font-black text-[#5A3DAA]"
-                            >transport.proxyURL</span
-                          >
-                        </template>
-                        <template #reference>
-                          <IconifyIconOffline
-                            class="text-base"
-                            color="#5A3DAA"
-                            icon="info"
-                          />
-                        </template>
-                      </el-popover>
-                    </div>
-                    代理地址：
-                  </template>
-                  <el-input
-                    v-model="formData.proxyConfigProxyUrl"
-                    placeholder="http://user:pwd@192.168.1.128:8080"
-                  />
-                </el-form-item>
-              </el-col>
-            </template>
 
             <el-col :span="24">
               <div class="h2">Web 界面</div>
@@ -963,9 +1218,10 @@ onUnmounted(() => {
                           icon="info"
                         />
                       </template>
-                      热更新等功能依赖于web界面，<span class="font-black text-[#5A3DAA]"
-                    >不可停用Web</span
-                    >
+                      热更新等功能依赖于web界面，<span
+                        class="font-black text-[#5A3DAA]"
+                        >不可停用Web</span
+                      >
                     </el-popover>
                   </div>
                   启用Web：
@@ -989,7 +1245,7 @@ onUnmounted(() => {
                         <template #default>
                           对应参数：<span class="font-black text-[#5A3DAA]"
                             >webServer.port</span
-                          ><br/>
+                          ><br />
                           自行保证端口没有被占用，否则会导致启动失败
                         </template>
                         <template #reference>
@@ -1009,6 +1265,7 @@ onUnmounted(() => {
                     :min="0"
                     :max="65535"
                     controls-position="right"
+                    class="w-full"
                   ></el-input-number>
                 </el-form-item>
               </el-col>
