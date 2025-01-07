@@ -20,10 +20,6 @@ const mirrors = ref<Array<GitHubMirror>>([
   {
     id: "github",
     name: "github"
-  },
-  {
-    id: "ghproxy",
-    name: "ghproxy"
   }
 ]);
 
@@ -31,7 +27,7 @@ const mirrors = ref<Array<GitHubMirror>>([
  * 获取版本
  */
 const handleLoadVersions = () => {
-  ipcRenderer.send("github.getFrpVersions");
+  ipcRenderer.send("github.getFrpVersions", currMirror.value);
 };
 
 /**
@@ -108,6 +104,10 @@ const handleInitDownloadHook = () => {
   });
 };
 
+const handleMirrorChange = () => {
+  handleLoadVersions();
+}
+
 onMounted(() => {
   handleLoadVersions();
   handleInitDownloadHook();
@@ -128,7 +128,7 @@ onUnmounted(() => {
     <breadcrumb>
       <div class="h-full flex items-center justify-center">
         <span class="text-sm font-bold">下载源： </span>
-        <el-select class="w-40" v-model="currMirror">
+        <el-select class="w-40" v-model="currMirror" @change="handleMirrorChange">
           <el-option
             v-for="m in mirrors"
             :label="m.name"

@@ -11,6 +11,7 @@ const zlib = require("zlib");
 const { download } = require("electron-dl");
 const AdmZip = require("adm-zip");
 const log = require("electron-log");
+import frpReleasesJson from "../json/frp-releases.json";
 
 const versionRelation = {
   win32_x64: ["window", "amd64"],
@@ -97,12 +98,18 @@ export const initGitHubApi = () => {
       }
       return false;
     });
-    if (asset) {
-      log.info(`找到对应版本 ${asset.name}`);
-    }
+    // if (asset) {
+    //   log.info(`找到对应版本 ${asset.name}`);
+    // }
     return asset;
   };
 
+  /**
+   * 格式化字节信息
+   * @param bytes 字节
+   * @param decimals 小数位
+   * @returns
+   */
   const formatBytes = (bytes: number, decimals: number = 2): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024; // 1 KB = 1024 Bytes
@@ -114,54 +121,89 @@ export const initGitHubApi = () => {
   };
 
   /**
+   * handle github api release json
+   * @param githubReleaseJsonStr jsonStr
+   * @returns versions
+   */
+  const handleApiResponse = (githubReleaseJsonStr: string) => {
+    const downloadPath = path.join(app.getPath("userData"), "download");
+    versions = JSON.parse(githubReleaseJsonStr);
+    if (versions) {
+      const returnVersionsData = versions
+        .filter(f => getAdaptiveAsset(f.id))
+        .map(m => {
+          const asset = getAdaptiveAsset(m.id);
+          const download_count = m.assets.reduce(
+            (sum, item) => sum + item.download_count,
+            0
+          );
+          if (asset) {
+            const absPath = `${downloadPath}/${asset.name}`;
+            m.absPath = absPath;
+            m.download_completed = fs.existsSync(absPath);
+            m.download_count = download_count;
+            m.size = formatBytes(asset.size);
+          }
+          return m;
+        });
+      // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
+      return returnVersionsData;
+    } else {
+      return [];
+    }
+  };
+
+  /**
+   * conventMirrorUrl
+   * @param mirror mirror
+   * @returns mirrorUrl
+   */
+  const conventMirrorUrl = (mirror: string) => {
+    switch (mirror) {
+      case "github":
+        return "https://api.github.com";
+      default:
+        return "https://api.github.com";
+    }
+  };
+
+  /**
    * 获取github上的frp所有版本
    */
-  ipcMain.on("github.getFrpVersions", async event => {
+  ipcMain.on("github.getFrpVersions", async (event, mirror: string) => {
+    const mirrorUrl = conventMirrorUrl(mirror);
+    log.info("request mirror Url", mirrorUrl);
     const request = net.request({
       method: "get",
-      // url: "https://api.github.com/repos/fatedier/frp/releases?page=1&per_page=1000"
-      url: "https://api.jwinks.com/github/releases"
+      url: `${mirrorUrl}/repos/fatedier/frp/releases?page=1&per_page=1000`
     });
+
+    let githubReleaseJsonStr = null;
     request.on("response", response => {
+      log.info("request mirror Status Code", response.statusCode);
       let responseData: Buffer = Buffer.alloc(0);
       response.on("data", (data: Buffer) => {
         responseData = Buffer.concat([responseData, data]);
       });
       response.on("end", () => {
-        log.info(
-          `开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch} 状态码：${response.statusCode}`
-        );
-        const downloadPath = path.join(app.getPath("userData"), "download");
         if (response.statusCode === 200) {
-          versions = JSON.parse(responseData.toString());
-        }
-        // const borderContent: Electron.WebContents =
-        //   BrowserWindow.getFocusedWindow().webContents;
-        if (versions) {
-          const returnVersionsData = versions
-            .filter(f => getAdaptiveAsset(f.id))
-            .map(m => {
-              const asset = getAdaptiveAsset(m.id);
-              const download_count = m.assets.reduce(
-                (sum, item) => sum + item.download_count,
-                0
-              );
-              if (asset) {
-                const absPath = `${downloadPath}/${asset.name}`;
-                m.absPath = absPath;
-                m.download_completed = fs.existsSync(absPath);
-                m.download_count = download_count;
-                m.size = formatBytes(asset.size);
-              }
-              return m;
-            });
-          // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
-          event.reply("Download.frpVersionHook", returnVersionsData);
+          githubReleaseJsonStr = responseData.toString();
         } else {
-          event.reply("Download.frpVersionHook", []);
+          log.info("use local json", response.statusCode);
+          githubReleaseJsonStr = JSON.stringify(frpReleasesJson);
         }
+        const versions = handleApiResponse(githubReleaseJsonStr);
+        event.reply("Download.frpVersionHook", versions);
       });
     });
+
+    request.on("error", error => {
+      log.info("error use local json", error);
+      githubReleaseJsonStr = JSON.stringify(frpReleasesJson);
+      const versions = handleApiResponse(githubReleaseJsonStr);
+      event.reply("Download.frpVersionHook", versions);
+    });
+
     request.end();
   });
 
