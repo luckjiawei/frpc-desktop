@@ -21,24 +21,22 @@ import {
 import { initLoggerApi } from "../api/logger";
 import { initFileApi } from "../api/file";
 import { getConfig } from "../storage/config";
-import log from "electron-log";
 import { initCommonApi } from "../api/common";
 import { initLocalApi } from "../api/local";
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.js    > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
-//
+import { logError, logInfo, LogModule } from "../utils/log";
+
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
 process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
   ? join(process.env.DIST_ELECTRON, "../public")
   : process.env.DIST;
+
+let win: BrowserWindow | null = null;
+let tray = null;
+const preload = join(__dirname, "../preload/index.js");
+const url = process.env.VITE_DEV_SERVER_URL;
+const indexHtml = join(process.env.DIST, "index.html");
+let isQuiting;
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith("6.1")) app.disableHardwareAcceleration();
@@ -51,28 +49,11 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
-// Remove electron security warnings
-// This warning only shows in development mode
-// Read more on https://www.electronjs.org/docs/latest/tutorial/security
-// process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
-
-let win: BrowserWindow | null = null;
-let tray = null;
-// Here, you can also use other preload
-const preload = join(__dirname, "../preload/index.js");
-const url = process.env.VITE_DEV_SERVER_URL;
-const indexHtml = join(process.env.DIST, "index.html");
-let isQuiting;
-log.transports.file.level = "debug";
-log.transports.console.level = "debug";
-
 async function createWindow(config: FrpConfig) {
-  console.log("config", config);
   let show = true;
   if (config) {
     show = !config.systemSilentStartup;
   }
-  console.log("界面", show);
   win = new BrowserWindow({
     title: "Frpc Desktop",
     icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
@@ -138,11 +119,6 @@ async function createWindow(config: FrpConfig) {
 }
 
 export const createTray = (config: FrpConfig) => {
-  log.info(
-    `当前环境 platform：${process.platform} arch：${
-      process.arch
-    } appData：${app.getPath("userData")} version:${app.getVersion()}`
-  );
   let menu: Array<MenuItemConstructorOptions | MenuItem> = [
     {
       label: "显示主窗口",
@@ -177,40 +153,87 @@ export const createTray = (config: FrpConfig) => {
 
   if (config) {
     if (config.systemStartupConnect) {
-      log.info(`已开启自动连接 正在自动连接服务器`);
       startFrpWorkerProcess(config);
     }
   }
 };
-
 app.whenReady().then(() => {
+  logInfo(
+    LogModule.APP,
+    `Application started. Current system architecture: ${
+      process.arch
+    }, platform: ${process.platform}, version: ${app.getVersion()}.`
+  );
+
   getConfig((err, config) => {
-    createWindow(config).then(r => {
-      createTray(config);
-      // 初始化各个API
-      initGitHubApi();
-      initConfigApi(win);
-      initProxyApi();
-      initFrpcApi();
-      initLoggerApi();
-      initFileApi();
-      initCommonApi();
-      initLocalApi();
-      // initUpdaterApi(win);
-    });
+    if (err) {
+      logError(LogModule.APP, `Failed to get config: ${err.message}`);
+      return;
+    }
+
+    const { serverAddr, serverPort, authToken, ...sensitiveData } = config;
+    logInfo(LogModule.APP, `Config retrieved: ${JSON.stringify({ ...sensitiveData, serverAddr: '**', serverPort: '**', authToken: '**' })}`);
+
+    createWindow(config)
+      .then(r => {
+        logInfo(LogModule.APP, `Window created successfully.`);
+        createTray(config);
+        logInfo(LogModule.APP, `Tray created successfully.`);
+
+        // Initialize APIs
+        try {
+          initGitHubApi();
+          logInfo(LogModule.APP, `GitHub API initialized.`);
+
+          initConfigApi(win);
+          logInfo(LogModule.APP, `Config API initialized.`);
+
+          initProxyApi();
+          logInfo(LogModule.APP, `Proxy API initialized.`);
+
+          initFrpcApi();
+          logInfo(LogModule.APP, `FRPC API initialized.`);
+
+          initLoggerApi();
+          logInfo(LogModule.APP, `Logger API initialized.`);
+
+          initFileApi();
+          logInfo(LogModule.APP, `File API initialized.`);
+
+          initCommonApi();
+          logInfo(LogModule.APP, `Common API initialized.`);
+
+          initLocalApi();
+          logInfo(LogModule.APP, `Local API initialized.`);
+
+          // initUpdaterApi(win);
+          logInfo(LogModule.APP, `Updater API initialization skipped.`);
+        } catch (error) {
+          logError(
+            LogModule.APP,
+            `Error during API initialization: ${error.message}`
+          );
+        }
+      })
+      .catch(error => {
+        logError(LogModule.APP, `Error creating window: ${error.message}`);
+      });
   });
 });
 
 app.on("window-all-closed", () => {
+  logInfo(LogModule.APP, `All windows closed.`);
   win = null;
   if (process.platform !== "darwin") {
     stopFrpcProcess(() => {
+      logInfo(LogModule.APP, `FRPC process stopped. Quitting application.`);
       app.quit();
     });
   }
 });
 
 app.on("second-instance", () => {
+  logInfo(LogModule.APP, `Second instance detected.`);
   if (win) {
     // Focus on the main window if the user tried to open another
     if (win.isMinimized()) win.restore();
@@ -219,23 +242,33 @@ app.on("second-instance", () => {
 });
 
 app.on("activate", () => {
+  logInfo(LogModule.APP, `Application activated.`);
   const allWindows = BrowserWindow.getAllWindows();
   if (allWindows.length) {
     allWindows[0].focus();
   } else {
     getConfig((err, config) => {
-      createWindow(config).then(r => {});
+      if (err) {
+        logError(
+          LogModule.APP,
+          `Failed to get config on activate: ${err.message}`
+        );
+        return;
+      }
+      createWindow(config).then(r => {
+        logInfo(LogModule.APP, `Window created on activate.`);
+      });
     });
   }
 });
 
 app.on("before-quit", () => {
-  log.info("before-quit");
+  logInfo(LogModule.APP, `Application is about to quit.`);
   isQuiting = true;
 });
 
-// New window example arg: new windows url
 ipcMain.handle("open-win", (_, arg) => {
+  logInfo(LogModule.APP, `Opening new window with argument: ${arg}`);
   const childWindow = new BrowserWindow({
     webPreferences: {
       preload,
@@ -246,7 +279,12 @@ ipcMain.handle("open-win", (_, arg) => {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     childWindow.loadURL(`${url}#${arg}`);
+    logInfo(LogModule.APP, `Child window loaded URL: ${url}#${arg}`);
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
+    logInfo(
+      LogModule.APP,
+      `Child window loaded file: ${indexHtml} with hash: ${arg}`
+    );
   }
 });
