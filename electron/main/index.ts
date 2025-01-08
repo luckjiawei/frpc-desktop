@@ -23,7 +23,7 @@ import { initFileApi } from "../api/file";
 import { getConfig } from "../storage/config";
 import { initCommonApi } from "../api/common";
 import { initLocalApi } from "../api/local";
-import { logError, logInfo, LogModule } from "../utils/log";
+import { initLog, logError, logInfo, LogModule } from "../utils/log";
 import { maskSensitiveData } from "../utils/desensitize";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
@@ -155,6 +155,7 @@ export const createTray = (config: FrpConfig) => {
   logInfo(LogModule.APP, `Tray created successfully.`);
 };
 app.whenReady().then(() => {
+  initLog();
   logInfo(
     LogModule.APP,
     `Application started. Current system architecture: ${

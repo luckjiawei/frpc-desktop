@@ -1,5 +1,5 @@
 import {ipcMain} from "electron";
-import { logDebug, logError, logInfo, LogModule, logWarn } from "electron/utils/log";
+import { logDebug, logError, logInfo, LogModule, logWarn } from "../utils/log";
 
 const {exec, spawn} = require("child_process");
 

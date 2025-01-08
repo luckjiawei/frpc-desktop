@@ -5,12 +5,13 @@ export enum LogModule {
   FRP_CLIENT = "frpc client",
   LOGGER = "logger",
   GITHUB = "github",
-  STORAGE = "",
+  STORAGE = ""
 }
 
-// 设置日志级别
-log.transports.file.level = "debug"; // 可以根据需要调整日志级别
-log.transports.console.level = "debug"; // 控制台输出日志级别
+export const initLog = () => {
+  log.transports.file.level = "debug";
+  log.transports.console.level = "debug";
+};
 
 // 自定义日志输出函数，记录到指定业务模块
 export const logInfo = (module: LogModule, message: string) => {
