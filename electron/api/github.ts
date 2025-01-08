@@ -10,7 +10,6 @@ const path = require("path");
 const zlib = require("zlib");
 const { download } = require("electron-dl");
 const AdmZip = require("adm-zip");
-const log = require("electron-log");
 import frpReleasesJson from "../json/frp-releases.json";
 import { logInfo, logError, LogModule, logDebug, logWarn } from "../utils/log";
 
@@ -259,7 +258,7 @@ export const initGitHubApi = () => {
   ipcMain.on("github.getFrpVersions", async (event, mirror: string) => {
     const { api } = conventMirrorUrl(mirror);
     const mirrorUrl = api;
-    log.info("Requesting mirror URL: ", mirrorUrl);
+    logInfo(LogModule.GITHUB, `Requesting mirror URL: ${mirrorUrl}`);
     const request = net.request({
       method: "get",
       url: `${mirrorUrl}/repos/fatedier/frp/releases?page=1&per_page=1000`
@@ -267,7 +266,7 @@ export const initGitHubApi = () => {
 
     let githubReleaseJsonStr = null;
     request.on("response", response => {
-      log.info("Received response with status code: ", response.statusCode);
+      logInfo(LogModule.GITHUB, `Received response with status code: ${response.statusCode}`);
       let responseData: Buffer = Buffer.alloc(0);
       response.on("data", (data: Buffer) => {
         responseData = Buffer.concat([responseData, data]);
