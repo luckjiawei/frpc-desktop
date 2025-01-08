@@ -570,7 +570,7 @@ export const reloadFrpcProcess = () => {
       }
     });
   } else {
-    logWarn(
+    logDebug(
       LogModule.FRP_CLIENT,
       "frpc process is not running or has been killed."
     );
@@ -614,7 +614,7 @@ export const stopFrpcProcess = (callback?: () => void) => {
  */
 export const frpcProcessStatus = () => {
   if (!frpcProcess) {
-    logWarn(LogModule.FRP_CLIENT, "frpc process is not running.");
+    logDebug(LogModule.FRP_CLIENT, "frpc process is not running.");
     return false;
   }
   try {
