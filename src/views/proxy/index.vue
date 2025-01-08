@@ -679,7 +679,7 @@ onUnmounted(() => {
                     class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
                     @click="handleCopyAccessAddress(proxy)"
                   >
-                    <IconifyIconOffline icon="content-copy" />
+                    <IconifyIconOffline icon="link" />
                   </a>
                   <el-dropdown size="small">
                     <a
