@@ -241,9 +241,15 @@ export const initGitHubApi = () => {
   const conventMirrorUrl = (mirror: string) => {
     switch (mirror) {
       case "github":
-        return "https://api.github.com";
+        return {
+          api: "https://api.github.com",
+          asset: "https://github.com"
+        };
       default:
-        return "https://api.github.com";
+        return {
+          api: "https://api.github.com",
+          asset: "https://github.com"
+        };
     }
   };
 
@@ -251,7 +257,8 @@ export const initGitHubApi = () => {
    * 获取github上的frp所有版本
    */
   ipcMain.on("github.getFrpVersions", async (event, mirror: string) => {
-    const mirrorUrl = conventMirrorUrl(mirror);
+    const { api } = conventMirrorUrl(mirror);
+    const mirrorUrl = api;
     log.info("Requesting mirror URL: ", mirrorUrl);
     const request = net.request({
       method: "get",
@@ -307,10 +314,14 @@ export const initGitHubApi = () => {
     const asset = getAdaptiveAsset(versionId);
     const { browser_download_url } = asset;
 
-    let url = browser_download_url;
-    if (mirror === "ghproxy") {
-      url = "https://mirror.ghproxy.com/" + url;
-    }
+    let url = browser_download_url.replace(
+      "https://github.com",
+      conventMirrorUrl(mirror).asset
+    );
+
+    // if (mirror === "ghproxy") {
+    //   url = "https://mirror.ghproxy.com/" + url;
+    // }
 
     logDebug(
       LogModule.GITHUB,
@@ -328,7 +339,9 @@ export const initGitHubApi = () => {
         });
         logDebug(
           LogModule.GITHUB,
-          `Download progress for versionId: ${versionId} is ${progress}%`
+          `Download progress for versionId: ${versionId} is ${
+            progress.percent * 100
+          }%`
         );
       },
       onCompleted: () => {
