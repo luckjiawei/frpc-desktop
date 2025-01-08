@@ -5,6 +5,7 @@ import { genIniConfig, genTomlConfig, stopFrpcProcess } from "./frpc";
 import { clearProxy, insertProxy, listProxy } from "../storage/proxy";
 import path from "path";
 import fs from "fs";
+import { logDebug, logError, logInfo, LogModule, logWarn } from "../utils/log";
 
 const log = require("electron-log");
 const toml = require("@iarna/toml");
@@ -12,14 +13,18 @@ const { v4: uuidv4 } = require("uuid");
 
 export const initConfigApi = win => {
   ipcMain.on("config.saveConfig", async (event, args) => {
+    logInfo(LogModule.APP, "Attempting to save configuration.");
     saveConfig(args, (err, numberOfUpdated, upsert) => {
       if (!err) {
         const start = args.systemSelfStart || false;
-        log.info("开启自启状态", start);
+        logDebug(LogModule.APP, "Startup status set to: " + start);
         app.setLoginItemSettings({
           openAtLogin: start, //win
           openAsHidden: start //macOs
         });
+        logInfo(LogModule.APP, "Configuration saved successfully.");
+      } else {
+        logError(LogModule.APP, `Error saving configuration: ${err}`);
       }
       event.reply("Config.saveConfig.hook", {
         err: err,
@@ -30,7 +35,11 @@ export const initConfigApi = win => {
   });
 
   ipcMain.on("config.getConfig", async (event, args) => {
+    logInfo(LogModule.APP, "Requesting configuration.");
     getConfig((err, doc) => {
+      if (err) {
+        logError(LogModule.APP, `Error retrieving configuration: ${err}`);
+      }
       event.reply("Config.getConfig.hook", {
         err: err,
         data: doc
@@ -39,7 +48,11 @@ export const initConfigApi = win => {
   });
 
   ipcMain.on("config.versions", event => {
+    logInfo(LogModule.APP, "Requesting version information.");
     listVersion((err, doc) => {
+      if (err) {
+        logError(LogModule.APP, `Error retrieving version information: ${err}`);
+      }
       event.reply("Config.versions.hook", {
         err: err,
         data: doc
@@ -48,7 +61,11 @@ export const initConfigApi = win => {
   });
 
   ipcMain.on("config.hasConfig", event => {
+    logInfo(LogModule.APP, "Checking if configuration exists.");
     getConfig((err, doc) => {
+      if (err) {
+        logError(LogModule.APP, `Error checking configuration: ${err}`);
+      }
       event.reply("Config.getConfig.hook", {
         err: err,
         data: doc
@@ -57,15 +74,18 @@ export const initConfigApi = win => {
   });
 
   ipcMain.on("config.exportConfig", async (event, args) => {
+    logInfo(LogModule.APP, "Attempting to export configuration.");
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory"]
     });
     const outputDirectory = result.filePaths[0];
     if (!outputDirectory) {
-      // 取消了
+      logWarn(LogModule.APP, "Export canceled by user.");
       return;
     }
-    log.info(`导出目录 ${outputDirectory} 类型：${args}`);
+    log.info(
+      `Exporting configuration to directory ${outputDirectory} with type: ${args}`
+    );
     getConfig((err1, config) => {
       if (!err1 && config) {
         listProxy((err2, proxys) => {
@@ -85,33 +105,44 @@ export const initConfigApi = win => {
               configContent, // 配置文件内容
               { flag: "w" },
               err => {
-                if (!err) {
-                  // callback(filename);
+                if (err) {
+                  logError(
+                    LogModule.APP,
+                    `Error writing configuration file: ${err}`
+                  );
                   event.reply("config.exportConfig.hook", {
                     data: "导出错误",
                     err: err
                   });
+                } else {
+                  logInfo(
+                    LogModule.APP,
+                    "Configuration exported successfully."
+                  );
+                  event.reply("Config.exportConfig.hook", {
+                    data: {
+                      configPath: configPath
+                    }
+                  });
                 }
               }
             );
-            event.reply("Config.exportConfig.hook", {
-              data: {
-                configPath: configPath
-              }
-            });
+          } else {
+            logError(LogModule.APP, `Error listing proxies: ${err2}`);
           }
         });
+      } else {
+        logError(LogModule.APP, `Error retrieving configuration: ${err1}`);
       }
     });
   });
 
   const parseTomlConfig = (tomlPath: string) => {
+    logInfo(LogModule.APP, `Parsing TOML configuration from ${tomlPath}`);
     const importConfigPath = tomlPath;
     const tomlData = fs.readFileSync(importConfigPath, "utf-8");
-    log.info(`读取到配置内容 ${tomlData}`);
+    logInfo(LogModule.APP, "Configuration content read successfully.");
     const sourceConfig = toml.parse(tomlData);
-    // log.info(`解析结果 ${sourceConfig}`);
-    // console.log(sourceConfig, "frpcConfig");
     // 解析config
     const targetConfig: FrpConfig = {
       currentVersion: null,
@@ -180,6 +211,7 @@ export const initConfigApi = win => {
         return rm;
       });
       frpcProxys = [...frpcProxys, ...frpcProxys1];
+      logInfo(LogModule.APP, "Parsed proxies from configuration.");
     }
     // 解析stcp的访问者
     if (sourceConfig?.visitors && sourceConfig.visitors.length > 0) {
@@ -209,17 +241,24 @@ export const initConfigApi = win => {
         return rm;
       });
       frpcProxys = [...frpcProxys, ...frpcProxys2];
+      logInfo(LogModule.APP, "Parsed visitors from configuration.");
     }
     if (targetConfig) {
       clearConfig(() => {
+        logInfo(LogModule.APP, "Clearing existing configuration.");
         saveConfig(targetConfig);
+        logInfo(LogModule.APP, "New configuration saved.");
       });
     }
     if (frpcProxys && frpcProxys.length > 0) {
       clearProxy(() => {
         frpcProxys.forEach(f => {
           insertProxy(f, err => {
-            console.log("插入", f, err);
+            if (err) {
+              logError(LogModule.APP, `Error inserting proxy: ${err}`);
+            } else {
+              logInfo(LogModule.APP, `Inserted proxy: ${JSON.stringify(f)}`);
+            }
           });
         });
       });
@@ -227,6 +266,7 @@ export const initConfigApi = win => {
   };
 
   ipcMain.on("config.importConfig", async (event, args) => {
+    logInfo(LogModule.APP, "Attempting to import configuration.");
     const result = await dialog.showOpenDialog(win, {
       properties: ["openFile"],
       filters: [
@@ -234,17 +274,22 @@ export const initConfigApi = win => {
       ]
     });
     if (result.canceled) {
+      logWarn(LogModule.APP, "Import canceled by user.");
       return;
     } else {
       const filePath = result.filePaths[0];
       const fileExtension = path.extname(filePath); // 获取文件后缀名
-      log.info(`导入文件 ${filePath} ${fileExtension}`);
+      log.info(`Importing file ${filePath} with extension ${fileExtension}`);
       if (fileExtension === ".toml") {
         parseTomlConfig(filePath);
         event.reply("Config.importConfig.hook", {
           success: true
         });
       } else {
+        logError(
+          LogModule.APP,
+          `Import failed, unsupported file format: ${fileExtension}`
+        );
         event.reply("Config.importConfig.hook", {
           success: false,
           data: `导入失败，暂不支持 ${fileExtension} 格式文件`
@@ -254,22 +299,25 @@ export const initConfigApi = win => {
   });
 
   ipcMain.on("config.clearAll", async (event, args) => {
+    logInfo(LogModule.APP, "Clearing all configurations.");
     stopFrpcProcess(() => {
       clearConfig();
       clearProxy();
       clearVersion();
       event.reply("Config.clearAll.hook", {});
+      logInfo(LogModule.APP, "All configurations cleared.");
     });
   });
 
   ipcMain.on("config.openDataFolder", async (event, args) => {
     const userDataPath = app.getPath("userData");
+    logInfo(LogModule.APP, "Attempting to open data folder.");
     shell.openPath(userDataPath).then(errorMessage => {
       if (errorMessage) {
-        console.error("Failed to open Logger:", errorMessage);
+        logError(LogModule.APP, `Failed to open data folder: ${errorMessage}`);
         event.reply("Config.openDataFolder.hook", false);
       } else {
-        console.log("Logger opened successfully");
+        logInfo(LogModule.APP, "Data folder opened successfully.");
         event.reply("Config.openDataFolder.hook", true);
       }
     });

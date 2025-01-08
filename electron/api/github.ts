@@ -12,6 +12,7 @@ const { download } = require("electron-dl");
 const AdmZip = require("adm-zip");
 const log = require("electron-log");
 import frpReleasesJson from "../json/frp-releases.json";
+import { logInfo, logError, LogModule, logDebug, logWarn } from "../utils/log";
 
 const versionRelation = {
   win32_x64: ["window", "amd64"],
@@ -31,23 +32,45 @@ const frpArch = versionRelation[currArch];
 const unTarGZ = (tarGzPath: string, targetPath: string) => {
   const tar = require("tar");
   const unzip = zlib.createGunzip();
-  log.debug(`开始解压tar.gz：${tarGzPath} 目标目录：${targetPath}`);
+  logInfo(
+    LogModule.APP,
+    `Starting to extract tar.gz: ${tarGzPath} to ${targetPath}`
+  );
+
   const readStream = fs.createReadStream(tarGzPath);
   if (!fs.existsSync(unzip)) {
     fs.mkdirSync(targetPath, { recursive: true });
+    logInfo(LogModule.APP, `Created target directory: ${targetPath}`);
   }
-  readStream.pipe(unzip).pipe(
-    tar.extract({
-      cwd: targetPath,
-      filter: filePath => path.basename(filePath) === "frpc"
+
+  readStream.on("error", err => {
+    logError(LogModule.APP, `Error reading tar.gz file: ${err.message}`);
+  });
+
+  readStream
+    .pipe(unzip)
+    .on("error", err => {
+      logError(LogModule.APP, `Error during gunzip: ${err.message}`);
     })
-  );
-  const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
-  log.debug(`解压完成 解压后目录：${frpcPath}`);
-  return frpcPath;
-  // .on("finish", () => {
-  //   console.log("解压完成！");
-  // });
+    .pipe(
+      tar
+        .extract({
+          cwd: targetPath,
+          filter: filePath => path.basename(filePath) === "frpc"
+        })
+        .on("error", err => {
+          logError(LogModule.APP, `Error extracting tar file: ${err.message}`);
+        })
+    )
+    .on("finish", () => {
+      const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
+      logInfo(
+        LogModule.APP,
+        `Extraction completed. Extracted directory: ${frpcPath}`
+      );
+    });
+
+  return path.join("frp", path.basename(tarGzPath, ".tar.gz"));
 };
 
 const unZip = (zipPath: string, targetPath: string) => {
@@ -55,28 +78,37 @@ const unZip = (zipPath: string, targetPath: string) => {
     fs.mkdirSync(path.join(targetPath, path.basename(zipPath, ".zip")), {
       recursive: true
     });
+    logInfo(LogModule.APP, `Created target directory: ${targetPath}`);
+    logInfo(
+      LogModule.APP,
+      `Created directory for zip extraction: ${path.basename(zipPath, ".zip")}`
+    );
   }
-  log.debug(`开始解压zip：${zipPath} 目标目录：${targetPath}`);
-  /**
-   * unzipper解压
-   */
-  // fs.createReadStream(zipPath)
-  //     .pipe(unzipper.Extract({ path: targetPath }))
-  //     // 只解压frpc.exe
-  //     // .pipe(unzipper.ParseOne('frpc'))
-  //     // .pipe(fs.createWriteStream(path.join(targetPath, path.basename(zipPath, ".zip"), "frpc.exe")))
-  //     .on('finish', () => {
-  //         console.log('File extracted successfully.');
-  //     })
-  //     .on('error', (err) => {
-  //         console.error('Error extracting file:', err);
-  //     });
+
+  logDebug(
+    LogModule.APP,
+    `Starting to unzip: ${zipPath} to target directory: ${targetPath}`
+  );
+  logInfo(LogModule.APP, `Starting to extract zip file: ${zipPath}`);
 
   const zip = new AdmZip(zipPath);
-  zip.extractAllTo(targetPath, true); // 第二个参数为 true，表示覆盖已存在的文件
-  const frpcPath = path.join("frp", path.basename(zipPath, ".zip"));
-  log.debug(`解压完成 解压后目录：${frpcPath}`);
-  return frpcPath;
+  try {
+    zip.extractAllTo(targetPath, true); // 第二个参数为 true，表示覆盖已存在的文件
+    const frpcPath = path.join("frp", path.basename(zipPath, ".zip"));
+    logInfo(
+      LogModule.APP,
+      `Extraction completed. Extracted directory: ${frpcPath}`
+    );
+    logDebug(
+      LogModule.APP,
+      `Unzip completed. Extracted directory: ${frpcPath}`
+    );
+    return frpcPath;
+  } catch (error) {
+    logError(LogModule.APP, `Error extracting zip file: ${error.message}`);
+  }
+
+  return null;
 };
 
 export const initGitHubApi = () => {
@@ -84,40 +116,68 @@ export const initGitHubApi = () => {
   let versions: FrpVersion[] = [];
 
   const getVersion = versionId => {
-    return versions.find(f => f.id === versionId);
+    logDebug(
+      LogModule.GITHUB,
+      `Attempting to get version with ID: ${versionId}`
+    );
+    const version = versions.find(f => f.id === versionId);
+    if (version) {
+      logInfo(LogModule.GITHUB, `Version found: ${JSON.stringify(version)}`);
+    } else {
+      logWarn(LogModule.GITHUB, `No version found for ID: ${versionId}`);
+    }
+    return version;
   };
 
   const getAdaptiveAsset = versionId => {
     const { assets } = getVersion(versionId);
+    if (!assets || assets.length === 0) {
+      logWarn(LogModule.GITHUB, `No assets found for version ID: ${versionId}`);
+      return null;
+    }
+
     const asset = assets.find(f => {
-      // const a = versionRelation[currArch]
       const a = frpArch;
       if (a) {
         const flag = a.every(item => f.name.includes(item));
+        if (flag) {
+          logInfo(
+            LogModule.GITHUB,
+            `Found matching asset: ${f.name} for version ID: ${versionId}`
+          );
+        }
         return flag;
       }
+      logWarn(
+        LogModule.GITHUB,
+        `No architecture match found for asset: ${f.name}`
+      );
       return false;
     });
-    // if (asset) {
-    //   log.info(`找到对应版本 ${asset.name}`);
-    // }
+
+    if (!asset) {
+      logError(
+        LogModule.GITHUB,
+        `No adaptive asset found for version ID: ${versionId}`
+      );
+    }
     return asset;
   };
 
   /**
-   * 格式化字节信息
-   * @param bytes 字节
-   * @param decimals 小数位
+   * Format byte information
+   * @param bytes Bytes
+   * @param decimals Decimal places
    * @returns
    */
   const formatBytes = (bytes: number, decimals: number = 2): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024; // 1 KB = 1024 Bytes
-    const dm = decimals < 0 ? 0 : decimals; // 确保小数位数不小于 0
+    const dm = decimals < 0 ? 0 : decimals; // Ensure decimal places are not less than 0
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
 
-    const i = Math.floor(Math.log(bytes) / Math.log(k)); // 计算单位索引
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]; // 返回格式化的字符串
+    const i = Math.floor(Math.log(bytes) / Math.log(k)); // Calculate unit index
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]; // Return formatted string
   };
 
   /**
@@ -127,8 +187,15 @@ export const initGitHubApi = () => {
    */
   const handleApiResponse = (githubReleaseJsonStr: string) => {
     const downloadPath = path.join(app.getPath("userData"), "download");
+    logInfo(LogModule.GITHUB, "Parsing GitHub release JSON response.");
+
     versions = JSON.parse(githubReleaseJsonStr);
     if (versions) {
+      logInfo(
+        LogModule.GITHUB,
+        "Successfully parsed versions from GitHub response."
+      );
+
       const returnVersionsData = versions
         .filter(f => getAdaptiveAsset(f.id))
         .map(m => {
@@ -143,12 +210,25 @@ export const initGitHubApi = () => {
             m.download_completed = fs.existsSync(absPath);
             m.download_count = download_count;
             m.size = formatBytes(asset.size);
+            logInfo(
+              LogModule.GITHUB,
+              `Asset found: ${asset.name}, download count: ${download_count}`
+            );
+          } else {
+            logWarn(LogModule.GITHUB, `No asset found for version ID: ${m.id}`);
           }
           return m;
         });
-      // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
+      logDebug(
+        LogModule.GITHUB,
+        `Retrieved FRP versions: ${JSON.stringify(returnVersionsData)}`
+      );
       return returnVersionsData;
     } else {
+      logError(
+        LogModule.GITHUB,
+        "Failed to parse versions: No versions found in response."
+      );
       return [];
     }
   };
@@ -172,7 +252,7 @@ export const initGitHubApi = () => {
    */
   ipcMain.on("github.getFrpVersions", async (event, mirror: string) => {
     const mirrorUrl = conventMirrorUrl(mirror);
-    log.info("request mirror Url", mirrorUrl);
+    log.info("Requesting mirror URL: ", mirrorUrl);
     const request = net.request({
       method: "get",
       url: `${mirrorUrl}/repos/fatedier/frp/releases?page=1&per_page=1000`
@@ -180,7 +260,7 @@ export const initGitHubApi = () => {
 
     let githubReleaseJsonStr = null;
     request.on("response", response => {
-      log.info("request mirror Status Code", response.statusCode);
+      log.info("Received response with status code: ", response.statusCode);
       let responseData: Buffer = Buffer.alloc(0);
       response.on("data", (data: Buffer) => {
         responseData = Buffer.concat([responseData, data]);
@@ -188,8 +268,16 @@ export const initGitHubApi = () => {
       response.on("end", () => {
         if (response.statusCode === 200) {
           githubReleaseJsonStr = responseData.toString();
+          logInfo(
+            LogModule.GITHUB,
+            "Successfully retrieved GitHub release data."
+          );
         } else {
-          log.info("use local json", response.statusCode);
+          logWarn(
+            LogModule.GITHUB,
+            "Failed to retrieve data, using local JSON instead. Status code: " +
+              response.statusCode
+          );
           githubReleaseJsonStr = JSON.stringify(frpReleasesJson);
         }
         const versions = handleApiResponse(githubReleaseJsonStr);
@@ -198,7 +286,10 @@ export const initGitHubApi = () => {
     });
 
     request.on("error", error => {
-      log.info("error use local json", error);
+      logError(
+        LogModule.GITHUB,
+        "Error occurred while requesting GitHub releases: " + error
+      );
       githubReleaseJsonStr = JSON.stringify(frpReleasesJson);
       const versions = handleApiResponse(githubReleaseJsonStr);
       event.reply("Download.frpVersionHook", versions);
@@ -221,7 +312,11 @@ export const initGitHubApi = () => {
       url = "https://mirror.ghproxy.com/" + url;
     }
 
-    log.info(`开始下载frp url：${url} asset：${asset.name}`);
+    logDebug(
+      LogModule.GITHUB,
+      `Starting download for versionId: ${versionId}, mirror: ${mirror}, download URL: ${url}`
+    );
+
     // 数据目录
     await download(BrowserWindow.getFocusedWindow(), url, {
       filename: `${asset.name}`,
@@ -231,29 +326,54 @@ export const initGitHubApi = () => {
           id: versionId,
           progress: progress
         });
+        logDebug(
+          LogModule.GITHUB,
+          `Download progress for versionId: ${versionId} is ${progress}%`
+        );
       },
       onCompleted: () => {
         log.info(`frp下载完成 url：${url} asset：${asset.name}`);
+        logInfo(
+          LogModule.GITHUB,
+          `Download completed for versionId: ${versionId}, asset: ${asset.name}`
+        );
+
         const targetPath = path.resolve(
           path.join(app.getPath("userData"), "frp")
         );
         const ext = path.extname(asset.name);
         let frpcVersionPath = "";
-        if (ext === ".zip") {
-          frpcVersionPath = unZip(
-            path.join(
-              path.join(app.getPath("userData"), "download"),
-              `${asset.name}`
-            ),
-            targetPath
-          );
-        } else if (ext === ".gz" && asset.name.includes(".tar.gz")) {
-          frpcVersionPath = unTarGZ(
-            path.join(
-              path.join(app.getPath("userData"), "download"),
-              `${asset.name}`
-            ),
-            targetPath
+
+        try {
+          if (ext === ".zip") {
+            frpcVersionPath = unZip(
+              path.join(
+                path.join(app.getPath("userData"), "download"),
+                `${asset.name}`
+              ),
+              targetPath
+            );
+            logInfo(
+              LogModule.GITHUB,
+              `Unzipped file to path: ${frpcVersionPath}`
+            );
+          } else if (ext === ".gz" && asset.name.includes(".tar.gz")) {
+            frpcVersionPath = unTarGZ(
+              path.join(
+                path.join(app.getPath("userData"), "download"),
+                `${asset.name}`
+              ),
+              targetPath
+            );
+            logInfo(
+              LogModule.GITHUB,
+              `Untarred file to path: ${frpcVersionPath}`
+            );
+          }
+        } catch (error) {
+          logError(
+            LogModule.GITHUB,
+            `Error during extraction: ${error.message}`
           );
         }
 
@@ -264,7 +384,13 @@ export const initGitHubApi = () => {
               event.reply("Config.versions.hook", { err, data: doc });
               event.reply("Download.frpVersionDownloadOnCompleted", versionId);
               version.download_completed = true;
+              logInfo(
+                LogModule.GITHUB,
+                `Version ${versionId} has been inserted successfully.`
+              );
             });
+          } else {
+            logError(LogModule.GITHUB, `Error inserting version: ${err}`);
           }
         });
       }
@@ -276,17 +402,34 @@ export const initGitHubApi = () => {
    */
   ipcMain.on("github.deleteVersion", async (event, args) => {
     const { absPath, id } = args;
+    logDebug(
+      LogModule.GITHUB,
+      `Attempting to delete version with ID: ${id} and path: ${absPath}`
+    );
     if (fs.existsSync(absPath)) {
       deleteVersionById(id, () => {
         fs.unlinkSync(absPath);
+        logInfo(
+          LogModule.GITHUB,
+          `Successfully deleted version with ID: ${id}`
+        );
       });
+    } else {
+      logWarn(
+        LogModule.GITHUB,
+        `Version with ID: ${id} not found at path: ${absPath}`
+      );
     }
     listVersion((err, doc) => {
-      event.reply("Config.versions.hook", { err, data: doc });
-      event.reply("Download.deleteVersion.hook", {
-        err: null,
-        data: "删除成功"
-      });
+      if (err) {
+        logError(LogModule.GITHUB, `Error listing versions: ${err}`);
+      } else {
+        event.reply("Config.versions.hook", { err, data: doc });
+        event.reply("Download.deleteVersion.hook", {
+          err: null,
+          data: "删除成功"
+        });
+      }
     });
   });
 
@@ -294,6 +437,7 @@ export const initGitHubApi = () => {
    * 获取最后版本
    */
   ipcMain.on("github.getFrpcDesktopLastVersions", async event => {
+    logInfo(LogModule.GITHUB, "Requesting the latest version from GitHub.");
     const request = net.request({
       method: "get",
       url: "https://api.github.com/repos/luckjiawei/frpc-desktop/releases/latest"
@@ -304,25 +448,23 @@ export const initGitHubApi = () => {
         responseData = Buffer.concat([responseData, data]);
       });
       response.on("end", () => {
-        versions = JSON.parse(responseData.toString());
-        // const borderContent: Electron.WebContents =
-        //   BrowserWindow.getFocusedWindow().webContents;
-        // const downloadPath = path.join(app.getPath("userData"), "download");
-        // log.info(`开始获取frp版本 当前架构：${currArch} 对应frp架构：${frpArch}`)
-        // const returnVersionsData = versions
-        //     .filter(f => getAdaptiveAsset(f.id))
-        //     .map(m => {
-        //         const asset = getAdaptiveAsset(m.id);
-        //         if (asset) {
-        //             const absPath = `${downloadPath}/${asset.name}`;
-        //             m.absPath = absPath;
-        //             m.download_completed = fs.existsSync(absPath);
-        //         }
-        //         return m;
-        //     });
-        // log.debug(`获取到frp版本：${JSON.stringify(returnVersionsData)}`)
-        event.reply("github.getFrpcDesktopLastVersionsHook", versions);
+        try {
+          versions = JSON.parse(responseData.toString());
+          logInfo(
+            LogModule.GITHUB,
+            "Successfully retrieved the latest version."
+          );
+          event.reply("github.getFrpcDesktopLastVersionsHook", versions);
+        } catch (error) {
+          logError(
+            LogModule.GITHUB,
+            `Error parsing response data: ${error.message}`
+          );
+        }
       });
+    });
+    request.on("error", error => {
+      logError(LogModule.GITHUB, `Request error: ${error.message}`);
     });
     request.end();
   });

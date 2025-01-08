@@ -1,5 +1,5 @@
 import {ipcMain} from "electron";
-import log from "electron-log";
+import { logDebug, logError, logInfo, LogModule, logWarn } from "electron/utils/log";
 
 const {exec, spawn} = require("child_process");
 
@@ -15,19 +15,19 @@ export const initLocalApi = () => {
         : 'netstat -an | grep LISTEN';
 
     ipcMain.on("local.getLocalPorts", async (event, args) => {
-        log.info("开始获取本地端口")
+        logInfo(LogModule.APP, "Starting to retrieve local ports");
         // 执行命令
         exec(command, (error, stdout, stderr) => {
             if (error) {
-                log.error(`getLocalPorts - error ${error.message}`)
+                logError(LogModule.APP, `getLocalPorts - error: ${error.message}`);
                 return;
             }
             if (stderr) {
-                log.error(`getLocalPorts - stderr ${stderr}`)
+                logWarn(LogModule.APP, `getLocalPorts - stderr: ${stderr}`);
                 return;
             }
 
-            log.debug(`sc ${stdout}`)
+            logDebug(LogModule.APP, `Command output: ${stdout}`);
             let ports = [];
             if (stdout) {
                 if (process.platform === 'win32') {
@@ -72,7 +72,6 @@ export const initLocalApi = () => {
                             }
                             return singe;
                         })
-                    // .filter(f => f.indexOf('TCP') > 0 || f.indexOf('UDP') > 0)
 
                 } else if (process.platform === 'linux') {
                     ports = stdout.split('\n')

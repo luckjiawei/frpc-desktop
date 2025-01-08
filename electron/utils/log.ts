@@ -3,10 +3,9 @@ import log from "electron-log";
 export enum LogModule {
   APP = "app",
   FRP_CLIENT = "frpc client",
-  PROXY = "proxy",
-  DOWNLOAD = "download",
-  SETTING = "setting",
-  LOGGER = "logger"
+  LOGGER = "logger",
+  GITHUB = "github",
+  STORAGE = "",
 }
 
 // 设置日志级别
