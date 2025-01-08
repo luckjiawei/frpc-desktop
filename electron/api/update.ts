@@ -2,6 +2,7 @@ import {app, dialog, autoUpdater, BrowserWindow} from "electron";
 
 const log = require('electron-log');
 
+
 export const initUpdaterApi = (win: BrowserWindow) => {
     //更新测试打开
     Object.defineProperty(app, 'isPackaged', {
