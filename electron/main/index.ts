@@ -24,6 +24,7 @@ import { getConfig } from "../storage/config";
 import { initCommonApi } from "../api/common";
 import { initLocalApi } from "../api/local";
 import { logError, logInfo, LogModule } from "../utils/log";
+import { maskSensitiveData } from "../utils/desensitize";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -151,11 +152,7 @@ export const createTray = (config: FrpConfig) => {
     win.show();
   });
 
-  if (config) {
-    if (config.systemStartupConnect) {
-      startFrpWorkerProcess(config);
-    }
-  }
+  logInfo(LogModule.APP, `Tray created successfully.`);
 };
 app.whenReady().then(() => {
   logInfo(
@@ -171,15 +168,23 @@ app.whenReady().then(() => {
       return;
     }
 
-    const { serverAddr, serverPort, authToken, ...sensitiveData } = config;
-    logInfo(LogModule.APP, `Config retrieved: ${JSON.stringify({ ...sensitiveData, serverAddr: '**', serverPort: '**', authToken: '**' })}`);
-
     createWindow(config)
       .then(r => {
         logInfo(LogModule.APP, `Window created successfully.`);
         createTray(config);
-        logInfo(LogModule.APP, `Tray created successfully.`);
 
+        if (config) {
+          logInfo(
+            LogModule.APP,
+            `Config retrieved: ${JSON.stringify(
+              maskSensitiveData(config, ["serverAddr", "serverPort", "authToken", "user", "metaToken"])
+            )}`
+          );
+
+          if (config.systemStartupConnect) {
+            startFrpWorkerProcess(config);
+          }
+        }
         // Initialize APIs
         try {
           initGitHubApi();
