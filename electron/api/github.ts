@@ -344,7 +344,6 @@ export const initGitHubApi = () => {
         );
       },
       onCompleted: () => {
-        log.info(`frp下载完成 url：${url} asset：${asset.name}`);
         logInfo(
           LogModule.GITHUB,
           `Download completed for versionId: ${versionId}, asset: ${asset.name}`

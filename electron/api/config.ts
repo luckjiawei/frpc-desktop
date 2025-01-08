@@ -7,7 +7,6 @@ import path from "path";
 import fs from "fs";
 import { logDebug, logError, logInfo, LogModule, logWarn } from "../utils/log";
 
-const log = require("electron-log");
 const toml = require("@iarna/toml");
 const { v4: uuidv4 } = require("uuid");
 
@@ -83,7 +82,9 @@ export const initConfigApi = win => {
       logWarn(LogModule.APP, "Export canceled by user.");
       return;
     }
-    log.info(
+
+    logInfo(
+      LogModule.APP,
       `Exporting configuration to directory ${outputDirectory} with type: ${args}`
     );
     getConfig((err1, config) => {
@@ -279,7 +280,10 @@ export const initConfigApi = win => {
     } else {
       const filePath = result.filePaths[0];
       const fileExtension = path.extname(filePath); // 获取文件后缀名
-      log.info(`Importing file ${filePath} with extension ${fileExtension}`);
+      logWarn(
+        LogModule.APP,
+        `Importing file ${filePath} with extension ${fileExtension}`
+      );
       if (fileExtension === ".toml") {
         parseTomlConfig(filePath);
         event.reply("Config.importConfig.hook", {

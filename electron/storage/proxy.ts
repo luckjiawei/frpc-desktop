@@ -2,90 +2,147 @@ import Datastore from "nedb";
 import path from "path";
 import { app } from "electron";
 
-const log = require("electron-log");
+import { logInfo, logError, LogModule, logDebug } from "../utils/log";
 
 const proxyDB = new Datastore({
   autoload: true,
   filename: path.join(app.getPath("userData"), "proxy.db")
 });
 
-/**
- * 新增代理
- * @param proxy
- * @param cb
- */
 export const insertProxy = (
   proxy: Proxy,
   cb?: (err: Error | null, document: Proxy) => void
 ) => {
-  log.debug(`新增代理：${JSON.stringify(proxy)}`);
-  proxyDB.insert(proxy, cb);
+  logInfo(LogModule.DB, `Inserting proxy: ${JSON.stringify(proxy)}`);
+  proxyDB.insert(proxy, (err, document) => {
+    if (err) {
+      logError(LogModule.DB, `Error inserting proxy: ${err.message}`);
+    } else {
+      logInfo(
+        LogModule.DB,
+        `Proxy inserted successfully: ${JSON.stringify(document)}`
+      );
+    }
+    if (cb) cb(err, document);
+  });
 };
 
-/**
- * 删除代理
- * @param _id
- * @param cb
- */
 export const deleteProxyById = (
   _id: string,
   cb?: (err: Error | null, n: number) => void
 ) => {
-  log.debug(`删除代理：${_id}`);
-  proxyDB.remove({ _id: _id }, cb);
+  logDebug(`删除代理：${_id}`);
+  logInfo(LogModule.DB, `Deleting proxy with ID: ${_id}`);
+  proxyDB.remove({ _id: _id }, (err, n) => {
+    if (err) {
+      logError(LogModule.DB, `Error deleting proxy: ${err.message}`);
+    } else {
+      logInfo(
+        LogModule.DB,
+        `Proxy deleted successfully. Number of documents removed: ${n}`
+      );
+    }
+    if (cb) cb(err, n);
+  });
 };
 
-/**
- * 修改代理
- */
 export const updateProxyById = (
   proxy: Proxy,
   cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
 ) => {
-  log.debug(`修改代理：${proxy}`);
-  proxyDB.update({ _id: proxy._id }, proxy, {}, cb);
+  logDebug(`修改代理：${proxy}`);
+  logInfo(LogModule.DB, `Updating proxy: ${JSON.stringify(proxy)}`);
+  proxyDB.update(
+    { _id: proxy._id },
+    proxy,
+    {},
+    (err, numberOfUpdated, upsert) => {
+      if (err) {
+        logError(LogModule.DB, `Error updating proxy: ${err.message}`);
+      } else {
+        logInfo(
+          LogModule.DB,
+          `Proxy updated successfully. Updated: ${numberOfUpdated}, Upsert: ${upsert}`
+        );
+      }
+      if (cb) cb(err, numberOfUpdated, upsert);
+    }
+  );
 };
 
-/**
- * 查找
- * @param cb
- */
 export const listProxy = (
   callback: (err: Error | null, documents: Proxy[]) => void
 ) => {
-  proxyDB.find({}, callback);
+  logInfo(LogModule.DB, `Listing all proxies`);
+  proxyDB.find({}, (err, documents) => {
+    if (err) {
+      logError(LogModule.DB, `Error listing proxies: ${err.message}`);
+    } else {
+      logInfo(
+        LogModule.DB,
+        `Proxies listed successfully. Count: ${documents.length}`
+      );
+    }
+    callback(err, documents);
+  });
 };
 
-/**
- * 根据id查询
- * @param id
- * @param callback
- */
 export const getProxyById = (
   id: string,
   callback: (err: Error | null, document: Proxy) => void
 ) => {
-  proxyDB.findOne({ _id: id }, callback);
+  logInfo(LogModule.DB, `Getting proxy by ID: ${id}`);
+  proxyDB.findOne({ _id: id }, (err, document) => {
+    if (err) {
+      logError(LogModule.DB, `Error getting proxy by ID: ${err.message}`);
+    } else {
+      logInfo(
+        LogModule.DB,
+        `Proxy retrieved successfully: ${JSON.stringify(document)}`
+      );
+    }
+    callback(err, document);
+  });
 };
 
-/**
- * 清空代理
- * @param cb
- */
 export const clearProxy = (cb?: (err: Error | null, n: number) => void) => {
-  proxyDB.remove({}, { multi: true }, cb);
+  logInfo(LogModule.DB, `Clearing all proxies`);
+  proxyDB.remove({}, { multi: true }, (err, n) => {
+    if (err) {
+      logError(LogModule.DB, `Error clearing proxies: ${err.message}`);
+    } else {
+      logInfo(
+        LogModule.DB,
+        `Proxies cleared successfully. Number of documents removed: ${n}`
+      );
+    }
+    if (cb) cb(err, n);
+  });
 };
 
-/**
- * 更新代理状态
- * @param id id
- * @param st 状态
- * @param cb 回调
- */
 export const updateProxyStatus = (
   id: string,
   st: boolean,
   cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
 ) => {
-  proxyDB.update({ _id: id }, { $set: { status: st } }, {}, cb);
+  logInfo(LogModule.DB, `Updating proxy status for ID: ${id} to ${st}`);
+  proxyDB.update(
+    { _id: id },
+    { $set: { status: st } },
+    {},
+    (err, numberOfUpdated, upsert) => {
+      if (err) {
+        logError(
+          LogModule.DB,
+          `Error updating proxy status: ${err.message}`
+        );
+      } else {
+        logInfo(
+          LogModule.DB,
+          `Proxy status updated successfully. Updated: ${numberOfUpdated}, Upsert: ${upsert}`
+        );
+      }
+      if (cb) cb(err, numberOfUpdated, upsert);
+    }
+  );
 };

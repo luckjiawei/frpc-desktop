@@ -3,9 +3,8 @@ import log from "electron-log";
 export enum LogModule {
   APP = "app",
   FRP_CLIENT = "frpc client",
-  LOGGER = "logger",
   GITHUB = "github",
-  STORAGE = ""
+  DB = "db"
 }
 
 export const initLog = () => {
