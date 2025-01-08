@@ -178,7 +178,13 @@ app.whenReady().then(() => {
           logInfo(
             LogModule.APP,
             `Config retrieved: ${JSON.stringify(
-              maskSensitiveData(config, ["serverAddr", "serverPort", "authToken", "user", "metaToken"])
+              maskSensitiveData(config, [
+                "serverAddr",
+                "serverPort",
+                "authToken",
+                "user",
+                "metaToken"
+              ])
             )}`
           );
 
@@ -270,7 +276,9 @@ app.on("activate", () => {
 
 app.on("before-quit", () => {
   logInfo(LogModule.APP, `Application is about to quit.`);
-  isQuiting = true;
+  stopFrpcProcess(() => {
+    isQuiting = true;
+  });
 });
 
 ipcMain.handle("open-win", (_, arg) => {
