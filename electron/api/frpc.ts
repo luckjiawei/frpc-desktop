@@ -132,7 +132,7 @@ localPort = ${m.localPort}\n`;
     }
 
     if (rangePort) {
-      toml += `{{- end }}`;
+      toml += `{{- end }}\n`;
     }
     return toml;
   });
@@ -238,46 +238,39 @@ type = "${m.type}"
         ini += `
 local_ip = "${m.localIp}"
 local_port = ${m.localPort}
-remote_port = ${m.remotePort}
-`;
+remote_port = ${m.remotePort}\n`;
         break;
       case "http":
         ini += `
         local_ip = "${m.localIp}"
         local_port = ${m.localPort}
         custom_domains=[${m.customDomains.map(m => `${m}`)}]
-        subdomain="${m.subdomain}"
-        `;
+        subdomain="${m.subdomain}"\n`;
         if (m.basicAuth) {
           ini += `
         httpUser = "${m.httpUser}"
-        httpPassword = "${m.httpPassword}"
-        `;
+        httpPassword = "${m.httpPassword}"\n`;
         }
         break;
       case "https":
         ini += `
 custom_domains=[${m.customDomains.map(m => `${m}`)}]
-subdomain="${m.subdomain}"
-        `;
+subdomain="${m.subdomain}"\n`;
         if (m.basicAuth) {
           ini += `
 httpUser = "${m.httpUser}"
-httpPassword = "${m.httpPassword}"
-        `;
+httpPassword = "${m.httpPassword}"\n`;
         }
         if (m.https2http) {
           ini += `
 plugin = https2http
 plugin_local_addr = ${m.localIp}:${m.localPort}
 plugin_crt_path = ${m.https2httpCaFile}
-plugin_key_path = ${m.https2httpKeyFile}
-        `;
+plugin_key_path = ${m.https2httpKeyFile}\n`;
         } else {
           ini += `
 local_ip = "${m.localIp}"
-local_port = ${m.localPort}
-                  `;
+local_port = ${m.localPort}\n`;
         }
         break;
       case "stcp":
@@ -289,23 +282,20 @@ local_port = ${m.localPort}
 role = visitor
 server_name = "${m.serverName}"
 bind_addr = "${m.bindAddr}"
-bind_port = ${m.bindPort}
-`;
+bind_port = ${m.bindPort}\n`;
           if (m.fallbackTo) {
             ini += `
 fallback_to = ${m.fallbackTo}
-fallback_timeout_ms = ${m.fallbackTimeoutMs || 500}
-            `;
+fallback_timeout_ms = ${m.fallbackTimeoutMs || 500}\n`;
           }
         } else if (m.stcpModel === "visited") {
           // 被访问者
           ini += `
 local_ip = "${m.localIp}"
-local_port = ${m.localPort}`;
+local_port = ${m.localPort}\n`;
         }
         ini += `
-sk="${m.secretKey}"
-`;
+sk="${m.secretKey}"\n`;
         break;
       default:
         break;
@@ -321,19 +311,29 @@ ${
   config.authMethod === "token"
     ? `
 authentication_method = ${config.authMethod}
-token = ${config.authToken}
-`
+token = ${config.authToken}\n`
     : ""
 }
 ${
   config.authMethod === "multiuser"
     ? `
 user = ${config.user}
-meta_token = ${config.metaToken}
-`
+meta_token = ${config.metaToken}\n`
     : ""
 }
 
+${config.transportProtocol ? `protocol = ${config.transportProtocol}` : ""}
+${config.transportPoolCount ? `pool_count = ${config.transportPoolCount}` : ""}
+${
+  config.transportDialServerTimeout
+    ? `dial_server_timeout = ${config.transportDialServerTimeout}`
+    : ""
+}
+${
+  config.transportDialServerKeepalive
+    ? `dial_server_keepalive = ${config.transportDialServerKeepalive}`
+    : ""
+}
 ${
   config.transportHeartbeatInterval
     ? `
@@ -348,6 +348,43 @@ heartbeat_timeout = ${config.transportHeartbeatTimeout}
 `
     : ""
 }
+${config.transportTcpMux ? `transport.tcp_mux = ${config.transportTcpMux}` : ""}
+${
+  config.transportTcpMux && config.transportTcpMuxKeepaliveInterval
+    ? `tcp_mux_keepalive_interval = ${config.transportTcpMuxKeepaliveInterval}`
+    : ""
+}
+${
+  config.tlsConfigEnable && config.tlsConfigCertFile
+    ? `
+tls_cert_file = ${config.tlsConfigCertFile}\n`
+    : ""
+}
+  ${
+    config.tlsConfigEnable && config.tlsConfigKeyFile
+      ? `
+tls_key_file = ${config.tlsConfigKeyFile}\n`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigTrustedCaFile
+      ? `
+tls_trusted_ca_file = ${config.tlsConfigTrustedCaFile}\n`
+      : ""
+  }
+  ${
+    config.tlsConfigEnable && config.tlsConfigServerName
+      ? `
+tls_server_name = ${config.tlsConfigServerName}\n`
+      : ""
+  }
+
+  ${
+    config.proxyConfigEnable
+      ? `
+  http_proxy = "${config.proxyConfigProxyUrl}"\n`
+      : ""
+  }
 
 log_file = "frpc.log"
 log_level = ${config.logLevel}
@@ -356,42 +393,6 @@ admin_addr = 127.0.0.1
 admin_port = ${config.webPort}
 tls_enable = ${config.tlsConfigEnable}
 
-${
-  config.tlsConfigEnable && config.tlsConfigCertFile
-    ? `
-tls_cert_file = ${config.tlsConfigCertFile}
-`
-    : ""
-}
-  ${
-    config.tlsConfigEnable && config.tlsConfigKeyFile
-      ? `
-tls_key_file = ${config.tlsConfigKeyFile}
-`
-      : ""
-  }
-  ${
-    config.tlsConfigEnable && config.tlsConfigTrustedCaFile
-      ? `
-tls_trusted_ca_file = ${config.tlsConfigTrustedCaFile}
-`
-      : ""
-  }
-  ${
-    config.tlsConfigEnable && config.tlsConfigServerName
-      ? `
-tls_server_name = ${config.tlsConfigServerName}
-`
-      : ""
-  }
-
-${
-  config.proxyConfigEnable
-    ? `
-http_proxy = "${config.proxyConfigProxyUrl}"
-`
-    : ""
-}
 
 ${proxyIni.join("")}
     `;
