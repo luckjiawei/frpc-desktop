@@ -36,6 +36,8 @@ import volunteerActivismSharp from "@iconify-icons/material-symbols/volunteer-ac
 import description from "@iconify-icons/material-symbols/description";
 import folderRounded from "@iconify-icons/material-symbols/folder-rounded";
 import link from "@iconify-icons/material-symbols/link";
+import unarchive from "@iconify-icons/material-symbols/unarchive";
+import fileSaveRounded from "@iconify-icons/material-symbols/file-save-rounded";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -72,4 +74,6 @@ addIcon("volunteer-activism-sharp", volunteerActivismSharp);
 addIcon("description", description);
 addIcon("folder-rounded", folderRounded);
 addIcon("link", link);
+addIcon("unarchive", unarchive);
+addIcon("file-save-rounded", fileSaveRounded);
 

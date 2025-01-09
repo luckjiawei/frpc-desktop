@@ -470,10 +470,10 @@ onUnmounted(() => {
         <IconifyIconOffline icon="deviceReset" />
       </el-button>
       <el-button plain type="primary" @click="handleImportConfig">
-        <IconifyIconOffline icon="uploadRounded" />
+        <IconifyIconOffline icon="file-open-rounded" />
       </el-button>
       <el-button plain type="primary" @click="handleShowExportDialog">
-        <IconifyIconOffline icon="downloadRounded" />
+        <IconifyIconOffline icon="file-save-rounded" />
       </el-button>
       <el-button type="primary" @click="handleSubmit">
         <IconifyIconOffline icon="save-rounded" />
