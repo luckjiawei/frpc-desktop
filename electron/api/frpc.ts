@@ -273,8 +273,11 @@ local_ip = "${m.localIp}"
 local_port = ${m.localPort}\n`;
         }
         break;
-      case "stcp":
       case "xtcp":
+        if (m.stcpModel === "visitors") {
+          ini += `keep_tunnel_open = ${m.keepTunnelOpen}\n`;
+        }
+      case "stcp":
       case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
