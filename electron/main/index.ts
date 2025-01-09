@@ -194,7 +194,7 @@ app.whenReady().then(() => {
         }
         // Initialize APIs
         try {
-          initGitHubApi();
+          initGitHubApi(win);
           logInfo(LogModule.APP, `GitHub API initialized.`);
 
           initConfigApi(win);

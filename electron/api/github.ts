@@ -1,6 +1,14 @@
-import electron, { app, BrowserWindow, ipcMain, net, shell } from "electron";
+import electron, {
+  app,
+  dialog,
+  BrowserWindow,
+  ipcMain,
+  net,
+  shell
+} from "electron";
 import {
   deleteVersionById,
+  getVersionById,
   insertVersion,
   listVersion
 } from "../storage/version";
@@ -11,7 +19,10 @@ const zlib = require("zlib");
 const { download } = require("electron-dl");
 const AdmZip = require("adm-zip");
 import frpReleasesJson from "../json/frp-releases.json";
+import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import { logInfo, logError, LogModule, logDebug, logWarn } from "../utils/log";
+import { calculateFileChecksum, formatBytes } from "../utils/file";
+import { el } from "element-plus/es/locale";
 
 const versionRelation = {
   win32_x64: ["window", "amd64"],
@@ -38,7 +49,7 @@ const unTarGZ = (tarGzPath: string, targetPath: string) => {
 
   const readStream = fs.createReadStream(tarGzPath);
   if (!fs.existsSync(unzip)) {
-    fs.mkdirSync(targetPath, { recursive: true });
+    fs.mkdirSync(targetPath, { recursive: true, mode: 0o777 });
     logInfo(LogModule.APP, `Created target directory: ${targetPath}`);
   }
 
@@ -68,7 +79,6 @@ const unTarGZ = (tarGzPath: string, targetPath: string) => {
         `Extraction completed. Extracted directory: ${frpcPath}`
       );
     });
-
   return path.join("frp", path.basename(tarGzPath, ".tar.gz"));
 };
 
@@ -110,26 +120,39 @@ const unZip = (zipPath: string, targetPath: string) => {
   return null;
 };
 
-export const initGitHubApi = () => {
+export const initGitHubApi = win => {
   // 版本
   let versions: FrpVersion[] = [];
 
-  const getVersion = versionId => {
-    logDebug(
-      LogModule.GITHUB,
-      `Attempting to get version with ID: ${versionId}`
-    );
+  const getVersionByGithubVersionId = versionId => {
+    logDebug(LogModule.APP, `Attempting to get version with ID: ${versionId}`);
     const version = versions.find(f => f.id === versionId);
     if (version) {
-      logInfo(LogModule.GITHUB, `Version found: ${JSON.stringify(version)}`);
+      logInfo(LogModule.APP, `Version found: ${JSON.stringify(version)}`);
     } else {
-      logWarn(LogModule.GITHUB, `No version found for ID: ${versionId}`);
+      logWarn(LogModule.APP, `No version found for ID: ${versionId}`);
+    }
+    return version;
+  };
+
+  const getVersionByAssetName = (assetName: string) => {
+    logDebug(
+      LogModule.APP,
+      `Attempting to get version with asset name: ${assetName}`
+    );
+    const version = versions.find(f =>
+      f.assets.some(asset => asset.name === assetName)
+    );
+    if (version) {
+      logInfo(LogModule.APP, `Version found: ${JSON.stringify(version)}`);
+    } else {
+      logWarn(LogModule.APP, `No version found for asset name: ${assetName}`);
     }
     return version;
   };
 
   const getAdaptiveAsset = versionId => {
-    const { assets } = getVersion(versionId);
+    const { assets } = getVersionByGithubVersionId(versionId);
     if (!assets || assets.length === 0) {
       logWarn(LogModule.GITHUB, `No assets found for version ID: ${versionId}`);
       return null;
@@ -164,28 +187,13 @@ export const initGitHubApi = () => {
   };
 
   /**
-   * Format byte information
-   * @param bytes Bytes
-   * @param decimals Decimal places
-   * @returns
-   */
-  const formatBytes = (bytes: number, decimals: number = 2): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024; // 1 KB = 1024 Bytes
-    const dm = decimals < 0 ? 0 : decimals; // Ensure decimal places are not less than 0
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k)); // Calculate unit index
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]; // Return formatted string
-  };
-
-  /**
    * handle github api release json
    * @param githubReleaseJsonStr jsonStr
    * @returns versions
    */
   const handleApiResponse = (githubReleaseJsonStr: string) => {
     const downloadPath = path.join(app.getPath("userData"), "download");
+    const frpPath = path.join(app.getPath("userData"), "frp");
     logInfo(LogModule.GITHUB, "Parsing GitHub release JSON response.");
 
     versions = JSON.parse(githubReleaseJsonStr);
@@ -204,7 +212,10 @@ export const initGitHubApi = () => {
             0
           );
           if (asset) {
-            const absPath = `${downloadPath}/${asset.name}`;
+            const absPath = path.join(
+              frpPath,
+              asset.name.replace(/(\.tar\.gz|\.zip)$/, "")
+            );
             m.absPath = absPath;
             m.download_completed = fs.existsSync(absPath);
             m.download_count = download_count;
@@ -218,10 +229,10 @@ export const initGitHubApi = () => {
           }
           return m;
         });
-      logDebug(
-        LogModule.GITHUB,
-        `Retrieved FRP versions: ${JSON.stringify(returnVersionsData)}`
-      );
+      // logDebug(
+      //   LogModule.GITHUB,
+      //   `Retrieved FRP versions: ${JSON.stringify(returnVersionsData)}`
+      // );
       return returnVersionsData;
     } else {
       logError(
@@ -266,7 +277,10 @@ export const initGitHubApi = () => {
 
     let githubReleaseJsonStr = null;
     request.on("response", response => {
-      logInfo(LogModule.GITHUB, `Received response with status code: ${response.statusCode}`);
+      logInfo(
+        LogModule.GITHUB,
+        `Received response with status code: ${response.statusCode}`
+      );
       let responseData: Buffer = Buffer.alloc(0);
       response.on("data", (data: Buffer) => {
         responseData = Buffer.concat([responseData, data]);
@@ -304,12 +318,50 @@ export const initGitHubApi = () => {
     request.end();
   });
 
+  const decompressFrp = (frpFilename: string, compressedFilePath: string) => {
+    const targetPath = path.resolve(path.join(app.getPath("userData"), "frp"));
+    const ext = path.extname(frpFilename);
+    let frpcVersionPath = "";
+    try {
+      if (ext === ".zip") {
+        unZip(
+          // path.join(
+          //   path.join(app.getPath("userData"), "download"),
+          //   `${frpFilename}`
+          // ),
+          compressedFilePath,
+          targetPath
+        );
+        logInfo(LogModule.APP, `Unzipped file to path: ${frpcVersionPath}`);
+        frpcVersionPath = path.join("frp", path.basename(frpFilename, ".zip"));
+      } else if (ext === ".gz" && frpFilename.includes(".tar.gz")) {
+        unTarGZ(
+          // path.join(
+          //   path.join(app.getPath("userData"), "download"),
+          //   `${frpFilename}`
+          // ),
+          compressedFilePath,
+          targetPath
+        );
+        frpcVersionPath = path.join(
+          "frp",
+          path.basename(frpFilename, ".tar.gz")
+        );
+        logInfo(LogModule.APP, `Untarred file to path: ${frpcVersionPath}`);
+      }
+    } catch (error) {
+      logError(LogModule.APP, `Error during extraction: ${error.message}`);
+    }
+
+    return frpcVersionPath;
+  };
+
   /**
    * 下载请求
    */
   ipcMain.on("github.download", async (event, args) => {
     const { versionId, mirror } = args;
-    const version = getVersion(versionId);
+    const version = getVersionByGithubVersionId(versionId);
     const asset = getAdaptiveAsset(versionId);
     const { browser_download_url } = asset;
 
@@ -318,16 +370,11 @@ export const initGitHubApi = () => {
       conventMirrorUrl(mirror).asset
     );
 
-    // if (mirror === "ghproxy") {
-    //   url = "https://mirror.ghproxy.com/" + url;
-    // }
-
     logDebug(
       LogModule.GITHUB,
       `Starting download for versionId: ${versionId}, mirror: ${mirror}, download URL: ${url}`
     );
 
-    // 数据目录
     await download(BrowserWindow.getFocusedWindow(), url, {
       filename: `${asset.name}`,
       directory: path.join(app.getPath("userData"), "download"),
@@ -349,45 +396,13 @@ export const initGitHubApi = () => {
           `Download completed for versionId: ${versionId}, asset: ${asset.name}`
         );
 
-        const targetPath = path.resolve(
-          path.join(app.getPath("userData"), "frp")
+        const frpcVersionPath = decompressFrp(
+          asset.name,
+          path.join(
+            path.join(app.getPath("userData"), "download"),
+            `${asset.name}`
+          )
         );
-        const ext = path.extname(asset.name);
-        let frpcVersionPath = "";
-
-        try {
-          if (ext === ".zip") {
-            frpcVersionPath = unZip(
-              path.join(
-                path.join(app.getPath("userData"), "download"),
-                `${asset.name}`
-              ),
-              targetPath
-            );
-            logInfo(
-              LogModule.GITHUB,
-              `Unzipped file to path: ${frpcVersionPath}`
-            );
-          } else if (ext === ".gz" && asset.name.includes(".tar.gz")) {
-            frpcVersionPath = unTarGZ(
-              path.join(
-                path.join(app.getPath("userData"), "download"),
-                `${asset.name}`
-              ),
-              targetPath
-            );
-            logInfo(
-              LogModule.GITHUB,
-              `Untarred file to path: ${frpcVersionPath}`
-            );
-          }
-        } catch (error) {
-          logError(
-            LogModule.GITHUB,
-            `Error during extraction: ${error.message}`
-          );
-        }
-
         version["frpcVersionPath"] = frpcVersionPath;
         insertVersion(version, (err, document) => {
           if (!err) {
@@ -418,8 +433,13 @@ export const initGitHubApi = () => {
       `Attempting to delete version with ID: ${id} and path: ${absPath}`
     );
     if (fs.existsSync(absPath)) {
+      // if (process.platform === 'darwin') {
+      //   fs.unlinkSync(absPath.replace(/ /g, '\\ '));
+      // }else{
+      //   fs.unlinkSync(absPath);
+      // }
+      fs.rmSync(absPath, { recursive: true, force: true });
       deleteVersionById(id, () => {
-        fs.unlinkSync(absPath);
         logInfo(
           LogModule.GITHUB,
           `Successfully deleted version with ID: ${id}`
@@ -479,4 +499,94 @@ export const initGitHubApi = () => {
     });
     request.end();
   });
+
+  ipcMain.on(
+    "download.importFrpFile",
+    async (event, filePath: string, targetPath: string) => {
+      const result = await dialog.showOpenDialog(win, {
+        properties: ["openFile"],
+        filters: [
+          { name: "Frp 文件", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+        ]
+      });
+      if (result.canceled) {
+        logWarn(LogModule.APP, "Import canceled by user.");
+        logWarn(LogModule.GITHUB, "User canceled the file import operation.");
+        return;
+      } else {
+        const filePath = result.filePaths[0];
+        // const fileExtension = path.extname(filePath);
+        logInfo(LogModule.APP, `User selected file: ${filePath}`);
+        const checksum = calculateFileChecksum(filePath);
+        logInfo(LogModule.APP, `Calculated checksum for the file: ${checksum}`);
+        const frpName = frpChecksums[checksum];
+        if (frpName) {
+          logInfo(LogModule.APP, `FRP file name found: ${frpName}`);
+          if (frpArch.every(item => frpName.includes(item))) {
+            logInfo(
+              LogModule.APP,
+              `Architecture matches for FRP file: ${frpName}`
+            );
+            const version = getVersionByAssetName(frpName);
+            getVersionById(version.id, (err, existingVersion) => {
+              if (!err && existingVersion) {
+                logInfo(
+                  LogModule.APP,
+                  `Version already exists: ${JSON.stringify(existingVersion)}`
+                );
+                event.reply("Download.importFrpFile.hook", {
+                  success: false,
+                  data: `导入失败，版本已存在`
+                });
+                return; // 终止后续执行
+              }
+
+              const frpcVersionPath = decompressFrp(frpName, filePath);
+              logInfo(
+                LogModule.APP,
+                `Successfully decompressed FRP file: ${frpName} to path: ${frpcVersionPath}`
+              );
+              version["frpcVersionPath"] = frpcVersionPath;
+              insertVersion(version, (err, document) => {
+                if (!err) {
+                  listVersion((err, doc) => {
+                    event.reply("Config.versions.hook", { err, data: doc });
+                    version.download_completed = true;
+                    event.reply("Download.importFrpFile.hook", {
+                      success: true,
+                      data: `导入成功`
+                    });
+                  });
+                } else {
+                  logError(LogModule.APP, `Error inserting version: ${err}`);
+                  event.reply("Download.importFrpFile.hook", {
+                    success: true,
+                    data: `导入失败，未知错误`
+                  });
+                }
+              });
+            });
+          } else {
+            logWarn(
+              LogModule.APP,
+              `Architecture does not match for FRP file: ${frpName}`
+            );
+            event.reply("Download.importFrpFile.hook", {
+              success: false,
+              data: `导入失败，所选 frp 架构与操作系统不符`
+            });
+          }
+        } else {
+          logWarn(
+            LogModule.APP,
+            `No matching FRP file name found for checksum: ${checksum}`
+          );
+          event.reply("Download.importFrpFile.hook", {
+            success: false,
+            data: `导入失败，无法识别文件`
+          });
+        }
+      }
+    }
+  );
 };
