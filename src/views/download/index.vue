@@ -102,11 +102,24 @@ const handleInitDownloadHook = () => {
       handleLoadVersions();
     }
   });
+  ipcRenderer.on("Download.importFrpFile.hook", (event, args) => {
+    const { success, data } = args;
+    console.log(args);
+
+    // if (err) {
+    loading.value++;
+    ElMessage({
+      type: success ? "success" : "error",
+      message: data
+    });
+    handleLoadVersions();
+    // }
+  });
 };
 
 const handleMirrorChange = () => {
   handleLoadVersions();
-}
+};
 
 onMounted(() => {
   handleLoadVersions();
@@ -116,27 +129,43 @@ onMounted(() => {
   // });
 });
 
+const handleImportFrp = () => {
+  ipcRenderer.send("download.importFrpFile");
+};
+
 onUnmounted(() => {
   ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnProgress");
   ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnCompleted");
   ipcRenderer.removeAllListeners("Download.frpVersionHook");
   ipcRenderer.removeAllListeners("Download.deleteVersion.hook");
+  ipcRenderer.removeAllListeners("Download.importFrpFile.hook");
 });
 </script>
 <template>
   <div class="main">
+    <!-- <breadcrumb> -->
     <breadcrumb>
-      <div class="h-full flex items-center justify-center">
-        <span class="text-sm font-bold">下载源： </span>
-        <el-select class="w-40" v-model="currMirror" @change="handleMirrorChange">
-          <el-option
-            v-for="m in mirrors"
-            :label="m.name"
-            :key="m.id"
-            :value="m.id"
-          />
-        </el-select>
+      <div class="flex">
+        <div class="h-full flex items-center justify-center mr-4">
+          <span class="text-sm font-bold">下载源： </span>
+          <el-select
+            class="w-40"
+            v-model="currMirror"
+            @change="handleMirrorChange"
+          >
+            <el-option
+              v-for="m in mirrors"
+              :label="m.name"
+              :key="m.id"
+              :value="m.id"
+            />
+          </el-select>
+        </div>
+        <el-button class="mr-2" type="primary" @click="handleImportFrp">
+          <IconifyIconOffline icon="unarchive" />
+        </el-button>
       </div>
+
       <!--      <div-->
       <!--        class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"-->
       <!--        @click="handleOpenInsert"-->
