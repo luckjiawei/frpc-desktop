@@ -36,6 +36,7 @@ declare global {
         https2http: boolean;
         https2httpCaFile: string;
         https2httpKeyFile: string;
+        keepTunnelOpen: boolean;
     };
 
     /**

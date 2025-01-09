@@ -63,8 +63,7 @@ export const genTomlConfig = (config: FrpConfig, proxys: Proxy[]) => {
         : "proxies"
     }]]
 ${rangePort ? "" : `name = "${m.name}"`}
-type = "${m.type}"
-`;
+type = "${m.type}"\n`;
 
     switch (m.type) {
       case "tcp":
@@ -72,25 +71,25 @@ type = "${m.type}"
         if (rangePort) {
           toml += `name = "${m.name}-{{ $v.First }}"
 localPort = {{ $v.First }}
-remotePort = {{ $v.Second }}`;
+remotePort = {{ $v.Second }}\n`;
         } else {
           toml += `localIP = "${m.localIp}"
 localPort = ${m.localPort}
-remotePort = ${m.remotePort}`;
+remotePort = ${m.remotePort}\n`;
         }
         break;
       case "http":
       case "https":
         const customDomains = m.customDomains.filter(f1 => f1 !== "");
         if (customDomains && customDomains.length > 0) {
-          toml += `customDomains=[${m.customDomains.map(m => `"${m}"`)}]`;
+          toml += `customDomains=[${m.customDomains.map(m => `"${m}"`)}]\n`;
         }
         if (m.subdomain) {
-          toml += `subdomain="${m.subdomain}"`;
+          toml += `subdomain="${m.subdomain}"\n`;
         }
         if (m.basicAuth) {
           toml += `httpUser = "${m.httpUser}"
-httpPassword = "${m.httpPassword}"`;
+httpPassword = "${m.httpPassword}"\n`;
         }
         if (m.https2http) {
           toml += `[proxies.plugin]
@@ -98,32 +97,35 @@ type = "https2http"
 localAddr =  "${m.localIp}:${m.localPort}"
 
 crtPath =  "${m.https2httpCaFile}"
-keyPath = "${m.https2httpKeyFile}"`;
+keyPath = "${m.https2httpKeyFile}"\n`;
         } else {
           toml += `localIP = "${m.localIp}"
-localPort = ${m.localPort}`;
+localPort = ${m.localPort}\n`;
         }
 
         break;
-      case "stcp":
       case "xtcp":
+        if (m.stcpModel === "visitors") {
+          toml += `keepTunnelOpen = ${m.keepTunnelOpen}\n`;
+        }
+      case "stcp":
       case "sudp":
         if (m.stcpModel === "visitors") {
           // 访问者
           toml += `serverName = "${m.serverName}"
 bindAddr = "${m.bindAddr}"
-bindPort = ${m.bindPort}`;
+bindPort = ${m.bindPort}\n`;
           if (m.fallbackTo) {
             toml += `fallbackTo = "${m.fallbackTo}"
-fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}`;
+fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}\n`;
           }
         } else if (m.stcpModel === "visited") {
           // 被访问者
           toml += `localIP = "${m.localIp}"
-localPort = ${m.localPort}`;
+localPort = ${m.localPort}\n`;
         }
-        toml += `secretKey="${m.secretKey}"
-`;
+
+        toml += `secretKey="${m.secretKey}"\n`;
         break;
       default:
         break;

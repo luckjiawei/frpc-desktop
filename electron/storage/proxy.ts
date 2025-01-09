@@ -31,7 +31,6 @@ export const deleteProxyById = (
   _id: string,
   cb?: (err: Error | null, n: number) => void
 ) => {
-  logDebug(`删除代理：${_id}`);
   logInfo(LogModule.DB, `Deleting proxy with ID: ${_id}`);
   proxyDB.remove({ _id: _id }, (err, n) => {
     if (err) {
@@ -50,7 +49,6 @@ export const updateProxyById = (
   proxy: Proxy,
   cb?: (err: Error | null, numberOfUpdated: number, upsert: boolean) => void
 ) => {
-  logDebug(`修改代理：${proxy}`);
   logInfo(LogModule.DB, `Updating proxy: ${JSON.stringify(proxy)}`);
   proxyDB.update(
     { _id: proxy._id },
@@ -132,10 +130,7 @@ export const updateProxyStatus = (
     {},
     (err, numberOfUpdated, upsert) => {
       if (err) {
-        logError(
-          LogModule.DB,
-          `Error updating proxy status: ${err.message}`
-        );
+        logError(LogModule.DB, `Error updating proxy status: ${err.message}`);
       } else {
         logInfo(
           LogModule.DB,

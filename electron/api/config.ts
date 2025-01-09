@@ -207,7 +207,11 @@ export const initConfigApi = win => {
           bindPort: null,
           status: m?.status || true,
           fallbackTo: m?.fallbackTo,
-          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500
+          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500,
+          keepTunnelOpen: m?.keepTunnelOpen || false,
+          https2http: m?.https2http || false,
+          https2httpCaFile: m?.https2httpCaFile || "",
+          https2httpKeyFile: m?.https2httpKeyFile || ""
         };
         return rm;
       });
@@ -237,7 +241,11 @@ export const initConfigApi = win => {
           bindPort: m?.bindPort,
           status: m?.status || true,
           fallbackTo: m?.fallbackTo,
-          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500
+          fallbackTimeoutMs: m?.fallbackTimeoutMs || 500,
+          keepTunnelOpen: m?.keepTunnelOpen || false,
+          https2http: m?.https2http || false,
+          https2httpCaFile: m?.https2httpCaFile || "",
+          https2httpKeyFile: m?.https2httpKeyFile || ""
         };
         return rm;
       });

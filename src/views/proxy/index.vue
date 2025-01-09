@@ -66,7 +66,8 @@ const defaultForm = ref<Proxy>({
   fallbackTimeoutMs: 500,
   https2http: false,
   https2httpCaFile: "",
-  https2httpKeyFile: ""
+  https2httpKeyFile: "",
+  keepTunnelOpen: false
 });
 
 /**
@@ -1417,6 +1418,50 @@ onUnmounted(() => {
                   controls-position="right"
                   v-model="editForm.fallbackTimeoutMs"
                   placeholder="回退超时毫秒"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="保持隧道开启："
+                prop="keepTunnelOpen"
+                :rules="[
+                  {
+                    required: true,
+                    message: '保持隧道开启不能为空',
+                    trigger: 'blur'
+                  }
+                ]"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >keepTunnelOpen</span
+                            >
+                            开启后，即使没有流量通过会保持隧道(即连接)打开。
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      保持隧道开启：
+                    </div>
+                  </div>
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.keepTunnelOpen"
                 />
               </el-form-item>
             </el-col>
