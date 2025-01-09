@@ -128,7 +128,10 @@ export const initGitHubApi = win => {
     logDebug(LogModule.APP, `Attempting to get version with ID: ${versionId}`);
     const version = versions.find(f => f.id === versionId);
     if (version) {
-      logInfo(LogModule.APP, `Version found: ${JSON.stringify(version)}`);
+      logInfo(
+        LogModule.APP,
+        `Version details ID:${version.id}, Name:${version.name}, Published At:${version.published_at}`
+      );
     } else {
       logWarn(LogModule.APP, `No version found for ID: ${versionId}`);
     }
@@ -144,7 +147,10 @@ export const initGitHubApi = win => {
       f.assets.some(asset => asset.name === assetName)
     );
     if (version) {
-      logInfo(LogModule.APP, `Version found: ${JSON.stringify(version)}`);
+      logInfo(
+        LogModule.APP,
+        `Version details ID:${version.id}, Name:${version.name}, Published At:${version.published_at}`
+      );
     } else {
       logWarn(LogModule.APP, `No version found for asset name: ${assetName}`);
     }
@@ -229,10 +235,10 @@ export const initGitHubApi = win => {
           }
           return m;
         });
-      // logDebug(
-      //   LogModule.GITHUB,
-      //   `Retrieved FRP versions: ${JSON.stringify(returnVersionsData)}`
-      // );
+      logDebug(
+        LogModule.GITHUB,
+        `Retrieved FRP versions: ${JSON.stringify(returnVersionsData)}`
+      );
       return returnVersionsData;
     } else {
       logError(
