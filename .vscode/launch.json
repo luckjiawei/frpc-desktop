@@ -7,9 +7,16 @@
     
         {
             "type": "node-terminal",
-            "name": "运行脚本: dev",
+            "name": "dev",
             "request": "launch",
             "command": "npm run dev",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "build electron",
+            "request": "launch",
+            "command": "npm run build:electron",
             "cwd": "${workspaceFolder}"
         }
     ]
