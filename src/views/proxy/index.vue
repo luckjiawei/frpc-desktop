@@ -53,8 +53,10 @@ const defaultForm = ref<Proxy>({
   remotePort: "8080",
   customDomains: [""],
   stcpModel: "visitors",
+  serverUser: "",
   serverName: "",
   secretKey: "",
+  allowUsers: [""],
   bindAddr: "",
   bindPort: null,
   status: true,
@@ -299,6 +301,21 @@ const handleAddDomain = () => {
  */
 const handleDeleteDomain = (index: number) => {
   editForm.value.customDomains.splice(index, 1);
+};
+
+/**
+ * 添加允许访问用户名称
+ */
+ const handleAddUser = () => {
+  editForm.value.allowUsers.push("");
+};
+
+/**
+ * 删除允许访问用户名称
+ * @param index
+ */
+const handleDeleteUser = (index: number) => {
+  editForm.value.allowUsers.splice(index, 1);
 };
 
 /**
@@ -913,6 +930,62 @@ onUnmounted(() => {
               </el-button>
             </el-form-item>
           </el-col>
+          <template v-if="(isStcp || isXtcp || isSudp) && isStcpVisited">
+            <el-col :span="24">
+              <el-form-item
+                v-for="(d, di) in editForm.allowUsers"
+                :key="'domain' + di"
+                :label="di === 0 ? '允许访问的访问者用户名称：' : ''"
+                :prop="`allowUsers.${di}`"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                          >allowUsers</span
+                          >
+                            仅限于开启多用户验证方式后使用
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      允许访问的访问者用户名称：
+                    </div>
+                  </div>
+                </template>
+                <el-input
+                  class="user-input"
+                  placeholder="用户名称"
+                  v-model="editForm.allowUsers[di]"
+                />
+                <el-button
+                  class="ml-[10px]"
+                  type="primary"
+                  plain
+                  @click="handleAddUser"
+                >
+                  <IconifyIconOffline icon="add" />
+                </el-button>
+                <el-button
+                  type="danger"
+                  plain
+                  @click="handleDeleteUser(di)"
+                  :disabled="editForm.allowUsers.length === 1"
+                >
+                  <IconifyIconOffline icon="delete-rounded" />
+                </el-button>
+              </el-form-item>
+            </el-col>
+          </template>
           <template v-if="!(isStcp || isXtcp || isSudp) || isStcpVisited">
             <el-col :span="12">
               <el-form-item label="内网地址：" prop="localIp">
@@ -1249,6 +1322,39 @@ onUnmounted(() => {
           </template>
           <template v-if="isStcpVisitors">
             <el-col :span="24">
+              <el-form-item label="被访问者用户名称：" prop="serverUser">
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                          >serverUser</span
+                          >
+                            仅限于开启多用户验证方式后使用
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      被访问者用户名称：
+                    </div>
+                  </div>
+                </template>
+                <el-input
+                  type="text"
+                  v-model="editForm.serverUser"
+                  placeholder="stcp被访问者用户名称"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
               <el-form-item label="被访问者代理名称：" prop="serverName">
                 <el-input
                   type="text"
@@ -1551,6 +1657,10 @@ onUnmounted(() => {
 }
 
 .domain-input {
+  width: calc(100% - 115px);
+}
+
+.user-input {
   width: calc(100% - 115px);
 }
 
