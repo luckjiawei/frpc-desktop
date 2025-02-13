@@ -11,10 +11,10 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ipcRenderer } from "electron";
 import { clone } from "@/utils/clone";
-import { formatDate, useClipboard, useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
-import router from "@/router";
+import path from "path";
 
 defineComponent({
   name: "Proxy"
@@ -565,10 +565,9 @@ const handleRandomProxyName = () => {
     `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
-import path from "path";
-function normalizePath(filePath: string) {
+const normalizePath = (filePath: string) => {
   return path.normalize(filePath).replace(/\\/g, "/");
-}
+};
 
 const handleSelectFile = (type: number, ext: string[]) => {
   ipcRenderer.invoke("file.selectFile", ext).then(r => {
