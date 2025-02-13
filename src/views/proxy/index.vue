@@ -565,14 +565,19 @@ const handleRandomProxyName = () => {
     `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
+import path from "path";
+function normalizePath(filePath: string) {
+  return path.normalize(filePath).replace(/\\/g, "/");
+}
+
 const handleSelectFile = (type: number, ext: string[]) => {
   ipcRenderer.invoke("file.selectFile", ext).then(r => {
     switch (type) {
       case 1:
-        editForm.value.https2httpCaFile = r[0];
+        editForm.value.https2httpCaFile = normalizePath(r[0]);
         break;
       case 2:
-        editForm.value.https2httpKeyFile = r[0];
+        editForm.value.https2httpKeyFile = normalizePath(r[0]);
         break;
     }
     console.log(r);
