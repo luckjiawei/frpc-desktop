@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { createVNode, defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ipcRenderer } from "electron";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { useDebounce, useDebounceFn } from "@vueuse/core";
+import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 
 defineComponent({
@@ -12,7 +12,7 @@ defineComponent({
 
 const loggerContent = ref('<div class="text-white">暂无日志</div>');
 
-const handleLog2Html = (logContent: string) => {
+const formatLogContent = (logContent: string) => {
   const logs = logContent
     .split("\n")
     .filter(f => f)
@@ -31,20 +31,16 @@ const handleLog2Html = (logContent: string) => {
     });
   return logs.reverse().join("");
 };
-
 const refreshStatus = ref(false);
-
 const logLoading = ref(true);
+// const isWatch = ref(false);
 
 onMounted(() => {
-  console.log('logger mounted')
-  ipcRenderer.send("logger.getLog");
-  ipcRenderer.on("Logger.getLog.hook", (event, args) => {
-    // console.log("日志", args, args.indexOf("\n"));
-    // const logs = args.split("\n");
-    // console.log(logs, "2");
-    if (args) {
-      loggerContent.value = handleLog2Html(args);
+  ipcRenderer.send("log/getFrpLogContent");
+  ipcRenderer.on("log/getFrpLogContent.hook", (event, args) => {
+    const { success, data } = args;
+    if (success) {
+      loggerContent.value = formatLogContent(data);
     }
     logLoading.value = false;
     if (refreshStatus.value) {
@@ -54,18 +50,36 @@ onMounted(() => {
         message: "刷新成功"
       });
     } else {
-      ipcRenderer.send("logger.update");
+      // if (!isWatch.value) {
+      //   // ipcRenderer.send("log/watchFrpcLogContent");
+      //   isWatch.value = true;
+      // }
     }
   });
-  ipcRenderer.on("Logger.update.hook", (event, args) => {
-    console.log("logger update hook", 1);
-    if (args) {
-      loggerContent.value = handleLog2Html(args);
+  ipcRenderer.on("log/watchFrpcLogContent.hook", (event, args) => {
+    console.log(event,'eevent');
+    console.log("watchFrpcLogContent", args);
+    const { success, data } = args;
+    if (success && data) {
+      ipcRenderer.send("log/getFrpLogContent");
     }
+    // if (args) {
+    //   loggerContent.value = formatLogContent(args);
+    // }
   });
-
-  ipcRenderer.on("Logger.openLog.hook", (event, args) => {
-    if (args) {
+  // ipcRenderer.on("log/watchFrpcLogContent.hook", (event, args) => {
+  //   console.log("watchFrpcLogContent", args);
+  //   const { success, data } = args;
+  //   if (success && data) {
+  //     ipcRenderer.send("log/getFrpLogContent");
+  //   }
+  //   // if (args) {
+  //   //   loggerContent.value = formatLogContent(args);
+  //   // }
+  // });
+  ipcRenderer.on("log/openFrpcLogFile.hook", (event, args) => {
+    const { success } = args;
+    if (success) {
       ElMessage({
         type: "success",
         message: "打开日志成功"
@@ -75,7 +89,7 @@ onMounted(() => {
 });
 
 const openLocalLog = useDebounceFn(() => {
-  ipcRenderer.send("logger.openLog");
+  ipcRenderer.send("log/openFrpcLogFile");
 }, 1000);
 
 const refreshLog = useDebounceFn(() => {
@@ -86,13 +100,12 @@ const refreshLog = useDebounceFn(() => {
   // });
   refreshStatus.value = true;
   logLoading.value = true;
-  ipcRenderer.send("logger.getLog");
+  ipcRenderer.send("log/getFrpLogContent");
 }, 300);
 
 onUnmounted(() => {
-  console.log('logger unmounted')
-  ipcRenderer.removeAllListeners("Logger.getLog.hook");
-  ipcRenderer.removeAllListeners("Logger.openLog.hook");
+  ipcRenderer.removeAllListeners("log/getFrpLogContent.hook");
+  ipcRenderer.removeAllListeners("log/openFrpcLogFile.hook");
 });
 </script>
 <template>

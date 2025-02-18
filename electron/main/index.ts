@@ -18,13 +18,13 @@ import {
   startFrpWorkerProcess,
   stopFrpcProcess
 } from "../api/frpc";
-import { initLoggerApi } from "../api/logger";
 import { initFileApi } from "../api/file";
 import { getConfig } from "../storage/config";
 import { initCommonApi } from "../api/common";
 import { initLocalApi } from "../api/local";
 import { initLog, logError, logInfo, LogModule } from "../utils/log";
 import { maskSensitiveData } from "../utils/desensitize";
+import IpcRouterConfigurate from "../core/IpcRouter";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -192,6 +192,8 @@ app.whenReady().then(() => {
             startFrpWorkerProcess(config);
           }
         }
+        const ipcRouterConfig = new IpcRouterConfigurate(win);
+        ipcRouterConfig.init();
         // Initialize APIs
         try {
           initGitHubApi(win);
@@ -206,8 +208,7 @@ app.whenReady().then(() => {
           initFrpcApi();
           logInfo(LogModule.APP, `FRPC API initialized.`);
 
-          initLoggerApi();
-          logInfo(LogModule.APP, `Logger API initialized.`);
+          // logInfo(LogModule.APP, `Logger API initialized.`);
 
           initFileApi();
           logInfo(LogModule.APP, `File API initialized.`);
