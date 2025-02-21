@@ -82,6 +82,7 @@
     "intro.js": "^8.0.0-beta.1",
     "isbinaryfile": "4.0.10",
     "js-base64": "^3.7.7",
+    "snowflakify": "^1.0.5",
     "tar": "^6.2.0",
     "unused-filename": "^4.0.1",
     "uuid": "^10.0.0"

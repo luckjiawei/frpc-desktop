@@ -8,13 +8,11 @@ class LogController extends BaseController {
   constructor(logService: LogService) {
     super();
     this._logService = logService;
-    console.log("logService2", this._logService);
   }
 
-  getFrpLogContent(req: ControllerRequest) {
-    console.log("logService3", this._logService);
+  getFrpLogContent(req: ControllerParam) {
     this._logService.getFrpLogContent().then(data => {
-      req.event.reply(req.reply, success(data));
+      req.event.reply(req.channel, success(data));
     });
   }
 
@@ -25,7 +23,7 @@ class LogController extends BaseController {
   //   });
   // }
 
-  openFrpcLogFile(req: ControllerRequest) {
+  openFrpcLogFile(req: ControllerParam) {
     this._logService.openFrpcLogFile().then(data => {
       if (data) {
         success(null);

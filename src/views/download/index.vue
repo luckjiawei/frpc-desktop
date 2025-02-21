@@ -6,6 +6,8 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import { on, send } from "@/utils/ipcUtils";
+import ipcRouter, { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Download"
@@ -122,8 +124,18 @@ const handleMirrorChange = () => {
 };
 
 onMounted(() => {
-  handleLoadVersions();
-  handleInitDownloadHook();
+
+  send(ipcRouters.VERSION.getVersions);
+
+  on(ipcRouters.VERSION.getVersions, (data) => {
+    console.log('versionData', data);
+    // versions.value = args.map(m => {
+    //   m.published_at = moment(m.published_at).format("YYYY-MM-DD");
+    //   return m as FrpVersion;
+    // }) as Array<FrpVersion>;
+  });
+  // handleLoadVersions();
+  // handleInitDownloadHook();
   // ipcRenderer.invoke("process").then((r: any) => {
   //   console.log(r, "rrr");
   // });

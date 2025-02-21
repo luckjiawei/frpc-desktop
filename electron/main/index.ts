@@ -193,7 +193,6 @@ app.whenReady().then(() => {
           }
         }
         const ipcRouterConfig = new IpcRouterConfigurate(win);
-        ipcRouterConfig.init();
         // Initialize APIs
         try {
           initGitHubApi(win);

@@ -1,28 +1,20 @@
-import electron, {
-  app,
-  dialog,
-  BrowserWindow,
-  ipcMain,
-  net,
-  shell
-} from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net } from "electron";
 import {
   deleteVersionById,
   getVersionById,
   insertVersion,
   listVersion
 } from "../storage/version";
+import frpReleasesJson from "../json/frp-releases.json";
+import frpChecksums from "../json/frp_all_sha256_checksums.json";
+import { logDebug, logError, logInfo, LogModule, logWarn } from "../utils/log";
+// import { calculateFileChecksum, formatBytes } from "../utils/FileUtils";
 
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const { download } = require("electron-dl");
 const AdmZip = require("adm-zip");
-import frpReleasesJson from "../json/frp-releases.json";
-import frpChecksums from "../json/frp_all_sha256_checksums.json";
-import { logInfo, logError, LogModule, logDebug, logWarn } from "../utils/log";
-import { calculateFileChecksum, formatBytes } from "../utils/file";
-import { el } from "element-plus/es/locale";
 
 const versionRelation = {
   win32_x64: ["window", "amd64"],
@@ -311,7 +303,7 @@ export const initGitHubApi = win => {
       });
     });
 
-    request.on("error", error => {
+    request.on("error", jerror => {
       logError(
         LogModule.GITHUB,
         "Error occurred while requesting GitHub releases: " + error

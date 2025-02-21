@@ -2,73 +2,142 @@ import ServerController from "../controller/ServerController";
 import ServerDao from "../dao/ServerDao";
 import ServerService from "../service/ServerService";
 import LogService from "../service/LogService";
+import VersionService from "../service/VersionService";
 import { BrowserWindow, ipcMain } from "electron";
 import LogController from "../controller/LogController";
+import VersionController from "../controller/VersionController";
 import FileService from "../service/FileService";
+import VersionDao from "../dao/VersionDao";
+import GitHubService from "../service/GitHubService";
 
-type IpcRouter = {
-  path: string;
-  reply: string;
-  controller: any;
-  instance: any;
+export const ipcRouters: IpcRouters = {
+  SERVER: {
+    saveConfig: {
+      path: "server/saveConfig",
+      controller: "serverController.saveConfig"
+    },
+    getServerConfig: {
+      path: "server/getServerConfig",
+      controller: "serverController.getServerConfig"
+    }
+  },
+  LOG: {
+    getFrpLogContent: {
+      path: "log/getFrpLogContent",
+      controller: "logController.getFrpLogContent"
+    },
+    openFrpcLogFile: {
+      path: "log/openFrpcLogFile",
+      controller: "logController.openFrpcLogFile"
+    }
+  },
+  VERSION: {
+    getVersions: {
+      path: "version/getVersions",
+      controller: "versionController.getVersions"
+    }
+  }
+};
+
+export const listeners: Listeners = {
+  watchFrpcLog: {
+    listenerMethod: "logService.watchFrpcLog",
+    channel: "log:watchFrpcLog"
+  }
 };
 
 class IpcRouterConfigurate {
   ipcRouters: Array<IpcRouter>;
+  private readonly _beans: Map<string, any> = new Map<string, any>();
   private readonly _win: BrowserWindow;
 
-  constructor(win: BrowserWindow) {
-    this._win = win;
+  /**
+   * initBeans
+   * @private
+   */
+  private initializeBeans() {
     const serverDao = new ServerDao();
+    const versionDao = new VersionDao();
     const fileService = new FileService();
     const serverService = new ServerService(serverDao);
+    const gitHubService = new GitHubService();
+    const versionService = new VersionService(
+      versionDao,
+      fileService,
+      gitHubService
+    );
     const logService = new LogService(fileService);
     const serverController = new ServerController(serverService);
+    const versionController = new VersionController(versionService);
     const logController = new LogController(logService);
 
-    logService.watchFrpcLog(win);
-
-    this.ipcRouters = [
-      {
-        path: "server/test",
-        reply: "server/test.hook",
-        controller: serverController.saveConfig,
-        instance: serverController
-      },
-      {
-        path: "log/getFrpLogContent",
-        reply: "log/getFrpLogContent.hook",
-        controller: logController.getFrpLogContent,
-        instance: logController
-      },
-      // {
-      //   path: "log/watchFrpcLogContent",
-      //   reply: "log/watchFrpcLogContent.hook",
-      //   controller: logController.watchFrpcLogContent,
-      //   instance: logController
-      // },
-      {
-        path: "log/openFrpcLogFile",
-        reply: "log/openFrpcLogFile.hook",
-        controller: logController.openFrpcLogFile,
-        instance: logController
-      }
-    ];
+    this._beans.set("serverDao", serverDao);
+    this._beans.set("versionDao", versionDao);
+    this._beans.set("fileService", fileService);
+    this._beans.set("serverService", serverService);
+    this._beans.set("versionService", versionService);
+    this._beans.set("logService", logService);
+    this._beans.set("serverController", serverController);
+    this._beans.set("versionController", versionController);
+    this._beans.set("logController", logController);
   }
 
-  init() {
-    this.ipcRouters.forEach(router => {
-      ipcMain.on(router.path, (event, args) => {
-        const req: ControllerRequest = {
-          win: this._win,
-          reply: router.reply,
-          event: event,
-          args: args
-        };
-        router.controller.call(router.instance, req);
+  /**
+   * initJob
+   * @private
+   */
+  private initializeListeners() {
+    Object.keys(listeners).forEach(listenerKey => {
+      console.log(listenerKey, "listenerKey", listeners[listenerKey]);
+      const { listenerMethod, channel } = listeners[listenerKey];
+      const [beanName, method] = listenerMethod.split(".");
+      const bean = this._beans.get(beanName);
+      const listenerParam: ListenerParam = {
+        win: this._win,
+        channel: channel,
+        args: []
+      };
+      bean[method].call(bean, listenerParam);
+    });
+    console.log("initialize listeners success");
+    // this._beans.get("logService").watchFrpcLog(this._win);
+  }
+
+  /**
+   * initRouters
+   * @private
+   */
+  private initializeRouters() {
+    Object.keys(ipcRouters).forEach(routerKey => {
+      const routerGroup = ipcRouters[routerKey];
+
+      Object.keys(routerGroup).forEach(method => {
+        const router = routerGroup[method];
+        ipcMain.on(router.path, (event, args) => {
+          const req: ControllerParam = {
+            win: this._win,
+            channel: `${router.path}:hook`,
+            event: event,
+            args: args
+          };
+          const [beanName, method] = router.controller.split(".");
+          const bean = this._beans.get(beanName);
+          bean[method].call(bean, req);
+          // bean[method].call(bean, req);
+        });
       });
     });
-    console.log("ipcRouter init success.");
+  }
+
+  /**
+   * constructor
+   * @param win mainWindows
+   */
+  constructor(win: BrowserWindow) {
+    this._win = win;
+    this.initializeBeans();
+    this.initializeListeners();
+    this.initializeRouters();
   }
 }
 

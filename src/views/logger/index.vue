@@ -1,10 +1,18 @@
 <script lang="ts" setup>
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ipcRenderer } from "electron";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
+import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
+import {
+  on,
+  onListener,
+  removeAllListeners,
+  removeRouterListeners,
+  removeRouterListeners2,
+  send
+} from "@/utils/ipcUtils";
 
 defineComponent({
   name: "Logger"
@@ -36,12 +44,9 @@ const logLoading = ref(true);
 // const isWatch = ref(false);
 
 onMounted(() => {
-  ipcRenderer.send("log/getFrpLogContent");
-  ipcRenderer.on("log/getFrpLogContent.hook", (event, args) => {
-    const { success, data } = args;
-    if (success) {
-      loggerContent.value = formatLogContent(data);
-    }
+  send(ipcRouters.LOG.getFrpLogContent);
+  on(ipcRouters.LOG.getFrpLogContent, data => {
+    loggerContent.value = formatLogContent(data as string);
     logLoading.value = false;
     if (refreshStatus.value) {
       // 刷新逻辑
@@ -49,47 +54,23 @@ onMounted(() => {
         type: "success",
         message: "刷新成功"
       });
-    } else {
-      // if (!isWatch.value) {
-      //   // ipcRenderer.send("log/watchFrpcLogContent");
-      //   isWatch.value = true;
-      // }
+      refreshStatus.value = false;
     }
   });
-  ipcRenderer.on("log/watchFrpcLogContent.hook", (event, args) => {
-    console.log(event,'eevent');
-    console.log("watchFrpcLogContent", args);
-    const { success, data } = args;
-    if (success && data) {
-      ipcRenderer.send("log/getFrpLogContent");
-    }
-    // if (args) {
-    //   loggerContent.value = formatLogContent(args);
-    // }
+  on(ipcRouters.LOG.openFrpcLogFile, () => {
+    ElMessage({
+      type: "success",
+      message: "打开日志成功"
+    });
   });
-  // ipcRenderer.on("log/watchFrpcLogContent.hook", (event, args) => {
-  //   console.log("watchFrpcLogContent", args);
-  //   const { success, data } = args;
-  //   if (success && data) {
-  //     ipcRenderer.send("log/getFrpLogContent");
-  //   }
-  //   // if (args) {
-  //   //   loggerContent.value = formatLogContent(args);
-  //   // }
-  // });
-  ipcRenderer.on("log/openFrpcLogFile.hook", (event, args) => {
-    const { success } = args;
-    if (success) {
-      ElMessage({
-        type: "success",
-        message: "打开日志成功"
-      });
-    }
+  onListener(listeners.watchFrpcLog, data => {
+    console.log("onListener Data", data);
+    send(ipcRouters.LOG.getFrpLogContent);
   });
 });
 
 const openLocalLog = useDebounceFn(() => {
-  ipcRenderer.send("log/openFrpcLogFile");
+  send(ipcRouters.LOG.openFrpcLogFile);
 }, 1000);
 
 const refreshLog = useDebounceFn(() => {
@@ -100,12 +81,12 @@ const refreshLog = useDebounceFn(() => {
   // });
   refreshStatus.value = true;
   logLoading.value = true;
-  ipcRenderer.send("log/getFrpLogContent");
+  send(ipcRouters.LOG.getFrpLogContent);
 }, 300);
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("log/getFrpLogContent.hook");
-  ipcRenderer.removeAllListeners("log/openFrpcLogFile.hook");
+  removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
+  removeRouterListeners2(listeners.watchFrpcLog);
 });
 </script>
 <template>

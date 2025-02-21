@@ -2,7 +2,19 @@ import BaseDao from "./BaseDao";
 
 class ServerDao extends BaseDao<FrpcDesktopServer> {
   constructor() {
-    super("config");
+    super("server");
+  }
+
+  exists(id: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.db.count({ _id: id }, (err, count) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(count > 0);
+        }
+      });
+    });
   }
 }
 

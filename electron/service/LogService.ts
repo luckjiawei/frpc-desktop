@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { app, BrowserWindow } from "electron";
+import { app } from "electron";
 import FileService from "./FileService";
 import { success } from "../utils/response";
 
@@ -27,13 +27,14 @@ class LogService {
     });
   }
 
-  watchFrpcLog(win: BrowserWindow) {
+  watchFrpcLog(listenerParam: ListenerParam) {
     fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
-        win.webContents.send(
-          "log/watchFrpcLogContent.hook",
+        console.log("change", eventType, listenerParam.channel);
+        listenerParam.win.webContents.send(
+          listenerParam.channel,
           success(true)
-        )
+        );
       } else {
       }
     });
@@ -45,7 +46,7 @@ class LogService {
   openFrpcLogFile(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this._fileService
-        .openFile(this._logPath)
+        .openLocalFile(this._logPath)
         .then(result => {
           resolve(result);
         })

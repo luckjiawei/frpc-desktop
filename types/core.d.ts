@@ -4,9 +4,40 @@ interface ApiResponse<T> {
   message: string;
 }
 
-interface ControllerRequest {
+interface ControllerParam {
   win: BrowserWindow;
-  reply: string;
+  channel: string;
   event: Electron.IpcMainEvent;
   args: any[];
 }
+
+interface ListenerParam {
+  win: BrowserWindow;
+  channel: string;
+  args: any[];
+}
+
+type IpcRouter = {
+  path: string;
+  controller: string;
+}
+
+type Listener = {
+  channel: string;
+  listenerMethod: any;
+};
+
+enum IpcRouterKeys {
+  SERVER = "SERVER",
+  LOG = "LOG",
+  VERSION = "VERSION",
+}
+
+type IpcRouters = Record<
+  IpcRouterKeys,
+  {
+    [method: string]: IpcRouter;
+  }
+>;
+
+type Listeners = Record<string, Listener>;

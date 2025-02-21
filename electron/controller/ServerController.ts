@@ -1,17 +1,25 @@
 import BaseController from "./BaseController";
 import ServerService from "../service/ServerService";
-import IpcMainEvent = Electron.IpcMainEvent;
+import { success } from "../utils/response";
 
 class ServerController extends BaseController {
-  serverService: ServerService;
+  private readonly _serverService: ServerService;
 
   constructor(serverService: ServerService) {
     super();
-    this.serverService = serverService;
+    this._serverService = serverService;
   }
 
-  saveConfig(event: IpcMainEvent, ...args: any[]) {
-    console.log("test", args);
+  saveConfig(req: ControllerParam) {
+    console.log("save", req.args);
+  }
+
+  getServerConfig(req: ControllerParam) {
+    console.log("get", req.args);
+    this._serverService.getServerConfig().then(data => {
+      req.event.reply(req.channel, success(data));
+    });
+
   }
 }
 
