@@ -70,13 +70,19 @@
 
 ## 社区
 
-~~微信扫描加入开源项目交流群 广告勿进！！！~~
+广告勿进！！！
 
- <img src="screenshots/wechat-qr.png" alt="二维码" width="200">
+### TG
 
-**微信群超过200人无法扫码进群 关注公众号进群 **
+[https://t.me/+4kziSBL3LxVmYzVl](https://t.me/+4kziSBL3LxVmYzVl)
 
- <img src="screenshots/mp_qr.jpg" alt="公众号二维码" width="200">
+### 微信群
+
+**~~微信扫描加入开源项目交流群~~ 微信群超过200人无法扫码进群 关注公众号进群**
+
+
+
+ <img src="screenshots/wechat-qr.png" alt="二维码" width="200"><img src="screenshots/mp_qr.jpg" alt="公众号二维码" width="200">
 
 ## 演示
 
