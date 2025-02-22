@@ -18,6 +18,10 @@ class PathUtils {
     );
   }
 
+  public static getFrpcFilename() {
+    return SecureUtils.calculateMD5("frpc")
+  }
+
   public static getAppData() {
     return app.getPath("userData");
   }

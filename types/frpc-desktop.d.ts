@@ -1,5 +1,9 @@
 type FrpcDesktopProxy = FrpcProxyConfig & {};
 
+interface BaseEntity {
+  _id: string;
+};
+
 interface FrpcSystemConfiguration {
   launchAtStartup: boolean;
   silentStartup: boolean;
@@ -10,7 +14,7 @@ type FrpcDesktopServer = FrpcCommonConfig & {
   frpcVersion: number;
 };
 
-type FrpcVersion = {
+type FrpcVersion = BaseEntity & {
   githubReleaseId: number;
   githubAssetId: number;
   githubCreatedAt: string;

@@ -35,6 +35,18 @@ export const ipcRouters: IpcRouters = {
     getVersions: {
       path: "version/getVersions",
       controller: "versionController.getVersions"
+    },
+    downloadVersion: {
+      path: "version/downloadVersion",
+      controller: "versionController.downloadFrpVersion"
+    },
+    getDownloadedVersions: {
+      path: "version/getDownloadedVersions",
+      controller: "versionController.getDownloadedVersions"
+    },
+    deleteDownloadedVersion: {
+      path: "version/deleteDownloadedVersion",
+      controller: "versionController.deleteDownloadedVersion"
     }
   }
 };
@@ -68,7 +80,7 @@ class IpcRouterConfigurate {
     );
     const logService = new LogService(fileService);
     const serverController = new ServerController(serverService);
-    const versionController = new VersionController(versionService);
+    const versionController = new VersionController(versionService, versionDao);
     const logController = new LogController(logService);
 
     this._beans.set("serverDao", serverDao);

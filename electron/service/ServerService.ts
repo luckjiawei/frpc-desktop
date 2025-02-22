@@ -8,26 +8,14 @@ class ServerService extends BaseService<FrpcDesktopServer> {
     this._serverDao = serverDao;
   }
 
-  saveServerConfig(frpcServer: FrpcDesktopServer): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this._serverDao
-        .updateById("1", frpcServer)
-        .then(() => {
-          resolve();
-        })
-        .catch(err => reject(err));
-    });
+  async saveServerConfig(
+    frpcServer: FrpcDesktopServer
+  ): Promise<FrpcDesktopServer> {
+    return await this._serverDao.updateById("1", frpcServer);
   }
 
-  getServerConfig(): Promise<FrpcDesktopServer> {
-    return new Promise((resolve, reject) => {
-      this._serverDao
-        .findById("1")
-        .then((frpcServer: FrpcDesktopServer) => {
-          resolve(frpcServer);
-        })
-        .catch(err => reject(err));
-    });
+  async getServerConfig(): Promise<FrpcDesktopServer> {
+    return await this._serverDao.findById("1");
   }
 
   hasServerConfig(): Promise<boolean> {

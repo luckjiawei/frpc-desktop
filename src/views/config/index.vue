@@ -179,7 +179,7 @@ const rules = reactive<FormRules>({
   ]
 });
 
-const versions = ref<Array<FrpVersion>>([]);
+const versions = ref<Array<FrpcVersion>>([]);
 const copyServerConfigBase64 = ref();
 const pasteServerConfigBase64 = ref();
 
@@ -234,12 +234,27 @@ const checkAndResetVersion = () => {
   }
 };
 
-onMounted(() => {
+const handleLoadDownloadedVersion = () => {
+  send(ipcRouters.VERSION.getDownloadedVersions);
+};
+
+const handleLoadSavedConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
+};
+
+onMounted(() => {
+  handleLoadDownloadedVersion();
+  handleLoadSavedConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
     console.log("data", data);
     loading.value--;
+  });
+
+  on(ipcRouters.VERSION.getDownloadedVersions, data => {
+    console.log("versions", data);
+    versions.value = data;
+    //     checkAndResetVersion();
   });
   // ipcRenderer.send("config.getConfig");
   // handleLoadVersions();
@@ -541,13 +556,13 @@ onUnmounted(() => {
                 >
                   <el-option
                     v-for="v in versions"
-                    :key="v.id"
+                    :key="v.githubReleaseId"
                     :label="v.name"
-                    :value="v.id"
-                  ></el-option>
+                    :value="v.githubReleaseId"
+                  />
                 </el-select>
                 <div class="w-full flex justify-end">
-                  <el-link type="primary" @click="handleLoadVersions">
+                  <el-link type="primary" @click="handleLoadDownloadedVersion">
                     <iconify-icon-offline class="mr-1" icon="refresh-rounded" />
                     手动刷新
                   </el-link>

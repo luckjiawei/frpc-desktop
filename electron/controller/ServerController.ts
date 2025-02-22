@@ -11,7 +11,9 @@ class ServerController extends BaseController {
   }
 
   saveConfig(req: ControllerParam) {
-    console.log("save", req.args);
+    this._serverService.saveServerConfig(req.args).then(() => {
+      req.event.reply(req.channel, success());
+    })
   }
 
   getServerConfig(req: ControllerParam) {

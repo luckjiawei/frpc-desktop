@@ -7,13 +7,13 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { on, send } from "@/utils/ipcUtils";
-import ipcRouter, { ipcRouters } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Download"
 });
 
-const versions = ref<Array<FrpVersion>>([]);
+const versions = ref<Array<FrpcVersion>>([]);
 const loading = ref(1);
 const downloadPercentage = ref(0);
 const downloading = ref<Map<number, number>>(new Map<number, number>());
@@ -28,28 +28,25 @@ const mirrors = ref<Array<GitHubMirror>>([
 /**
  * 获取版本
  */
-const handleLoadVersions = () => {
-  ipcRenderer.send("github.getFrpVersions", currMirror.value);
+const handleLoadAllVersions = () => {
+  send(ipcRouters.VERSION.getVersions);
 };
 
 /**
  * 下载
  * @param version
  */
-const handleDownload = useDebounceFn((version: FrpVersion) => {
-  // console.log(version, currMirror.value);
-  ipcRenderer.send("github.download", {
-    versionId: version.id,
-    mirror: currMirror.value
+const handleDownload = useDebounceFn((version: FrpcVersion) => {
+  send(ipcRouters.VERSION.downloadVersion, {
+    githubReleaseId: version.githubReleaseId
   });
-  downloading.value.set(version.id, 0);
 }, 300);
 
 /**
  * 删除下载
  * @param version
  */
-const handleDeleteVersion = useDebounceFn((version: FrpVersion) => {
+const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
   ElMessageBox.alert(
     `确认要删除 <span class="text-primary font-bold">${version.name} </span>  吗？`,
     "提示",
@@ -60,85 +57,86 @@ const handleDeleteVersion = useDebounceFn((version: FrpVersion) => {
       confirmButtonText: "删除"
     }
   ).then(() => {
-    ipcRenderer.send("github.deleteVersion", {
-      id: version.id,
-      absPath: version.absPath
+    send(ipcRouters.VERSION.deleteDownloadedVersion, {
+      githubReleaseId: version.githubReleaseId
     });
+    // ipcRenderer.send("github.deleteVersion", {
+    //   id: version.id,
+    //   absPath: version.absPath
+    // });
   });
 }, 300);
 
-const handleInitDownloadHook = () => {
-  ipcRenderer.on("Download.frpVersionHook", (event, args) => {
-    loading.value--;
-    versions.value = args.map(m => {
-      m.published_at = moment(m.published_at).format("YYYY-MM-DD");
-      return m as FrpVersion;
-    }) as Array<FrpVersion>;
-    console.log(versions, "versions");
-  });
-  // 进度监听
-  ipcRenderer.on("Download.frpVersionDownloadOnProgress", (event, args) => {
-    const { id, progress } = args;
-    downloading.value.set(
-      id,
-      Number(Number(progress.percent * 100).toFixed(2))
-    );
-  });
-  ipcRenderer.on("Download.frpVersionDownloadOnCompleted", (event, args) => {
-    downloading.value.delete(args);
-    const version: FrpVersion | undefined = versions.value.find(
-      f => f.id === args
-    );
-    if (version) {
-      version.download_completed = true;
-    }
-  });
-  ipcRenderer.on("Download.deleteVersion.hook", (event, args) => {
-    const { err, data } = args;
-    if (!err) {
-      loading.value++;
-      ElMessage({
-        type: "success",
-        message: "删除成功"
-      });
-      handleLoadVersions();
-    }
-  });
-  ipcRenderer.on("Download.importFrpFile.hook", (event, args) => {
-    const { success, data } = args;
-    console.log(args);
-
-    // if (err) {
-    loading.value++;
-    ElMessage({
-      type: success ? "success" : "error",
-      message: data
-    });
-    handleLoadVersions();
-    // }
-  });
-};
+// const handleInitDownloadHook = () => {
+//   ipcRenderer.on("Download.deleteVersion.hook", (event, args) => {
+//     const { err, data } = args;
+//     if (!err) {
+//       loading.value++;
+//       ElMessage({
+//         type: "success",
+//         message: "删除成功"
+//       });
+//       handleLoadVersions();
+//     }
+//   });
+//   ipcRenderer.on("Download.importFrpFile.hook", (event, args) => {
+//     const { success, data } = args;
+//     console.log(args);
+//
+//     // if (err) {
+//     loading.value++;
+//     ElMessage({
+//       type: success ? "success" : "error",
+//       message: data
+//     });
+//     handleLoadVersions();
+//     // }
+//   });
+// };
 
 const handleMirrorChange = () => {
-  handleLoadVersions();
+  handleLoadAllVersions();
 };
 
 onMounted(() => {
+  handleLoadAllVersions();
 
-  send(ipcRouters.VERSION.getVersions);
-
-  on(ipcRouters.VERSION.getVersions, (data) => {
-    console.log('versionData', data);
-    // versions.value = args.map(m => {
-    //   m.published_at = moment(m.published_at).format("YYYY-MM-DD");
-    //   return m as FrpVersion;
-    // }) as Array<FrpVersion>;
+  on(ipcRouters.VERSION.getVersions, data => {
+    console.log("versionData", data);
+    versions.value = data.map(m => {
+      m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
+      return m as FrpcVersion;
+    }) as Array<FrpcVersion>;
+    loading.value--;
   });
-  // handleLoadVersions();
-  // handleInitDownloadHook();
-  // ipcRenderer.invoke("process").then((r: any) => {
-  //   console.log(r, "rrr");
-  // });
+
+  on(ipcRouters.VERSION.downloadVersion, data => {
+    console.log("downloadData", data);
+    const { githubReleaseId, completed, percent } = data;
+    if (completed) {
+      downloading.value.delete(githubReleaseId);
+      const version: FrpcVersion | undefined = versions.value.find(
+        f => f.githubReleaseId === githubReleaseId
+      );
+      if (version) {
+        version.downloaded = true;
+      }
+    } else {
+      downloading.value.set(
+        githubReleaseId,
+        Number(Number(percent * 100).toFixed(2))
+      );
+    }
+  });
+
+  on(ipcRouters.VERSION.deleteDownloadedVersion, () => {
+    loading.value++;
+    ElMessage({
+      type: "success",
+      message: "删除成功"
+    });
+    handleLoadAllVersions();
+  });
 });
 
 const handleImportFrp = () => {
@@ -211,7 +209,7 @@ onUnmounted(() => {
             <!--          </el-col>-->
             <el-col
               v-for="version in versions"
-              :key="version.id"
+              :key="version.githubAssetId"
               :lg="6"
               :md="8"
               :sm="12"
@@ -235,19 +233,19 @@ onUnmounted(() => {
                     <span class="text-primary font-bold"
                       >{{
                         // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
-                        version.download_count
+                        version.versionDownloadCount
                       }}
                     </span>
                   </div>
                   <div class="text-[12px]">
                     发布时间：<span class="text-primary font-bold">{{
                       // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
-                      version.published_at
+                      version.githubCreatedAt
                     }}</span>
                   </div>
                 </div>
                 <div class="right">
-                  <div v-if="version.download_completed">
+                  <div v-if="version.downloaded">
                     <!--                  <span class="text-[12px] text-primary font-bold mr-2"-->
                     <!--                    >已下载</span-->
                     <!--                  >-->
@@ -276,9 +274,12 @@ onUnmounted(() => {
                   </div>
 
                   <template v-else>
-                    <div class="w-32" v-if="downloading.has(version.id)">
+                    <div
+                      class="w-32"
+                      v-if="downloading.has(version.githubReleaseId)"
+                    >
                       <el-progress
-                        :percentage="downloading.get(version.id)"
+                        :percentage="downloading.get(version.githubReleaseId)"
                         :text-inside="false"
                       />
                     </div>

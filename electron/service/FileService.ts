@@ -4,8 +4,9 @@ import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
 import GlobalConstant from "../core/GlobalConstant";
-import { logError, logInfo, LogModule } from "../utils/log";
+
 // import tar from "tar";
+const tar = require("tar");
 
 class FileService {
   constructor() {}
@@ -49,37 +50,40 @@ class FileService {
     // const frpcPath = path.join("frp", path.basename(zipFilePath, zipExt));
   }
 
-  decompressTarGzFile(tarGzPath: string, targetPath: string) {
+  decompressTarGzFile(tarGzPath: string, targetPath: string, finish: Function) {
     // const targetFolder = path.join(targetPath, targetPath);
     const unzip = zlib.createGunzip();
     const readStream = fs.createReadStream(tarGzPath);
-    // if (!fs.existsSync(unzip)) {
-    //   fs.mkdirSync(targetPath, { recursive: true, mode: 0o777 });
-    // }
+    if (!fs.existsSync(targetPath)) {
+      fs.mkdirSync(targetPath, { recursive: true, mode: 0o777 });
+    }
+
     readStream
       .pipe(unzip)
       .on("error", err => {
-        logError(LogModule.APP, `Error during gunzip: ${err.message}`);
+        // logError(LogModule.APP, `Error during gunzip: ${err.message}`);
       })
-      // .pipe(
-      //   tar
-      //     .extract({
-      //       cwd: targetPath,
-      //       filter: filePath => path.basename(filePath) === "frpc"
-      //     })
-      //     .on("error", err => {
-      //       logError(
-      //         LogModule.APP,
-      //         `Error extracting tar file: ${err.message}`
-      //       );
-      //     })
-      // )
+      .pipe(
+        tar
+          .extract({
+            cwd: targetPath,
+            strip: 1,
+            filter: filePath => path.basename(filePath) === "frpc"
+          })
+          .on("error", err => {
+            // logError(
+            //   LogModule.APP,
+            //   `Error extracting tar file: ${err.message}`
+            // );
+          })
+      )
       .on("finish", () => {
-        const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
-        logInfo(
-          LogModule.APP,
-          `Extraction completed. Extracted directory: ${frpcPath}`
-        );
+        finish();
+        // const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
+        // logInfo(
+        //   LogModule.APP,
+        //   `Extraction completed. Extracted directory: ${frpcPath}`
+        // );
       });
   }
 }

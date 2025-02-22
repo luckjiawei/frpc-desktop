@@ -1,8 +1,8 @@
 import { ipcRenderer } from "electron";
 
-export const send = (router: IpcRouter) => {
+export const send = (router: IpcRouter, params?: any) => {
   console.log(router, "send.router");
-  ipcRenderer.send(router.path);
+  ipcRenderer.send(router.path, params);
 };
 
 export const on = (router: IpcRouter, listerHandler: (data: any) => void) => {

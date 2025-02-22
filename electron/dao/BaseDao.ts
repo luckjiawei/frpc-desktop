@@ -1,8 +1,7 @@
 import Datastore from "nedb";
 import path from "path";
-import Snowflakify from "snowflakify";
-import GlobalConstant from "../core/GlobalConstant";
 import PathUtils from "../utils/PathUtils";
+import IdUtils from "../utils/IdUtils";
 
 // interface BaseDaoInterface<T> {
 //   db: Datastore;
@@ -25,10 +24,7 @@ class BaseDao<T> {
   protected readonly db: Datastore;
 
   constructor(dbName: string) {
-    const dbFilename = path.join(
-      PathUtils.getAppData(),
-      `${dbName}-v2.db`
-    );
+    const dbFilename = path.join(PathUtils.getAppData(), `${dbName}-v2.db`);
     this.db = new Datastore({
       autoload: true,
       filename: dbFilename
@@ -83,10 +79,17 @@ class BaseDao<T> {
     });
   }
 
-  //
-  // deleteById(id: string): void {
-  //   return null;
-  // }
+  deleteById(id: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.db.remove({ _id: id }, err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
   //
   // findAll(): T[] {
   //   return null;
@@ -95,6 +98,18 @@ class BaseDao<T> {
   findById(id: string): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.db.findOne({ _id: id }, (err, document) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(document);
+        }
+      });
+    });
+  }
+
+  findAll(): Promise<Array<T>> {
+    return new Promise<Array<T>>((resolve, reject) => {
+      this.db.find({}, (err, document) => {
         if (err) {
           reject(err);
         } else {

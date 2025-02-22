@@ -8,7 +8,7 @@ interface ControllerParam {
   win: BrowserWindow;
   channel: string;
   event: Electron.IpcMainEvent;
-  args: any[];
+  args: any;
 }
 
 interface ListenerParam {

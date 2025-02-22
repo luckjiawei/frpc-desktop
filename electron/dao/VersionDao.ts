@@ -18,7 +18,7 @@ class VersionDao extends BaseDao<FrpcVersion> {
   }
 
   exists(githubReleaseId: number): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise(( resolve, reject) => {
       this.db.count({ githubReleaseId: githubReleaseId }, (err, count) => {
         if (err) {
           reject(err);
