@@ -4,20 +4,21 @@ import GitHubService from "./GitHubService";
 import FileService from "./FileService";
 import frpReleasesJson from "../json/frp-releases.json";
 import { download } from "electron-dl";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, dialog } from "electron";
 import GlobalConstant from "../core/GlobalConstant";
 import path from "path";
 import fs from "fs";
 import SecureUtils from "../utils/SecureUtils";
 import PathUtils from "../utils/PathUtils";
 import FileUtils from "../utils/FileUtils";
+import frpChecksums from "../json/frp_all_sha256_checksums.json";
 
 class VersionService extends BaseService<FrpcVersion> {
   private readonly _versionDao: VersionDao;
   private readonly _fileService: FileService;
   private readonly _gitHubService: GitHubService;
   private readonly _currFrpArch: Array<string>;
-  private versions: Array<FrpcVersion> = [];
+  private _versions: Array<FrpcVersion> = [];
 
   constructor(
     versionDao: VersionDao,
@@ -34,7 +35,7 @@ class VersionService extends BaseService<FrpcVersion> {
 
   downloadFrpVersion(githubReleaseId: number, onProgress: Function) {
     return new Promise((resolve, reject) => {
-      const version = this.versions.find(
+      const version = this._versions.find(
         f => f.githubReleaseId === githubReleaseId
       );
       if (!version) {
@@ -133,8 +134,8 @@ class VersionService extends BaseService<FrpcVersion> {
         .then(async (releases: Array<GithubRelease>) => {
           const versions: Array<FrpcVersion> =
             await this.githubRelease2FrpcVersion(releases);
-          // const versions: Array<FrpcVersion> = (this.versions = versions);
-          this.versions = versions;
+          // const _versions: Array<FrpcVersion> = (this._versions = _versions);
+          this._versions = versions;
           resolve(versions);
         })
         .catch(err => reject(err));
@@ -158,6 +159,10 @@ class VersionService extends BaseService<FrpcVersion> {
   ): Promise<Array<FrpcVersion>> {
     const allVersions = await this._versionDao.findAll();
     return releases
+      .filter(release => {
+        // only support toml version.
+        return release.id > 124395282;
+      })
       .filter(release => {
         return this.findCurrentArchitectureAsset(release.assets);
       })
@@ -196,6 +201,31 @@ class VersionService extends BaseService<FrpcVersion> {
       return fs.existsSync(version.localPath);
     }
     return false;
+  }
+
+  async importLocalFrpcVersion(win: BrowserWindow) {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ["openFile"],
+      filters: [
+        { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+      ]
+    });
+    if (result.canceled) {
+      return;
+    } else {
+      const filePath = result.filePaths[0];
+      const checksum = FileUtils.calculateFileChecksum(filePath);
+      const frpName = frpChecksums[checksum];
+      if (frpName) {
+        if (this._currFrpArch.every(item => frpName.includes(item))) {
+          const version = this.getFrpVersionByAssetName(frpName);
+        }
+      }
+    }
+  }
+
+  getFrpVersionByAssetName(assetName: string) {
+    return this._versions.find(f => f.assetName === assetName);
   }
 }
 

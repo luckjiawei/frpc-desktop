@@ -58,6 +58,24 @@ interface FrpcProxyConfig {
   name: string;
   type: string;
   localIP: string;
-  localPort: number;
-  remotePort: number;
+  localPort: any;
+  remotePort: any;
+  customDomains: string[];
+  locations: string[];
+  hostHeaderRewrite: string;
+  stcpModel: string;
+  serverName: string;
+  secretKey: string;
+  bindAddr: string;
+  bindPort: number;
+  subdomain: string;
+  basicAuth: boolean;
+  httpUser: string;
+  httpPassword: string;
+  fallbackTo: string;
+  fallbackTimeoutMs: number;
+  https2http: boolean;
+  https2httpCaFile: string;
+  https2httpKeyFile: string;
+  keepTunnelOpen: boolean;
 }

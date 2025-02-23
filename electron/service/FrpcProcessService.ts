@@ -1,13 +1,13 @@
 import ServerService from "./ServerService";
 import VersionDao from "../dao/VersionDao";
 import PathUtils from "../utils/PathUtils";
-import { frpcProcess } from "../api/frpc";
 import GlobalConstant from "../core/GlobalConstant";
 import { Notification } from "electron";
+import { logDebug, LogModule } from "../utils/log";
 
 const { exec, spawn } = require("child_process");
 
-class FrpProcessService {
+class FrpcProcessService {
   private readonly _serverService: ServerService;
   private readonly _versionDao: VersionDao;
   private _frpcProcess: any;
@@ -28,6 +28,7 @@ class FrpProcessService {
       config.frpcVersion
     );
     // todo genConfigfile.
+    await this._serverService.genTomlConfig();
     const configPath = "";
     const command = `${PathUtils.getFrpcFilename()} -c ${configPath}`;
     this._frpcProcess = spawn(command, {
@@ -35,11 +36,11 @@ class FrpProcessService {
       shell: true
     });
 
-    frpcProcess.stdout.on("data", data => {
-      // logDebug(LogModule.FRP_CLIENT, `Frpc process output: ${data}`);
+    this._frpcProcess.stdout.on("data", data => {
+      logDebug(LogModule.FRP_CLIENT, `Frpc process output: ${data}`);
     });
 
-    frpcProcess.stdout.on("error", data => {
+    this._frpcProcess.stdout.on("error", data => {
       // logError(LogModule.FRP_CLIENT, `Frpc process error: ${data}`);
       // stopFrpcProcess(() => {});
       this.stopFrpcProcess();
@@ -71,4 +72,4 @@ class FrpProcessService {
   }
 }
 
-export default FrpProcessService;
+export default FrpcProcessService;

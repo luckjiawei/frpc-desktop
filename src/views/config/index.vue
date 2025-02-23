@@ -200,14 +200,11 @@ const handleSubmit = useDebounceFn(() => {
     if (valid) {
       loading.value = 1;
       const data = clone(formData.value);
-      ipcRenderer.send("server/saveConfig", data);
+      send(ipcRouters.SERVER.saveConfig, data);
+      // ipcRenderer.send("server/saveConfig", data);
     }
   });
 }, 300);
-
-const handleLoadVersions = () => {
-  ipcRenderer.send("config.versions");
-};
 
 const handleAuthMethodChange = e => {
   if (e === "multiuser") {
@@ -242,12 +239,14 @@ const handleLoadSavedConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
 };
 
+
 onMounted(() => {
   handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
     console.log("data", data);
+    formData.value = data;
     loading.value--;
   });
 
@@ -255,6 +254,14 @@ onMounted(() => {
     console.log("versions", data);
     versions.value = data;
     //     checkAndResetVersion();
+  });
+
+  on(ipcRouters.SERVER.saveConfig, data => {
+    ElMessage({
+      type: "success",
+      message: "保存成功"
+    });
+    loading.value--;
   });
   // ipcRenderer.send("config.getConfig");
   // handleLoadVersions();

@@ -31,6 +31,8 @@ enum IpcRouterKeys {
   SERVER = "SERVER",
   LOG = "LOG",
   VERSION = "VERSION",
+  LAUNCH = "LAUNCH",
+  PROXY = "PROXY",
 }
 
 type IpcRouters = Record<

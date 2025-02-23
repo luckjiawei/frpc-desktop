@@ -9,6 +9,11 @@ import VersionController from "../controller/VersionController";
 import FileService from "../service/FileService";
 import VersionDao from "../dao/VersionDao";
 import GitHubService from "../service/GitHubService";
+import FrpcProcessService from "../service/FrpcProcessService";
+import LaunchController from "../controller/LaunchController";
+import ProxyDao from "../dao/ProxyDao";
+import ProxyService from "../service/ProxyService";
+import ProxyController from "../controller/ProxyController";
 
 export const ipcRouters: IpcRouters = {
   SERVER: {
@@ -48,6 +53,38 @@ export const ipcRouters: IpcRouters = {
       path: "version/deleteDownloadedVersion",
       controller: "versionController.deleteDownloadedVersion"
     }
+  },
+  LAUNCH: {
+    launch: {
+      path: "launch/launch",
+      controller: "launchController.launch"
+    }
+  },
+  PROXY: {
+    createProxy: {
+      path: "proxy/createProxy",
+      controller: "proxyController.createProxy"
+    },
+    modifyProxy: {
+      path: "proxy/modifyProxy",
+      controller: "proxyController.modifyProxy"
+    },
+    deleteProxy: {
+      path: "proxy/deleteProxy",
+      controller: "proxyController.deleteProxy"
+    },
+    getAllProxies: {
+      path: "proxy/getAllProxies",
+      controller: "proxyController.getAllProxies"
+    },
+    modifyProxyStatus: {
+      path: "proxy/modifyProxyStatus",
+      controller: "proxyController.modifyProxyStatus"
+    },
+    getLocalPorts: {
+      path: "proxy/getLocalPorts",
+      controller: "proxyController.getLocalPorts"
+    }
   }
 };
 
@@ -70,8 +107,9 @@ class IpcRouterConfigurate {
   private initializeBeans() {
     const serverDao = new ServerDao();
     const versionDao = new VersionDao();
+    const proxyDao = new ProxyDao();
     const fileService = new FileService();
-    const serverService = new ServerService(serverDao);
+    const serverService = new ServerService(serverDao, proxyDao);
     const gitHubService = new GitHubService();
     const versionService = new VersionService(
       versionDao,
@@ -79,19 +117,31 @@ class IpcRouterConfigurate {
       gitHubService
     );
     const logService = new LogService(fileService);
-    const serverController = new ServerController(serverService);
+    const frpcProcessService = new FrpcProcessService(
+      serverService,
+      versionDao
+    );
+    const proxyService = new ProxyService(proxyDao);
+    const serverController = new ServerController(serverService, fileService);
     const versionController = new VersionController(versionService, versionDao);
     const logController = new LogController(logService);
+    const launchController = new LaunchController(frpcProcessService);
+    const proxyController = new ProxyController(proxyService, proxyDao);
 
     this._beans.set("serverDao", serverDao);
     this._beans.set("versionDao", versionDao);
+    this._beans.set("proxyDao", proxyDao);
     this._beans.set("fileService", fileService);
     this._beans.set("serverService", serverService);
     this._beans.set("versionService", versionService);
     this._beans.set("logService", logService);
+    this._beans.set("proxyService", proxyService);
+    this._beans.set("frpcProcessService", frpcProcessService);
     this._beans.set("serverController", serverController);
     this._beans.set("versionController", versionController);
     this._beans.set("logController", logController);
+    this._beans.set("launchController", launchController);
+    this._beans.set("proxyController", proxyController);
   }
 
   /**

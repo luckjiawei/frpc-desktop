@@ -5,6 +5,8 @@ import { ipcRenderer } from "electron";
 import { ElMessageBox } from "element-plus";
 import router from "@/router";
 import { useDebounceFn, useIntervalFn } from "@vueuse/core";
+import { send } from "@/utils/ipcUtils";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Home"
@@ -13,7 +15,8 @@ defineComponent({
 const running = ref(false);
 
 const handleStartFrpc = () => {
-  ipcRenderer.send("frpc.start");
+  // ipcRenderer.send("frpc.start");
+  send(ipcRouters.LAUNCH.launch);
 };
 
 const handleStopFrpc = () => {

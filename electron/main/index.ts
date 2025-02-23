@@ -12,7 +12,6 @@ import { release } from "node:os";
 import node_path, { join } from "node:path";
 import { initGitHubApi } from "../api/github";
 import { initConfigApi } from "../api/config";
-import { initProxyApi } from "../api/proxy";
 import {
   initFrpcApi,
   startFrpWorkerProcess,
@@ -21,7 +20,6 @@ import {
 import { initFileApi } from "../api/file";
 import { getConfig } from "../storage/config";
 import { initCommonApi } from "../api/common";
-import { initLocalApi } from "../api/local";
 import { initLog, logError, logInfo, LogModule } from "../utils/log";
 import { maskSensitiveData } from "../utils/desensitize";
 import IpcRouterConfigurate from "../core/IpcRouter";
@@ -201,8 +199,6 @@ app.whenReady().then(() => {
           initConfigApi(win);
           logInfo(LogModule.APP, `Config API initialized.`);
 
-          initProxyApi();
-          logInfo(LogModule.APP, `Proxy API initialized.`);
 
           initFrpcApi();
           logInfo(LogModule.APP, `FRPC API initialized.`);
@@ -215,8 +211,6 @@ app.whenReady().then(() => {
           initCommonApi();
           logInfo(LogModule.APP, `Common API initialized.`);
 
-          initLocalApi();
-          logInfo(LogModule.APP, `Local API initialized.`);
 
           // initUpdaterApi(win);
           logInfo(LogModule.APP, `Updater API initialization skipped.`);

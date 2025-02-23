@@ -1,9 +1,10 @@
-import { shell } from "electron";
+import { dialog, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
 import GlobalConstant from "../core/GlobalConstant";
+
 
 // import tar from "tar";
 const tar = require("tar");
@@ -25,6 +26,18 @@ class FileService {
         .catch(err => {
           reject(err);
         });
+    });
+  }
+
+  openLocalPath(path: string) {
+    return new Promise<boolean>((resolve, reject) => {
+      shell.openPath(path).then(errorMessage => {
+        if (errorMessage) {
+          resolve(false);
+        } else {
+          reject(true);
+        }
+      });
     });
   }
 
@@ -85,6 +98,18 @@ class FileService {
         //   `Extraction completed. Extracted directory: ${frpcPath}`
         // );
       });
+  }
+
+  selectLocalFile(name: string, path: any) {
+    dialog.showOpenDialogSync({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: name,
+          extensions: path
+        }
+      ]
+    });
   }
 }
 

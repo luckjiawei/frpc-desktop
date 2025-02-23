@@ -2,7 +2,7 @@ type FrpcDesktopProxy = FrpcProxyConfig & {};
 
 interface BaseEntity {
   _id: string;
-};
+}
 
 interface FrpcSystemConfiguration {
   launchAtStartup: boolean;
@@ -10,9 +10,11 @@ interface FrpcSystemConfiguration {
   autoConnectOnStartup: boolean;
 }
 
-type FrpcDesktopServer = FrpcCommonConfig & {
-  frpcVersion: number;
-};
+type FrpcDesktopServer = BaseEntity &
+  FrpcCommonConfig & {
+    frpcVersion: number;
+    system: any;
+  };
 
 type FrpcVersion = BaseEntity & {
   githubReleaseId: number;
@@ -30,4 +32,8 @@ type FrpcVersion = BaseEntity & {
 
 type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
   system: FrpcSystemConfiguration;
+};
+
+type FrpcProxy = BaseEntity & FrpcProxyConfig & {
+  status: number; // 0: disable 1: enable
 };

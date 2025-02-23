@@ -62,6 +62,10 @@ class VersionController extends BaseController {
         req.event.reply(req.channel, fail());
       });
   }
+
+  importLocalFrpcVersion (){
+
+  }
 }
 
 export default VersionController;

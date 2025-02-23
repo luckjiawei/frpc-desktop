@@ -15,6 +15,8 @@ import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
 import path from "path";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Proxy"
@@ -23,7 +25,7 @@ defineComponent({
 /**
  * 代理列表
  */
-const proxys = ref<Array<Proxy>>([]);
+const proxys = ref<Array<FrpcProxy>>([]);
 /**
  * loading
  */
@@ -44,11 +46,13 @@ const edit = ref({
   visible: false
 });
 
-const defaultForm = ref<Proxy>({
+const defaultForm: FrpcProxy = {
   _id: "",
+  hostHeaderRewrite: "",
+  locations: [],
   name: "",
   type: "http",
-  localIp: "",
+  localIP: "",
   localPort: "8080",
   remotePort: "8080",
   customDomains: [""],
@@ -57,7 +61,6 @@ const defaultForm = ref<Proxy>({
   secretKey: "",
   bindAddr: "",
   bindPort: null,
-  status: true,
   subdomain: "",
   basicAuth: false,
   httpUser: "",
@@ -67,13 +70,14 @@ const defaultForm = ref<Proxy>({
   https2http: false,
   https2httpCaFile: "",
   https2httpKeyFile: "",
-  keepTunnelOpen: false
-});
+  keepTunnelOpen: false,
+  status: 1
+};
 
 /**
  * 表单内容
  */
-const editForm = ref<Proxy>(defaultForm.value);
+const editForm = ref<FrpcProxy>(defaultForm);
 
 /**
  * 代理类型
@@ -104,7 +108,7 @@ const editFormRules = reactive<FormRules>({
     // }
   ],
   type: [{ required: true, message: "请选择类型", trigger: "blur" }],
-  localIp: [
+  localIP: [
     { required: true, message: "请输入内网地址", trigger: "blur" },
     {
       pattern: /^[\w-]+(\.[\w-]+)+$/,
@@ -247,7 +251,7 @@ const handleRangePort = () => {
  */
 const handleSubmit = async () => {
   if (!editFormRef.value) return;
-  await editFormRef.value.validate(valid => {
+  editFormRef.value.validate(valid => {
     if (valid) {
       if (handleRangePort()) {
         const lc = handleGetPortCount(editForm.value.localPort);
@@ -278,9 +282,9 @@ const handleSubmit = async () => {
       loading.value.form = 1;
       const data = clone(editForm.value);
       if (data._id) {
-        ipcRenderer.send("proxy.updateProxy", data);
+        send(ipcRouters.PROXY.createProxy, data);
       } else {
-        ipcRenderer.send("proxy.insertProxy", data);
+        send(ipcRouters.PROXY.modifyProxy, data);
       }
     }
   });
@@ -305,97 +309,25 @@ const handleDeleteDomain = (index: number) => {
  * 加载代理
  */
 const handleLoadProxys = () => {
-  ipcRenderer.send("proxy.getProxys");
+  send(ipcRouters.PROXY.getAllProxies);
 };
 
 /**
  * 删除代理
  * @param proxy
  */
-const handleDeleteProxy = (proxy: Proxy) => {
-  ipcRenderer.send("proxy.deleteProxyById", proxy._id);
+const handleDeleteProxy = (proxy: FrpcProxy) => {
+  send(ipcRouters.PROXY.deleteProxy, proxy._id);
+  // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
 };
 
 /**
  * 重置表单
  */
 const handleResetForm = () => {
-  editForm.value = defaultForm.value;
+  editForm.value = defaultForm;
 };
 
-/**
- * 初始化回调
- */
-const handleInitHook = () => {
-  const InsertOrUpdateHook = (message: string, args: any) => {
-    loading.value.form--;
-    const { err } = args;
-    if (!err) {
-      ElMessage({
-        type: "success",
-        message: message
-      });
-      handleResetForm();
-      handleLoadProxys();
-      edit.value.visible = false;
-    }
-  };
-
-  ipcRenderer.on("Proxy.insertProxy.hook", (event, args) => {
-    InsertOrUpdateHook("新增成功", args);
-  });
-  ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
-    InsertOrUpdateHook("修改成功", args);
-  });
-
-  ipcRenderer.on("Proxy.updateProxyStatus.hook", (event, args) => {
-    if (args.data > 0) {
-      handleLoadProxys();
-    }
-    console.log("更新结果", args);
-  });
-
-  ipcRenderer.on("local.getLocalPorts.hook", (event, args) => {
-    loading.value.localPorts--;
-    localPorts.value = args.data;
-    console.log("内网端口", localPorts.value);
-  });
-  // ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
-  //   loading.value.form--;
-  //   const { err } = args;
-  //   if (!err) {
-  //     ElMessage({
-  //       type: "success",
-  //       message: "修改成功"
-  //     });
-  //     handleResetForm();
-  //     handleLoadProxys();
-  //     edit.value.visible = false;
-  //   }
-  // });
-  ipcRenderer.on("Proxy.getProxys.hook", (event, args) => {
-    loading.value.list--;
-    const { err, data } = args;
-    if (!err) {
-      data.forEach(f => {
-        if (f.status === null || f.status === undefined) {
-          f.status = true;
-        }
-      });
-      proxys.value = data;
-    }
-  });
-  ipcRenderer.on("Proxy.deleteProxyById.hook", (event, args) => {
-    const { err, data } = args;
-    if (!err) {
-      handleLoadProxys();
-      ElMessage({
-        type: "success",
-        message: "删除成功"
-      });
-    }
-  });
-};
 const handleOpenInsert = () => {
   edit.value = {
     title: "新增代理",
@@ -403,10 +335,10 @@ const handleOpenInsert = () => {
   };
 };
 
-const handleOpenUpdate = (proxy: Proxy) => {
+const handleOpenUpdate = (proxy: FrpcProxy) => {
   editForm.value = clone(proxy);
   if (!editForm.value.fallbackTimeoutMs) {
-    editForm.value.fallbackTimeoutMs = defaultForm.value.fallbackTimeoutMs;
+    editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
   }
   edit.value = {
     title: "修改代理",
@@ -414,17 +346,17 @@ const handleOpenUpdate = (proxy: Proxy) => {
   };
 };
 
-const handleReversalUpdate = (proxy: Proxy) => {
-  console.log("更新", proxy);
-  ipcRenderer.send("proxy.updateProxyStatus", {
-    _id: proxy._id,
-    status: !proxy.status
+const handleReversalUpdate = (proxy: FrpcProxy) => {
+  send(ipcRouters.PROXY.modifyProxyStatus, {
+    id: proxy._id,
+    status: proxy.status === 1 ? 0 : 1
   });
 };
 
 const handleLoadLocalPorts = () => {
   loading.value.localPorts = 1;
-  ipcRenderer.send("local.getLocalPorts");
+  // ipcRenderer.send("local.getLocalPorts");
+  send(ipcRouters.PROXY.getLocalPorts);
 };
 
 const handleSelectLocalPort = useDebounceFn((port: number) => {
@@ -441,7 +373,7 @@ const handleOpenLocalPortDialog = () => {
   handleLoadLocalPorts();
 };
 
-const allowCopyAccessAddress = (proxy: Proxy) => {
+const allowCopyAccessAddress = (proxy: FrpcProxy) => {
   if (
     (proxy.type === "http" || proxy.type === "https") &&
     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
@@ -460,7 +392,7 @@ const allowCopyAccessAddress = (proxy: Proxy) => {
   return true;
 };
 
-const handleCopyAccessAddress = (proxy: Proxy) => {
+const handleCopyAccessAddress = (proxy: FrpcProxy) => {
   if (
     (proxy.type === "http" || proxy.type === "https") &&
     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
@@ -584,26 +516,79 @@ const handleSelectFile = (type: number, ext: string[]) => {
 };
 
 onMounted(() => {
-  handleInitHook();
   handleLoadProxys();
-  ipcRenderer.send("config.getConfig");
-  ipcRenderer.on("Config.getConfig.hook", (event, args) => {
-    const { err, data } = args;
-    if (!err) {
-      if (data) {
-        frpcConfig.value = data;
-      }
-    }
+
+  on(ipcRouters.PROXY.getAllProxies, data => {
+    console.log("allProxies", data);
+    loading.value.list--;
+    proxys.value = data;
   });
+
+  const insertOrUpdateHook = (message: string) => {
+    loading.value.form--;
+    // const { err } = args;
+    // if (!err) {
+    ElMessage({
+      type: "success",
+      message: message
+    });
+    handleResetForm();
+    handleLoadProxys();
+    edit.value.visible = false;
+    // }
+  };
+
+  on(ipcRouters.PROXY.createProxy, data => {
+    console.log("data", data);
+    insertOrUpdateHook("新增成功");
+  });
+
+  on(ipcRouters.PROXY.modifyProxy, data => {
+    console.log("data", data);
+    insertOrUpdateHook("修改成功");
+  });
+
+  on(ipcRouters.PROXY.deleteProxy, () => {
+    handleLoadProxys();
+    ElMessage({
+      type: "success",
+      message: "删除成功"
+    });
+  });
+
+  on(ipcRouters.PROXY.modifyProxyStatus, () => {
+    ElMessage({
+      type: "success",
+      message: "修改成功"
+    });
+    // handleResetForm();
+    handleLoadProxys();
+    // edit.value.visible = false;
+  });
+
+  on(ipcRouters.PROXY.getLocalPorts, data => {
+    loading.value.localPorts--;
+    localPorts.value = data;
+  });
+
+  // ipcRenderer.send("config.getConfig");
+  // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
+  //   const { err, data } = args;
+  //   if (!err) {
+  //     if (data) {
+  //       frpcConfig.value = data;
+  //     }
+  //   }
+  // });
 });
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("Proxy.insertProxy.hook");
-  ipcRenderer.removeAllListeners("Proxy.updateProxy.hook");
-  ipcRenderer.removeAllListeners("Proxy.updateProxyStatus.hook");
-  ipcRenderer.removeAllListeners("Proxy.deleteProxyById.hook");
-  ipcRenderer.removeAllListeners("Proxy.getProxys.hook");
-  ipcRenderer.removeAllListeners("local.getLocalPorts.hook");
+  removeRouterListeners(ipcRouters.PROXY.createProxy);
+  removeRouterListeners(ipcRouters.PROXY.modifyProxy);
+  removeRouterListeners(ipcRouters.PROXY.deleteProxy);
+  removeRouterListeners(ipcRouters.PROXY.getAllProxies);
+  removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
+  removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
 });
 </script>
 <template>
@@ -641,7 +626,7 @@ onUnmounted(() => {
                       <span>{{ proxy.name }}</span>
                     </div>
                     <el-tag
-                      v-if="!proxy.status"
+                      v-if="proxy.status === 0"
                       class="mr-2"
                       type="danger"
                       size="small"
@@ -741,7 +726,7 @@ onUnmounted(() => {
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">内网地址</p>
-                  <p>{{ proxy.localIp }}</p>
+                  <p>{{ proxy.localIP }}</p>
                 </div>
 
                 <div class="text-sm text-center" v-if="proxy.type === 'tcp'">
@@ -919,15 +904,15 @@ onUnmounted(() => {
           </el-col>
           <template v-if="!(isStcp || isXtcp || isSudp) || isStcpVisited">
             <el-col :span="12">
-              <el-form-item label="内网地址：" prop="localIp">
+              <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
-                  v-model="editForm.localIp"
+                  v-model="editForm.localIP"
                   :fetch-suggestions="handleIpFetchSuggestions"
                   clearable
                   placeholder="127.0.0.1"
                 />
                 <!--                <el-input-->
-                <!--                  v-model="editForm.localIp"-->
+                <!--                  v-model="editForm.localIP"-->
                 <!--                  placeholder="127.0.0.1"-->
                 <!--                  clearable-->
                 <!--                />-->

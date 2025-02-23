@@ -18,6 +18,12 @@ class FileUtils {
     hash.update(fileBuffer);
     return hash.digest("hex");
   }
+
+  public static mkdir(path: string) {
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path, { recursive: true, mode: 0o777 });
+    }
+  }
 }
 
 export default FileUtils;
