@@ -115,6 +115,9 @@ localPort = ${m.localPort}\n`;
           toml += `serverName = "${m.serverName}"
 bindAddr = "${m.bindAddr}"
 bindPort = ${m.bindPort}\n`;
+          if (m.serverUser !== "") {
+            toml += `serverUser = "${m.serverUser}"\n`
+          }
           if (m.fallbackTo) {
             toml += `fallbackTo = "${m.fallbackTo}"
 fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}\n`;
@@ -123,6 +126,10 @@ fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}\n`;
           // 被访问者
           toml += `localIP = "${m.localIp}"
 localPort = ${m.localPort}\n`;
+const allowUsers = m.allowUsers.filter(f1 => f1 !== "");
+          if (allowUsers && allowUsers.length > 0) {
+            toml += `allowUsers = [${m.allowUsers.map(m => `"${m}"`)}]\n`;
+          }
         }
 
         toml += `secretKey="${m.secretKey}"\n`;
@@ -283,6 +290,7 @@ local_port = ${m.localPort}\n`;
           // 访问者
           ini += `
 role = visitor
+server_user = "${m.serverUser}"
 server_name = "${m.serverName}"
 bind_addr = "${m.bindAddr}"
 bind_port = ${m.bindPort}\n`;
@@ -294,6 +302,7 @@ fallback_timeout_ms = ${m.fallbackTimeoutMs || 500}\n`;
         } else if (m.stcpModel === "visited") {
           // 被访问者
           ini += `
+allow_users = ${m.allowUsers.map(m => `${m}`)}
 local_ip = "${m.localIp}"
 local_port = ${m.localPort}\n`;
         }

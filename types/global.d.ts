@@ -22,8 +22,10 @@ declare global {
         remotePort: string;
         customDomains: string[];
         stcpModel: string;
+        serverUser: string;
         serverName: string;
         secretKey: string;
+        allowUsers: string[];
         bindAddr: string;
         bindPort: number;
         status: boolean;
