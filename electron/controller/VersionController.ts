@@ -63,8 +63,15 @@ class VersionController extends BaseController {
       });
   }
 
-  importLocalFrpcVersion (){
-
+  importLocalFrpcVersion(req: ControllerParam) {
+    this._versionService
+      .importLocalFrpcVersion(req.win)
+      .then(data => {
+        req.event.reply(req.channel, success());
+      })
+      .catch(err => {
+        req.event.reply(req.channel, fail());
+      });
   }
 }
 

@@ -1,5 +1,6 @@
 import BaseController from "./BaseController";
 import FrpcProcessService from "../service/FrpcProcessService";
+import { success } from "../utils/response";
 
 class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;
@@ -10,7 +11,20 @@ class LaunchController extends BaseController {
   }
 
   launch(req: ControllerParam) {
-    this._frpcProcessService.startFrpcProcess().then(r => {});
+    this._frpcProcessService.startFrpcProcess().then(r => {
+      req.event.reply(req.channel, success());
+    });
+  }
+
+  terminate(req: ControllerParam) {
+    this._frpcProcessService.stopFrpcProcess().then(r => {
+      req.event.reply(req.channel, success());
+    });
+  }
+
+  getStatus(req: ControllerParam) {
+    const running = this._frpcProcessService.isRunning();
+    req.event.reply(req.channel, success(running));
   }
 }
 

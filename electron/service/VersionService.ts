@@ -63,52 +63,13 @@ class VersionService extends BaseService<FrpcVersion> {
           onProgress(progress);
         },
         onCompleted: () => {
-          const ext = path.extname(version.assetName);
-          if (ext === GlobalConstant.ZIP_EXT) {
-            this._fileService.decompressZipFile(
-              downloadedFilePath,
-              versionFilePath
-            );
-            // todo delete frps and other file.
-          } else if (
-            ext === GlobalConstant.GZ_EXT &&
-            version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
-          ) {
-            this._fileService.decompressTarGzFile(
-              downloadedFilePath,
-              versionFilePath,
-              () => {
-                // rename frpc.
-                const frpcFilePath = path.join(versionFilePath, "frpc");
-                if (fs.existsSync(frpcFilePath)) {
-                  const newFrpcFilePath = path.join(
-                    versionFilePath,
-                    PathUtils.getFrpcFilename()
-                  );
-                  fs.renameSync(frpcFilePath, newFrpcFilePath);
-                }
-                // delete downloaded file.
-                // todo has bug.
-                const downloadedFile = path.join(
-                  PathUtils.getDownloadStoragePath(),
-                  version.assetName
-                );
-                if (fs.existsSync(downloadedFile)) {
-                  fs.rmSync(downloadedFile, { recursive: true, force: true });
-                }
-              }
-            );
-          }
-
-          // todo 2025-02-23 delete downloaded file.
-          version.localPath = versionFilePath;
-          version.downloaded = true;
-          this._versionDao
-            .insert(version)
+          this.decompressFrp(version, downloadedFilePath)
             .then(data => {
               resolve(data);
             })
-            .catch(err => reject(err));
+            .catch(err => {
+              reject(err);
+            });
         }
       });
     });
@@ -219,13 +180,69 @@ class VersionService extends BaseService<FrpcVersion> {
       if (frpName) {
         if (this._currFrpArch.every(item => frpName.includes(item))) {
           const version = this.getFrpVersionByAssetName(frpName);
+          const existsVersion = await this._versionDao.findByGithubReleaseId(
+            version.githubReleaseId
+          );
+          if (existsVersion) {
+            throw new Error("导入失败，版本已存在");
+          }
+          return this.decompressFrp(version, filePath);
+        } else {
+          throw new Error(`导入失败，所选 frp 架构与操作系统不符`);
         }
+      } else {
+        throw new Error("导入失败，无法识别文件");
       }
     }
   }
 
   getFrpVersionByAssetName(assetName: string) {
     return this._versions.find(f => f.assetName === assetName);
+  }
+
+  async decompressFrp(version: FrpcVersion, compressedPath: string) {
+    const versionFilePath = path.join(
+      PathUtils.getVersionStoragePath(),
+      SecureUtils.calculateMD5(version.name)
+    );
+    const ext = path.extname(version.assetName);
+    if (ext === GlobalConstant.ZIP_EXT) {
+      this._fileService.decompressZipFile(compressedPath, versionFilePath);
+      // todo delete frps and other file.
+    } else if (
+      ext === GlobalConstant.GZ_EXT &&
+      version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
+    ) {
+      this._fileService.decompressTarGzFile(
+        compressedPath,
+        versionFilePath,
+        () => {
+          // rename frpc.
+          const frpcFilePath = path.join(versionFilePath, "frpc");
+          if (fs.existsSync(frpcFilePath)) {
+            const newFrpcFilePath = path.join(
+              versionFilePath,
+              PathUtils.getFrpcFilename()
+            );
+            fs.renameSync(frpcFilePath, newFrpcFilePath);
+          }
+          // delete downloaded file.
+          // todo has bug.
+          const downloadedFile = path.join(
+            PathUtils.getDownloadStoragePath(),
+            version.assetName
+          );
+          if (fs.existsSync(downloadedFile)) {
+            fs.rmSync(downloadedFile, { recursive: true, force: true });
+          }
+        }
+      );
+    }
+
+    // todo 2025-02-23 delete downloaded file.
+    version.localPath = versionFilePath;
+    version.downloaded = true;
+    return await this._versionDao.insert(version);
   }
 }
 

@@ -5,7 +5,7 @@ import fs from "fs";
 import PathUtils from "../utils/PathUtils";
 import ProxyDao from "../dao/ProxyDao";
 
-class ServerService extends BaseService<FrpcDesktopServer> {
+class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerDao;
   private readonly _proxyDao: ProxyDao;
   private readonly _serverId: string = "1";
@@ -17,13 +17,13 @@ class ServerService extends BaseService<FrpcDesktopServer> {
   }
 
   async saveServerConfig(
-    frpcServer: FrpcDesktopServer
-  ): Promise<FrpcDesktopServer> {
+    frpcServer: OpenSourceFrpcDesktopServer
+  ): Promise<OpenSourceFrpcDesktopServer> {
     frpcServer._id = this._serverId;
     return await this._serverDao.updateById(this._serverId, frpcServer);
   }
 
-  async getServerConfig(): Promise<FrpcDesktopServer> {
+  async getServerConfig(): Promise<OpenSourceFrpcDesktopServer> {
     return await this._serverDao.findById(this._serverId);
   }
 
@@ -45,23 +45,19 @@ class ServerService extends BaseService<FrpcDesktopServer> {
       .filter(f => f.status === 1)
       .map(proxy => {
         const { _id, status, ...frpProxyConfig } = proxy;
-        return frpProxyConfig
+        return frpProxyConfig;
       });
     const { frpcVersion, _id, system, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
-    const toml = TOML.stringify({ ...frpcConfig, enabledProxies });
-    fs.writeFile(
-      PathUtils.getTomlConfigFilePath(), // 配置文件目录
+    const toml = TOML.stringify({ ...frpcConfig, proxies: enabledProxies });
+    const tomlPath = PathUtils.getTomlConfigFilePath();
+    fs.writeFileSync(
+      tomlPath, // 配置文件目录
       toml, // 配置文件内容
-      { flag: "w" },
-      err => {
-        if (err) {
-        } else {
-          // callback(filename);
-        }
-      }
+      { flag: "w" }
     );
+    return tomlPath;
   }
 }
 

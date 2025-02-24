@@ -199,18 +199,11 @@ app.whenReady().then(() => {
           initConfigApi(win);
           logInfo(LogModule.APP, `Config API initialized.`);
 
-
-          initFrpcApi();
-          logInfo(LogModule.APP, `FRPC API initialized.`);
-
-          // logInfo(LogModule.APP, `Logger API initialized.`);
-
           initFileApi();
           logInfo(LogModule.APP, `File API initialized.`);
 
           initCommonApi();
           logInfo(LogModule.APP, `Common API initialized.`);
-
 
           // initUpdaterApi(win);
           logInfo(LogModule.APP, `Updater API initialization skipped.`);

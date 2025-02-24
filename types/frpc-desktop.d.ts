@@ -13,7 +13,7 @@ interface FrpcSystemConfiguration {
 type FrpcDesktopServer = BaseEntity &
   FrpcCommonConfig & {
     frpcVersion: number;
-    system: any;
+    // system: any;
   };
 
 type FrpcVersion = BaseEntity & {

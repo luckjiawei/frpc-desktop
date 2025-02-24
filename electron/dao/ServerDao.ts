@@ -1,6 +1,6 @@
 import BaseDao from "./BaseDao";
 
-class ServerDao extends BaseDao<FrpcDesktopServer> {
+class ServerDao extends BaseDao<OpenSourceFrpcDesktopServer> {
   constructor() {
     super("server");
   }

@@ -1,12 +1,9 @@
 <script lang="ts" setup>
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ipcRenderer } from "electron";
-import { ElMessageBox } from "element-plus";
-import router from "@/router";
-import { useDebounceFn, useIntervalFn } from "@vueuse/core";
-import { send } from "@/utils/ipcUtils";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { useDebounceFn } from "@vueuse/core";
+import { on, onListener, removeRouterListeners2, send } from "@/utils/ipcUtils";
+import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Home"
@@ -15,12 +12,11 @@ defineComponent({
 const running = ref(false);
 
 const handleStartFrpc = () => {
-  // ipcRenderer.send("frpc.start");
   send(ipcRouters.LAUNCH.launch);
 };
 
 const handleStopFrpc = () => {
-  ipcRenderer.send("frpc.stop");
+  send(ipcRouters.LAUNCH.terminate);
 };
 
 const handleButtonClick = useDebounceFn(() => {
@@ -32,30 +28,40 @@ const handleButtonClick = useDebounceFn(() => {
 }, 300);
 
 onMounted(() => {
-  useIntervalFn(() => {
-    ipcRenderer.invoke("frpc.running").then(data => {
-      running.value = data;
-      console.log("进程状态", data);
-    });
-  }, 500);
-
-  ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
-    if (args) {
-      ElMessageBox.alert(args, "提示", {
-        showCancelButton: true,
-        cancelButtonText: "取消",
-        confirmButtonText: "去设置"
-      }).then(() => {
-        router.replace({
-          name: "Config"
-        });
-      });
-    }
+  onListener(listeners.watchFrpcProcess, data => {
+    console.log("watchFrpcProcess", data);
+    running.value = data;
   });
+
+  on(ipcRouters.LAUNCH.getStatus, data => {
+    running.value = data;
+  });
+
+  on(ipcRouters.LAUNCH.launch, () => {
+    send(ipcRouters.LAUNCH.getStatus);
+  });
+
+  on(ipcRouters.LAUNCH.terminate, () => {
+    send(ipcRouters.LAUNCH.getStatus);
+  });
+  // ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
+  //   if (args) {
+  //     ElMessageBox.alert(args, "提示", {
+  //       showCancelButton: true,
+  //       cancelButtonText: "取消",
+  //       confirmButtonText: "去设置"
+  //     }).then(() => {
+  //       router.replace({
+  //         name: "Config"
+  //       });
+  //     });
+  //   }
+  // });
 });
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("Home.frpc.start.error.hook");
+  // ipcRenderer.removeAllListeners("Home.frpc.start.error.hook");
+  removeRouterListeners2(listeners.watchFrpcProcess);
 });
 </script>
 

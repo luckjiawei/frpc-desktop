@@ -52,12 +52,24 @@ export const ipcRouters: IpcRouters = {
     deleteDownloadedVersion: {
       path: "version/deleteDownloadedVersion",
       controller: "versionController.deleteDownloadedVersion"
+    },
+    importLocalFrpcVersion: {
+      path: "version/importLocalFrpcVersion",
+      controller: "versionController.importLocalFrpcVersion"
     }
   },
   LAUNCH: {
     launch: {
       path: "launch/launch",
       controller: "launchController.launch"
+    },
+    terminate: {
+      path: "launch/terminate",
+      controller: "launchController.terminate"
+    },
+    getStatus: {
+      path: "launch/getStatus",
+      controller: "launchController.getStatus"
     }
   },
   PROXY: {
@@ -92,6 +104,10 @@ export const listeners: Listeners = {
   watchFrpcLog: {
     listenerMethod: "logService.watchFrpcLog",
     channel: "log:watchFrpcLog"
+  },
+  watchFrpcProcess: {
+    listenerMethod: "frpcProcessService.watchFrpcProcess",
+    channel: "frpcProcess:watchFrpcLog"
   }
 };
 

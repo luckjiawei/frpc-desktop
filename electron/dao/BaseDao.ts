@@ -24,7 +24,7 @@ class BaseDao<T> {
   protected readonly db: Datastore;
 
   constructor(dbName: string) {
-    const dbFilename = path.join(PathUtils.getAppData(), `${dbName}-v2.db`);
+    const dbFilename = path.join(PathUtils.getDataBaseStoragePath(), `${dbName}-v2.db`);
     this.db = new Datastore({
       autoload: true,
       filename: dbFilename

@@ -7,7 +7,7 @@ import { useDebounceFn } from "@vueuse/core";
 import { clone } from "@/utils/clone";
 import { Base64 } from "js-base64";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { on, send } from "@/utils/ipcUtils";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
@@ -25,7 +25,8 @@ type ShareLinkConfig = {
   metaToken: string;
 };
 
-const defaultFormData = ref<OpenSourceFrpcDesktopServer>({
+const defaultFormData: OpenSourceFrpcDesktopServer = {
+  _id: "",
   frpcVersion: null,
   loginFailExit: false,
   udpPacketSize: 1500,
@@ -77,9 +78,9 @@ const defaultFormData = ref<OpenSourceFrpcDesktopServer>({
     autoConnectOnStartup: false
   },
   user: ""
-});
+};
 
-const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData.value);
+const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
 
 const loading = ref(1);
 
@@ -201,7 +202,6 @@ const handleSubmit = useDebounceFn(() => {
       loading.value = 1;
       const data = clone(formData.value);
       send(ipcRouters.SERVER.saveConfig, data);
-      // ipcRenderer.send("server/saveConfig", data);
     }
   });
 }, 300);
@@ -222,12 +222,12 @@ const handleAuthMethodChange = e => {
 };
 
 const checkAndResetVersion = () => {
-  const currentVersion = formData.value.currentVersion;
+  const currentVersion = formData.value.frpcVersion;
   if (
     currentVersion &&
-    !versions.value.some(item => item.id === currentVersion)
+    !versions.value.some(item => item.githubReleaseId === currentVersion)
   ) {
-    formData.value.currentVersion = null;
+    formData.value.frpcVersion = null;
   }
 };
 
@@ -239,14 +239,15 @@ const handleLoadSavedConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
 };
 
-
 onMounted(() => {
   handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
     console.log("data", data);
-    formData.value = data;
+    if (data) {
+      formData.value = data;
+    }
     loading.value--;
   });
 
@@ -263,8 +264,6 @@ onMounted(() => {
     });
     loading.value--;
   });
-  // ipcRenderer.send("config.getConfig");
-  // handleLoadVersions();
   // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
   //   const { err, data } = args;
   //   if (!err) {
@@ -448,7 +447,6 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
   }
   const ciphertext = pasteServerConfigBase64.value.replace("frp://", "");
   const plaintext = Base64.decode(ciphertext);
-  console.log("plain", plaintext);
   let serverConfig: ShareLinkConfig = null;
   try {
     serverConfig = JSON.parse(plaintext);
@@ -512,12 +510,14 @@ const handleOpenDataFolder = useDebounceFn(() => {
 }, 1000);
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("Config.getConfig.hook");
-  ipcRenderer.removeAllListeners("Config.saveConfig.hook");
-  ipcRenderer.removeAllListeners("Config.versions.hook");
-  ipcRenderer.removeAllListeners("Config.exportConfig.hook");
-  ipcRenderer.removeAllListeners("Config.clearAll.hook");
-  ipcRenderer.removeAllListeners("Config.openDataFolder.hook");
+  removeRouterListeners(ipcRouters.SERVER.saveConfig);
+  removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
+  removeRouterListeners(ipcRouters.SERVER.getServerConfig);
+  removeRouterListeners(ipcRouters.SERVER.saveConfig);
+  removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
+  // ipcRenderer.removeAllListeners("Config.exportConfig.hook");
+  // ipcRenderer.removeAllListeners("Config.clearAll.hook");
+  // ipcRenderer.removeAllListeners("Config.openDataFolder.hook");
 });
 </script>
 <template>
