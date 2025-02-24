@@ -33,6 +33,7 @@ enum IpcRouterKeys {
   VERSION = "VERSION",
   LAUNCH = "LAUNCH",
   PROXY = "PROXY",
+  SYSTEM = "SYSTEM",
 }
 
 type IpcRouters = Record<

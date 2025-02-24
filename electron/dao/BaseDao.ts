@@ -24,7 +24,10 @@ class BaseDao<T> {
   protected readonly db: Datastore;
 
   constructor(dbName: string) {
-    const dbFilename = path.join(PathUtils.getDataBaseStoragePath(), `${dbName}-v2.db`);
+    const dbFilename = path.join(
+      PathUtils.getDataBaseStoragePath(),
+      `${dbName}-v2.db`
+    );
     this.db = new Datastore({
       autoload: true,
       filename: dbFilename
@@ -114,6 +117,18 @@ class BaseDao<T> {
           reject(err);
         } else {
           resolve(document);
+        }
+      });
+    });
+  }
+
+  truncate() {
+    return new Promise<void>((resolve, reject) => {
+      this.db.remove({}, { multi: true }, (err, n) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
         }
       });
     });

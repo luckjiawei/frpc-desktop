@@ -1,18 +1,14 @@
 import fs from "fs";
-import path from "path";
-import { app } from "electron";
-import FileService from "./FileService";
 import { success } from "../utils/response";
+import PathUtils from "../utils/PathUtils";
+import SystemService from "./SystemService";
 
 class LogService {
-  private readonly _fileService: FileService;
-  private readonly _logPath: string = path.join(
-    app.getPath("userData"),
-    "frpc.log"
-  );
+  private readonly _systemService: SystemService;
+  private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
 
-  constructor(fileService: FileService) {
-    this._fileService = fileService;
+  constructor(systemService: SystemService) {
+    this._systemService = systemService;
   }
 
   getFrpLogContent(): Promise<string> {
@@ -28,6 +24,11 @@ class LogService {
   }
 
   watchFrpcLog(listenerParam: ListenerParam) {
+    if (!fs.existsSync(this._logPath)) {
+      setTimeout(() => this.watchFrpcLog(listenerParam), 1000);
+      return;
+    }
+    console.log('watchFrpcLog succcess');
     fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
         console.log("change", eventType, listenerParam.channel);
@@ -45,7 +46,7 @@ class LogService {
 
   openFrpcLogFile(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      this._fileService
+      this._systemService
         .openLocalFile(this._logPath)
         .then(result => {
           resolve(result);

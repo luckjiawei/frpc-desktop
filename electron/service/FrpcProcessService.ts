@@ -30,12 +30,19 @@ class FrpcProcessService {
   }
 
   async startFrpcProcess() {
+    if (this.isRunning()) {
+      return;
+    }
     const config = await this._serverService.getServerConfig();
+    if (!config) {
+      throw new Error("请先进行配置")
+    }
     const version = await this._versionDao.findByGithubReleaseId(
       config.frpcVersion
     );
     // todo genConfigfile.
-    const configPath = await this._serverService.genTomlConfig();
+    const configPath = PathUtils.getTomlConfigFilePath();
+    await this._serverService.genTomlConfig(configPath);
     const command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
     this._frpcProcess = require("child_process").spawn(command, {
       cwd: version.localPath,
@@ -48,13 +55,10 @@ class FrpcProcessService {
     this._frpcProcess.stderr.on("data", data => {
       console.error(`stderr: ${data}`);
     });
-    // this._frpcProcess.on("close",function(code){
-    //   console.log("out code:" + code)
-    // })
   }
 
   async stopFrpcProcess() {
-    if (this._frpcProcess) {
+    if (this._frpcProcess && this.isRunning()) {
       treeKill(this._frpcProcess.pid, (error: Error) => {
         if (error) {
           throw error;
@@ -63,7 +67,6 @@ class FrpcProcessService {
           // clearInterval(this._frpcProcessListener);
         }
       });
-    } else {
     }
   }
 

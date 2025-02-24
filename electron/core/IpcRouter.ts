@@ -1,4 +1,4 @@
-import ServerController from "../controller/ServerController";
+import ConfigController from "../controller/ConfigController";
 import ServerDao from "../dao/ServerDao";
 import ServerService from "../service/ServerService";
 import LogService from "../service/LogService";
@@ -6,7 +6,6 @@ import VersionService from "../service/VersionService";
 import { BrowserWindow, ipcMain } from "electron";
 import LogController from "../controller/LogController";
 import VersionController from "../controller/VersionController";
-import FileService from "../service/FileService";
 import VersionDao from "../dao/VersionDao";
 import GitHubService from "../service/GitHubService";
 import FrpcProcessService from "../service/FrpcProcessService";
@@ -14,16 +13,26 @@ import LaunchController from "../controller/LaunchController";
 import ProxyDao from "../dao/ProxyDao";
 import ProxyService from "../service/ProxyService";
 import ProxyController from "../controller/ProxyController";
+import SystemService from "../service/SystemService";
+import SystemController from "../controller/SystemController";
 
 export const ipcRouters: IpcRouters = {
   SERVER: {
     saveConfig: {
       path: "server/saveConfig",
-      controller: "serverController.saveConfig"
+      controller: "configController.saveConfig"
     },
     getServerConfig: {
       path: "server/getServerConfig",
-      controller: "serverController.getServerConfig"
+      controller: "configController.getServerConfig"
+    },
+    resetAllConfig: {
+      path: "server/resetAllConfig",
+      controller: "configController.resetAllConfig"
+    },
+    exportConfig: {
+      path: "server/exportConfig",
+      controller: "configController.exportConfig"
     }
   },
   LOG: {
@@ -97,6 +106,20 @@ export const ipcRouters: IpcRouters = {
       path: "proxy/getLocalPorts",
       controller: "proxyController.getLocalPorts"
     }
+  },
+  SYSTEM: {
+    openUrl: {
+      path: "system/openUrl",
+      controller: "systemController.openUrl"
+    },
+    relaunchApp: {
+      path: "system/relaunchApp",
+      controller: "systemController.relaunchApp"
+    },
+    openAppData: {
+      path: "system/openAppData",
+      controller: "systemController.openAppData"
+    }
   }
 };
 
@@ -124,40 +147,46 @@ class IpcRouterConfigurate {
     const serverDao = new ServerDao();
     const versionDao = new VersionDao();
     const proxyDao = new ProxyDao();
-    const fileService = new FileService();
+    const systemService = new SystemService();
     const serverService = new ServerService(serverDao, proxyDao);
     const gitHubService = new GitHubService();
     const versionService = new VersionService(
       versionDao,
-      fileService,
+      systemService,
       gitHubService
     );
-    const logService = new LogService(fileService);
+    const logService = new LogService(systemService);
     const frpcProcessService = new FrpcProcessService(
       serverService,
       versionDao
     );
     const proxyService = new ProxyService(proxyDao);
-    const serverController = new ServerController(serverService, fileService);
+    const configController = new ConfigController(
+      serverService,
+      systemService,
+      frpcProcessService
+    );
     const versionController = new VersionController(versionService, versionDao);
     const logController = new LogController(logService);
     const launchController = new LaunchController(frpcProcessService);
     const proxyController = new ProxyController(proxyService, proxyDao);
+    const systemController = new SystemController(systemService);
 
     this._beans.set("serverDao", serverDao);
     this._beans.set("versionDao", versionDao);
     this._beans.set("proxyDao", proxyDao);
-    this._beans.set("fileService", fileService);
+    this._beans.set("systemService", systemService);
     this._beans.set("serverService", serverService);
     this._beans.set("versionService", versionService);
     this._beans.set("logService", logService);
     this._beans.set("proxyService", proxyService);
     this._beans.set("frpcProcessService", frpcProcessService);
-    this._beans.set("serverController", serverController);
+    this._beans.set("configController", configController);
     this._beans.set("versionController", versionController);
     this._beans.set("logController", logController);
     this._beans.set("launchController", launchController);
     this._beans.set("proxyController", proxyController);
+    this._beans.set("systemController", systemController);
   }
 
   /**

@@ -1,16 +1,23 @@
-import { dialog, shell } from "electron";
+import { app, dialog, shell } from "electron";
+import GlobalConstant from "../core/GlobalConstant";
 import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
-import GlobalConstant from "../core/GlobalConstant";
 
-
-// import tar from "tar";
 const tar = require("tar");
 
-class FileService {
-  constructor() {}
+class SystemService {
+  async openUrl(url: string) {
+    if (url) {
+      await shell.openExternal(url);
+    }
+  }
+
+  async relaunch() {
+    await app.relaunch();
+    app.quit();
+  }
 
   openLocalFile(filePath: string) {
     return new Promise<boolean>((resolve, reject) => {
@@ -100,17 +107,23 @@ class FileService {
       });
   }
 
-  selectLocalFile(name: string, path: any) {
-    dialog.showOpenDialogSync({
+  openFile(name: string, ext: any) {
+    return dialog.showOpenDialogSync({
       properties: ["openFile"],
       filters: [
         {
           name: name,
-          extensions: path
+          extensions: ext
         }
       ]
     });
   }
+
+  async openDirectory() {
+    return await dialog.showOpenDialog({
+      properties: ["openDirectory"]
+    });
+  }
 }
 
-export default FileService;
+export default SystemService;

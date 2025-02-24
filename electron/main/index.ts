@@ -12,14 +12,9 @@ import { release } from "node:os";
 import node_path, { join } from "node:path";
 import { initGitHubApi } from "../api/github";
 import { initConfigApi } from "../api/config";
-import {
-  initFrpcApi,
-  startFrpWorkerProcess,
-  stopFrpcProcess
-} from "../api/frpc";
+import { startFrpWorkerProcess, stopFrpcProcess } from "../api/frpc";
 import { initFileApi } from "../api/file";
 import { getConfig } from "../storage/config";
-import { initCommonApi } from "../api/common";
 import { initLog, logError, logInfo, LogModule } from "../utils/log";
 import { maskSensitiveData } from "../utils/desensitize";
 import IpcRouterConfigurate from "../core/IpcRouter";
@@ -202,8 +197,6 @@ app.whenReady().then(() => {
           initFileApi();
           logInfo(LogModule.APP, `File API initialized.`);
 
-          initCommonApi();
-          logInfo(LogModule.APP, `Common API initialized.`);
 
           // initUpdaterApi(win);
           logInfo(LogModule.APP, `Updater API initialization skipped.`);

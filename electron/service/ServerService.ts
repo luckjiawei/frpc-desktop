@@ -38,7 +38,10 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     });
   }
 
-  async genTomlConfig() {
+  async genTomlConfig(outputPath: string) {
+    if (!outputPath) {
+      return;
+    }
     const server = await this.getServerConfig();
     const proxies = await this._proxyDao.findAll();
     const enabledProxies = proxies
@@ -51,13 +54,12 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
     const toml = TOML.stringify({ ...frpcConfig, proxies: enabledProxies });
-    const tomlPath = PathUtils.getTomlConfigFilePath();
+
     fs.writeFileSync(
-      tomlPath, // 配置文件目录
+      outputPath, // 配置文件目录
       toml, // 配置文件内容
       { flag: "w" }
     );
-    return tomlPath;
   }
 }
 

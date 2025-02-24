@@ -9,6 +9,7 @@ import { Base64 } from "js-base64";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
+import confetti from "canvas-confetti/src/confetti.js";
 
 defineComponent({
   name: "Config"
@@ -350,45 +351,40 @@ onMounted(() => {
   //     ElMessageBox.alert(`配置路径：${configPath}`, `🎉 导出成功`);
   //   }
   // });
-  // ipcRenderer.on("Config.clearAll.hook", (event, args) => {
-  //   ElMessageBox.alert("重置成功 请重启软件", `提示`, {
-  //     closeOnClickModal: false,
-  //     showClose: false,
-  //     confirmButtonText: "立即重启"
-  //   }).then(() => {
-  //     ipcRenderer.send("common.relaunch");
-  //   });
-  // });
-  // ipcRenderer.on("Config.importConfig.hook", (event, args) => {
-  //   const { success, data } = args;
-  //   if (success) {
-  //     // 礼花
-  //     confetti({
-  //       zIndex: 12002,
-  //       particleCount: 200,
-  //       spread: 70,
-  //       origin: { y: 0.6 }
-  //     });
-  //     ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
-  //       closeOnClickModal: false,
-  //       showClose: false,
-  //       confirmButtonText: "立即重启"
-  //     }).then(() => {
-  //       ipcRenderer.send("common.relaunch");
-  //     });
-  //   } else {
-  //     ElMessageBox.alert(data, `提示`);
-  //   }
-  // });
-  //
-  // ipcRenderer.on("Config.openDataFolder.hook", (event, args) => {
-  //   if (args) {
-  //     ElMessage({
-  //       type: "success",
-  //       message: "打开数据目录成功"
-  //     });
-  //   }
-  // });
+
+  on(ipcRouters.SERVER.resetAllConfig, () => {
+    ElMessageBox.alert("重置成功 请重启软件", `提示`, {
+      closeOnClickModal: false,
+      showClose: false,
+      confirmButtonText: "立即重启"
+    }).then(() => {
+      send(ipcRouters.SYSTEM.relaunchApp);
+    });
+  });
+
+  on(ipcRouters.SERVER.exportConfig, () => {
+    // 礼花
+    confetti({
+      zIndex: 12002,
+      particleCount: 200,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
+      closeOnClickModal: false,
+      showClose: false,
+      confirmButtonText: "立即重启"
+    }).then(() => {
+      send(ipcRouters.SYSTEM.relaunchApp);
+    });
+  });
+  // ElMessageBox.alert(data, `提示`);
+  on(ipcRouters.SYSTEM.openAppData, () => {
+    ElMessage({
+      type: "success",
+      message: "打开数据目录成功"
+    });
+  });
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -484,8 +480,9 @@ const handleShowExportDialog = () => {
 };
 
 const handleExportConfig = useDebounceFn(() => {
-  ipcRenderer.send("config.exportConfig", exportConfigType.value);
-  visibles.exportConfig = false;
+  send(ipcRouters.SERVER.exportConfig);
+  // ipcRenderer.send("config.exportConfig", exportConfigType.value);
+  // visibles.exportConfig = false;
 }, 300);
 
 const handleImportConfig = () => {
@@ -498,7 +495,7 @@ const handleResetConfig = () => {
     cancelButtonText: "取消",
     confirmButtonText: "清空"
   }).then(() => {
-    ipcRenderer.send("config.clearAll");
+    send(ipcRouters.SERVER.resetAllConfig);
   });
 };
 
@@ -506,18 +503,19 @@ const handleResetConfig = () => {
  * 打开数据目录
  */
 const handleOpenDataFolder = useDebounceFn(() => {
-  ipcRenderer.send("config.openDataFolder");
-}, 1000);
+  send(ipcRouters.SYSTEM.openAppData);
+}, 300);
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
   removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.getServerConfig);
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
+  removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
   removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
-  // ipcRenderer.removeAllListeners("Config.exportConfig.hook");
+  removeRouterListeners(ipcRouters.SERVER.exportConfig);
   // ipcRenderer.removeAllListeners("Config.clearAll.hook");
-  // ipcRenderer.removeAllListeners("Config.openDataFolder.hook");
+  removeRouterListeners(ipcRouters.SYSTEM.openAppData);
 });
 </script>
 <template>
@@ -532,7 +530,7 @@ onUnmounted(() => {
       <el-button plain type="primary" @click="handleImportConfig">
         <IconifyIconOffline icon="file-open-rounded" />
       </el-button>
-      <el-button plain type="primary" @click="handleShowExportDialog">
+      <el-button plain type="primary" @click="handleExportConfig">
         <IconifyIconOffline icon="file-save-rounded" />
       </el-button>
       <el-button type="primary" @click="handleSubmit">
@@ -1513,38 +1511,38 @@ onUnmounted(() => {
       </template>
     </el-dialog>
     <!--    配置导出-->
-    <el-dialog
-      v-model="visibles.exportConfig"
-      title="导出配置"
-      width="500"
-      top="5%"
-    >
-      <el-alert
-        class="mb-4"
-        :title="`导出文件名为 frpc-desktop.${exportConfigType} 重复导出则覆盖`"
-        type="warning"
-        :closable="false"
-      />
-      <el-form>
-        <el-form-item label="导出类型">
-          <el-radio-group v-model="exportConfigType">
-            <el-radio-button label="toml" value="toml" />
-            <el-radio-button label="ini" value="ini" />
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button plain type="primary" @click="handleExportConfig">
-            <IconifyIconOffline
-              class="cursor-pointer mr-2"
-              icon="downloadRounded"
-            />
-            导 出
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <!--    <el-dialog-->
+    <!--      v-model="visibles.exportConfig"-->
+    <!--      title="导出配置"-->
+    <!--      width="500"-->
+    <!--      top="5%"-->
+    <!--    >-->
+    <!--      <el-alert-->
+    <!--        class="mb-4"-->
+    <!--        :title="`导出文件名为 frpc-desktop.${exportConfigType} 重复导出则覆盖`"-->
+    <!--        type="warning"-->
+    <!--        :closable="false"-->
+    <!--      />-->
+    <!--      <el-form>-->
+    <!--        <el-form-item label="导出类型">-->
+    <!--          <el-radio-group v-model="exportConfigType">-->
+    <!--            <el-radio-button label="toml" value="toml" />-->
+    <!--            <el-radio-button label="ini" value="ini" />-->
+    <!--          </el-radio-group>-->
+    <!--        </el-form-item>-->
+    <!--      </el-form>-->
+    <!--      <template #footer>-->
+    <!--        <div class="dialog-footer">-->
+    <!--          <el-button plain type="primary" @click="handleExportConfig">-->
+    <!--            <IconifyIconOffline-->
+    <!--              class="cursor-pointer mr-2"-->
+    <!--              icon="downloadRounded"-->
+    <!--            />-->
+    <!--            导 出-->
+    <!--          </el-button>-->
+    <!--        </div>-->
+    <!--      </template>-->
+    <!--    </el-dialog>-->
   </div>
 </template>
 

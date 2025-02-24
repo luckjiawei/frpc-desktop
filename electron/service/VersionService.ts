@@ -1,7 +1,6 @@
 import VersionDao from "../dao/VersionDao";
 import BaseService from "./BaseService";
 import GitHubService from "./GitHubService";
-import FileService from "./FileService";
 import frpReleasesJson from "../json/frp-releases.json";
 import { download } from "electron-dl";
 import { BrowserWindow, dialog } from "electron";
@@ -12,23 +11,24 @@ import SecureUtils from "../utils/SecureUtils";
 import PathUtils from "../utils/PathUtils";
 import FileUtils from "../utils/FileUtils";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
+import SystemService from "./SystemService";
 
 class VersionService extends BaseService<FrpcVersion> {
   private readonly _versionDao: VersionDao;
-  private readonly _fileService: FileService;
+  private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<FrpcVersion> = [];
 
   constructor(
     versionDao: VersionDao,
-    fileService: FileService,
+    systemService: SystemService,
     gitHubService: GitHubService
   ) {
     super();
     this._versionDao = versionDao;
     this._gitHubService = gitHubService;
-    this._fileService = fileService;
+    this._systemService = systemService;
     const nodeVersion = `${process.platform}_${process.arch}`;
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
@@ -207,13 +207,13 @@ class VersionService extends BaseService<FrpcVersion> {
     );
     const ext = path.extname(version.assetName);
     if (ext === GlobalConstant.ZIP_EXT) {
-      this._fileService.decompressZipFile(compressedPath, versionFilePath);
+      this._systemService.decompressZipFile(compressedPath, versionFilePath);
       // todo delete frps and other file.
     } else if (
       ext === GlobalConstant.GZ_EXT &&
       version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
     ) {
-      this._fileService.decompressTarGzFile(
+      this._systemService.decompressTarGzFile(
         compressedPath,
         versionFilePath,
         () => {

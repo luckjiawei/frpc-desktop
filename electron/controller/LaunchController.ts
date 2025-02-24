@@ -11,9 +11,14 @@ class LaunchController extends BaseController {
   }
 
   launch(req: ControllerParam) {
-    this._frpcProcessService.startFrpcProcess().then(r => {
-      req.event.reply(req.channel, success());
-    });
+    this._frpcProcessService
+      .startFrpcProcess()
+      .then(r => {
+        req.event.reply(req.channel, success());
+      })
+      .catch(err => {
+        console.log(err, "1");
+      });
   }
 
   terminate(req: ControllerParam) {
