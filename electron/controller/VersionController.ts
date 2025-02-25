@@ -64,14 +64,14 @@ class VersionController extends BaseController {
   }
 
   importLocalFrpcVersion(req: ControllerParam) {
-    // this._versionService
-    //   .importLocalFrpcVersion(req.win)
-    //   .then(data => {
-    //     req.event.reply(req.channel, ResponseUtils.success());
-    //   })
-    //   .catch(err => {
-    //     req.event.reply(req.channel, ResponseUtils.fail());
-    //   });
+    this._versionService
+      .importLocalFrpcVersion()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch(err => {
+        req.event.reply(req.channel, ResponseUtils.fail());
+      });
   }
 }
 

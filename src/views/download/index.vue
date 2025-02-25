@@ -1,12 +1,11 @@
 <script lang="ts" setup>
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
-import { ipcRenderer } from "electron";
 import moment from "moment";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { on, removeRouterListeners, removeRouterListeners2, send } from "@/utils/ipcUtils";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
@@ -40,10 +39,7 @@ const handleDownload = useDebounceFn((version: FrpcVersion) => {
   send(ipcRouters.VERSION.downloadVersion, {
     githubReleaseId: version.githubReleaseId
   });
-  downloading.value.set(
-    version.githubReleaseId,
-    0
-  );
+  downloading.value.set(version.githubReleaseId, 0);
 }, 300);
 
 /**
@@ -88,12 +84,7 @@ const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
 //     console.log(args);
 //
 //     // if (err) {
-//     loading.value++;
-//     ElMessage({
-//       type: success ? "success" : "error",
-//       message: data
-//     });
-//     handleLoadVersions();
+
 //     // }
 //   });
 // };
@@ -141,16 +132,26 @@ onMounted(() => {
     });
     handleLoadAllVersions();
   });
+
+  on(ipcRouters.VERSION.importLocalFrpcVersion, () => {
+    loading.value++;
+    ElMessage({
+      type: "success",
+      message: "导入成功"
+    });
+    handleLoadAllVersions();
+  });
 });
 
 const handleImportFrp = () => {
-  ipcRenderer.send("download.importFrpFile");
+  send(ipcRouters.VERSION.importLocalFrpcVersion);
 };
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.VERSION.deleteDownloadedVersion);
   removeRouterListeners(ipcRouters.VERSION.downloadVersion);
   removeRouterListeners(ipcRouters.VERSION.getVersions);
+  removeRouterListeners(ipcRouters.VERSION.importLocalFrpcVersion);
 });
 </script>
 <template>

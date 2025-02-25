@@ -12,6 +12,7 @@ import PathUtils from "../utils/PathUtils";
 import FileUtils from "../utils/FileUtils";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import SystemService from "./SystemService";
+import BeanFactory from "../core/BeanFactory";
 
 class VersionService extends BaseService<FrpcVersion> {
   private readonly _versionDao: VersionRepository;
@@ -164,7 +165,8 @@ class VersionService extends BaseService<FrpcVersion> {
     return false;
   }
 
-  async importLocalFrpcVersion(win: BrowserWindow) {
+  async importLocalFrpcVersion() {
+    const win: BrowserWindow = BeanFactory.getBean("win");
     const result = await dialog.showOpenDialog(win, {
       properties: ["openFile"],
       filters: [
