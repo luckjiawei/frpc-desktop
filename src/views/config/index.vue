@@ -267,18 +267,21 @@ onMounted(() => {
   });
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
-    switch (currSelectLocalFileType.value) {
-      case 1:
-        formData.value.transport.tls.certFile = data as string;
-        // tlsConfigCertFile = data;
-        break;
-      case 2:
-        formData.value.transport.tls.keyFile = data as string;
-        break;
-      case 3:
-        formData.value.transport.tls.trustedCaFile = data as string;
-        // formData.value.tlsConfigTrustedCaFile = data as string;
-        break;
+    console.log('data', data);
+    if (!data.canceled) {
+      switch (currSelectLocalFileType.value) {
+        case 1:
+          formData.value.transport.tls.certFile = data.path as string;
+          // tlsConfigCertFile = data;
+          break;
+        case 2:
+          formData.value.transport.tls.keyFile = data.path as string;
+          break;
+        case 3:
+          formData.value.transport.tls.trustedCaFile = data.path as string;
+          // formData.value.tlsConfigTrustedCaFile = data as string;
+          break;
+      }
     }
   });
 

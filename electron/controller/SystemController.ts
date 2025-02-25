@@ -63,15 +63,21 @@ class SystemController {
       .then(result => {
         if (result.canceled) {
           // todo canceled
-          ResponseUtils.success({
-            canceled: true,
-            path: ""
-          });
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: true,
+              path: ""
+            })
+          );
         } else {
-          ResponseUtils.success({
-            canceled: true,
-            path: result.filePaths[0]
-          });
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: false,
+              path: result.filePaths[0]
+            })
+          );
         }
       })
       .catch((err: Error) => {
