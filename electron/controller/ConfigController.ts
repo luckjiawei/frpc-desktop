@@ -1,11 +1,11 @@
 import BaseController from "./BaseController";
 import ServerService from "../service/ServerService";
-import { success } from "../utils/response";
 import PathUtils from "../utils/PathUtils";
 import fs from "fs";
 import FrpcProcessService from "../service/FrpcProcessService";
 import SystemService from "../service/SystemService";
 import moment from "moment";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -25,19 +25,19 @@ class ConfigController extends BaseController {
 
   saveConfig(req: ControllerParam) {
     this._serverService.saveServerConfig(req.args).then(() => {
-      req.event.reply(req.channel, success());
+      req.event.reply(req.channel, ResponseUtils.success());
     });
   }
 
   getServerConfig(req: ControllerParam) {
     this._serverService.getServerConfig().then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   openAppData(req: ControllerParam) {
     this._systemService.openLocalPath(PathUtils.getAppData()).then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
@@ -66,7 +66,7 @@ class ConfigController extends BaseController {
       force: true
     });
 
-    req.event.reply(req.channel, success());
+    req.event.reply(req.channel, ResponseUtils.success());
   }
 
   exportConfig(req: ControllerParam) {
@@ -75,7 +75,7 @@ class ConfigController extends BaseController {
         "YYYYMMDDhhmmss"
       )}.toml`;
       this._serverService.genTomlConfig(path).then(() => {
-        req.event.reply(req.channel, success(path));
+        req.event.reply(req.channel, ResponseUtils.success(path));
       });
     });
   }

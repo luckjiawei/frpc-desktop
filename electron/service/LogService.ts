@@ -1,5 +1,5 @@
 import fs from "fs";
-import { success } from "../utils/response";
+import { success } from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import SystemService from "./SystemService";
 import BeanFactory from "../core/BeanFactory";
@@ -40,7 +40,7 @@ class LogService {
         const win: BrowserWindow = BeanFactory.getBean("win");
         win.webContents.send(
           listenerParam.channel,
-          success(true)
+          ResponseUtils.success(true)
         );
       } else {
       }

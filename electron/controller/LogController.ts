@@ -1,6 +1,6 @@
 import BaseController from "./BaseController";
 import LogService from "../service/LogService";
-import { fail, success } from "../utils/response";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class LogController extends BaseController {
   private readonly _logService: LogService;
@@ -12,23 +12,23 @@ class LogController extends BaseController {
 
   getFrpLogContent(req: ControllerParam) {
     this._logService.getFrpLogContent().then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   // watchFrpcLogContent(req: ControllerRequest) {
   //   this._logService.watchFrpcLog().then(data => {
   //     console.log('reply watch', data);
-  //     req.event.reply(req.reply, this.success(data));
+  //     req.event.reply(req.reply, this.ResponseUtils.success(data));
   //   });
   // }
 
   openFrpcLogFile(req: ControllerParam) {
     this._logService.openFrpcLogFile().then(data => {
       if (data) {
-        success(null);
+        ResponseUtils.success(null);
       } else {
-        fail();
+        ResponseUtils.fail();
       }
     });
   }

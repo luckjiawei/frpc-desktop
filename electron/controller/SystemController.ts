@@ -1,5 +1,5 @@
 import SystemService from "../service/SystemService";
-import { fail, success } from "../utils/response";
+import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 
 class SystemController {
@@ -13,22 +13,22 @@ class SystemController {
     this._systemService
       .openUrl(req.args.url)
       .then(() => {
-        req.event.reply(req.channel, success());
+        req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch(err => {
-        req.event.reply(req.channel, fail());
+        req.event.reply(req.channel, ResponseUtils.fail());
       });
   }
 
   relaunchApp(req: ControllerParam) {
     this._systemService.relaunch().then(() => {
-      req.event.reply(req.channel, success());
+      req.event.reply(req.channel, ResponseUtils.success());
     });
   }
 
   openAppData(req: ControllerParam) {
     this._systemService.openLocalPath(PathUtils.getAppData()).then(() => {
-      req.event.reply(req.channel, success());
+      req.event.reply(req.channel, ResponseUtils.success());
     });
   }
 }

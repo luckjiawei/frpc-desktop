@@ -3,7 +3,7 @@ import VersionRepository from "../repository/VersionRepository";
 import PathUtils from "../utils/PathUtils";
 import GlobalConstant from "../core/GlobalConstant";
 import { app, BrowserWindow, Notification } from "electron";
-import { success } from "../utils/response";
+import { success } from "../utils/ResponseUtils";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
 
@@ -94,7 +94,7 @@ class FrpcProcessService {
       const win: BrowserWindow = BeanFactory.getBean("win");
       win.webContents.send(
         listenerParam.channel,
-        success(running)
+        ResponseUtils.success(running)
       );
     }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL);
   }

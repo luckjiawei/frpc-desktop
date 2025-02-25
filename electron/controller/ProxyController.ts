@@ -1,6 +1,6 @@
 import BaseController from "./BaseController";
 import ProxyService from "../service/ProxyService";
-import { success } from "../utils/response";
+import ResponseUtils from "../utils/ResponseUtils";
 import ProxyRepository from "../repository/ProxyRepository";
 
 class ProxyController extends BaseController {
@@ -15,37 +15,37 @@ class ProxyController extends BaseController {
 
   createProxy(req: ControllerParam) {
     this._proxyService.insertProxy(req.args).then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   modifyProxy(req: ControllerParam) {
     this._proxyService.updateProxy(req.args).then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   getAllProxies(req: ControllerParam) {
     this._proxyDao.findAll().then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   deleteProxy(req: ControllerParam) {
     this._proxyService.deleteProxy(req.args).then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
   modifyProxyStatus(req: ControllerParam) {
     this._proxyDao.updateProxyStatus(req.args.id, req.args.status).then(() => {
-      req.event.reply(req.channel, success());
+      req.event.reply(req.channel, ResponseUtils.success());
     });
   }
 
   getLocalPorts(req: ControllerParam) {
     this._proxyService.getLocalPorts().then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 }

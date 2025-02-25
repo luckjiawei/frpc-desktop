@@ -1,6 +1,6 @@
 import BaseController from "./BaseController";
 import FrpcProcessService from "../service/FrpcProcessService";
-import { success } from "../utils/response";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;
@@ -14,7 +14,7 @@ class LaunchController extends BaseController {
     this._frpcProcessService
       .startFrpcProcess()
       .then(r => {
-        req.event.reply(req.channel, success());
+        req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch(err => {
         console.log(err, "1");
@@ -23,13 +23,13 @@ class LaunchController extends BaseController {
 
   terminate(req: ControllerParam) {
     this._frpcProcessService.stopFrpcProcess().then(r => {
-      req.event.reply(req.channel, success());
+      req.event.reply(req.channel, ResponseUtils.success());
     });
   }
 
   getStatus(req: ControllerParam) {
     const running = this._frpcProcessService.isRunning();
-    req.event.reply(req.channel, success(running));
+    req.event.reply(req.channel, ResponseUtils.success(running));
   }
 }
 

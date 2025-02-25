@@ -1,6 +1,6 @@
 import BaseController from "./BaseController";
 import VersionService from "../service/VersionService";
-import { fail, success } from "../utils/response";
+import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
 
 class VersionController extends BaseController {
@@ -17,18 +17,18 @@ class VersionController extends BaseController {
     this._versionService
       .getFrpVersionsByGitHub()
       .then(data => {
-        req.event.reply(req.channel, success(data));
+        req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch(() => {
         this._versionService.getFrpVersionByLocalJson().then(localData => {
-          req.event.reply(req.channel, success(localData));
+          req.event.reply(req.channel, ResponseUtils.success(localData));
         });
       });
   }
 
   getDownloadedVersions(req: ControllerParam) {
     this._versionDao.findAll().then(data => {
-      req.event.reply(req.channel, success(data));
+      req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
 
@@ -37,7 +37,7 @@ class VersionController extends BaseController {
       .downloadFrpVersion(req.args.githubReleaseId, progress => {
         req.event.reply(
           req.channel,
-          success({
+          ResponseUtils.success({
             percent: progress.percent,
             githubReleaseId: req.args.githubReleaseId,
             completed: progress.percent >= 1
@@ -56,22 +56,22 @@ class VersionController extends BaseController {
     this._versionService
       .deleteFrpVersion(req.args.githubReleaseId)
       .then(() => {
-        req.event.reply(req.channel, success());
+        req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch(err => {
-        req.event.reply(req.channel, fail());
+        req.event.reply(req.channel, ResponseUtils.fail());
       });
   }
 
   importLocalFrpcVersion(req: ControllerParam) {
-    this._versionService
-      .importLocalFrpcVersion(req.win)
-      .then(data => {
-        req.event.reply(req.channel, success());
-      })
-      .catch(err => {
-        req.event.reply(req.channel, fail());
-      });
+    // this._versionService
+    //   .importLocalFrpcVersion(req.win)
+    //   .then(data => {
+    //     req.event.reply(req.channel, ResponseUtils.success());
+    //   })
+    //   .catch(err => {
+    //     req.event.reply(req.channel, ResponseUtils.fail());
+    //   });
   }
 }
 
