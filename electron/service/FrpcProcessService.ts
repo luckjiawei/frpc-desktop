@@ -6,6 +6,7 @@ import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
 import ResponseUtils from "../utils/ResponseUtils";
+import Logger from "../core/Logger";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
@@ -36,7 +37,7 @@ class FrpcProcessService {
     }
     const config = await this._serverService.getServerConfig();
     if (!config) {
-      throw new Error("请先进行配置")
+      throw new Error("请先进行配置");
     }
     const version = await this._versionDao.findByGithubReleaseId(
       config.frpcVersion

@@ -52,7 +52,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
     connectServerLocalIP: "",
     proxyURL: "",
     tls: {
-      enable: false,
+      enable: true,
       certFile: "",
       keyFile: "",
       trustedCaFile: "",
@@ -1347,7 +1347,7 @@ onUnmounted(() => {
               <div class="h2">日志配置</div>
             </el-col>
             <el-col :span="12">
-              <el-form-item class="!w-full" label="日志级别：" prop="logLevel">
+              <el-form-item class="!w-full" label="日志级别：" prop="log.level">
                 <el-select v-model="formData.log.level">
                   <el-option label="info" value="info" />
                   <el-option label="debug" value="debug" />
@@ -1357,7 +1357,7 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item lalog.maxDaysbel="日志保留天数：" prop="">
+              <el-form-item label="日志保留天数：" prop="log.maxDays">
                 <el-input-number
                   class="!w-full"
                   controls-position="right"

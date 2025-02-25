@@ -7,6 +7,7 @@ import SystemService from "../service/SystemService";
 import moment from "moment";
 import ResponseUtils from "../utils/ResponseUtils";
 import { dialog } from "electron";
+import Logger from "../core/Logger";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -25,49 +26,73 @@ class ConfigController extends BaseController {
   }
 
   saveConfig(req: ControllerParam) {
-    this._serverService.saveServerConfig(req.args).then(() => {
-      req.event.reply(req.channel, ResponseUtils.success());
-    });
+    this._serverService
+      .saveServerConfig(req.args)
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.saveConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   getServerConfig(req: ControllerParam) {
-    this._serverService.getServerConfig().then(data => {
-      req.event.reply(req.channel, ResponseUtils.success(data));
-    });
+    this._serverService
+      .getServerConfig()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.getServerConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   openAppData(req: ControllerParam) {
-    this._systemService.openLocalPath(PathUtils.getAppData()).then(data => {
-      req.event.reply(req.channel, ResponseUtils.success(data));
-    });
+    this._systemService
+      .openLocalPath(PathUtils.getAppData())
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.openAppData", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
-  async resetAllConfig(req: ControllerParam) {
+  resetAllConfig(req: ControllerParam) {
     // await this._serverDao.truncate();
     // await this._proxyDao.truncate();
     // await this._versionDao.truncate();
-    await this._frpcProcessService.stopFrpcProcess();
-    fs.rmSync(PathUtils.getDataBaseStoragePath(), {
-      recursive: true,
-      force: true
-    });
+    this._frpcProcessService
+      .stopFrpcProcess()
+      .then(() => {
+        fs.rmSync(PathUtils.getDataBaseStoragePath(), {
+          recursive: true,
+          force: true
+        });
 
-    fs.rmSync(PathUtils.getDownloadStoragePath(), {
-      recursive: true,
-      force: true
-    });
+        fs.rmSync(PathUtils.getDownloadStoragePath(), {
+          recursive: true,
+          force: true
+        });
 
-    fs.rmSync(PathUtils.getVersionStoragePath(), {
-      recursive: true,
-      force: true
-    });
+        fs.rmSync(PathUtils.getVersionStoragePath(), {
+          recursive: true,
+          force: true
+        });
 
-    fs.rmSync(PathUtils.getFrpcLogStoragePath(), {
-      recursive: true,
-      force: true
-    });
-
-    req.event.reply(req.channel, ResponseUtils.success());
+        fs.rmSync(PathUtils.getFrpcLogStoragePath(), {
+          recursive: true,
+          force: true
+        });
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.resetAllConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   exportConfig(req: ControllerParam) {
@@ -98,13 +123,23 @@ class ConfigController extends BaseController {
             );
           });
         }
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.exportConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 
   importTomlConfig(req: ControllerParam) {
-    this._serverService.importTomlConfig().then(() => {
-      req.event.reply(req.channel, ResponseUtils.success());
-    });
+    this._serverService
+      .importTomlConfig()
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.importTomlConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 }
 

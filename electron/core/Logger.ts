@@ -18,8 +18,8 @@ class Logger {
     log.warn(`[${module}] ${msg}`);
   }
 
-  public static error(module: string, msg: string) {
-    log.warn(`[${module}] ${msg}`);
+  public static error(module: string, error: Error) {
+    log.error(`[${module}] ${error}`);
   }
 }
 

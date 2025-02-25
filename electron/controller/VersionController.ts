@@ -2,6 +2,7 @@ import BaseController from "./BaseController";
 import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
+import Logger from "../core/Logger";
 
 class VersionController extends BaseController {
   private readonly _versionService: VersionService;
@@ -19,7 +20,8 @@ class VersionController extends BaseController {
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
-      .catch(() => {
+      .catch(err => {
+        Logger.error("VersionController.getVersions", err);
         this._versionService.getFrpVersionByLocalJson().then(localData => {
           req.event.reply(req.channel, ResponseUtils.success(localData));
         });
@@ -27,9 +29,15 @@ class VersionController extends BaseController {
   }
 
   getDownloadedVersions(req: ControllerParam) {
-    this._versionDao.findAll().then(data => {
-      req.event.reply(req.channel, ResponseUtils.success(data));
-    });
+    this._versionDao
+      .findAll()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("VersionController.getDownloadedVersions", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   downloadFrpVersion(req: ControllerParam) {
@@ -45,10 +53,18 @@ class VersionController extends BaseController {
         );
       })
       .then(r => {
-        console.log(2);
+        req.event.reply(
+          req.channel,
+          ResponseUtils.success({
+            percent: 1,
+            githubReleaseId: req.args.githubReleaseId,
+            completed: true
+          })
+        );
       })
-      .catch(err => {
-        console.log(1);
+      .catch((err: Error) => {
+        Logger.error("VersionController.downloadFrpVersion", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 
@@ -58,8 +74,9 @@ class VersionController extends BaseController {
       .then(() => {
         req.event.reply(req.channel, ResponseUtils.success());
       })
-      .catch(err => {
-        req.event.reply(req.channel, ResponseUtils.fail());
+      .catch((err: Error) => {
+        Logger.error("VersionController.deleteDownloadedVersion", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 
@@ -69,8 +86,9 @@ class VersionController extends BaseController {
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success());
       })
-      .catch(err => {
-        req.event.reply(req.channel, ResponseUtils.fail());
+      .catch((err: Error) => {
+        Logger.error("VersionController.importLocalFrpcVersion", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 }

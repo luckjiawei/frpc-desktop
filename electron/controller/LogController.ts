@@ -1,6 +1,7 @@
 import BaseController from "./BaseController";
 import LogService from "../service/LogService";
 import ResponseUtils from "../utils/ResponseUtils";
+import Logger from "../core/Logger";
 
 class LogController extends BaseController {
   private readonly _logService: LogService;
@@ -11,9 +12,15 @@ class LogController extends BaseController {
   }
 
   getFrpLogContent(req: ControllerParam) {
-    this._logService.getFrpLogContent().then(data => {
-      req.event.reply(req.channel, ResponseUtils.success(data));
-    });
+    this._logService
+      .getFrpLogContent()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("LogController.getFrpLogContent", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   // watchFrpcLogContent(req: ControllerRequest) {
@@ -24,13 +31,19 @@ class LogController extends BaseController {
   // }
 
   openFrpcLogFile(req: ControllerParam) {
-    this._logService.openFrpcLogFile().then(data => {
-      if (data) {
-        ResponseUtils.success();
-      } else {
-        ResponseUtils.fail();
-      }
-    });
+    this._logService
+      .openFrpcLogFile()
+      .then(data => {
+        if (data) {
+          ResponseUtils.success();
+        } else {
+          ResponseUtils.fail();
+        }
+      })
+      .catch((err: Error) => {
+        Logger.error("LogController.openFrpcLogFile", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 }
 

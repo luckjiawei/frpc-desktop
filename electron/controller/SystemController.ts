@@ -3,6 +3,7 @@ import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
+import Logger from "../core/Logger";
 
 class SystemController {
   private readonly _systemService: SystemService;
@@ -17,21 +18,34 @@ class SystemController {
       .then(() => {
         req.event.reply(req.channel, ResponseUtils.success());
       })
-      .catch(err => {
-        req.event.reply(req.channel, ResponseUtils.fail());
+      .catch((err: Error) => {
+        Logger.error("SystemController.openUrl", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 
   relaunchApp(req: ControllerParam) {
-    this._systemService.relaunch().then(() => {
-      req.event.reply(req.channel, ResponseUtils.success());
-    });
+    this._systemService
+      .relaunch()
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("SystemController.relaunchApp", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   openAppData(req: ControllerParam) {
-    this._systemService.openLocalPath(PathUtils.getAppData()).then(() => {
-      req.event.reply(req.channel, ResponseUtils.success());
-    });
+    this._systemService
+      .openLocalPath(PathUtils.getAppData())
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("SystemController.openAppData", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      });
   }
 
   selectLocalFile(req: ControllerParam) {
@@ -58,6 +72,10 @@ class SystemController {
             path: result.filePaths[0]
           });
         }
+      })
+      .catch((err: Error) => {
+        Logger.error("SystemController.selectLocalFile", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err.message));
       });
   }
 }
