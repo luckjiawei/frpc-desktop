@@ -1,5 +1,5 @@
 interface ApiResponse<T> {
-  success: boolean;
+  bizCode: string;
   data: T;
   message: string;
 }

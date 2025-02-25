@@ -2,16 +2,17 @@
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
-import { on, onListener, removeRouterListeners2, send } from "@/utils/ipcUtils";
-import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 import { useFrpcProcessStore } from "@/store/frpcProcess";
+import { ElMessageBox } from "element-plus";
+import router from "@/router";
 
 defineComponent({
   name: "Home"
 });
 
 const frpcProcessStore = useFrpcProcessStore();
-
 
 // const running = ref(false);
 const loading = ref(false);
@@ -34,14 +35,28 @@ const handleButtonClick = useDebounceFn(() => {
 }, 300);
 
 onMounted(() => {
-
-
-
-  on(ipcRouters.LAUNCH.launch, () => {
-    // send(ipcRouters.LAUNCH.getStatus);
-    frpcProcessStore.refreshRunning();
-    loading.value = false;
-  });
+  on(
+    ipcRouters.LAUNCH.launch,
+    () => {
+      // send(ipcRouters.LAUNCH.getStatus);
+      frpcProcessStore.refreshRunning();
+      loading.value = false;
+    },
+    (bizCode: string, message: string) => {
+      if (bizCode === "B1001") {
+        ElMessageBox.alert("请先前往设置页面，修改配置后再启动", "提示", {
+          showCancelButton: true,
+          cancelButtonText: "取消",
+          confirmButtonText: "去设置"
+        }).then(() => {
+          router.replace({
+            name: "Config"
+          });
+        });
+      }
+      loading.value = false;
+    }
+  );
 
   on(ipcRouters.LAUNCH.terminate, () => {
     // send(ipcRouters.LAUNCH.getStatus);
@@ -66,6 +81,8 @@ onMounted(() => {
 onUnmounted(() => {
   // ipcRenderer.removeAllListeners("Home.frpc.start.error.hook");
   // removeRouterListeners2(listeners.watchFrpcProcess);
+  removeRouterListeners(ipcRouters.LAUNCH.launch);
+  removeRouterListeners(ipcRouters.LAUNCH.terminate);
 });
 </script>
 

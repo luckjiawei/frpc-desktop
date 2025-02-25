@@ -1,4 +1,5 @@
 import { ipcRenderer } from "electron";
+import { ElMessage } from "element-plus";
 
 export const send = (router: IpcRouter, params?: any) => {
   ipcRenderer.send(router.path, params);
@@ -21,12 +22,25 @@ export const send = (router: IpcRouter, params?: any) => {
 //   });
 // };
 
-export const on = (router: IpcRouter, listerHandler: (data: any) => void) => {
+export const on = (
+  router: IpcRouter,
+  listerHandler: (data: any) => void,
+  errHandler?: (bizCode: string, message: string) => void
+) => {
   ipcRenderer.on(`${router.path}:hook`, (event, args: ApiResponse<any>) => {
-    const { success, data, message } = args;
-    if (success) {
+    const { bizCode, data, message } = args;
+    if (bizCode === "A1000") {
       listerHandler(data);
     } else {
+      if (errHandler) {
+        errHandler(bizCode, message);
+      } else {
+        // ElMessageBox.alert(message,"出错了");
+        ElMessage({
+          message: message,
+          type: "error"
+        });
+      }
       // reject(new Error(message));
     }
   });
@@ -38,8 +52,8 @@ export const onListener = (
 ) => {
   // return new Promise((resolve, reject) => {
   ipcRenderer.on(`${listener.channel}`, (event, args: ApiResponse<any>) => {
-    const { success, data, message } = args;
-    if (success) {
+    const { bizCode, data, message } = args;
+    if (bizCode === "A1000") {
       listerHandler(data);
     }
   });

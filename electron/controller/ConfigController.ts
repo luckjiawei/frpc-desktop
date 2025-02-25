@@ -6,8 +6,9 @@ import FrpcProcessService from "../service/FrpcProcessService";
 import SystemService from "../service/SystemService";
 import moment from "moment";
 import ResponseUtils from "../utils/ResponseUtils";
-import { dialog } from "electron";
+import { BrowserWindow, dialog } from "electron";
 import Logger from "../core/Logger";
+import BeanFactory from "../core/BeanFactory";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -33,7 +34,7 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.saveConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -45,7 +46,7 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.getServerConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -57,7 +58,7 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.openAppData", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -91,7 +92,7 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.resetAllConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -126,20 +127,48 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.exportConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
   importTomlConfig(req: ControllerParam) {
-    this._serverService
-      .importTomlConfig()
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
+    const win: BrowserWindow = BeanFactory.getBean("win");
+    dialog
+      .showOpenDialog(win, {
+        properties: ["openFile"],
+        filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
       })
-      .catch((err: Error) => {
-        Logger.error("ConfigController.importTomlConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+      .then(result => {
+        if (result.canceled) {
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: true,
+              path: ""
+            })
+          );
+        } else {
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: false,
+              path: ""
+            })
+          );
+        }
       });
+    // if (result.canceled) {
+    // } else {
+    // }
+    // this._serverService
+    //   .importTomlConfig()
+    //   .then(() => {
+    //     req.event.reply(req.channel, ResponseUtils.success());
+    //   })
+    //   .catch((err: Error) => {
+    //     Logger.error("ConfigController.importTomlConfig", err);
+    //     req.event.reply(req.channel, ResponseUtils.fail(err));
+    //   });
   }
 }
 

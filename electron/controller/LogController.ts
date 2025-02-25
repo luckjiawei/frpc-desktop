@@ -19,7 +19,7 @@ class LogController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("LogController.getFrpLogContent", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -37,12 +37,12 @@ class LogController extends BaseController {
         if (data) {
           ResponseUtils.success();
         } else {
-          ResponseUtils.fail();
+          // ResponseUtils.fail();
         }
       })
       .catch((err: Error) => {
         Logger.error("LogController.openFrpcLogFile", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }

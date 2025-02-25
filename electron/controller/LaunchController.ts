@@ -19,7 +19,7 @@ class LaunchController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("LaunchController.launch", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -31,6 +31,7 @@ class LaunchController extends BaseController {
       })
       .catch(err => {
         Logger.error("LaunchController.terminate", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 

@@ -20,7 +20,7 @@ class SystemController {
       })
       .catch((err: Error) => {
         Logger.error("SystemController.openUrl", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -32,7 +32,7 @@ class SystemController {
       })
       .catch((err: Error) => {
         Logger.error("SystemController.relaunchApp", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -44,14 +44,15 @@ class SystemController {
       })
       .catch((err: Error) => {
         Logger.error("SystemController.openAppData", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
   selectLocalFile(req: ControllerParam) {
     const { name, extensions } = req.args;
     if (!extensions || extensions.length === 0) {
-      req.event.reply(req.channel, ResponseUtils.fail("可选择扩展名不能为空"));
+      return;
+      // req.event.reply(req.channel, ResponseUtils.fail("可选择扩展名不能为空"));
     }
     const win: BrowserWindow = BeanFactory.getBean("win");
     dialog
@@ -75,7 +76,7 @@ class SystemController {
       })
       .catch((err: Error) => {
         Logger.error("SystemController.selectLocalFile", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }

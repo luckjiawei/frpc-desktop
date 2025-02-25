@@ -83,13 +83,13 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       ]
     });
     if (result.canceled) {
+
+    }else {
       const filePath = result.filePaths[0];
       const fileExtension = path.extname(filePath);
       if (fileExtension === GlobalConstant.TOML_EXT) {
         const tomlData = fs.readFileSync(filePath, "utf-8");
         const sourceConfig = TOML.parse(tomlData);
-        console.log('1');
-        // todo Persistent
       } else {
         throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
       }

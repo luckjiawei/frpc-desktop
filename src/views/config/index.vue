@@ -380,20 +380,23 @@ onMounted(() => {
   });
 
   on(ipcRouters.SERVER.importTomlConfig, data => {
-    // 礼花
-    confetti({
-      zIndex: 12002,
-      particleCount: 200,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-    ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
-      closeOnClickModal: false,
-      showClose: false,
-      confirmButtonText: "立即重启"
-    }).then(() => {
-      send(ipcRouters.SYSTEM.relaunchApp);
-    });
+    const { canceled, path } = data;
+    if (!canceled) {
+      // 礼花
+      confetti({
+        zIndex: 12002,
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
+        closeOnClickModal: false,
+        showClose: false,
+        confirmButtonText: "立即重启"
+      }).then(() => {
+        send(ipcRouters.SYSTEM.relaunchApp);
+      });
+    }
   });
 
   on(ipcRouters.SERVER.exportConfig, data => {

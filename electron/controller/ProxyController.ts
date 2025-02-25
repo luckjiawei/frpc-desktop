@@ -22,7 +22,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.createProxy", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -34,7 +34,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.modifyProxy", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -46,7 +46,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.getAllProxies", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -58,7 +58,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.deleteProxy", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -70,7 +70,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.modifyProxyStatus", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -82,7 +82,7 @@ class ProxyController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ProxyController.getLocalPorts", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }

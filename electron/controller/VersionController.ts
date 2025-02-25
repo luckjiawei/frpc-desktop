@@ -36,7 +36,7 @@ class VersionController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("VersionController.getDownloadedVersions", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -64,7 +64,7 @@ class VersionController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("VersionController.downloadFrpVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -76,7 +76,7 @@ class VersionController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("VersionController.deleteDownloadedVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
@@ -88,7 +88,7 @@ class VersionController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("VersionController.importLocalFrpcVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err.message));
+        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }
