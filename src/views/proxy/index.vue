@@ -601,7 +601,7 @@ onUnmounted(() => {
     </breadcrumb>
     <div class="app-container-breadcrumb" v-loading="loading.list > 0">
       <template v-if="proxys && proxys.length > 0">
-        <el-row :gutter="20">
+        <el-row :gutter="15">
           <el-col
             v-for="proxy in proxys"
             :key="proxy._id"
@@ -610,13 +610,13 @@ onUnmounted(() => {
             :sm="12"
             :xl="6"
             :xs="12"
-            class="mb-[20px]"
+            class="mb-[15px]"
           >
             <div class="bg-white w-full rounded drop-shadow-xl p-4">
               <div class="w-full flex justify-between">
                 <div class="flex">
                   <div
-                    class="w-12 h-12 rounded mr-4 flex justify-center items-center font-bold"
+                    class="w-12 h-12 rounded mr-3 flex justify-center items-center font-bold"
                     :class="proxy.type"
                   >
                     <span class="text-white text-sm">{{ proxy.type }}</span>

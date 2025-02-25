@@ -2,15 +2,17 @@
 import { computed, defineComponent, onMounted, ref } from "vue";
 import router from "@/router";
 import { RouteRecordRaw } from "vue-router";
-import pkg from "../../../package.json";
 import Intro from "@/intro";
 import "intro.js/introjs.css";
 import confetti from "canvas-confetti/src/confetti.js";
+import { useFrpcProcessStore } from "@/store/frpcProcess";
+import pkg from "../../../package.json";
 
 defineComponent({
   name: "AppMain"
 });
 
+const frpcProcessStore = useFrpcProcessStore();
 const routes = ref<Array<RouteRecordRaw>>([]);
 const guideSteps = ref({
   Home: {
@@ -93,11 +95,14 @@ onMounted(() => {
 <template>
   <div class="left-menu-container drop-shadow-xl">
     <div class="logo-container">
-      <img
-        src="/logo/only/128x128.png"
-        class="logo animate__animated animate__bounceInLeft"
-        alt="Logo"
-      />
+      <!--      <img-->
+      <!--        src="/logo/only/128x128.png"-->
+      <!--        class="logo animate__animated animate__bounceInLeft"-->
+      <!--        alt="Logo"-->
+      <!--      />-->
+      <!--      <el-badge :value="'v1.1.2'" class="logo" type="primary" :offset="[-10, 42]">-->
+      <img src="/logo/only/128x128.png" class="logo" alt="Logo" />
+      <!--      </el-badge>-->
     </div>
     <ul class="menu-container">
       <!--      enter-active-class="animate__animated animate__bounceIn"-->
@@ -119,18 +124,24 @@ onMounted(() => {
       </li>
     </ul>
     <div class="menu-footer mb-2">
-<!--      <div-->
-<!--        class="menu animate__animated"-->
-<!--        @click="handleOpenGitHubReleases"-->
-<!--        :data-step="guideSteps.Version?.step"-->
-<!--        :data-intro="guideSteps.Version?.intro"-->
-<!--        data-position="top"-->
-<!--      >-->
-<!--        <IconifyIconOffline-->
-<!--          class="animate__animated"-->
-<!--          icon="attach-money-rounded"-->
-<!--        ></IconifyIconOffline>-->
-<!--      </div>-->
+      <!--      <el-tag-->
+      <!--        :type="frpcProcessStore.running ? 'primary' : 'warning'"-->
+      <!--        effect="light"-->
+      <!--        size="small"-->
+      <!--        >{{ frpcProcessStore.running ? "运行中" : "已断开" }}-->
+      <!--      </el-tag>-->
+      <!--      <div-->
+      <!--        class="menu animate__animated"-->
+      <!--        @click="handleOpenGitHubReleases"-->
+      <!--        :data-step="guideSteps.Version?.step"-->
+      <!--        :data-intro="guideSteps.Version?.intro"-->
+      <!--        data-position="top"-->
+      <!--      >-->
+      <!--        <IconifyIconOffline-->
+      <!--          class="animate__animated"-->
+      <!--          icon="attach-money-rounded"-->
+      <!--        ></IconifyIconOffline>-->
+      <!--      </div>-->
       <div
         class="version animate__animated"
         @click="handleOpenGitHubReleases"

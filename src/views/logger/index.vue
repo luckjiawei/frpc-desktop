@@ -8,7 +8,6 @@ import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
 import {
   on,
   onListener,
-  removeAllListeners,
   removeRouterListeners,
   removeRouterListeners2,
   send

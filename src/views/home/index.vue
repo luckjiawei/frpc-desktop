@@ -4,12 +4,16 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
 import { on, onListener, removeRouterListeners2, send } from "@/utils/ipcUtils";
 import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
+import { useFrpcProcessStore } from "@/store/frpcProcess";
 
 defineComponent({
   name: "Home"
 });
 
-const running = ref(false);
+const frpcProcessStore = useFrpcProcessStore();
+
+
+// const running = ref(false);
 const loading = ref(false);
 
 const handleStartFrpc = () => {
@@ -22,7 +26,7 @@ const handleStopFrpc = () => {
 
 const handleButtonClick = useDebounceFn(() => {
   loading.value = true;
-  if (running.value) {
+  if (frpcProcessStore.running) {
     handleStopFrpc();
   } else {
     handleStartFrpc();
@@ -30,22 +34,18 @@ const handleButtonClick = useDebounceFn(() => {
 }, 300);
 
 onMounted(() => {
-  onListener(listeners.watchFrpcProcess, data => {
-    console.log("watchFrpcProcess", data);
-    running.value = data;
-  });
 
-  on(ipcRouters.LAUNCH.getStatus, data => {
-    running.value = data;
-  });
+
 
   on(ipcRouters.LAUNCH.launch, () => {
-    send(ipcRouters.LAUNCH.getStatus);
+    // send(ipcRouters.LAUNCH.getStatus);
+    frpcProcessStore.refreshRunning();
     loading.value = false;
   });
 
   on(ipcRouters.LAUNCH.terminate, () => {
-    send(ipcRouters.LAUNCH.getStatus);
+    // send(ipcRouters.LAUNCH.getStatus);
+    frpcProcessStore.refreshRunning();
     loading.value = false;
   });
   // ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
@@ -65,7 +65,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   // ipcRenderer.removeAllListeners("Home.frpc.start.error.hook");
-  removeRouterListeners2(listeners.watchFrpcProcess);
+  // removeRouterListeners2(listeners.watchFrpcProcess);
 });
 </script>
 
@@ -82,19 +82,19 @@ onUnmounted(() => {
           >
             <transition name="fade">
               <div
-                v-show="running"
+                v-show="frpcProcessStore.running"
                 class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="running"
+                v-show="frpcProcessStore.running"
                 class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="running"
+                v-show="frpcProcessStore.running"
                 class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
               />
             </transition>
@@ -109,7 +109,7 @@ onUnmounted(() => {
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
                   <IconifyIconOffline
-                    v-if="running"
+                    v-if="frpcProcessStore.running"
                     class="text-[#7EC050] inline-block relative top-1"
                     icon="check-circle-rounded"
                   />
@@ -118,7 +118,7 @@ onUnmounted(() => {
                     class="text-[#E47470] inline-block relative top-1"
                     icon="error"
                   />
-                  Frpc {{ running ? "已启动" : "已断开" }}
+                  Frpc {{ frpcProcessStore.running ? "已启动" : "已断开" }}
                 </div>
               </transition>
               <!--              <el-button-->
@@ -130,7 +130,7 @@ onUnmounted(() => {
               <!--              </el-button>-->
               <div class="w-full justify-center text-center">
                 <el-link
-                  v-if="running"
+                  v-if="frpcProcessStore.running"
                   type="primary"
                   @click="$router.replace({ name: 'Logger' })"
                   >查看日志</el-link
@@ -141,7 +141,7 @@ onUnmounted(() => {
                 @click="handleButtonClick"
                 size="large"
                 :disabled="loading"
-                >{{ running ? "断 开" : "启 动" }}
+                >{{ frpcProcessStore.running ? "断 开" : "启 动" }}
               </el-button>
               <!--              <div-->
               <!--                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"-->

@@ -6,7 +6,7 @@ $danger-color: #F56C6C;
   background: $main-bg;
   width: calc(100% - 60px);
   height: 100vh;
-  padding: 20px;
+  padding: 15px;
 
 
   .main {
@@ -27,7 +27,7 @@ $danger-color: #F56C6C;
     .breadcrumb-left {
       color: $primary-color;
       font-size: 36px;
-      height: 30px;
+      height: 32px;
 
       svg {
         vertical-align: top;

@@ -159,7 +159,7 @@ onUnmounted(() => {
     <!-- <breadcrumb> -->
     <breadcrumb>
       <div class="flex">
-        <div class="h-full flex items-center justify-center mr-4">
+        <div class="h-full flex items-center justify-center mr-3">
           <span class="text-sm font-bold">下载源： </span>
           <el-select
             class="w-40"
@@ -194,7 +194,7 @@ onUnmounted(() => {
     <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
       <div class="w-full">
         <template v-if="versions && versions.length > 0">
-          <el-row :gutter="20">
+          <el-row :gutter="15">
             <!--          <el-col :span="24">-->
             <!--            <div class="h2 flex justify-between !mb-[10px]">-->
             <!--              <div>镜像源</div>-->
@@ -218,7 +218,7 @@ onUnmounted(() => {
               :sm="12"
               :xl="6"
               :xs="12"
-              class="mb-[20px]"
+              class="mb-[15px]"
             >
               <div
                 class="w-full download-card bg-white rounded p-4 drop-shadow flex justify-between items-center animate__animated"
