@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
-import { ipcRenderer } from "electron";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
@@ -9,6 +8,7 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import _ from "lodash";
+import confetti from "canvas-confetti/src/confetti.js";
 
 defineComponent({
   name: "Config"
@@ -248,14 +248,14 @@ onMounted(() => {
     console.log("data", data);
     if (data) {
       formData.value = data;
+      checkAndResetVersion();
     }
     loading.value--;
   });
 
   on(ipcRouters.VERSION.getDownloadedVersions, data => {
-    console.log("versions", data);
     versions.value = data;
-    //     checkAndResetVersion();
+    checkAndResetVersion();
   });
 
   on(ipcRouters.SERVER.saveConfig, data => {
@@ -280,7 +280,7 @@ onMounted(() => {
         // formData.value.tlsConfigTrustedCaFile = data as string;
         break;
     }
-  })
+  });
 
   // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
   //   const { err, data } = args;
@@ -379,25 +379,28 @@ onMounted(() => {
     });
   });
 
+  on(ipcRouters.SERVER.importTomlConfig, data => {
+    // 礼花
+    confetti({
+      zIndex: 12002,
+      particleCount: 200,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
+      closeOnClickModal: false,
+      showClose: false,
+      confirmButtonText: "立即重启"
+    }).then(() => {
+      send(ipcRouters.SYSTEM.relaunchApp);
+    });
+  });
+
   on(ipcRouters.SERVER.exportConfig, data => {
     const { canceled, path } = data;
     if (!canceled) {
       ElMessageBox.alert(`配置路径：${path}`, `🎉 导出成功`);
     }
-    // // 礼花
-    // confetti({
-    //   zIndex: 12002,
-    //   particleCount: 200,
-    //   spread: 70,
-    //   origin: { y: 0.6 }
-    // });
-    // ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
-    //   closeOnClickModal: false,
-    //   showClose: false,
-    //   confirmButtonText: "立即重启"
-    // }).then(() => {
-    //   send(ipcRouters.SYSTEM.relaunchApp);
-    // });
   });
   // ElMessageBox.alert(data, `提示`);
   on(ipcRouters.SYSTEM.openAppData, () => {
@@ -414,37 +417,18 @@ const handleSelectFile = (type: number, ext: string[]) => {
     name: "",
     extensions: ext
   });
-  // ipcRenderer.invoke("file.selectFile", ext).then(r => {
-  //   switch (type) {
-  //     case 1:
-  //       formData.value.tlsConfigCertFile = r[0];
-  //       break;
-  //     case 2:
-  //       formData.value.tlsConfigKeyFile = r[0];
-  //       break;
-  //     case 3:
-  //       formData.value.tlsConfigTrustedCaFile = r[0];
-  //       break;
-  //   }
-  //   console.log(r);
-  // });
 };
 
 /**
  * 分享配置
  */
 const handleCopyServerConfig2Base64 = useDebounceFn(() => {
-  // const shareConfig: ShareLinkConfig = {
-  //   serverAddr: formData.value.serverAddr,
-  //   serverPort: formData.value.serverPort,
-  //   authMethod: formData.value.authMethod,
-  //   authToken: formData.value.authToken,
-  //   transportHeartbeatInterval: formData.value.transportHeartbeatInterval,
-  //   transportHeartbeatTimeout: formData.value.transportHeartbeatTimeout,
-  //   user: formData.value.user,
-  //   metaToken: formData.value.metaToken
-  // };
-  const { _id, frpcVersion, ...shareConfig } = formData.value;
+  const { _id, frpcVersion, webServer, system, ...shareConfig } = _.cloneDeep(
+    formData.value
+  );
+  shareConfig.transport.tls.certFile = "";
+  shareConfig.transport.tls.keyFile = "";
+  shareConfig.transport.tls.trustedCaFile = "";
   const base64str = Base64.encode(JSON.stringify(shareConfig));
   copyServerConfigBase64.value = protocol.value + base64str;
   visibles.copyServerConfig = true;
@@ -513,7 +497,7 @@ const handleExportConfig = useDebounceFn(() => {
 }, 300);
 
 const handleImportConfig = () => {
-  ipcRenderer.send("config.importConfig");
+  send(ipcRouters.SERVER.importTomlConfig);
 };
 
 const handleResetConfig = () => {
@@ -542,6 +526,7 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.exportConfig);
   removeRouterListeners(ipcRouters.SYSTEM.openAppData);
+  removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
 });
 </script>
 <template>

@@ -79,7 +79,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const result = await dialog.showOpenDialog(win, {
       properties: ["openFile"],
       filters: [
-        { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+        { name: "Frpc Toml ConfigFile", extensions: ["toml"] }
       ]
     });
     if (result.canceled) {

@@ -100,6 +100,12 @@ class ConfigController extends BaseController {
         }
       });
   }
+
+  importTomlConfig(req: ControllerParam) {
+    this._serverService.importTomlConfig().then(() => {
+      req.event.reply(req.channel, ResponseUtils.success());
+    });
+  }
 }
 
 export default ConfigController;

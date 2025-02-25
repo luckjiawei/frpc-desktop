@@ -16,6 +16,10 @@ export const ipcRouters: IpcRouters = {
     exportConfig: {
       path: "server/exportConfig",
       controller: "configController.exportConfig"
+    },
+    importTomlConfig: {
+      path: "server/importTomlConfig",
+      controller: "configController.importTomlConfig"
     }
   },
   LOG: {
