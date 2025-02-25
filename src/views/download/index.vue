@@ -174,7 +174,7 @@ onUnmounted(() => {
             />
           </el-select>
         </div>
-        <el-button class="mr-2" type="primary" @click="handleImportFrp">
+        <el-button type="primary" @click="handleImportFrp">
           <IconifyIconOffline icon="unarchive" />
         </el-button>
       </div>
@@ -221,7 +221,7 @@ onUnmounted(() => {
               class="mb-[20px]"
             >
               <div
-                class="w-full download-card bg-white rounded p-4 drop-shadow flex justify-between items-center"
+                class="w-full download-card bg-white rounded p-4 drop-shadow flex justify-between items-center animate__animated"
               >
                 <div class="left">
                   <div class="mb-2 flex items-center justify-center">
@@ -315,5 +315,9 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .download-card {
   border-left: 5px solid #5a3daa;
+}
+
+.download-card:hover {
+  //animation: pulse 0.5s;
 }
 </style>

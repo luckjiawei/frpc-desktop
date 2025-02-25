@@ -1,7 +1,6 @@
 import ProxyRepository from "../repository/ProxyRepository";
-import Component from "../core/annotation/Component";
 
-const { exec, spawn } = require("child_process");
+const { exec } = require("child_process");
 
 class ProxyService {
 

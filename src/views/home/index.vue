@@ -10,6 +10,7 @@ defineComponent({
 });
 
 const running = ref(false);
+const loading = ref(false);
 
 const handleStartFrpc = () => {
   send(ipcRouters.LAUNCH.launch);
@@ -20,6 +21,7 @@ const handleStopFrpc = () => {
 };
 
 const handleButtonClick = useDebounceFn(() => {
+  loading.value = true;
   if (running.value) {
     handleStopFrpc();
   } else {
@@ -39,10 +41,12 @@ onMounted(() => {
 
   on(ipcRouters.LAUNCH.launch, () => {
     send(ipcRouters.LAUNCH.getStatus);
+    loading.value = false;
   });
 
   on(ipcRouters.LAUNCH.terminate, () => {
     send(ipcRouters.LAUNCH.getStatus);
+    loading.value = false;
   });
   // ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
   //   if (args) {
@@ -132,12 +136,19 @@ onUnmounted(() => {
                   >查看日志</el-link
                 >
               </div>
-              <div
-                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"
+              <el-button
+                type="primary"
                 @click="handleButtonClick"
-              >
-                {{ running ? "断 开" : "启 动" }}
-              </div>
+                size="large"
+                :disabled="loading"
+                >{{ running ? "断 开" : "启 动" }}
+              </el-button>
+              <!--              <div-->
+              <!--                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"-->
+
+              <!--              >-->
+
+              <!--              </div>-->
             </div>
           </div>
         </div>

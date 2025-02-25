@@ -10,13 +10,13 @@ import {
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ipcRenderer } from "electron";
-import { clone } from "@/utils/clone";
 import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
 import path from "path";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
+import _ from "lodash";
 
 defineComponent({
   name: "Proxy"
@@ -77,7 +77,7 @@ const defaultForm: FrpcProxy = {
 /**
  * 表单内容
  */
-const editForm = ref<FrpcProxy>(defaultForm);
+const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
 
 /**
  * 代理类型
@@ -280,11 +280,12 @@ const handleSubmit = async () => {
         return;
       }
       loading.value.form = 1;
-      const data = clone(editForm.value);
+      const data = _.cloneDeep(editForm.value);
+      console.log("submit", data);
       if (data._id) {
-        send(ipcRouters.PROXY.createProxy, data);
-      } else {
         send(ipcRouters.PROXY.modifyProxy, data);
+      } else {
+        send(ipcRouters.PROXY.createProxy, data);
       }
     }
   });
@@ -325,7 +326,7 @@ const handleDeleteProxy = (proxy: FrpcProxy) => {
  * 重置表单
  */
 const handleResetForm = () => {
-  editForm.value = defaultForm;
+  editForm.value = _.cloneDeep(defaultForm);
 };
 
 const handleOpenInsert = () => {
@@ -336,10 +337,10 @@ const handleOpenInsert = () => {
 };
 
 const handleOpenUpdate = (proxy: FrpcProxy) => {
-  editForm.value = clone(proxy);
-  if (!editForm.value.fallbackTimeoutMs) {
-    editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
-  }
+  editForm.value = _.cloneDeep(proxy);
+  // if (!editForm.value.fallbackTimeoutMs) {
+  //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
+  // }
   edit.value = {
     title: "修改代理",
     visible: true
@@ -361,6 +362,7 @@ const handleLoadLocalPorts = () => {
 
 const handleSelectLocalPort = useDebounceFn((port: number) => {
   editForm.value.localPort = port?.toString();
+  editForm.value.localIP = "127.0.0.1";
   handleCloseLocalPortDialog();
 });
 
@@ -539,12 +541,10 @@ onMounted(() => {
   };
 
   on(ipcRouters.PROXY.createProxy, data => {
-    console.log("data", data);
     insertOrUpdateHook("新增成功");
   });
 
   on(ipcRouters.PROXY.modifyProxy, data => {
-    console.log("data", data);
     insertOrUpdateHook("修改成功");
   });
 
@@ -595,11 +595,11 @@ onUnmounted(() => {
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
-      <el-button class="mr-2" type="primary" @click="handleOpenInsert">
+      <el-button type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb pr-2" v-loading="loading.list > 0">
+    <div class="app-container-breadcrumb" v-loading="loading.list > 0">
       <template v-if="proxys && proxys.length > 0">
         <el-row :gutter="20">
           <el-col
@@ -803,7 +803,7 @@ onUnmounted(() => {
       v-model="edit.visible"
       direction="rtl"
       size="60%"
-      @close="editForm = defaultForm"
+      @close="editForm = _.cloneDeep(defaultForm)"
     >
       <!--    <el-dialog-->
       <!--      v-model="edit.visible"-->

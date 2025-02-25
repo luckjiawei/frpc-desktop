@@ -4,12 +4,11 @@ import { ipcRenderer } from "electron";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
-import { clone } from "@/utils/clone";
 import { Base64 } from "js-base64";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
-import confetti from "canvas-confetti/src/confetti.js";
+import _ from "lodash";
 
 defineComponent({
   name: "Config"
@@ -201,7 +200,7 @@ const handleSubmit = useDebounceFn(() => {
   formRef.value.validate(valid => {
     if (valid) {
       loading.value = 1;
-      const data = clone(formData.value);
+      const data = _.cloneDeep(formData.value);
       send(ipcRouters.SERVER.saveConfig, data);
     }
   });
@@ -362,7 +361,7 @@ onMounted(() => {
     });
   });
 
-  on(ipcRouters.SERVER.exportConfig, (data) => {
+  on(ipcRouters.SERVER.exportConfig, data => {
     ElMessageBox.alert(`配置路径：${data}`, `🎉 导出成功`);
     // // 礼花
     // confetti({
