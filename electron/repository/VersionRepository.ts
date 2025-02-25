@@ -1,6 +1,8 @@
-import BaseDao from "./BaseDao";
+import BaseRepository from "./BaseRepository";
+import Component from "../core/annotation/Component";
 
-class VersionDao extends BaseDao<FrpcVersion> {
+// @Component()
+class VersionRepository extends BaseRepository<FrpcVersion> {
   constructor() {
     super("version");
   }
@@ -18,7 +20,7 @@ class VersionDao extends BaseDao<FrpcVersion> {
   }
 
   exists(githubReleaseId: number): Promise<boolean> {
-    return new Promise(( resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.db.count({ githubReleaseId: githubReleaseId }, (err, count) => {
         if (err) {
           reject(err);
@@ -30,4 +32,4 @@ class VersionDao extends BaseDao<FrpcVersion> {
   }
 }
 
-export default VersionDao;
+export default VersionRepository;

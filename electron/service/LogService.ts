@@ -2,6 +2,8 @@ import fs from "fs";
 import { success } from "../utils/response";
 import PathUtils from "../utils/PathUtils";
 import SystemService from "./SystemService";
+import BeanFactory from "../core/BeanFactory";
+import { BrowserWindow } from "electron";
 
 class LogService {
   private readonly _systemService: SystemService;
@@ -11,8 +13,11 @@ class LogService {
     this._systemService = systemService;
   }
 
-  getFrpLogContent(): Promise<string> {
+  async getFrpLogContent() {
     return new Promise((resolve, reject) => {
+      if (!fs.existsSync(this._logPath)) {
+        resolve("");
+      }
       fs.readFile(this._logPath, "utf-8", (error, data) => {
         if (!error) {
           resolve(data);
@@ -28,11 +33,12 @@ class LogService {
       setTimeout(() => this.watchFrpcLog(listenerParam), 1000);
       return;
     }
-    console.log('watchFrpcLog succcess');
+    console.log("watchFrpcLog succcess");
     fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
         console.log("change", eventType, listenerParam.channel);
-        listenerParam.win.webContents.send(
+        const win: BrowserWindow = BeanFactory.getBean("win");
+        win.webContents.send(
           listenerParam.channel,
           success(true)
         );

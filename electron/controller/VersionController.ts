@@ -1,13 +1,13 @@
 import BaseController from "./BaseController";
 import VersionService from "../service/VersionService";
 import { fail, success } from "../utils/response";
-import VersionDao from "../dao/VersionDao";
+import VersionRepository from "../repository/VersionRepository";
 
 class VersionController extends BaseController {
   private readonly _versionService: VersionService;
-  private readonly _versionDao: VersionDao;
+  private readonly _versionDao: VersionRepository;
 
-  constructor(versionService: VersionService, versionDao: VersionDao) {
+  constructor(versionService: VersionService, versionDao: VersionRepository) {
     super();
     this._versionService = versionService;
     this._versionDao = versionDao;

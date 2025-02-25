@@ -1,6 +1,8 @@
-import BaseDao from "./BaseDao";
+import BaseRepository from "./BaseRepository";
+import Component from "../core/annotation/Component";
 
-class ServerDao extends BaseDao<OpenSourceFrpcDesktopServer> {
+// @Component()
+class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
   constructor() {
     super("server");
   }
@@ -18,4 +20,4 @@ class ServerDao extends BaseDao<OpenSourceFrpcDesktopServer> {
   }
 }
 
-export default ServerDao
+export default ServerRepository

@@ -20,7 +20,7 @@ import IdUtils from "../utils/IdUtils";
 // }
 
 
-class BaseDao<T> {
+class BaseRepository<T> {
   protected readonly db: Datastore;
 
   constructor(dbName: string) {
@@ -135,4 +135,4 @@ class BaseDao<T> {
   }
 }
 
-export default BaseDao;
+export default BaseRepository;

@@ -1,11 +1,13 @@
-import ProxyDao from "../dao/ProxyDao";
+import ProxyRepository from "../repository/ProxyRepository";
+import Component from "../core/annotation/Component";
 
 const { exec, spawn } = require("child_process");
 
 class ProxyService {
-  private readonly _proxyDao: ProxyDao;
 
-  constructor(proxyDao: ProxyDao) {
+  private readonly _proxyDao: ProxyRepository;
+
+  constructor(public proxyDao: ProxyRepository) {
     this._proxyDao = proxyDao;
   }
 

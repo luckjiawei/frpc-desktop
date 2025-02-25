@@ -1,6 +1,6 @@
+import { app } from "electron";
 
 class GlobalConstant {
-  public static APP_NAME = "Frpc Desktop";
   public static ZIP_EXT = ".zip";
   public static GZ_EXT = ".gz";
   public static TAR_GZ_EXT = ".tar.gz";

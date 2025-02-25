@@ -1,13 +1,13 @@
 import BaseController from "./BaseController";
 import ProxyService from "../service/ProxyService";
 import { success } from "../utils/response";
-import ProxyDao from "../dao/ProxyDao";
+import ProxyRepository from "../repository/ProxyRepository";
 
 class ProxyController extends BaseController {
   private readonly _proxyService: ProxyService;
-  private readonly _proxyDao: ProxyDao;
+  private readonly _proxyDao: ProxyRepository;
 
-  constructor(proxyService: ProxyService, proxyDao: ProxyDao) {
+  constructor(proxyService: ProxyService, proxyDao: ProxyRepository) {
     super();
     this._proxyService = proxyService;
     this._proxyDao = proxyDao;

@@ -1,16 +1,16 @@
 import BaseService from "./BaseService";
-import ServerDao from "../dao/ServerDao";
+import ServerRepository from "../repository/ServerRepository";
 import TOML from "smol-toml";
 import fs from "fs";
 import PathUtils from "../utils/PathUtils";
-import ProxyDao from "../dao/ProxyDao";
+import ProxyRepository from "../repository/ProxyRepository";
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
-  private readonly _serverDao: ServerDao;
-  private readonly _proxyDao: ProxyDao;
+  private readonly _serverDao: ServerRepository;
+  private readonly _proxyDao: ProxyRepository;
   private readonly _serverId: string = "1";
 
-  constructor(serverDao: ServerDao, proxyDao: ProxyDao) {
+  constructor(serverDao: ServerRepository, proxyDao: ProxyRepository) {
     super();
     this._serverDao = serverDao;
     this._proxyDao = proxyDao;

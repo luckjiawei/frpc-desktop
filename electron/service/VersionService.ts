@@ -1,4 +1,4 @@
-import VersionDao from "../dao/VersionDao";
+import VersionRepository from "../repository/VersionRepository";
 import BaseService from "./BaseService";
 import GitHubService from "./GitHubService";
 import frpReleasesJson from "../json/frp-releases.json";
@@ -14,14 +14,14 @@ import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import SystemService from "./SystemService";
 
 class VersionService extends BaseService<FrpcVersion> {
-  private readonly _versionDao: VersionDao;
+  private readonly _versionDao: VersionRepository;
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<FrpcVersion> = [];
 
   constructor(
-    versionDao: VersionDao,
+    versionDao: VersionRepository,
     systemService: SystemService,
     gitHubService: GitHubService
   ) {

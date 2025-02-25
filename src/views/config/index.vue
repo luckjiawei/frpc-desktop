@@ -362,21 +362,22 @@ onMounted(() => {
     });
   });
 
-  on(ipcRouters.SERVER.exportConfig, () => {
-    // 礼花
-    confetti({
-      zIndex: 12002,
-      particleCount: 200,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-    ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
-      closeOnClickModal: false,
-      showClose: false,
-      confirmButtonText: "立即重启"
-    }).then(() => {
-      send(ipcRouters.SYSTEM.relaunchApp);
-    });
+  on(ipcRouters.SERVER.exportConfig, (data) => {
+    ElMessageBox.alert(`配置路径：${data}`, `🎉 导出成功`);
+    // // 礼花
+    // confetti({
+    //   zIndex: 12002,
+    //   particleCount: 200,
+    //   spread: 70,
+    //   origin: { y: 0.6 }
+    // });
+    // ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
+    //   closeOnClickModal: false,
+    //   showClose: false,
+    //   confirmButtonText: "立即重启"
+    // }).then(() => {
+    //   send(ipcRouters.SYSTEM.relaunchApp);
+    // });
   });
   // ElMessageBox.alert(data, `提示`);
   on(ipcRouters.SYSTEM.openAppData, () => {
@@ -514,7 +515,6 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
   removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.exportConfig);
-  // ipcRenderer.removeAllListeners("Config.clearAll.hook");
   removeRouterListeners(ipcRouters.SYSTEM.openAppData);
 });
 </script>

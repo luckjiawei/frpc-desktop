@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
+import Component from "../core/annotation/Component";
 
 const tar = require("tar");
 

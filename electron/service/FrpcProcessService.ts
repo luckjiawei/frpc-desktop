@@ -1,18 +1,19 @@
 import ServerService from "./ServerService";
-import VersionDao from "../dao/VersionDao";
+import VersionRepository from "../repository/VersionRepository";
 import PathUtils from "../utils/PathUtils";
 import GlobalConstant from "../core/GlobalConstant";
-import { Notification } from "electron";
+import { app, BrowserWindow, Notification } from "electron";
 import { success } from "../utils/response";
 import treeKill from "tree-kill";
+import BeanFactory from "../core/BeanFactory";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
-  private readonly _versionDao: VersionDao;
+  private readonly _versionDao: VersionRepository;
   private _frpcProcess: any;
   private _frpcProcessListener: any;
 
-  constructor(serverService: ServerService, versionDao: VersionDao) {
+  constructor(serverService: ServerService, versionDao: VersionRepository) {
     this._serverService = serverService;
     this._versionDao = versionDao;
   }
@@ -81,7 +82,7 @@ class FrpcProcessService {
       console.log("running", running);
       if (!running) {
         new Notification({
-          title: GlobalConstant.APP_NAME,
+          title: app.getName(),
           body: "Connection lost, please check the logs for details."
         }).show();
         // logError(
@@ -90,7 +91,8 @@ class FrpcProcessService {
         // );
         // clearInterval(this._frpcProcessListener);
       }
-      listenerParam.win.webContents.send(
+      const win: BrowserWindow = BeanFactory.getBean("win");
+      win.webContents.send(
         listenerParam.channel,
         success(running)
       );

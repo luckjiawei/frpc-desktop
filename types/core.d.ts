@@ -5,14 +5,14 @@ interface ApiResponse<T> {
 }
 
 interface ControllerParam {
-  win: BrowserWindow;
+  // win: BrowserWindow;
   channel: string;
   event: Electron.IpcMainEvent;
   args: any;
 }
 
 interface ListenerParam {
-  win: BrowserWindow;
+  // win: BrowserWindow;
   channel: string;
   args: any[];
 }

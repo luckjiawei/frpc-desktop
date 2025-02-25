@@ -5,6 +5,7 @@ import PathUtils from "../utils/PathUtils";
 import fs from "fs";
 import FrpcProcessService from "../service/FrpcProcessService";
 import SystemService from "../service/SystemService";
+import moment from "moment";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -70,8 +71,11 @@ class ConfigController extends BaseController {
 
   exportConfig(req: ControllerParam) {
     this._systemService.openDirectory().then(folder => {
-      this._serverService.genTomlConfig(folder.filePaths[0]).then(() => {
-        req.event.reply(req.channel, success());
+      const path = `${folder.filePaths[0]}/frpc-${moment(new Date()).format(
+        "YYYYMMDDhhmmss"
+      )}.toml`;
+      this._serverService.genTomlConfig(path).then(() => {
+        req.event.reply(req.channel, success(path));
       });
     });
   }

@@ -1,6 +1,8 @@
-import BaseDao from "./BaseDao";
+import BaseRepository from "./BaseRepository";
+import Component from "../core/annotation/Component";
 
-class ProxyDao extends BaseDao<FrpcProxy> {
+// @Component()
+class ProxyRepository extends BaseRepository<FrpcProxy> {
   constructor() {
     super("proxy");
   }
@@ -23,4 +25,4 @@ class ProxyDao extends BaseDao<FrpcProxy> {
   }
 }
 
-export default ProxyDao;
+export default ProxyRepository;

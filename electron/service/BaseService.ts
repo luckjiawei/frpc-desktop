@@ -1,14 +1,14 @@
-import BaseDao from "../dao/BaseDao";
+import BaseRepository from "../repository/BaseRepository";
 
 
 interface BaseServiceInterface<T> {
-  // dao: BaseDao<T>;
+  // dao: BaseRepository<T>;
 }
 
 class BaseService<T> implements BaseServiceInterface<T> {
-  // dao: BaseDao<T>;
+  // dao: BaseRepository<T>;
   //
-  // constructor(dao: BaseDao<T>) {
+  // constructor(dao: BaseRepository<T>) {
   //   this.dao = dao;
   // }
 }
