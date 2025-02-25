@@ -115,6 +115,10 @@ class FrpcDesktopApp {
       }
       return false;
     });
+    Logger.info(
+      `FrpcDesktopApp.initializeWindow`,
+      `Window initialized.`
+    );
   }
 
   initializeTray() {
@@ -149,6 +153,10 @@ class FrpcDesktopApp {
     tray.on("double-click", () => {
       this._win.show();
     });
+    Logger.info(
+      `FrpcDesktopApp.initializeTray`,
+      `Tray initialized.`
+    );
   }
 
   initializeElectronApp() {
@@ -262,6 +270,11 @@ class FrpcDesktopApp {
       // todo stop frpc process
       this._quitting = true;
     });
+
+    Logger.info(
+      `FrpcDesktopApp.initializeElectronApp`,
+      `ElectronApp initialized.`
+    );
   }
 
   initializeBeans() {
@@ -334,6 +347,10 @@ class FrpcDesktopApp {
       "systemController",
       new SystemController(BeanFactory.getBean("systemService"))
     );
+    Logger.info(
+      `FrpcDesktopApp.initializeBeans`,
+      `Beans initialized.`
+    );
   }
 
   /**
@@ -353,7 +370,10 @@ class FrpcDesktopApp {
       };
       bean[method].call(bean, listenerParam);
     });
-    Logger.info("initialize listeners success");
+    Logger.info(
+      `FrpcDesktopApp.initializeListeners`,
+      `Listeners initialized.`
+    );
     // this._beans.get("logService").watchFrpcLog(this._win);
   }
 
@@ -377,9 +397,21 @@ class FrpcDesktopApp {
           const [beanName, method] = router.controller.split(".");
           const bean = BeanFactory.getBean(beanName);
           bean[method].call(bean, req);
+          Logger.debug(
+            `ipcRouter`,
+            `path: ${router.path} + req: (channel: ${
+              req.channel
+            }, args: ${JSON.stringify(
+              req.args
+            )}) => bean: ${beanName}.${method}`
+          );
         });
       });
     });
+    Logger.info(
+      `FrpcDesktopApp.initializeRouters`,
+      `Routers initialized.`
+    );
   }
 }
 

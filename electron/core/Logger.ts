@@ -6,13 +6,21 @@ class Logger {
     log.transports.console.level = "debug";
   }
 
-  static info(msg: string) {}
+  public static info(module: string, msg: string) {
+    log.info(`[${module}] ${msg}`);
+  }
 
-  static debug(msg: string) {}
+  public static debug(module: string, msg: string) {
+    log.debug(`[${module}] ${msg}`);
+  }
 
-  static warn(msg: string) {}
+  public static warn(module: string, msg: string) {
+    log.warn(`[${module}] ${msg}`);
+  }
 
-  static error(msg: string) {}
+  public static error(module: string, msg: string) {
+    log.warn(`[${module}] ${msg}`);
+  }
 }
 
 export default Logger;
