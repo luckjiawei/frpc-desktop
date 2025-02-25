@@ -102,6 +102,10 @@ export const ipcRouters: IpcRouters = {
     openAppData: {
       path: "system/openAppData",
       controller: "systemController.openAppData"
+    },
+    selectLocalFile: {
+      path: "system/selectLocalFile",
+      controller: "systemController.selectLocalFile"
     }
   }
 };

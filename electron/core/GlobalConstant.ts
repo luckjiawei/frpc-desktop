@@ -2,6 +2,7 @@ import { app } from "electron";
 
 class GlobalConstant {
   public static ZIP_EXT = ".zip";
+  public static TOML_EXT = ".toml";
   public static GZ_EXT = ".gz";
   public static TAR_GZ_EXT = ".tar.gz";
 

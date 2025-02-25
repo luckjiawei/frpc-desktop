@@ -186,6 +186,7 @@ const pasteServerConfigBase64 = ref();
 
 const formRef = ref<FormInstance>();
 const protocol = ref("frp://");
+const currSelectLocalFileType = ref();
 
 const visibles = reactive({
   copyServerConfig: false,
@@ -264,6 +265,23 @@ onMounted(() => {
     });
     loading.value--;
   });
+
+  on(ipcRouters.SYSTEM.selectLocalFile, data => {
+    switch (currSelectLocalFileType.value) {
+      case 1:
+        formData.value.transport.tls.certFile = data as string;
+        // tlsConfigCertFile = data;
+        break;
+      case 2:
+        formData.value.transport.tls.keyFile = data as string;
+        break;
+      case 3:
+        formData.value.transport.tls.trustedCaFile = data as string;
+        // formData.value.tlsConfigTrustedCaFile = data as string;
+        break;
+    }
+  })
+
   // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
   //   const { err, data } = args;
   //   if (!err) {
@@ -362,7 +380,10 @@ onMounted(() => {
   });
 
   on(ipcRouters.SERVER.exportConfig, data => {
-    ElMessageBox.alert(`配置路径：${data}`, `🎉 导出成功`);
+    const { canceled, path } = data;
+    if (!canceled) {
+      ElMessageBox.alert(`配置路径：${path}`, `🎉 导出成功`);
+    }
     // // 礼花
     // confetti({
     //   zIndex: 12002,
@@ -388,36 +409,42 @@ onMounted(() => {
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
-  ipcRenderer.invoke("file.selectFile", ext).then(r => {
-    switch (type) {
-      case 1:
-        formData.value.tlsConfigCertFile = r[0];
-        break;
-      case 2:
-        formData.value.tlsConfigKeyFile = r[0];
-        break;
-      case 3:
-        formData.value.tlsConfigTrustedCaFile = r[0];
-        break;
-    }
-    console.log(r);
+  currSelectLocalFileType.value = type;
+  send(ipcRouters.SYSTEM.selectLocalFile, {
+    name: "",
+    extensions: ext
   });
+  // ipcRenderer.invoke("file.selectFile", ext).then(r => {
+  //   switch (type) {
+  //     case 1:
+  //       formData.value.tlsConfigCertFile = r[0];
+  //       break;
+  //     case 2:
+  //       formData.value.tlsConfigKeyFile = r[0];
+  //       break;
+  //     case 3:
+  //       formData.value.tlsConfigTrustedCaFile = r[0];
+  //       break;
+  //   }
+  //   console.log(r);
+  // });
 };
 
 /**
  * 分享配置
  */
 const handleCopyServerConfig2Base64 = useDebounceFn(() => {
-  const shareConfig: ShareLinkConfig = {
-    serverAddr: formData.value.serverAddr,
-    serverPort: formData.value.serverPort,
-    authMethod: formData.value.authMethod,
-    authToken: formData.value.authToken,
-    transportHeartbeatInterval: formData.value.transportHeartbeatInterval,
-    transportHeartbeatTimeout: formData.value.transportHeartbeatTimeout,
-    user: formData.value.user,
-    metaToken: formData.value.metaToken
-  };
+  // const shareConfig: ShareLinkConfig = {
+  //   serverAddr: formData.value.serverAddr,
+  //   serverPort: formData.value.serverPort,
+  //   authMethod: formData.value.authMethod,
+  //   authToken: formData.value.authToken,
+  //   transportHeartbeatInterval: formData.value.transportHeartbeatInterval,
+  //   transportHeartbeatTimeout: formData.value.transportHeartbeatTimeout,
+  //   user: formData.value.user,
+  //   metaToken: formData.value.metaToken
+  // };
+  const { _id, frpcVersion, ...shareConfig } = formData.value;
   const base64str = Base64.encode(JSON.stringify(shareConfig));
   copyServerConfigBase64.value = protocol.value + base64str;
   visibles.copyServerConfig = true;

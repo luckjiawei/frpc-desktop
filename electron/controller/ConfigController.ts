@@ -6,6 +6,7 @@ import FrpcProcessService from "../service/FrpcProcessService";
 import SystemService from "../service/SystemService";
 import moment from "moment";
 import ResponseUtils from "../utils/ResponseUtils";
+import { dialog } from "electron";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -70,14 +71,34 @@ class ConfigController extends BaseController {
   }
 
   exportConfig(req: ControllerParam) {
-    this._systemService.openDirectory().then(folder => {
-      const path = `${folder.filePaths[0]}/frpc-${moment(new Date()).format(
-        "YYYYMMDDhhmmss"
-      )}.toml`;
-      this._serverService.genTomlConfig(path).then(() => {
-        req.event.reply(req.channel, ResponseUtils.success(path));
+    dialog
+      .showOpenDialog({
+        properties: ["openDirectory"]
+      })
+      .then(result => {
+        if (result.canceled) {
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: true,
+              path: ""
+            })
+          );
+        } else {
+          const path = `${result.filePaths[0]}/frpc-${moment(new Date()).format(
+            "YYYYMMDDhhmmss"
+          )}.toml`;
+          this._serverService.genTomlConfig(path).then(() => {
+            req.event.reply(
+              req.channel,
+              ResponseUtils.success({
+                canceled: false,
+                path: path
+              })
+            );
+          });
+        }
       });
-    });
   }
 }
 

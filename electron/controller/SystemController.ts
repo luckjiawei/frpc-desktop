@@ -1,6 +1,8 @@
 import SystemService from "../service/SystemService";
 import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
+import { BrowserWindow, dialog } from "electron";
+import BeanFactory from "../core/BeanFactory";
 
 class SystemController {
   private readonly _systemService: SystemService;
@@ -30,6 +32,33 @@ class SystemController {
     this._systemService.openLocalPath(PathUtils.getAppData()).then(() => {
       req.event.reply(req.channel, ResponseUtils.success());
     });
+  }
+
+  selectLocalFile(req: ControllerParam) {
+    const { name, extensions } = req.args;
+    if (!extensions || extensions.length === 0) {
+      req.event.reply(req.channel, ResponseUtils.fail("可选择扩展名不能为空"));
+    }
+    const win: BrowserWindow = BeanFactory.getBean("win");
+    dialog
+      .showOpenDialog(win, {
+        properties: ["openFile"],
+        filters: [{ name: name, extensions: extensions }]
+      })
+      .then(result => {
+        if (result.canceled) {
+          // todo canceled
+          ResponseUtils.success({
+            canceled: true,
+            path: ""
+          });
+        } else {
+          ResponseUtils.success({
+            canceled: true,
+            path: result.filePaths[0]
+          });
+        }
+      });
   }
 }
 

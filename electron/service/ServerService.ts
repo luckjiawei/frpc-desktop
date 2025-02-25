@@ -1,19 +1,31 @@
 import BaseService from "./BaseService";
 import ServerRepository from "../repository/ServerRepository";
-import TOML from "smol-toml";
 import fs from "fs";
 import PathUtils from "../utils/PathUtils";
 import ProxyRepository from "../repository/ProxyRepository";
+import SystemService from "./SystemService";
+import { BrowserWindow, dialog } from "electron";
+import BeanFactory from "../core/BeanFactory";
+import path from "path";
+import GlobalConstant from "../core/GlobalConstant";
+import TOML from "smol-toml";
+
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerRepository;
   private readonly _proxyDao: ProxyRepository;
+  // private readonly _systemService: SystemService;
   private readonly _serverId: string = "1";
 
-  constructor(serverDao: ServerRepository, proxyDao: ProxyRepository) {
+  constructor(
+    serverDao: ServerRepository,
+    proxyDao: ProxyRepository,
+    // systemService: SystemService
+  ) {
     super();
     this._serverDao = serverDao;
     this._proxyDao = proxyDao;
+    // this._systemService = systemService;
   }
 
   async saveServerConfig(
@@ -60,6 +72,29 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       toml, // 配置文件内容
       { flag: "w" }
     );
+  }
+
+  async importTomlConfig() {
+    const win: BrowserWindow = BeanFactory.getBean("win");
+    const result = await dialog.showOpenDialog(win, {
+      properties: ["openFile"],
+      filters: [
+        { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+      ]
+    });
+    if (result.canceled) {
+      const filePath = result.filePaths[0];
+      const fileExtension = path.extname(filePath);
+      if (fileExtension === GlobalConstant.TOML_EXT) {
+        const tomlData = fs.readFileSync(filePath, "utf-8");
+        const sourceConfig = TOML.parse(tomlData);
+        console.log('1');
+        // todo Persistent
+      } else {
+        throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
+      }
+      return;
+    }
   }
 }
 

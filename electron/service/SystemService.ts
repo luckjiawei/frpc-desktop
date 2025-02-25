@@ -1,10 +1,9 @@
-import { app, dialog, shell } from "electron";
+import { app, shell } from "electron";
 import GlobalConstant from "../core/GlobalConstant";
 import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
-import Component from "../core/annotation/Component";
 
 const tar = require("tar");
 
@@ -108,23 +107,6 @@ class SystemService {
       });
   }
 
-  openFile(name: string, ext: any) {
-    return dialog.showOpenDialogSync({
-      properties: ["openFile"],
-      filters: [
-        {
-          name: name,
-          extensions: ext
-        }
-      ]
-    });
-  }
-
-  async openDirectory() {
-    return await dialog.showOpenDialog({
-      properties: ["openDirectory"]
-    });
-  }
 }
 
 export default SystemService;
