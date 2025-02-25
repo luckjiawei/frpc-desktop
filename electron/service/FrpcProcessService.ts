@@ -3,9 +3,9 @@ import VersionRepository from "../repository/VersionRepository";
 import PathUtils from "../utils/PathUtils";
 import GlobalConstant from "../core/GlobalConstant";
 import { app, BrowserWindow, Notification } from "electron";
-import { success } from "../utils/ResponseUtils";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;

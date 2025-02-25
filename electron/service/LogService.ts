@@ -1,9 +1,9 @@
 import fs from "fs";
-import { success } from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import SystemService from "./SystemService";
 import BeanFactory from "../core/BeanFactory";
 import { BrowserWindow } from "electron";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class LogService {
   private readonly _systemService: SystemService;

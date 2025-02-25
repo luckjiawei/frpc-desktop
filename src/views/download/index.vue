@@ -6,7 +6,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { on, send } from "@/utils/ipcUtils";
+import { on, removeRouterListeners, removeRouterListeners2, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
@@ -40,6 +40,10 @@ const handleDownload = useDebounceFn((version: FrpcVersion) => {
   send(ipcRouters.VERSION.downloadVersion, {
     githubReleaseId: version.githubReleaseId
   });
+  downloading.value.set(
+    version.githubReleaseId,
+    0
+  );
 }, 300);
 
 /**
@@ -144,11 +148,9 @@ const handleImportFrp = () => {
 };
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnProgress");
-  ipcRenderer.removeAllListeners("Download.frpVersionDownloadOnCompleted");
-  ipcRenderer.removeAllListeners("Download.frpVersionHook");
-  ipcRenderer.removeAllListeners("Download.deleteVersion.hook");
-  ipcRenderer.removeAllListeners("Download.importFrpFile.hook");
+  removeRouterListeners(ipcRouters.VERSION.deleteDownloadedVersion);
+  removeRouterListeners(ipcRouters.VERSION.downloadVersion);
+  removeRouterListeners(ipcRouters.VERSION.getVersions);
 });
 </script>
 <template>

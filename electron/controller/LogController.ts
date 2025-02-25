@@ -26,7 +26,7 @@ class LogController extends BaseController {
   openFrpcLogFile(req: ControllerParam) {
     this._logService.openFrpcLogFile().then(data => {
       if (data) {
-        ResponseUtils.success(null);
+        ResponseUtils.success();
       } else {
         ResponseUtils.fail();
       }
