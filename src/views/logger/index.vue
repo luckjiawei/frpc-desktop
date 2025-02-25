@@ -45,7 +45,10 @@ const logLoading = ref(true);
 onMounted(() => {
   send(ipcRouters.LOG.getFrpLogContent);
   on(ipcRouters.LOG.getFrpLogContent, data => {
-    loggerContent.value = formatLogContent(data as string);
+    if (data) {
+      loggerContent.value = formatLogContent(data as string);
+    }
+
     logLoading.value = false;
     if (refreshStatus.value) {
       // 刷新逻辑

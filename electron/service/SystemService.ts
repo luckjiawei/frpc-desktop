@@ -42,7 +42,7 @@ class SystemService {
         if (errorMessage) {
           resolve(false);
         } else {
-          reject(true);
+          resolve(true);
         }
       });
     });
