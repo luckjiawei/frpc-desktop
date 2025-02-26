@@ -107,8 +107,17 @@ remotePort = {{ $v.Second }}
             remotePort: remotePort
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
-          const { _id, status, ...frpProxyConfig } = proxy;
-          return frpProxyConfig;
+          return {
+            name: proxy.name,
+            type: proxy.type,
+            localIP: proxy.localIP,
+            localPort: parseInt(proxy.localPort),
+            customDomains: proxy.customDomains,
+            subdomain: proxy.subdomain,
+            ...(proxy.basicAuth
+              ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
+              : {})
+          };
         } else if (
           proxy.type === "stcp" ||
           proxy.type === "xtcp" ||
