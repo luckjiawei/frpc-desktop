@@ -1,5 +1,12 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
+import {
+  defineComponent,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch
+} from "vue";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
@@ -80,11 +87,8 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   },
   user: ""
 };
-
 const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
-
 const loading = ref(1);
-
 const rules = reactive<FormRules>({
   frpcVersion: [{ required: true, message: "请选择版本", trigger: "blur" }],
   serverAddr: [
@@ -180,23 +184,27 @@ const rules = reactive<FormRules>({
     { required: true, message: "web界面端口不能为空", trigger: "change" }
   ]
 });
-
-const versions = ref<Array<FrpcVersion>>([]);
 const copyServerConfigBase64 = ref();
 const pasteServerConfigBase64 = ref();
-
 const formRef = ref<FormInstance>();
 const protocol = ref("frp://");
 const currSelectLocalFileType = ref();
+const frpcDesktopStore = useFrpcDesktopStore();
 
-const visibles = reactive({
+watch(
+  () => frpcDesktopStore.downloadedVersions,
+  (newValue, oldValue) => {
+    checkAndResetVersion();
+  }
+);
+
+const visible = reactive({
   copyServerConfig: false,
   pasteServerConfig: false,
   exportConfig: false
 });
 
-const exportConfigType = ref("toml");
-const frpcDesktopStore = useFrpcDesktopStore();
+// const exportConfigType = ref("toml");
 
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
@@ -228,7 +236,9 @@ const checkAndResetVersion = () => {
   const currentVersion = formData.value.frpcVersion;
   if (
     currentVersion &&
-    !versions.value.some(item => item.githubReleaseId === currentVersion)
+    !frpcDesktopStore.downloadedVersions.some(
+      item => item.githubReleaseId === currentVersion
+    )
   ) {
     formData.value.frpcVersion = null;
   }
@@ -255,10 +265,10 @@ onMounted(() => {
     loading.value--;
   });
 
-  on(ipcRouters.VERSION.getDownloadedVersions, data => {
-    versions.value = data;
-    checkAndResetVersion();
-  });
+  // on(ipcRouters.VERSION.getDownloadedVersions, data => {
+  //   // versions.value = data;
+  //   checkAndResetVersion();
+  // });
 
   on(ipcRouters.SERVER.saveConfig, data => {
     ElMessage({
@@ -439,14 +449,14 @@ const handleCopyServerConfig2Base64 = useDebounceFn(() => {
   shareConfig.transport.tls.trustedCaFile = "";
   const base64str = Base64.encode(JSON.stringify(shareConfig));
   copyServerConfigBase64.value = protocol.value + base64str;
-  visibles.copyServerConfig = true;
+  visible.copyServerConfig = true;
 }, 300);
 
 /**
  * 导入配置
  */
 const handlePasteServerConfig4Base64 = useDebounceFn(() => {
-  visibles.pasteServerConfig = true;
+  visible.pasteServerConfig = true;
 }, 300);
 
 const handlePasteServerConfigBase64 = useDebounceFn(() => {
@@ -491,11 +501,11 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
 
   handleSubmit();
   pasteServerConfigBase64.value = "";
-  visibles.pasteServerConfig = false;
+  visible.pasteServerConfig = false;
 }, 300);
 
 const handleShowExportDialog = () => {
-  visibles.exportConfig = true;
+  visible.exportConfig = true;
 };
 
 const handleExportConfig = useDebounceFn(() => {
@@ -527,11 +537,11 @@ const handleOpenDataFolder = useDebounceFn(() => {
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
-  removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
+  // removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.getServerConfig);
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
   removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
-  removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
+  // removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.exportConfig);
   removeRouterListeners(ipcRouters.SYSTEM.openAppData);
   removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
@@ -1484,7 +1494,7 @@ onUnmounted(() => {
     </div>
     <!--  链接导入服务器  -->
     <el-dialog
-      v-model="visibles.copyServerConfig"
+      v-model="visible.copyServerConfig"
       title="复制链接"
       width="500"
       top="5%"
@@ -1504,7 +1514,7 @@ onUnmounted(() => {
     </el-dialog>
     <!--    链接导出服务器-->
     <el-dialog
-      v-model="visibles.pasteServerConfig"
+      v-model="visible.pasteServerConfig"
       title="导入链接"
       width="500"
       top="5%"
