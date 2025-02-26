@@ -45,8 +45,8 @@ onMounted(() => {
     (bizCode: string, message: string) => {
       if (bizCode === "B1001") {
         ElMessageBox.alert("请先前往设置页面，修改配置后再启动", "提示", {
-          showCancelButton: true,
-          cancelButtonText: "取消",
+          // showCancelButton: true,
+          // cancelButtonText: "取消",
           confirmButtonText: "去设置"
         }).then(() => {
           router.replace({

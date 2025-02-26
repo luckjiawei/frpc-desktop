@@ -3,13 +3,11 @@ import ServerRepository from "../repository/ServerRepository";
 import fs from "fs";
 import PathUtils from "../utils/PathUtils";
 import ProxyRepository from "../repository/ProxyRepository";
-import SystemService from "./SystemService";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import path from "path";
 import GlobalConstant from "../core/GlobalConstant";
 import TOML from "smol-toml";
-
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerRepository;
@@ -19,7 +17,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
 
   constructor(
     serverDao: ServerRepository,
-    proxyDao: ProxyRepository,
+    proxyDao: ProxyRepository
     // systemService: SystemService
   ) {
     super();
@@ -59,8 +57,36 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const enabledProxies = proxies
       .filter(f => f.status === 1)
       .map(proxy => {
-        const { _id, status, ...frpProxyConfig } = proxy;
-        return frpProxyConfig;
+        if (proxy.type === "tcp") {
+          const {
+            _id,
+            status,
+            basicAuth,
+            bindAddr,
+            subdomain,
+            httpUser,
+            httpPassword,
+            fallbackTo,
+            fallbackTimeoutMs,
+            https2http,
+            https2httpCaFile,
+            https2httpKeyFile,
+            stcpModel,
+            customDomains,
+            locations,
+            hostHeaderRewrite,
+            keepTunnelOpen,
+            secretKey,
+            serverName,
+            ...frpProxyConfig
+          } = proxy;
+          frpProxyConfig.localPort = parseInt(frpProxyConfig.localPort);
+          frpProxyConfig.remotePort = parseInt(frpProxyConfig.remotePort);
+          return frpProxyConfig;
+        } else {
+          const { _id, status, ...frpProxyConfig } = proxy;
+          return frpProxyConfig;
+        }
       });
     const { frpcVersion, _id, system, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
@@ -80,13 +106,10 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const win: BrowserWindow = BeanFactory.getBean("win");
     const result = await dialog.showOpenDialog(win, {
       properties: ["openFile"],
-      filters: [
-        { name: "Frpc Toml ConfigFile", extensions: ["toml"] }
-      ]
+      filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
     });
     if (result.canceled) {
-
-    }else {
+    } else {
       const filePath = result.filePaths[0];
       const fileExtension = path.extname(filePath);
       if (fileExtension === GlobalConstant.TOML_EXT) {
