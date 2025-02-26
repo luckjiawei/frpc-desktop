@@ -67,6 +67,10 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.status === 1;
   }
 
+  private isHttps2http(proxy: FrpcProxy) {
+    return proxy.https2http;
+  }
+
   async genTomlConfig(outputPath: string) {
     if (!outputPath) {
       return;
@@ -107,17 +111,36 @@ remotePort = {{ $v.Second }}
             remotePort: remotePort
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
-          return {
-            name: proxy.name,
-            type: proxy.type,
-            localIP: proxy.localIP,
-            localPort: parseInt(proxy.localPort),
-            customDomains: proxy.customDomains,
-            subdomain: proxy.subdomain,
-            ...(proxy.basicAuth
-              ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
-              : {})
-          };
+          if (this.isHttps2http(proxy) && proxy.type === "https") {
+            return {
+              name: proxy.name,
+              type: proxy.type,
+              customDomains: proxy.customDomains,
+              subdomain: proxy.subdomain,
+              ...(proxy.https2http
+                ? {
+                    plugin: {
+                      type: "https2http",
+                      localAddr: `${proxy.localIP}:${proxy.localPort}`,
+                      crtPath: proxy.https2httpCaFile,
+                      keyPath: proxy.https2httpKeyFile
+                    }
+                  }
+                : {})
+            };
+          } else {
+            return {
+              name: proxy.name,
+              type: proxy.type,
+              localIP: proxy.localIP,
+              localPort: parseInt(proxy.localPort),
+              customDomains: proxy.customDomains,
+              subdomain: proxy.subdomain,
+              ...(proxy.basicAuth
+                ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
+                : {})
+            };
+          }
         } else if (
           proxy.type === "stcp" ||
           proxy.type === "xtcp" ||

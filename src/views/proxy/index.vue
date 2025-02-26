@@ -9,7 +9,6 @@ import {
 } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
-import { ipcRenderer } from "electron";
 import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
@@ -83,6 +82,7 @@ const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
  * 代理类型
  */
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
+const currSelectLocalFileType = ref();
 
 const visitorsModels = ref([
   {
@@ -156,6 +156,7 @@ const editFormRules = reactive<FormRules>({
   httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
   httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
 });
+
 
 /**
  * 表单dom
@@ -506,17 +507,22 @@ const normalizePath = (filePath: string) => {
 };
 
 const handleSelectFile = (type: number, ext: string[]) => {
-  ipcRenderer.invoke("file.selectFile", ext).then(r => {
-    switch (type) {
-      case 1:
-        editForm.value.https2httpCaFile = normalizePath(r[0]);
-        break;
-      case 2:
-        editForm.value.https2httpKeyFile = normalizePath(r[0]);
-        break;
-    }
-    console.log(r);
+  currSelectLocalFileType.value = type;
+  send(ipcRouters.SYSTEM.selectLocalFile, {
+    name: "",
+    extensions: ext
   });
+  // ipcRenderer.invoke("file.selectFile", ext).then(r => {
+  //   switch (type) {
+  //     case 1:
+  //       editForm.value.https2httpCaFile = normalizePath(r[0]);
+  //       break;
+  //     case 2:
+  //       editForm.value.https2httpKeyFile = normalizePath(r[0]);
+  //       break;
+  //   }
+  //   console.log(r);
+  // });
 };
 
 onMounted(() => {
@@ -526,6 +532,20 @@ onMounted(() => {
     console.log("allProxies", data);
     loading.value.list--;
     proxys.value = data;
+  });
+
+  on(ipcRouters.SYSTEM.selectLocalFile, data => {
+    console.log("data", data);
+    if (!data.canceled) {
+      switch (currSelectLocalFileType.value) {
+        case 1:
+          editForm.value.https2httpCaFile = data.path as string;
+          break;
+        case 2:
+          editForm.value.https2httpKeyFile = data.path as string;
+          break;
+      }
+    }
   });
 
   const insertOrUpdateHook = (message: string) => {
@@ -601,6 +621,7 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.PROXY.getAllProxies);
   removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
   removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
+  removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
 });
 </script>
 <template>
