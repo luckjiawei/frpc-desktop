@@ -1,25 +1,33 @@
 import ProxyRepository from "../repository/ProxyRepository";
-
-const { exec } = require("child_process");
+import FrpcProcessService from "./FrpcProcessService";
 
 class ProxyService {
-
   private readonly _proxyDao: ProxyRepository;
+  private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor(public proxyDao: ProxyRepository) {
+  constructor(
+    public proxyDao: ProxyRepository,
+    frpcProcessService: FrpcProcessService
+  ) {
     this._proxyDao = proxyDao;
+    this._frpcProcessService = frpcProcessService;
   }
 
   async insertProxy(proxy: FrpcProxy) {
-    return await this._proxyDao.insert(proxy);
+    const proxy2 = await this._proxyDao.insert(proxy);
+    await this._frpcProcessService.reloadFrpcProcess();
+    return proxy2;
   }
 
   async updateProxy(proxy: FrpcProxy) {
-    return await this._proxyDao.updateById(proxy._id, proxy);
+    const proxy2 = await this._proxyDao.updateById(proxy._id, proxy);
+    await this._frpcProcessService.reloadFrpcProcess();
+    return proxy2;
   }
 
   async deleteProxy(proxyId: string) {
-    return await this._proxyDao.deleteById(proxyId);
+    await this._proxyDao.deleteById(proxyId);
+    await this._frpcProcessService.reloadFrpcProcess();
   }
 
   async getLocalPorts(): Promise<Array<LocalPort>> {
@@ -28,7 +36,7 @@ class ProxyService {
         ? "netstat -a -n"
         : "netstat -an | grep LISTEN";
     return new Promise((resolve, reject) => {
-      exec(command, (error, stdout, stderr) => {
+      require("child_process").exec(command, (error, stdout, stderr) => {
         if (error) {
           reject(error);
         }

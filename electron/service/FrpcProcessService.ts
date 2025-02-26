@@ -26,6 +26,10 @@ class FrpcProcessService {
       return false;
     }
     try {
+      Logger.debug(
+        `FrpcProcessService.isRunning`,
+        `pid: ${this._frpcProcess.pid}`
+      );
       process.kill(this._frpcProcess.pid, 0);
       return true;
     } catch (err) {
@@ -82,6 +86,45 @@ class FrpcProcessService {
         }
       });
     }
+  }
+
+  async reloadFrpcProcess() {
+    if (!this.isRunning()) {
+      return;
+    }
+    const config = await this._serverService.getServerConfig();
+    if (!config) {
+      throw new BusinessError(ResponseCode.NOT_CONFIG);
+    }
+    const version = await this._versionDao.findByGithubReleaseId(
+      config.frpcVersion
+    );
+    const configPath = PathUtils.getTomlConfigFilePath();
+    await this._serverService.genTomlConfig(configPath);
+    const command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
+    require("child_process").exec(
+      command,
+      {
+        cwd: version.localPath,
+        shell: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          Logger.error(`FrpcProcessService.reloadFrpcProcess`, error);
+          return;
+        }
+        if (stderr) {
+          Logger.debug(
+            `FrpcProcessService.reloadFrpcProcess`,
+            `stderr: ${stderr}`
+          );
+        }
+        Logger.debug(
+          `FrpcProcessService.reloadFrpcProcess`,
+          `stderr: ${stdout}`
+        );
+      }
+    );
   }
 
   watchFrpcProcess(listenerParam: ListenerParam) {
