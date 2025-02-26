@@ -63,7 +63,7 @@ interface FrpcProxyConfig {
   customDomains: string[];
   locations: string[];
   hostHeaderRewrite: string;
-  stcpModel: string;
+  visitorsModel: string;
   serverName: string;
   secretKey: string;
   bindAddr: string;

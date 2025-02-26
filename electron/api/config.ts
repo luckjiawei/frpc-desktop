@@ -200,7 +200,7 @@
 //           httpUser: m.httpUser || "",
 //           httpPassword: m.httpPassword || "",
 //           // 以下为stcp参数
-//           stcpModel: "visited",
+//           visitorsModel: "visitorsProvider",
 //           serverName: "",
 //           secretKey: m?.secretKey || "",
 //           bindAddr: "",
@@ -234,7 +234,7 @@
 //           httpUser: m.httpUser || "",
 //           httpPassword: m.httpPassword || "",
 //           // 以下为stcp参数
-//           stcpModel: "visitors",
+//           visitorsModel: "visitors",
 //           serverName: m?.serverName,
 //           secretKey: m?.secretKey || "",
 //           bindAddr: m?.bindAddr,

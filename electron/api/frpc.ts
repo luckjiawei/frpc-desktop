@@ -58,7 +58,7 @@
 //     }
 // [[${
 //       (m.type === "stcp" || m.type === "xtcp" || m.type === "sudp") &&
-//       m.stcpModel === "visitors"
+//       m.visitorsModel === "visitors"
 //         ? "visitors"
 //         : "proxies"
 //     }]]
@@ -105,12 +105,12 @@
 //
 //         break;
 //       case "xtcp":
-//         if (m.stcpModel === "visitors") {
+//         if (m.visitorsModel === "visitors") {
 //           toml += `keepTunnelOpen = ${m.keepTunnelOpen}\n`;
 //         }
 //       case "stcp":
 //       case "sudp":
-//         if (m.stcpModel === "visitors") {
+//         if (m.visitorsModel === "visitors") {
 //           // 访问者
 //           toml += `serverName = "${m.serverName}"
 // bindAddr = "${m.bindAddr}"
@@ -119,7 +119,7 @@
 //             toml += `fallbackTo = "${m.fallbackTo}"
 // fallbackTimeoutMs = ${m.fallbackTimeoutMs || 500}\n`;
 //           }
-//         } else if (m.stcpModel === "visited") {
+//         } else if (m.visitorsModel === "visitorsProvider") {
 //           // 被访问者
 //           toml += `localIP = "${m.localIp}"
 // localPort = ${m.localPort}\n`;
@@ -274,12 +274,12 @@
 //         }
 //         break;
 //       case "xtcp":
-//         if (m.stcpModel === "visitors") {
+//         if (m.visitorsModel === "visitors") {
 //           ini += `keep_tunnel_open = ${m.keepTunnelOpen}\n`;
 //         }
 //       case "stcp":
 //       case "sudp":
-//         if (m.stcpModel === "visitors") {
+//         if (m.visitorsModel === "visitors") {
 //           // 访问者
 //           ini += `
 // role = visitor
@@ -291,7 +291,7 @@
 // fallback_to = ${m.fallbackTo}
 // fallback_timeout_ms = ${m.fallbackTimeoutMs || 500}\n`;
 //           }
-//         } else if (m.stcpModel === "visited") {
+//         } else if (m.visitorsModel === "visitorsProvider") {
 //           // 被访问者
 //           ini += `
 // local_ip = "${m.localIp}"

@@ -21,7 +21,7 @@ declare global {
         localPort: any;
         remotePort: string;
         customDomains: string[];
-        stcpModel: string;
+        visitorsModel: string;
         serverName: string;
         secretKey: string;
         bindAddr: string;

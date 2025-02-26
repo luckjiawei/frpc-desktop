@@ -5,6 +5,8 @@ class GlobalConstant {
   public static TOML_EXT = ".toml";
   public static GZ_EXT = ".gz";
   public static TAR_GZ_EXT = ".tar.gz";
+  public static LOCAL_IP = "127.0.0.1";
+  public static FRPC_LOGIN_FAIL_EXIT = false;
 
   public static FRP_ARCH_VERSION_MAPPING = {
     win32_x64: ["window", "amd64"],

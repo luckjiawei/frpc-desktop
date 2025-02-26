@@ -56,50 +56,64 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const proxies = await this._proxyDao.findAll();
     const enabledProxies = proxies
       .filter(f => f.status === 1)
+      .filter(f => f.visitorsModel !== "visitors")
       .map(proxy => {
-        if (proxy.type === "tcp") {
-          const {
-            _id,
-            status,
-            basicAuth,
-            bindAddr,
-            subdomain,
-            httpUser,
-            httpPassword,
-            fallbackTo,
-            fallbackTimeoutMs,
-            https2http,
-            https2httpCaFile,
-            https2httpKeyFile,
-            stcpModel,
-            customDomains,
-            locations,
-            hostHeaderRewrite,
-            keepTunnelOpen,
-            secretKey,
-            serverName,
-            ...frpProxyConfig
-          } = proxy;
-          frpProxyConfig.localPort = parseInt(frpProxyConfig.localPort);
-          frpProxyConfig.remotePort = parseInt(frpProxyConfig.remotePort);
-          return frpProxyConfig;
-        } else {
+        if (proxy.type === "tcp" || proxy.type === "udp") {
+          return {
+            name: proxy.name,
+            type: proxy.type,
+            localIP: proxy.localIP,
+            localPort: parseInt(proxy.localPort),
+            remotePort: parseInt(proxy.remotePort)
+          };
+        } else if (proxy.type === "http" || proxy.type === "https") {
           const { _id, status, ...frpProxyConfig } = proxy;
           return frpProxyConfig;
+        } else if (
+          proxy.type === "stcp" ||
+          proxy.type === "xtcp" ||
+          proxy.type === "sudp"
+        ) {
+          return {
+            name: proxy.name,
+            type: proxy.type,
+            localIP: proxy.localIP,
+            localPort: parseInt(proxy.localPort),
+            secretKey: proxy.secretKey
+          };
         }
       });
+
+    const enableVisitors = proxies
+      .filter(f => f.status === 1)
+      .filter(f => f.visitorsModel === "visitors")
+      .map(proxy => {
+        return {
+          name: proxy.name,
+          type: proxy.type,
+          // serverUser: proxy.serverUser,
+          serverName: proxy.serverName,
+          secretKey: proxy.secretKey,
+          bindAddr: proxy.bindAddr,
+          bindPort: proxy.bindPort,
+          // keepTunnelOpen: proxy.keepTunnelOpen
+          // maxRetriesAnHour: proxy.maxRetriesAnHour,
+          // minRetryInterval: proxy.minRetryInterval,
+        };
+      });
+
     const { frpcVersion, _id, system, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
-    frpcConfig.loginFailExit = false;
-    frpcConfig.webServer.addr = "127.0.0.1";
-    const toml = TOML.stringify({ ...frpcConfig, proxies: enabledProxies });
+    frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
+    frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
+    const toml = TOML.stringify({
+      ...frpcConfig,
+      proxies: enabledProxies,
+      visitors: enableVisitors
+    });
 
-    fs.writeFileSync(
-      outputPath, // 配置文件目录
-      toml, // 配置文件内容
-      { flag: "w" }
-    );
+    fs.writeFileSync(outputPath, toml, { flag: "w" });
   }
 
   async importTomlConfig() {
