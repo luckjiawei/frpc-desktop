@@ -133,14 +133,34 @@ onMounted(() => {
     handleLoadAllVersions();
   });
 
-  on(ipcRouters.VERSION.importLocalFrpcVersion, () => {
-    loading.value++;
-    ElMessage({
-      type: "success",
-      message: "导入成功"
-    });
-    handleLoadAllVersions();
-  });
+  on(
+    ipcRouters.VERSION.importLocalFrpcVersion,
+    data => {
+      const { canceled } = data;
+      if (!canceled) {
+        loading.value++;
+        ElMessage({
+          type: "success",
+          message: "导入成功"
+        });
+        handleLoadAllVersions();
+      }
+    },
+    (bizCode: string, message: string) => {
+      if (bizCode === "B1002") {
+        // 导入失败，版本已存在
+        ElMessageBox.alert(`${message}`, `导入失败`);
+      }
+      if (bizCode === "B1003") {
+        // 所选 frp 架构与操作系统不符
+        ElMessageBox.alert(`${message}`, `导入失败`);
+      }
+      if (bizCode === "B1004") {
+        // 无法识别文件
+        ElMessageBox.alert(`${message}`, `导入失败`);
+      }
+    }
+  );
 });
 
 const handleImportFrp = () => {

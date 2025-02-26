@@ -1,8 +1,11 @@
 
 enum ResponseCode {
-  SUCCESS = "A1000:successful.",
-  INTERNAL_ERROR = "B1000:internal error.",
-  NOT_CONFIG = "B1001:未配置"
+  SUCCESS = "A1000;successful.",
+  INTERNAL_ERROR = "B1000;internal error.",
+  NOT_CONFIG = "B1001;未配置",
+  VERSION_EXISTS = "B1002;导入失败，版本已存在",
+  VERSION_ARGS_ERROR = "B1003;所选 frp 架构与操作系统不符",
+  UNKNOWN_VERSION = "B1004;无法识别文件"
 }
 
 class BusinessError extends Error {
@@ -14,7 +17,7 @@ class BusinessError extends Error {
   // }
 
   constructor(bizErrorEnum: ResponseCode) {
-    const [bizCode, message] = bizErrorEnum.split(":");
+    const [bizCode, message] = bizErrorEnum.split(";");
     super(message);
     this._bizCode = bizCode;
     this.name = "BusinessError";

@@ -3,6 +3,8 @@ import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
 import Logger from "../core/Logger";
+import { BrowserWindow, dialog } from "electron";
+import BeanFactory from "../core/BeanFactory";
 
 class VersionController extends BaseController {
   private readonly _versionService: VersionService;
@@ -81,15 +83,58 @@ class VersionController extends BaseController {
   }
 
   importLocalFrpcVersion(req: ControllerParam) {
-    this._versionService
-      .importLocalFrpcVersion()
-      .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success());
+    const win: BrowserWindow = BeanFactory.getBean("win");
+    dialog
+      .showOpenDialog(win, {
+        properties: ["openFile"],
+        filters: [
+          { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+        ]
       })
-      .catch((err: Error) => {
+      .then(result => {
+        if (result.canceled) {
+          req.event.reply(
+            req.channel,
+            ResponseUtils.success({
+              canceled: true
+            })
+          );
+          return;
+        } else {
+          const filePath = result.filePaths[0];
+          this._versionService
+            .importLocalFrpcVersion(filePath)
+            .then(data => {
+              req.event.reply(
+                req.channel,
+                ResponseUtils.success({
+                  canceled: false
+                })
+              );
+            })
+            .catch((err: Error) => {
+              Logger.error("VersionController.importLocalFrpcVersion", err);
+              req.event.reply(req.channel, ResponseUtils.fail(err));
+            });
+        }
+      })
+      .catch(err => {
         Logger.error("VersionController.importLocalFrpcVersion", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
+
+    // const win: BrowserWindow = BeanFactory.getBean("win");
+    // const result = await dialog.showOpenDialog(win, {
+    //   properties: ["openFile"],
+    //   filters: [
+    //     { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
+    //   ]
+    // });
+    // if (result.canceled) {
+    //
+    // }else {
+    //
+    // }
   }
 }
 

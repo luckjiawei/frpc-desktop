@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import GitHubService from "./GitHubService";
 import frpReleasesJson from "../json/frp-releases.json";
 import { download } from "electron-dl";
-import { BrowserWindow, dialog } from "electron";
+import { BrowserWindow } from "electron";
 import GlobalConstant from "../core/GlobalConstant";
 import path from "path";
 import fs from "fs";
@@ -12,7 +12,7 @@ import PathUtils from "../utils/PathUtils";
 import FileUtils from "../utils/FileUtils";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import SystemService from "./SystemService";
-import BeanFactory from "../core/BeanFactory";
+import { BusinessError, ResponseCode } from "../core/BusinessError";
 
 class VersionService extends BaseService<FrpcVersion> {
   private readonly _versionDao: VersionRepository;
@@ -165,36 +165,24 @@ class VersionService extends BaseService<FrpcVersion> {
     return false;
   }
 
-  async importLocalFrpcVersion() {
-    const win: BrowserWindow = BeanFactory.getBean("win");
-    const result = await dialog.showOpenDialog(win, {
-      properties: ["openFile"],
-      filters: [
-        { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
-      ]
-    });
-    if (result.canceled) {
-      return;
-    } else {
-      const filePath = result.filePaths[0];
-      const checksum = FileUtils.calculateFileChecksum(filePath);
-      const frpName = frpChecksums[checksum];
-      if (frpName) {
-        if (this._currFrpArch.every(item => frpName.includes(item))) {
-          const version = this.getFrpVersionByAssetName(frpName);
-          const existsVersion = await this._versionDao.findByGithubReleaseId(
-            version.githubReleaseId
-          );
-          if (existsVersion) {
-            throw new Error("导入失败，版本已存在");
-          }
-          return this.decompressFrp(version, filePath);
-        } else {
-          throw new Error(`导入失败，所选 frp 架构与操作系统不符`);
+  async importLocalFrpcVersion(filePath: string) {
+    const checksum = FileUtils.calculateFileChecksum(filePath);
+    const frpName = frpChecksums[checksum];
+    if (frpName) {
+      if (this._currFrpArch.every(item => frpName.includes(item))) {
+        const version = this.getFrpVersionByAssetName(frpName);
+        const existsVersion = await this._versionDao.findByGithubReleaseId(
+          version.githubReleaseId
+        );
+        if (existsVersion) {
+          throw new BusinessError(ResponseCode.VERSION_EXISTS);
         }
+        return this.decompressFrp(version, filePath);
       } else {
-        throw new Error("导入失败，无法识别文件");
+        throw new BusinessError(ResponseCode.VERSION_ARGS_ERROR);
       }
+    } else {
+      throw new BusinessError(ResponseCode.UNKNOWN_VERSION);
     }
   }
 

@@ -65,6 +65,8 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     const { frpcVersion, _id, system, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
+    frpcConfig.loginFailExit = false;
+    frpcConfig.webServer.addr = "127.0.0.1";
     const toml = TOML.stringify({ ...frpcConfig, proxies: enabledProxies });
 
     fs.writeFileSync(

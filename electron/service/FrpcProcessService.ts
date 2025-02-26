@@ -7,12 +7,14 @@ import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
 import ResponseUtils from "../utils/ResponseUtils";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
+import Logger from "../core/Logger";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
   private readonly _versionDao: VersionRepository;
   private _frpcProcess: any;
   private _frpcProcessListener: any;
+  private _frpcLastStartTime: number = -1;
 
   constructor(serverService: ServerService, versionDao: VersionRepository) {
     this._serverService = serverService;
@@ -42,7 +44,6 @@ class FrpcProcessService {
     const version = await this._versionDao.findByGithubReleaseId(
       config.frpcVersion
     );
-    // todo genConfigfile.
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
     const command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
@@ -50,22 +51,33 @@ class FrpcProcessService {
       cwd: version.localPath,
       shell: true
     });
+    this._frpcLastStartTime = Date.now();
+    Logger.debug(
+      `FrpcProcessService.startFrpcProcess`,
+      `start command: ${command}`
+    );
     this._frpcProcess.stdout.on("data", data => {
-      console.log(`stdout: ${data}`);
+      Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);
     });
 
     this._frpcProcess.stderr.on("data", data => {
-      console.error(`stderr: ${data}`);
+      Logger.debug(`FrpcProcessService.startFrpcProcess`, `stderr: ${data}`);
     });
   }
 
   async stopFrpcProcess() {
     if (this._frpcProcess && this.isRunning()) {
+      Logger.debug(
+        `FrpcProcessService.stopFrpcProcess`,
+        `pid: ${this._frpcProcess.pid}`
+      );
       treeKill(this._frpcProcess.pid, (error: Error) => {
         if (error) {
           throw error;
         } else {
           this._frpcProcess = null;
+          this._frpcLastStartTime = -1;
+
           // clearInterval(this._frpcProcessListener);
         }
       });
@@ -80,12 +92,17 @@ class FrpcProcessService {
       //   LogModule.FRP_CLIENT,
       //   `Monitoring frpc process status: ${status}, Listener ID: ${frpcStatusListener}`
       // );
-      console.log("running", running);
+      Logger.debug(
+        `FrpcProcessService.watchFrpcProcess`,
+        `running: ${running}`
+      );
       if (!running) {
-        new Notification({
-          title: app.getName(),
-          body: "Connection lost, please check the logs for details."
-        }).show();
+        if (this._frpcLastStartTime !== -1) {
+          new Notification({
+            title: app.getName(),
+            body: "Connection lost, please check the logs for details."
+          }).show();
+        }
         // logError(
         //   LogModule.FRP_CLIENT,
         //   "Frpc process status check failed. Connection lost."
