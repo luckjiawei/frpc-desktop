@@ -5,14 +5,14 @@ import { RouteRecordRaw } from "vue-router";
 import Intro from "@/intro";
 import "intro.js/introjs.css";
 import confetti from "canvas-confetti/src/confetti.js";
-import { useFrpcProcessStore } from "@/store/frpcProcess";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import pkg from "../../../package.json";
 
 defineComponent({
   name: "AppMain"
 });
 
-const frpcProcessStore = useFrpcProcessStore();
+const frpcDesktopStore = useFrpcDesktopStore();
 const routes = ref<Array<RouteRecordRaw>>([]);
 const guideSteps = ref({
   Home: {

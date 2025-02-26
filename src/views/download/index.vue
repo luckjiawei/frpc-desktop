@@ -7,6 +7,7 @@ import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 
 defineComponent({
   name: "Download"
@@ -23,6 +24,7 @@ const mirrors = ref<Array<GitHubMirror>>([
     name: "github"
   }
 ]);
+const frpcDesktopStore = useFrpcDesktopStore();
 
 /**
  * 获取版本
@@ -60,34 +62,8 @@ const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
     send(ipcRouters.VERSION.deleteDownloadedVersion, {
       githubReleaseId: version.githubReleaseId
     });
-    // ipcRenderer.send("github.deleteVersion", {
-    //   id: version.id,
-    //   absPath: version.absPath
-    // });
   });
 }, 300);
-
-// const handleInitDownloadHook = () => {
-//   ipcRenderer.on("Download.deleteVersion.hook", (event, args) => {
-//     const { err, data } = args;
-//     if (!err) {
-//       loading.value++;
-//       ElMessage({
-//         type: "success",
-//         message: "删除成功"
-//       });
-//       handleLoadVersions();
-//     }
-//   });
-//   ipcRenderer.on("Download.importFrpFile.hook", (event, args) => {
-//     const { success, data } = args;
-//     console.log(args);
-//
-//     // if (err) {
-
-//     // }
-//   });
-// };
 
 const handleMirrorChange = () => {
   handleLoadAllVersions();
@@ -97,7 +73,6 @@ onMounted(() => {
   handleLoadAllVersions();
 
   on(ipcRouters.VERSION.getVersions, data => {
-    console.log("versionData", data);
     versions.value = data.map(m => {
       m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
       return m as FrpcVersion;
@@ -106,7 +81,6 @@ onMounted(() => {
   });
 
   on(ipcRouters.VERSION.downloadVersion, data => {
-    console.log("downloadData", data);
     const { githubReleaseId, completed, percent } = data;
     if (completed) {
       downloading.value.delete(githubReleaseId);
@@ -122,6 +96,7 @@ onMounted(() => {
         Number(Number(percent * 100).toFixed(2))
       );
     }
+    frpcDesktopStore.refreshDownloadedVersion();
   });
 
   on(ipcRouters.VERSION.deleteDownloadedVersion, () => {
@@ -131,6 +106,7 @@ onMounted(() => {
       message: "删除成功"
     });
     handleLoadAllVersions();
+    frpcDesktopStore.refreshDownloadedVersion();
   });
 
   on(
@@ -144,6 +120,7 @@ onMounted(() => {
           message: "导入成功"
         });
         handleLoadAllVersions();
+        frpcDesktopStore.refreshDownloadedVersion();
       }
     },
     (bizCode: string, message: string) => {
@@ -176,7 +153,6 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <!-- <breadcrumb> -->
     <breadcrumb>
       <div class="flex">
         <div class="h-full flex items-center justify-center mr-3">
@@ -198,7 +174,6 @@ onUnmounted(() => {
           <IconifyIconOffline icon="unarchive" />
         </el-button>
       </div>
-
       <!--      <div-->
       <!--        class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"-->
       <!--        @click="handleOpenInsert"-->
@@ -292,8 +267,6 @@ onUnmounted(() => {
                         删 除
                       </el-button>
                     </div>
-
-                    <!--                  <el-button type="text"></el-button>-->
                   </div>
 
                   <template v-else>
@@ -337,7 +310,17 @@ onUnmounted(() => {
   border-left: 5px solid #5a3daa;
 }
 
-.download-card:hover {
-  //animation: pulse 0.5s;
-}
+//@keyframes download-card-animation {
+//  //0% {
+//  //  border-left-width: 5px;
+//  //}
+//  100% {
+//    border-left-width: 10px;
+//  }
+//}
+//
+//
+//.download-card:hover {
+//  animation: download-card-animation 0.5s;
+//}
 </style>

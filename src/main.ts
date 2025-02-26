@@ -9,9 +9,7 @@ import {
   IconifyIconOnline
 } from "./components/IconifyIcon";
 import { createPinia } from "pinia";
-import { on, onListener } from "@/utils/ipcUtils";
-import { ipcRouters, listeners } from "../electron/core/IpcRouter";
-import { useFrpcProcessStore } from "@/store/frpcProcess";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 
 const pinia = createPinia();
 
@@ -26,17 +24,10 @@ app
   .mount("#app")
   .$nextTick(() => {
     postMessage({ payload: "removeLoading" }, "*");
-
-    const frpcProcessStore = useFrpcProcessStore();
-
-    onListener(listeners.watchFrpcProcess, data => {
-      console.log("watchFrpcProcess", data);
-      frpcProcessStore.setRunning(data);
-    });
-
-    on(ipcRouters.LAUNCH.getStatus, data => {
-      console.log("getStatus", data);
-      frpcProcessStore.setRunning(data);
-    });
-  });
+    const frpcDesktopStore = useFrpcDesktopStore();
+    frpcDesktopStore.onListenerFrpcProcessRunning();
+    frpcDesktopStore.onListenerDownloadedVersion();
+    frpcDesktopStore.refreshDownloadedVersion();
+  })
+  .then(r => {});
 

@@ -9,6 +9,7 @@ import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import _ from "lodash";
 import confetti from "canvas-confetti/src/confetti.js";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 
 defineComponent({
   name: "Config"
@@ -195,6 +196,7 @@ const visibles = reactive({
 });
 
 const exportConfigType = ref("toml");
+const frpcDesktopStore = useFrpcDesktopStore();
 
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
@@ -232,16 +234,16 @@ const checkAndResetVersion = () => {
   }
 };
 
-const handleLoadDownloadedVersion = () => {
-  send(ipcRouters.VERSION.getDownloadedVersions);
-};
+// const handleLoadDownloadedVersion = () => {
+//   send(ipcRouters.VERSION.getDownloadedVersions);
+// };
 
 const handleLoadSavedConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
 };
 
 onMounted(() => {
-  handleLoadDownloadedVersion();
+  // handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
@@ -267,7 +269,7 @@ onMounted(() => {
   });
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
-    console.log('data', data);
+    console.log("data", data);
     if (!data.canceled) {
       switch (currSelectLocalFileType.value) {
         case 1:
@@ -577,14 +579,17 @@ onUnmounted(() => {
                   clearable
                 >
                   <el-option
-                    v-for="v in versions"
+                    v-for="v in frpcDesktopStore.downloadedVersions"
                     :key="v.githubReleaseId"
                     :label="v.name"
                     :value="v.githubReleaseId"
                   />
                 </el-select>
                 <div class="w-full flex justify-end">
-                  <el-link type="primary" @click="handleLoadDownloadedVersion">
+                  <el-link
+                    type="primary"
+                    @click="frpcDesktopStore.refreshDownloadedVersion()"
+                  >
                     <iconify-icon-offline class="mr-1" icon="refresh-rounded" />
                     手动刷新
                   </el-link>

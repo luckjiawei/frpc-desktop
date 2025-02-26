@@ -4,7 +4,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
-import { useFrpcProcessStore } from "@/store/frpcProcess";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { ElMessageBox } from "element-plus";
 import router from "@/router";
 
@@ -12,7 +12,7 @@ defineComponent({
   name: "Home"
 });
 
-const frpcProcessStore = useFrpcProcessStore();
+const frpcDesktopStore = useFrpcDesktopStore();
 
 // const running = ref(false);
 const loading = ref(false);
@@ -27,7 +27,7 @@ const handleStopFrpc = () => {
 
 const handleButtonClick = useDebounceFn(() => {
   loading.value = true;
-  if (frpcProcessStore.running) {
+  if (frpcDesktopStore.running) {
     handleStopFrpc();
   } else {
     handleStartFrpc();
@@ -39,7 +39,7 @@ onMounted(() => {
     ipcRouters.LAUNCH.launch,
     () => {
       // send(ipcRouters.LAUNCH.getStatus);
-      frpcProcessStore.refreshRunning();
+      frpcDesktopStore.refreshRunning();
       loading.value = false;
     },
     (bizCode: string, message: string) => {
@@ -60,7 +60,7 @@ onMounted(() => {
 
   on(ipcRouters.LAUNCH.terminate, () => {
     // send(ipcRouters.LAUNCH.getStatus);
-    frpcProcessStore.refreshRunning();
+    frpcDesktopStore.refreshRunning();
     loading.value = false;
   });
   // ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
@@ -99,19 +99,19 @@ onUnmounted(() => {
           >
             <transition name="fade">
               <div
-                v-show="frpcProcessStore.running"
+                v-show="frpcDesktopStore.running"
                 class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="frpcProcessStore.running"
+                v-show="frpcDesktopStore.running"
                 class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="frpcProcessStore.running"
+                v-show="frpcDesktopStore.running"
                 class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
               />
             </transition>
@@ -126,7 +126,7 @@ onUnmounted(() => {
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
                   <IconifyIconOffline
-                    v-if="frpcProcessStore.running"
+                    v-if="frpcDesktopStore.running"
                     class="text-[#7EC050] inline-block relative top-1"
                     icon="check-circle-rounded"
                   />
@@ -135,7 +135,7 @@ onUnmounted(() => {
                     class="text-[#E47470] inline-block relative top-1"
                     icon="error"
                   />
-                  Frpc {{ frpcProcessStore.running ? "已启动" : "已断开" }}
+                  Frpc {{ frpcDesktopStore.running ? "已启动" : "已断开" }}
                 </div>
               </transition>
               <!--              <el-button-->
@@ -147,7 +147,7 @@ onUnmounted(() => {
               <!--              </el-button>-->
               <div class="w-full justify-center text-center">
                 <el-link
-                  v-if="frpcProcessStore.running"
+                  v-if="frpcDesktopStore.running"
                   type="primary"
                   @click="$router.replace({ name: 'Logger' })"
                   >查看日志</el-link
@@ -158,7 +158,7 @@ onUnmounted(() => {
                 @click="handleButtonClick"
                 size="large"
                 :disabled="loading"
-                >{{ frpcProcessStore.running ? "断 开" : "启 动" }}
+                >{{ frpcDesktopStore.running ? "断 开" : "启 动" }}
               </el-button>
               <!--              <div-->
               <!--                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"-->
