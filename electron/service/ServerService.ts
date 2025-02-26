@@ -48,23 +48,63 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     });
   }
 
+  private isRagePort(proxy: FrpcProxy) {
+    return (
+      ["tcp", "udp"].indexOf(proxy.type) >= 0 &&
+      (String(proxy.localPort).indexOf("-") !== -1 ||
+        String(proxy.localPort).indexOf(",") !== -1)
+    );
+  }
+
+  private isVisitors(proxy: FrpcProxy) {
+    return (
+      ["stcp", "sudp", "xtcp"].indexOf(proxy.type) >= 0 &&
+      proxy.visitorsModel === "visitors"
+    );
+  }
+
+  private isEnableProxy(proxy: FrpcProxy) {
+    return proxy.status === 1;
+  }
+
   async genTomlConfig(outputPath: string) {
     if (!outputPath) {
       return;
     }
     const server = await this.getServerConfig();
     const proxies = await this._proxyDao.findAll();
+
+    const enabledRangePortProxies = proxies
+      .filter(f => this.isEnableProxy(f))
+      .filter(f => !this.isVisitors(f))
+      .filter(f => this.isRagePort(f))
+      .map(proxy => {
+        return `
+{{- range $_, $v := parseNumberRangePair "${proxy.localPort}" "${proxy.remotePort}" }}
+[[proxies]]
+
+type = "${proxy.type}"
+name = "${proxy.name}-{{ $v.First }}"
+localPort = {{ $v.First }}
+remotePort = {{ $v.Second }}
+{{- end }}
+`;
+      });
+
     const enabledProxies = proxies
-      .filter(f => f.status === 1)
-      .filter(f => f.visitorsModel !== "visitors")
+      .filter(f => this.isEnableProxy(f))
+      .filter(f => !this.isVisitors(f))
+      .filter(f => !this.isRagePort(f))
       .map(proxy => {
         if (proxy.type === "tcp" || proxy.type === "udp") {
+          const localPort = parseInt(proxy.localPort);
+          const remotePort = parseInt(proxy.remotePort);
           return {
             name: proxy.name,
             type: proxy.type,
             localIP: proxy.localIP,
-            localPort: parseInt(proxy.localPort),
-            remotePort: parseInt(proxy.remotePort)
+            localPort: localPort,
+            remotePort: remotePort
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
           const { _id, status, ...frpProxyConfig } = proxy;
@@ -85,21 +125,32 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       });
 
     const enableVisitors = proxies
-      .filter(f => f.status === 1)
-      .filter(f => f.visitorsModel === "visitors")
+      .filter(f => this.isEnableProxy(f))
+      .filter(f => this.isVisitors(f))
       .map(proxy => {
-        return {
-          name: proxy.name,
-          type: proxy.type,
-          // serverUser: proxy.serverUser,
-          serverName: proxy.serverName,
-          secretKey: proxy.secretKey,
-          bindAddr: proxy.bindAddr,
-          bindPort: proxy.bindPort,
-          // keepTunnelOpen: proxy.keepTunnelOpen
-          // maxRetriesAnHour: proxy.maxRetriesAnHour,
-          // minRetryInterval: proxy.minRetryInterval,
-        };
+        if (proxy.type === "xtcp") {
+          return {
+            name: proxy.name,
+            type: proxy.type,
+            // serverUser: proxy.serverUser,
+            serverName: proxy.serverName,
+            secretKey: proxy.secretKey,
+            bindAddr: proxy.bindAddr,
+            bindPort: proxy.bindPort,
+            keepTunnelOpen: proxy.keepTunnelOpen,
+            fallbackTo: proxy.fallbackTo,
+            fallbackTimeoutMs: proxy.fallbackTimeoutMs
+          };
+        } else {
+          return {
+            name: proxy.name,
+            type: proxy.type,
+            serverName: proxy.serverName,
+            secretKey: proxy.secretKey,
+            bindAddr: proxy.bindAddr,
+            bindPort: proxy.bindPort
+          };
+        }
       });
 
     const { frpcVersion, _id, system, ...commonConfig } = server;
@@ -107,10 +158,16 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
-    const toml = TOML.stringify({
+
+    let toml = TOML.stringify({
       ...frpcConfig,
-      proxies: enabledProxies,
-      visitors: enableVisitors
+      ...(enabledProxies.length > 0 ? { proxies: enabledProxies } : {}),
+      ...(enableVisitors.length > 0 ? { visitors: enableVisitors } : {})
+    });
+
+    enabledRangePortProxies.forEach(f => {
+      toml += `
+${f}`;
     });
 
     fs.writeFileSync(outputPath, toml, { flag: "w" });

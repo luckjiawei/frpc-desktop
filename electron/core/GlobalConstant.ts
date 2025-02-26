@@ -1,4 +1,3 @@
-import { app } from "electron";
 
 class GlobalConstant {
   public static ZIP_EXT = ".zip";
@@ -20,17 +19,6 @@ class GlobalConstant {
   };
 
   public static FRPC_PROCESS_STATUS_CHECK_INTERVAL = 3000;
-  // public static APP_DATA_PATH = app.getPath("userData");
-
-  // public static DOWNLOAD_STORAGE_PATH = path.join(
-  //   GlobalConstant.APP_DATA_PATH,
-  //   SecureUtils.calculateMD5("download")
-  // );
-  //
-  // public static VERSION_STORAGE_PATH = path.join(
-  //   GlobalConstant.APP_DATA_PATH,
-  //   SecureUtils.calculateMD5("frpc")
-  // );
 }
 
 export default GlobalConstant;

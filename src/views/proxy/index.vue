@@ -132,7 +132,9 @@ const editFormRules = reactive<FormRules>({
       trigger: "blur"
     }
   ],
-  visitorsModel: [{ required: true, message: "请选择stcp模式", trigger: "blur" }],
+  visitorsModel: [
+    { required: true, message: "请选择stcp模式", trigger: "blur" }
+  ],
   secretKey: [
     { required: true, message: "请输入stcp共享密钥", trigger: "blur" }
   ],
@@ -582,6 +584,16 @@ onMounted(() => {
   // });
 });
 
+const handleProxyTypeChange = e => {
+  if (e === "http" || e === "https" || e === "tcp" || e === "udp") {
+    editForm.value.visitorsModel = "";
+  } else {
+    if (editForm.value.visitorsModel === "") {
+      editForm.value.visitorsModel = "visitorsProvider";
+    }
+  }
+};
+
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.PROXY.createProxy);
   removeRouterListeners(ipcRouters.PROXY.modifyProxy);
@@ -822,7 +834,10 @@ onUnmounted(() => {
         <el-row :gutter="10">
           <el-col :span="24">
             <el-form-item label="代理类型：" prop="type">
-              <el-radio-group v-model="editForm.type">
+              <el-radio-group
+                v-model="editForm.type"
+                @change="handleProxyTypeChange"
+              >
                 <el-radio-button
                   v-for="p in proxyTypes"
                   :key="p"
@@ -834,7 +849,10 @@ onUnmounted(() => {
           </el-col>
           <template v-if="isStcp || isSudp || isXtcp">
             <el-col :span="12">
-              <el-form-item :label="`${editForm.type}模式：`" prop="visitorsModel">
+              <el-form-item
+                :label="`${editForm.type}模式：`"
+                prop="visitorsModel"
+              >
                 <el-radio-group v-model="editForm.visitorsModel">
                   <el-radio
                     v-for="p in visitorsModels"
@@ -902,7 +920,9 @@ onUnmounted(() => {
               </el-button>
             </el-form-item>
           </el-col>
-          <template v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider">
+          <template
+            v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
+          >
             <el-col :span="12">
               <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
