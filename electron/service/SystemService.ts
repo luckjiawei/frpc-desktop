@@ -1,4 +1,4 @@
-import { app, shell } from "electron";
+import { app, net, shell } from "electron";
 import GlobalConstant from "../core/GlobalConstant";
 import path from "path";
 import fs from "fs";
@@ -107,6 +107,26 @@ class SystemService {
       });
   }
 
+  checkInternetConnect() {
+    const { net } = require("electron");
+    return new Promise(resolve => {
+      const request = net.request({
+        method: "get",
+        url: ``
+      });
+      const timeout = setTimeout(() => {
+        request.abort();
+        resolve(false);
+      }, GlobalConstant.INTERNET_CHECK_TIMEOUT * 1000);
+      request.on("response", response => {
+        resolve(response.statusCode === 200);
+      });
+      request.on("error", error => {
+        resolve(false);
+      });
+      request.end();
+    });
+  }
 }
 
 export default SystemService;

@@ -43,7 +43,6 @@ const indexHtml = join(process.env.DIST, "index.html");
 
 class FrpcDesktopApp {
   private _win: BrowserWindow | null = null;
-  private readonly _silentStart = false;
   private _quitting = false;
 
   constructor() {
@@ -53,10 +52,23 @@ class FrpcDesktopApp {
     this.initializeElectronApp();
   }
 
-  initializeWindow() {
+  async initializeWindow() {
     if (this._win) {
       return;
     }
+    const serverService: ServerService = BeanFactory.getBean("serverService");
+
+    if (await serverService.isAutoConnectOnStartup()) {
+      const frpcProcessService: FrpcProcessService =
+        BeanFactory.getBean("frpcProcessService");
+      frpcProcessService.startFrpcProcess().then(() => {
+        Logger.info(
+          `FrpcDesktopApp.initializeWindow`,
+          `AutoConnectOnStartup Completed.`
+        );
+      });
+    }
+
     this._win = new BrowserWindow({
       title: app.getName(),
       icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
@@ -74,7 +86,7 @@ class FrpcDesktopApp {
         nodeIntegration: true,
         contextIsolation: false
       },
-      show: true
+      show: !(await serverService.isSilentStart())
     });
     BeanFactory.setBean("win", this._win);
     if (process.env.VITE_DEV_SERVER_URL) {
@@ -115,10 +127,7 @@ class FrpcDesktopApp {
       }
       return false;
     });
-    Logger.info(
-      `FrpcDesktopApp.initializeWindow`,
-      `Window initialized.`
-    );
+    Logger.info(`FrpcDesktopApp.initializeWindow`, `Window initialized.`);
   }
 
   initializeTray() {
@@ -153,10 +162,7 @@ class FrpcDesktopApp {
     tray.on("double-click", () => {
       this._win.show();
     });
-    Logger.info(
-      `FrpcDesktopApp.initializeTray`,
-      `Tray initialized.`
-    );
+    Logger.info(`FrpcDesktopApp.initializeTray`, `Tray initialized.`);
   }
 
   initializeElectronApp() {
@@ -171,7 +177,7 @@ class FrpcDesktopApp {
       process.exit(0);
     }
     app.whenReady().then(() => {
-      this.initializeWindow();
+      this.initializeWindow().then(() => {});
       this.initializeTray();
       // initLog();
       // logInfo(
@@ -302,18 +308,12 @@ class FrpcDesktopApp {
       "logService",
       new LogService(BeanFactory.getBean("systemService"))
     );
-    BeanFactory.setBean(
-      "frpcProcessService",
-      new FrpcProcessService(
-        BeanFactory.getBean("serverService"),
-        BeanFactory.getBean("versionRepository")
-      )
-    );
+    BeanFactory.setBean("frpcProcessService", new FrpcProcessService());
     BeanFactory.setBean(
       "proxyService",
       new ProxyService(
         BeanFactory.getBean("proxyRepository"),
-        BeanFactory.getBean("frpcProcessService"),
+        BeanFactory.getBean("frpcProcessService")
       )
     );
     BeanFactory.setBean(
@@ -350,10 +350,7 @@ class FrpcDesktopApp {
       "systemController",
       new SystemController(BeanFactory.getBean("systemService"))
     );
-    Logger.info(
-      `FrpcDesktopApp.initializeBeans`,
-      `Beans initialized.`
-    );
+    Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
   }
 
   /**
@@ -373,10 +370,7 @@ class FrpcDesktopApp {
       };
       bean[method].call(bean, listenerParam);
     });
-    Logger.info(
-      `FrpcDesktopApp.initializeListeners`,
-      `Listeners initialized.`
-    );
+    Logger.info(`FrpcDesktopApp.initializeListeners`, `Listeners initialized.`);
     // this._beans.get("logService").watchFrpcLog(this._win);
   }
 
@@ -411,10 +405,7 @@ class FrpcDesktopApp {
         });
       });
     });
-    Logger.info(
-      `FrpcDesktopApp.initializeRouters`,
-      `Routers initialized.`
-    );
+    Logger.info(`FrpcDesktopApp.initializeRouters`, `Routers initialized.`);
   }
 }
 

@@ -3,7 +3,7 @@ import ServerRepository from "../repository/ServerRepository";
 import fs from "fs";
 import PathUtils from "../utils/PathUtils";
 import ProxyRepository from "../repository/ProxyRepository";
-import { BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import path from "path";
 import GlobalConstant from "../core/GlobalConstant";
@@ -30,7 +30,15 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     frpcServer: OpenSourceFrpcDesktopServer
   ): Promise<OpenSourceFrpcDesktopServer> {
     frpcServer._id = this._serverId;
-    return await this._serverDao.updateById(this._serverId, frpcServer);
+    const newConfig = await this._serverDao.updateById(
+      this._serverId,
+      frpcServer
+    );
+    app.setLoginItemSettings({
+      openAtLogin: newConfig.system.launchAtStartup || false, //win
+      openAsHidden: newConfig.system.launchAtStartup || false //macOs
+    });
+    return newConfig;
   }
 
   async getServerConfig(): Promise<OpenSourceFrpcDesktopServer> {
@@ -222,6 +230,24 @@ ${f}`;
         throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
       }
       return;
+    }
+  }
+
+  async isSilentStart() {
+    const serverConfig = await this.getServerConfig();
+    if (serverConfig) {
+      return serverConfig.system.silentStartup;
+    } else {
+      return false;
+    }
+  }
+
+  async isAutoConnectOnStartup() {
+    const serverConfig = await this.getServerConfig();
+    if (serverConfig) {
+      return serverConfig.system.autoConnectOnStartup;
+    } else {
+      return false;
     }
   }
 }

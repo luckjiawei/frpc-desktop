@@ -8,17 +8,20 @@ import BeanFactory from "../core/BeanFactory";
 import ResponseUtils from "../utils/ResponseUtils";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
 import Logger from "../core/Logger";
+import SystemService from "./SystemService";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
-  private readonly _versionDao: VersionRepository;
+  private readonly _systemService: SystemService;
+  private readonly _versionRepository: VersionRepository;
   private _frpcProcess: any;
   private _frpcProcessListener: any;
   private _frpcLastStartTime: number = -1;
 
-  constructor(serverService: ServerService, versionDao: VersionRepository) {
-    this._serverService = serverService;
-    this._versionDao = versionDao;
+  constructor() {
+    this._serverService = BeanFactory.getBean("serverService");
+    this._systemService = BeanFactory.getBean("systemService");
+    this._versionRepository = BeanFactory.getBean("versionRepository");
   }
 
   isRunning(): boolean {
@@ -45,7 +48,7 @@ class FrpcProcessService {
     if (!config) {
       throw new BusinessError(ResponseCode.NOT_CONFIG);
     }
-    const version = await this._versionDao.findByGithubReleaseId(
+    const version = await this._versionRepository.findByGithubReleaseId(
       config.frpcVersion
     );
     const configPath = PathUtils.getTomlConfigFilePath();
@@ -96,7 +99,7 @@ class FrpcProcessService {
     if (!config) {
       throw new BusinessError(ResponseCode.NOT_CONFIG);
     }
-    const version = await this._versionDao.findByGithubReleaseId(
+    const version = await this._versionRepository.findByGithubReleaseId(
       config.frpcVersion
     );
     const configPath = PathUtils.getTomlConfigFilePath();
@@ -125,6 +128,27 @@ class FrpcProcessService {
         );
       }
     );
+  }
+
+  async frpcProcessGuardian() {
+    setInterval(async () => {
+      const running = this.isRunning();
+      if (!running && this._frpcLastStartTime !== -1) {
+        const netStatus = await this._systemService.checkInternetConnect();
+        if (netStatus) {
+          this.startFrpcProcess().then(() => {
+            Logger.info(
+              `FrpcProcessService.frpcProcessGuardian`,
+              `The network has been restored. The frpc process has been restarted.`
+            );
+            // new Notification({
+            //   title: app.getName(),
+            //   body: "Network reconnected, frpc process restarted."
+            // }).show();
+          });
+        }
+      }
+    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL);
   }
 
   watchFrpcProcess(listenerParam: ListenerParam) {
