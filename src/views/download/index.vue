@@ -155,21 +155,21 @@ onUnmounted(() => {
   <div class="main">
     <breadcrumb>
       <div class="flex">
-        <div class="h-full flex items-center justify-center mr-3">
-          <span class="text-sm font-bold">下载源： </span>
-          <el-select
-            class="w-40"
-            v-model="currMirror"
-            @change="handleMirrorChange"
-          >
-            <el-option
-              v-for="m in mirrors"
-              :label="m.name"
-              :key="m.id"
-              :value="m.id"
-            />
-          </el-select>
-        </div>
+        <!--        <div class="h-full flex items-center justify-center mr-3">-->
+        <!--          <span class="text-sm font-bold">下载源： </span>-->
+        <!--          <el-select-->
+        <!--            class="w-40"-->
+        <!--            v-model="currMirror"-->
+        <!--            @change="handleMirrorChange"-->
+        <!--          >-->
+        <!--            <el-option-->
+        <!--              v-for="m in mirrors"-->
+        <!--              :label="m.name"-->
+        <!--              :key="m.id"-->
+        <!--              :value="m.id"-->
+        <!--            />-->
+        <!--          </el-select>-->
+        <!--        </div>-->
         <el-button type="primary" @click="handleImportFrp">
           <IconifyIconOffline icon="unarchive" />
         </el-button>
