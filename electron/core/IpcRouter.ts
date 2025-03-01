@@ -110,6 +110,10 @@ export const ipcRouters: IpcRouters = {
     selectLocalFile: {
       path: "system/selectLocalFile",
       controller: "systemController.selectLocalFile"
+    },
+    getFrpcDesktopGithubLastRelease: {
+      path: "system/getFrpcDesktopGithubLastRelease",
+      controller: "systemController.getFrpcDesktopGithubLastRelease"
     }
   }
 };

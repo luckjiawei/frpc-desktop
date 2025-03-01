@@ -1,3 +1,5 @@
+import { net } from "electron";
+
 class GitHubService {
   constructor() {}
 
@@ -38,6 +40,34 @@ class GitHubService {
             //   "Failed to retrieve data, using local JSON instead. Status code: " +
             //     response.statusCode
             // );
+          }
+        });
+      });
+
+      request.on("error", error => {
+        reject(error);
+      });
+
+      request.end();
+    });
+  }
+
+  getGithubLastRelease(githubRepo: string) {
+    return new Promise((resolve, reject) => {
+      const { net } = require("electron");
+      const request = net.request({
+        method: "get",
+        url: `https://api.github.com/repos/${githubRepo}/releases/latest`
+      });
+      request.on("response", response => {
+        let responseData: Buffer = Buffer.alloc(0);
+        response.on("data", (data: Buffer) => {
+          responseData = Buffer.concat([responseData, data]);
+        });
+        response.on("end", () => {
+          if (response.statusCode === 200) {
+            const release: GithubRelease = JSON.parse(responseData.toString());
+            resolve(release);
           }
         });
       });

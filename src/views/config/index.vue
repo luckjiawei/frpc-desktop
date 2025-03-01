@@ -516,7 +516,6 @@ const handleShowExportDialog = () => {
 
 const handleExportConfig = useDebounceFn(() => {
   send(ipcRouters.SERVER.exportConfig);
-  // ipcRenderer.send("config.exportConfig", exportConfigType.value);
   // visibles.exportConfig = false;
 }, 300);
 

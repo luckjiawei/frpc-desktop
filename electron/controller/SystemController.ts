@@ -4,12 +4,15 @@ import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import Logger from "../core/Logger";
+import GitHubService from "../service/GitHubService";
 
 class SystemController {
   private readonly _systemService: SystemService;
+  private readonly _gitHubService: GitHubService;
 
-  constructor(systemService: SystemService) {
-    this._systemService = systemService;
+  constructor() {
+    this._systemService = BeanFactory.getBean("systemService");
+    this._gitHubService = BeanFactory.getBean("gitHubService");
   }
 
   openUrl(req: ControllerParam) {
@@ -82,6 +85,18 @@ class SystemController {
       })
       .catch((err: Error) => {
         Logger.error("SystemController.selectLocalFile", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  getFrpcDesktopGithubLastRelease(req: ControllerParam) {
+    this._gitHubService
+      .getGithubLastRelease("luckjiawei/frpc-desktop")
+      .then((data: any) => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("SystemController.getFrpcDesktopGithubLastRelease", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }

@@ -1,11 +1,10 @@
 <script lang="ts" setup>
 import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
-import { ipcRenderer } from "electron";
 import { Icon } from "@iconify/vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import pkg from "../../../package.json";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { send } from "@/utils/ipcUtils";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 /**
@@ -71,21 +70,22 @@ const handleOpenDoc = () => {
  * 获取最后一个版本
  */
 const handleGetLastVersion = () => {
-  ipcRenderer.send("github.getFrpcDesktopLastVersions");
+  send(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease);
 };
 
 const handleOpenNewVersion = () => {
-  ipcRenderer.send("common.openUrl", latestVersionInfo.value["html_url"]);
+  send(ipcRouters.SYSTEM.openUrl, {
+    url: latestVersionInfo.value["html_url"]
+  });
 };
 
 onMounted(() => {
-  ipcRenderer.on("github.getFrpcDesktopLastVersionsHook", (event, args) => {
-    latestVersionInfo.value = args;
-    console.log(latestVersionInfo.value, "1");
+  on(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, data => {
+    latestVersionInfo.value = data;
     if (!isLastVersion.value) {
       let content = latestVersionInfo.value.body;
       content = content.replaceAll("\n", "<br/>");
-      ElMessageBox.alert(content, `🎉 发现新版本 ${args.name}`, {
+      ElMessageBox.alert(content, `🎉 发现新版本 ${data.name}`, {
         showCancelButton: true,
         cancelButtonText: "关闭",
         dangerouslyUseHTMLString: true,
@@ -105,7 +105,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("github.getFrpcDesktopLastVersionsHook");
+  removeRouterListeners(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease);
 });
 
 defineComponent({
