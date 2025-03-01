@@ -704,7 +704,7 @@ onUnmounted(() => {
                   @change="handleAuthMethodChange"
                   clearable
                 >
-                  <el-option label="无" value=""></el-option>
+                  <el-option label="无" value="none"></el-option>
                   <el-option label="令牌（token）" value="token"></el-option>
                   <el-option label="多用户" value="multiuser"></el-option>
                 </el-select>

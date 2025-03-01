@@ -199,6 +199,10 @@ remotePort = {{ $v.Second }}
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
 
+    if (frpcConfig.auth.method === "none") {
+      frpcConfig.auth = null;
+    }
+
     let toml = TOML.stringify({
       ...frpcConfig,
       ...(enabledProxies.length > 0 ? { proxies: enabledProxies } : {}),
