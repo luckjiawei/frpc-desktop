@@ -17,6 +17,7 @@ class FrpcProcessService {
   private _frpcProcess: any;
   private _frpcProcessListener: any;
   private _frpcLastStartTime: number = -1;
+  private _notification: number = -1;
 
   constructor() {
     this._serverService = BeanFactory.getBean("serverService");
@@ -39,7 +40,6 @@ class FrpcProcessService {
       return false;
     }
   }
-
 
   get frpcLastStartTime(): number {
     return this._frpcLastStartTime;
@@ -89,7 +89,7 @@ class FrpcProcessService {
         } else {
           this._frpcProcess = null;
           this._frpcLastStartTime = -1;
-
+          this._notification = -1;
           // clearInterval(this._frpcProcessListener);
         }
       });
@@ -169,11 +169,15 @@ class FrpcProcessService {
         `running: ${running}`
       );
       if (!running) {
-        if (this._frpcLastStartTime !== -1) {
+        if (
+          this._frpcLastStartTime !== -1 &&
+          this._notification !== this._frpcLastStartTime
+        ) {
           new Notification({
             title: app.getName(),
             body: "Connection lost, please check the logs for details."
           }).show();
+          this._notification = this._frpcLastStartTime;
         }
         // logError(
         //   LogModule.FRP_CLIENT,
