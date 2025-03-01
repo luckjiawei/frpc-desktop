@@ -20,7 +20,7 @@ class GlobalConstant {
     linux_arm64: ["linux", "arm64"]
   };
 
-  public static FRPC_PROCESS_STATUS_CHECK_INTERVAL = 3000;
+  public static FRPC_PROCESS_STATUS_CHECK_INTERVAL = 1;
 }
 
 export default GlobalConstant;

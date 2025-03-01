@@ -37,7 +37,13 @@ class LaunchController extends BaseController {
 
   getStatus(req: ControllerParam) {
     const running = this._frpcProcessService.isRunning();
-    req.event.reply(req.channel, ResponseUtils.success(running));
+    req.event.reply(
+      req.channel,
+      ResponseUtils.success({
+        running: running,
+        lastStartTime: this._frpcProcessService.frpcLastStartTime
+      })
+    );
   }
 }
 

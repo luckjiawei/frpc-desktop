@@ -22,16 +22,16 @@ defineComponent({
   name: "Config"
 });
 
-type ShareLinkConfig = {
-  serverAddr: string;
-  serverPort: number;
-  authMethod: string;
-  authToken: string;
-  transportHeartbeatInterval: number;
-  transportHeartbeatTimeout: number;
-  user: string;
-  metaToken: string;
-};
+// type ShareLinkConfig = {
+//   serverAddr: string;
+//   serverPort: number;
+//   authMethod: string;
+//   authToken: string;
+//   transportHeartbeatInterval: number;
+//   transportHeartbeatTimeout: number;
+//   user: string;
+//   metaToken: string;
+// };
 
 const defaultFormData: OpenSourceFrpcDesktopServer = {
   _id: "",
@@ -441,9 +441,16 @@ const handleSelectFile = (type: number, ext: string[]) => {
  * 分享配置
  */
 const handleCopyServerConfig2Base64 = useDebounceFn(() => {
-  const { _id, frpcVersion, webServer, system, ...shareConfig } = _.cloneDeep(
-    formData.value
-  );
+  const {
+    _id,
+    frpcVersion,
+    webServer,
+    system,
+    log,
+    udpPacketSize,
+    loginFailExit,
+    ...shareConfig
+  } = _.cloneDeep(formData.value);
   shareConfig.transport.tls.certFile = "";
   shareConfig.transport.tls.keyFile = "";
   shareConfig.transport.tls.trustedCaFile = "";
@@ -472,7 +479,7 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
   }
   const ciphertext = pasteServerConfigBase64.value.replace("frp://", "");
   const plaintext = Base64.decode(ciphertext);
-  let serverConfig: ShareLinkConfig = null;
+  let serverConfig = null;
   try {
     serverConfig = JSON.parse(plaintext);
   } catch {
@@ -488,17 +495,16 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
     tips();
     return;
   }
-  formData.value.serverAddr = serverConfig.serverAddr;
-  formData.value.serverPort = serverConfig.serverPort;
-  formData.value.authMethod = serverConfig.authMethod;
-  formData.value.authToken = serverConfig.authToken;
-  formData.value.transportHeartbeatInterval =
-    serverConfig.transportHeartbeatInterval;
-  formData.value.transportHeartbeatTimeout =
-    serverConfig.transportHeartbeatTimeout;
-  formData.value.user = serverConfig.user;
-  formData.value.metaToken = serverConfig.metaToken;
-
+  formData.value.transport =
+    serverConfig.transport || defaultFormData.transport;
+  formData.value.auth = serverConfig.auth || defaultFormData.auth;
+  formData.value.serverAddr =
+    serverConfig.serverAddr || defaultFormData.serverAddr;
+  formData.value.serverPort =
+    serverConfig.serverPort || defaultFormData.serverPort;
+  formData.value.metadatas =
+    serverConfig.metadatas || defaultFormData.metadatas;
+  formData.value.user = serverConfig.user || defaultFormData.user;
   handleSubmit();
   pasteServerConfigBase64.value = "";
   visible.pasteServerConfig = false;
@@ -537,14 +543,13 @@ const handleOpenDataFolder = useDebounceFn(() => {
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
-  // removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
   removeRouterListeners(ipcRouters.SERVER.getServerConfig);
-  removeRouterListeners(ipcRouters.SERVER.saveConfig);
   removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
-  // removeRouterListeners(ipcRouters.VERSION.getDownloadedVersions);
+  removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
   removeRouterListeners(ipcRouters.SERVER.exportConfig);
   removeRouterListeners(ipcRouters.SYSTEM.openAppData);
-  removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
+  removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
+  removeRouterListeners(ipcRouters.SYSTEM.relaunchApp);
 });
 </script>
 <template>

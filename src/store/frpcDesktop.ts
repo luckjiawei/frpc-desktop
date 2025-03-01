@@ -3,21 +3,28 @@ import { on, onListener, send } from "@/utils/ipcUtils";
 import { ipcRouters, listeners } from "../../electron/core/IpcRouter";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
-  state: () => ({ isRunning: false, versions: [] }),
+  state: () => ({ running: false, uptime: -1, versions: [] }),
   getters: {
-    running: state => state.isRunning,
+    frpcProcessRunning: state => state.running,
+    frpcProcessUptime: state => state.uptime,
     downloadedVersions: state => state.versions
   },
   actions: {
     onListenerFrpcProcessRunning() {
       onListener(listeners.watchFrpcProcess, data => {
-        console.log("watchFrpcProcess", data);
-        this.isRunning = data;
+        const { running, lastStartTime } = data;
+        this.running = running;
+        if (running) {
+          this.uptime = new Date().getTime() - lastStartTime
+        }
       });
 
       on(ipcRouters.LAUNCH.getStatus, data => {
-        console.log("getStatus", data);
-        this.isRunning = data;
+        const { running, lastStartTime } = data;
+        this.running = running;
+        if (running) {
+          this.uptime = new Date().getTime() - lastStartTime
+        }
       });
     },
 

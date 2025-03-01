@@ -40,6 +40,11 @@ class FrpcProcessService {
     }
   }
 
+
+  get frpcLastStartTime(): number {
+    return this._frpcLastStartTime;
+  }
+
   async startFrpcProcess() {
     if (this.isRunning()) {
       return;
@@ -148,7 +153,7 @@ class FrpcProcessService {
           });
         }
       }
-    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL);
+    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
   }
 
   watchFrpcProcess(listenerParam: ListenerParam) {
@@ -179,9 +184,12 @@ class FrpcProcessService {
       const win: BrowserWindow = BeanFactory.getBean("win");
       win.webContents.send(
         listenerParam.channel,
-        ResponseUtils.success(running)
+        ResponseUtils.success({
+          running: running,
+          lastStartTime: this._frpcLastStartTime
+        })
       );
-    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL);
+    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
   }
 }
 

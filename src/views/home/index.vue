@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useDebounceFn } from "@vueuse/core";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
@@ -27,12 +27,32 @@ const handleStopFrpc = () => {
 
 const handleButtonClick = useDebounceFn(() => {
   loading.value = true;
-  if (frpcDesktopStore.running) {
+  if (frpcDesktopStore.frpcProcessRunning) {
     handleStopFrpc();
   } else {
     handleStartFrpc();
   }
 }, 300);
+
+let uptime = computed(() => {
+  const uptime = frpcDesktopStore.frpcProcessUptime / 1000;
+  const days = Math.floor(uptime / (24 * 60 * 60));
+  const hours = Math.floor((uptime % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((uptime % (60 * 60)) / 60);
+  const seconds = Math.ceil(uptime % 60);
+  let result = "";
+  if (days > 0) {
+    result += `${days}天`;
+  }
+  if (hours > 0) {
+    result += `${hours}小时`;
+  }
+  if (minutes > 0) {
+    result += `${minutes}分钟`;
+  }
+  result += `${seconds}秒`;
+  return result;
+});
 
 onMounted(() => {
   on(
@@ -95,23 +115,23 @@ onUnmounted(() => {
       >
         <div class="flex">
           <div
-            class="w-40 h-40 border-[#5A3DAA] text-[#5A3DAA] border-4 rounded-full flex justify-center items-center text-[100px] relative"
+            class="w-52 h-52 border-[#5A3DAA] text-[#5A3DAA] border-4 rounded-full flex justify-center items-center text-[100px] relative"
           >
             <transition name="fade">
               <div
-                v-show="frpcDesktopStore.running"
+                v-show="frpcDesktopStore.frpcProcessRunning"
                 class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="frpcDesktopStore.running"
+                v-show="frpcDesktopStore.frpcProcessRunning"
                 class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
               />
             </transition>
             <transition name="fade">
               <div
-                v-show="frpcDesktopStore.running"
+                v-show="frpcDesktopStore.frpcProcessRunning"
                 class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
               />
             </transition>
@@ -121,12 +141,12 @@ onUnmounted(() => {
               <IconifyIconOffline icon="rocket-launch-rounded" />
             </div>
           </div>
-          <div class="flex justify-center items-center">
-            <div class="pl-8 h-28 w-52 flex flex-col justify-between">
+          <div class="flex flex-col justify-center items-center">
+            <div class="pl-10 h-42 w-64 flex flex-col justify-between">
               <transition name="fade">
                 <div class="font-bold text-2xl text-center">
                   <IconifyIconOffline
-                    v-if="frpcDesktopStore.running"
+                    v-if="frpcDesktopStore.frpcProcessRunning"
                     class="text-[#7EC050] inline-block relative top-1"
                     icon="check-circle-rounded"
                   />
@@ -135,7 +155,10 @@ onUnmounted(() => {
                     class="text-[#E47470] inline-block relative top-1"
                     icon="error"
                   />
-                  Frpc {{ frpcDesktopStore.running ? "已启动" : "已断开" }}
+                  Frpc
+                  {{
+                    frpcDesktopStore.frpcProcessRunning ? "已启动" : "已断开"
+                  }}
                 </div>
               </transition>
               <!--              <el-button-->
@@ -145,20 +168,29 @@ onUnmounted(() => {
               <!--                  @click="$router.replace({ name: 'Logger' })"-->
               <!--              >查看日志-->
               <!--              </el-button>-->
+              <div
+                class="w-full justify-center text-center mt-2 text-sm animate__animated animate__fadeIn"
+                v-if="frpcDesktopStore.frpcProcessRunning"
+              >
+                <span class="el-text--success">已运行</span>
+                <span class="text-primary font-bold">{{ uptime }}</span>
+              </div>
               <div class="w-full justify-center text-center">
                 <el-link
-                  v-if="frpcDesktopStore.running"
+                  v-if="frpcDesktopStore.frpcProcessRunning"
+                  class="animate__animated animate__fadeIn"
                   type="primary"
                   @click="$router.replace({ name: 'Logger' })"
                   >查看日志</el-link
                 >
               </div>
+
               <el-button
+                class="mt-4"
                 type="primary"
                 @click="handleButtonClick"
-                size="large"
                 :disabled="loading"
-                >{{ frpcDesktopStore.running ? "断 开" : "启 动" }}
+                >{{ frpcDesktopStore.frpcProcessRunning ? "断 开" : "启 动" }}
               </el-button>
               <!--              <div-->
               <!--                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"-->
