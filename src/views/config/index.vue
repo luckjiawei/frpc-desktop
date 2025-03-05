@@ -35,6 +35,7 @@ defineComponent({
 
 const defaultFormData: OpenSourceFrpcDesktopServer = {
   _id: "",
+  multiuser: false,
   frpcVersion: null,
   loginFailExit: false,
   udpPacketSize: 1500,
@@ -103,6 +104,7 @@ const rules = reactive<FormRules>({
     { required: true, message: "请输入服务器端口", trigger: "blur" }
   ],
   user: [{ required: true, message: "请输入用户", trigger: "blur" }],
+  multiuser: [{ required: true, message: "请选择是否开启多用户", trigger: "blur" }],
   "metadatas.token": [
     { required: true, message: "请输入多用户令牌", trigger: "blur" }
   ],
@@ -217,8 +219,8 @@ const handleSubmit = useDebounceFn(() => {
   });
 }, 300);
 
-const handleAuthMethodChange = e => {
-  if (e === "multiuser") {
+const handleMultiuserChange = e => {
+  if (e) {
     ElMessageBox.alert(
       '多用户插件需要 Frp版本 >= <span class="font-black text-[#5A3DAA]">v0.31.0</span> 请自行选择正确版本',
       "提示",
@@ -260,6 +262,11 @@ onMounted(() => {
     console.log("data", data);
     if (data) {
       formData.value = data;
+      Object.keys(defaultFormData).forEach(key => {
+        if (!formData.value[key]) {
+          formData.value[key] = defaultFormData[key];
+        }
+      });
       checkAndResetVersion();
     }
     loading.value--;
@@ -296,93 +303,6 @@ onMounted(() => {
       }
     }
   });
-
-  // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
-  //   const { err, data } = args;
-  //   if (!err) {
-  //     if (data) {
-  //       console.log("data", data);
-  //
-  //       if (!data.transportHeartbeatInterval) {
-  //         data.transportHeartbeatInterval =
-  //           defaultFormData.value.transportHeartbeatInterval;
-  //       }
-  //       if (!data.transportHeartbeatTimeout) {
-  //         data.transportHeartbeatTimeout =
-  //           defaultFormData.value.transportHeartbeatTimeout;
-  //       }
-  //       if (data.webEnable == null || data.webEnable == undefined) {
-  //         data.webEnable = defaultFormData.value.webEnable;
-  //         data.webPort = defaultFormData.value.webPort;
-  //       }
-  //       if (
-  //         data.transportProtocol === undefined ||
-  //         data.transportProtocol == null
-  //       ) {
-  //         data.transportProtocol = defaultFormData.value.transportProtocol;
-  //       }
-  //       if (
-  //         data.transportDialServerTimeout === undefined ||
-  //         data.transportDialServerTimeout == null
-  //       ) {
-  //         data.transportDialServerTimeout =
-  //           defaultFormData.value.transportDialServerTimeout;
-  //       }
-  //       if (
-  //         data.transportDialServerKeepalive === undefined ||
-  //         data.transportDialServerKeepalive == null
-  //       ) {
-  //         data.transportDialServerKeepalive =
-  //           defaultFormData.value.transportDialServerKeepalive;
-  //       }
-  //       if (
-  //         data.transportPoolCount === undefined ||
-  //         data.transportPoolCount == null
-  //       ) {
-  //         data.transportPoolCount = defaultFormData.value.transportPoolCount;
-  //       }
-  //       if (
-  //         data.transportTcpMux === undefined ||
-  //         data.transportTcpMux == null
-  //       ) {
-  //         data.transportTcpMux = defaultFormData.value.transportTcpMux;
-  //       }
-  //       if (
-  //         data.transportTcpMuxKeepaliveInterval === undefined ||
-  //         data.transportTcpMuxKeepaliveInterval == null
-  //       ) {
-  //         data.transportTcpMuxKeepaliveInterval =
-  //           defaultFormData.value.transportTcpMuxKeepaliveInterval;
-  //       }
-  //
-  //       formData.value = data;
-  //     }
-  //   }
-  //   loading.value--;
-  // });
-  //
-  // ipcRenderer.on("Config.saveConfig.hook", (event, args) => {
-  //   ElMessage({
-  //     type: "success",
-  //     message: "保存成功"
-  //   });
-  //   loading.value--;
-  // });
-  // ipcRenderer.on("Config.versions.hook", (event, args) => {
-  //   const { err, data } = args;
-  //   if (!err) {
-  //     versions.value = data;
-  //     checkAndResetVersion();
-  //   }
-  // });
-  // ipcRenderer.on("Config.exportConfig.hook", (event, args) => {
-  //   const { err, data } = args;
-  //   console.log(err, data, "export");
-  //   if (!err) {
-  //     const { configPath } = data;
-  //     ElMessageBox.alert(`配置路径：${configPath}`, `🎉 导出成功`);
-  //   }
-  // });
 
   on(ipcRouters.SERVER.resetAllConfig, () => {
     ElMessageBox.alert("重置成功 请重启软件", `提示`, {
@@ -700,12 +620,11 @@ onUnmounted(() => {
                 <el-select
                   v-model="formData.auth.method"
                   placeholder="请选择验证方式"
-                  @change="handleAuthMethodChange"
                   clearable
                 >
                   <el-option label="无" value="none"></el-option>
                   <el-option label="令牌（token）" value="token"></el-option>
-                  <el-option label="多用户" value="multiuser"></el-option>
+                  <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
                 </el-select>
               </el-form-item>
             </el-col>
@@ -738,7 +657,35 @@ onUnmounted(() => {
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="formData.auth.method === 'multiuser'">
+            <el-col :span="24">
+              <el-form-item label="多用户：" prop="multiuser">
+                <template #label>
+                  <div class="h-full flex items-center mr-1">
+                    <el-popover placement="top" trigger="hover">
+                      <template #default>
+                       是否开启多用户模式
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  多用户：
+                </template>
+                <el-switch
+                  @change="handleMultiuserChange"
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="formData.multiuser"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="formData.multiuser">
               <el-form-item label="用户：" prop="user">
                 <template #label>
                   <div class="h-full flex items-center mr-1">
@@ -762,7 +709,7 @@ onUnmounted(() => {
                 <el-input placeholder="请输入用户" v-model="formData.user" />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="formData.auth.method === 'multiuser'">
+            <el-col :span="12" v-if="formData.multiuser">
               <el-form-item label="用户令牌：" prop="metaToken">
                 <template #label>
                   <div class="h-full flex items-center mr-1">
@@ -787,6 +734,7 @@ onUnmounted(() => {
                   placeholder="请输入用户令牌"
                   type="password"
                   v-model="formData.metadatas.token"
+                  :show-password="true"
                 />
               </el-form-item>
             </el-col>

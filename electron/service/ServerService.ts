@@ -193,7 +193,7 @@ remotePort = {{ $v.Second }}
         }
       });
 
-    const { frpcVersion, _id, system, ...commonConfig } = server;
+    const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;

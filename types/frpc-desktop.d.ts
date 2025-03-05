@@ -13,6 +13,7 @@ interface FrpcSystemConfiguration {
 type FrpcDesktopServer = BaseEntity &
   FrpcCommonConfig & {
     frpcVersion: number;
+    multiuser: boolean;
     // system: any;
   };
 
