@@ -83,24 +83,9 @@ onMounted(() => {
     frpcDesktopStore.refreshRunning();
     loading.value = false;
   });
-  // ipcRenderer.on("Home.frpc.start.error.hook", (event, args) => {
-  //   if (args) {
-  //     ElMessageBox.alert(args, "提示", {
-  //       showCancelButton: true,
-  //       cancelButtonText: "取消",
-  //       confirmButtonText: "去设置"
-  //     }).then(() => {
-  //       router.replace({
-  //         name: "Config"
-  //       });
-  //     });
-  //   }
-  // });
 });
 
 onUnmounted(() => {
-  // ipcRenderer.removeAllListeners("Home.frpc.start.error.hook");
-  // removeRouterListeners2(listeners.watchFrpcProcess);
   removeRouterListeners(ipcRouters.LAUNCH.launch);
   removeRouterListeners(ipcRouters.LAUNCH.terminate);
 });

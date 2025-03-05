@@ -88,6 +88,7 @@ const refreshLog = useDebounceFn(() => {
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
+  removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
   removeRouterListeners2(listeners.watchFrpcLog);
 });
 </script>

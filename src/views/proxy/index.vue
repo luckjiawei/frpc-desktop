@@ -592,16 +592,6 @@ onMounted(() => {
     loading.value.localPorts--;
     localPorts.value = data;
   });
-
-  // ipcRenderer.send("config.getConfig");
-  // ipcRenderer.on("Config.getConfig.hook", (event, args) => {
-  //   const { err, data } = args;
-  //   if (!err) {
-  //     if (data) {
-  //       frpcConfig.value = data;
-  //     }
-  //   }
-  // });
 });
 
 const handleProxyTypeChange = e => {
