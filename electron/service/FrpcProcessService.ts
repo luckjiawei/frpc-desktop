@@ -9,6 +9,7 @@ import ResponseUtils from "../utils/ResponseUtils";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
 import Logger from "../core/Logger";
 import SystemService from "./SystemService";
+import { exec, spawn } from "child_process";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
@@ -59,7 +60,7 @@ class FrpcProcessService {
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
     const command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
-    this._frpcProcess = require("child_process").spawn(command, {
+    this._frpcProcess = spawn(command, {
       cwd: version.localPath,
       shell: true
     });
@@ -110,12 +111,12 @@ class FrpcProcessService {
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
     const command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
-    require("child_process").exec(
+    exec(
       command,
-      {
-        cwd: version.localPath,
-        shell: true
-      },
+      // {
+      //   cwd: version.localPath,
+      //   shell: true
+      // },
       (error, stdout, stderr) => {
         if (error) {
           Logger.error(`FrpcProcessService.reloadFrpcProcess`, error);

@@ -4,8 +4,7 @@ import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
-
-const tar = require("tar");
+import tar from "tar";
 
 class SystemService {
   async openUrl(url: string) {

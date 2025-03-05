@@ -1,5 +1,6 @@
 import ProxyRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
+import { exec } from "child_process";
 
 class ProxyService {
   private readonly _proxyDao: ProxyRepository;
@@ -36,7 +37,7 @@ class ProxyService {
         ? "netstat -a -n"
         : "netstat -an | grep LISTEN";
     return new Promise((resolve, reject) => {
-      require("child_process").exec(command, (error, stdout, stderr) => {
+      exec(command, (error, stdout, stderr) => {
         if (error) {
           reject(error);
         }
@@ -59,7 +60,7 @@ class ProxyService {
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,
-                  port: localPort
+                  port: parseInt(localPort)
                 };
 
                 return singe;
@@ -82,7 +83,7 @@ class ProxyService {
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,
-                  port: localPort
+                  port: parseInt(localPort)
                 };
                 return singe;
               });
@@ -105,7 +106,7 @@ class ProxyService {
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,
-                  port: localPort
+                  port: parseInt(localPort)
                 };
                 return singe;
               });
