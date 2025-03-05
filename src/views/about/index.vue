@@ -1,24 +1,26 @@
 <script lang="ts" setup>
-import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { computed, defineComponent, onMounted, onUnmounted } from "vue";
 import { Icon } from "@iconify/vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import pkg from "../../../package.json";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+
+const frpcDesktopStore = useFrpcDesktopStore();
 
 /**
  * 最后一个版本号
  */
-const latestVersionInfo = ref(null);
+// const latestVersionInfo = ref(null);
 
 const isLastVersion = computed(() => {
-  if (!latestVersionInfo.value) {
+  if (!frpcDesktopStore.frpcDesktopLastRelease) {
     return true;
   }
   // tagName相对固定
-  const tagName = latestVersionInfo.value["tag_name"];
-  console.log(tagName, latestVersionInfo.value, "tagName");
+  const tagName = frpcDesktopStore.frpcDesktopLastRelease["tag_name"];
+  console.log(tagName, frpcDesktopStore.frpcDesktopLastRelease, "tagName");
   if (!tagName) {
     return true;
   }
@@ -70,42 +72,21 @@ const handleOpenDoc = () => {
  * 获取最后一个版本
  */
 const handleGetLastVersion = () => {
-  send(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease);
+  frpcDesktopStore.checkNewVersion();
 };
 
 const handleOpenNewVersion = () => {
   send(ipcRouters.SYSTEM.openUrl, {
-    url: latestVersionInfo.value["html_url"]
+    url: frpcDesktopStore.frpcDesktopLastRelease["html_url"]
   });
 };
 
 onMounted(() => {
-  on(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, data => {
-    latestVersionInfo.value = data;
-    if (!isLastVersion.value) {
-      let content = latestVersionInfo.value.body;
-      content = content.replaceAll("\n", "<br/>");
-      ElMessageBox.alert(content, `🎉 发现新版本 ${data.name}`, {
-        showCancelButton: true,
-        cancelButtonText: "关闭",
-        dangerouslyUseHTMLString: true,
-        confirmButtonText: "去下载"
-      }).then(() => {
-        handleOpenNewVersion();
-      });
-    } else {
-      ElMessage({
-        message: "当前已是最新版本",
-        type: "success"
-      });
-    }
-  });
-
   handleGetLastVersion();
 });
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease);
+  // removeRouterListeners(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease);
 });
 
 defineComponent({
@@ -133,11 +114,11 @@ defineComponent({
             >v{{ pkg.version }}
           </el-link>
           <el-link
-            v-if="!isLastVersion && latestVersionInfo"
+            v-if="!isLastVersion && frpcDesktopStore.frpcDesktopLastRelease"
             @click="handleOpenNewVersion"
             class="ml-2 text-[#67C23A] font-bold"
             type="success"
-            >v{{ latestVersionInfo.name }}
+            >v{{ frpcDesktopStore.frpcDesktopLastRelease.name }}
           </el-link>
           <IconifyIconOffline
             class="ml-1.5 cursor-pointer check-update"

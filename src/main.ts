@@ -27,7 +27,9 @@ app
     const frpcDesktopStore = useFrpcDesktopStore();
     frpcDesktopStore.onListenerFrpcProcessRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
+    frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();
+    frpcDesktopStore.checkNewVersion();
   })
   .then(r => {});
 
