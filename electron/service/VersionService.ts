@@ -199,9 +199,9 @@ class VersionService extends BaseService<FrpcVersion> {
     const fileName = path.basename(version.assetName, ext);
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
-      const frpcFilePath = path.join(versionFilePath, fileName, "frpc.exe");
-      fs.renameSync(frpcFilePath, versionFilePath);
-      // todo delete frps and other file.
+      const frpTempPath = path.join(versionFilePath, fileName);
+      fs.renameSync(path.join(frpTempPath, "frpc.exe"), path.join(versionFilePath, PathUtils.getWinFrpFilename()));
+      fs.rmSync(frpTempPath, { recursive: true, force: true });
     } else if (
       ext === GlobalConstant.GZ_EXT &&
       version.assetName.includes(GlobalConstant.TAR_GZ_EXT)

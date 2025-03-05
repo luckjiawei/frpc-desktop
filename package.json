@@ -86,5 +86,19 @@
     "smol-toml": "^1.3.1",
     "tar": "^6.2.0",
     "unused-filename": "^4.0.1"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@parcel/watcher",
+      "electron",
+      "esbuild",
+      "vue-demi"
+    ],
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "electron",
+      "esbuild",
+      "vue-demi"
+    ]
   }
 }
