@@ -59,7 +59,13 @@ class FrpcProcessService {
     );
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
-    const command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
+    let command = "";
+    if (process.platform === "win32") {
+      command = `${PathUtils.getWinFrpFilename()} -c "${configPath}"`;
+    } else {
+      command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
+    }
+
     this._frpcProcess = spawn(command, {
       cwd: version.localPath,
       shell: true
@@ -67,7 +73,7 @@ class FrpcProcessService {
     this._frpcLastStartTime = Date.now();
     Logger.debug(
       `FrpcProcessService.startFrpcProcess`,
-      `start command: ${command}`
+      `start frpc cwd: ${version.localPath} command: ${command}`
     );
     this._frpcProcess.stdout.on("data", data => {
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);

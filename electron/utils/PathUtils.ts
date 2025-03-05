@@ -34,6 +34,11 @@ class PathUtils {
     return SecureUtils.calculateMD5("frpc");
   }
 
+  public static getWinFrpFilename() {
+    return SecureUtils.calculateMD5("frpc") + ".exe";
+  }
+
+
   public static getAppData() {
     return app.getPath("userData");
   }

@@ -63,7 +63,15 @@ class SystemService {
       });
     }
     // starting unzip.
+    // let frpcEntry = null;
     const zip = new admZip(zipFilePath);
+    // if (process.platform === "win32") {
+    //   frpcEntry = zip.getEntry("frpc.exe");
+    // } else {
+    //   frpcEntry = zip.getEntry("frpc");
+    // }
+    //
+    // zip.extractEntryTo(frpcEntry, targetPath, false, true);
     zip.extractAllTo(targetPath, true); // true: cover exists file.
     // todo 2025-02-21 return targetPath.
     // const frpcPath = path.join("frp", path.basename(zipFilePath, zipExt));

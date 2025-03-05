@@ -196,8 +196,11 @@ class VersionService extends BaseService<FrpcVersion> {
       SecureUtils.calculateMD5(version.name)
     );
     const ext = path.extname(version.assetName);
+    const fileName = path.basename(version.assetName, ext);
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
+      const frpcFilePath = path.join(versionFilePath, fileName, "frpc.exe");
+      fs.renameSync(frpcFilePath, versionFilePath);
       // todo delete frps and other file.
     } else if (
       ext === GlobalConstant.GZ_EXT &&
