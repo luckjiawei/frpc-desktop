@@ -93,7 +93,10 @@ class SystemController {
     this._gitHubService
       .getGithubLastRelease("luckjiawei/frpc-desktop")
       .then((data: any) => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
+        req.event.reply(req.channel, ResponseUtils.success({
+          manual: req.args.manual,
+          version: data
+        }));
       })
       .catch((err: Error) => {
         Logger.error("SystemController.getFrpcDesktopGithubLastRelease", err);

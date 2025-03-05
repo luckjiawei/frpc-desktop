@@ -72,7 +72,7 @@ const handleOpenDoc = () => {
  * 获取最后一个版本
  */
 const handleGetLastVersion = () => {
-  frpcDesktopStore.checkNewVersion();
+  frpcDesktopStore.checkNewVersion(true);
 };
 
 const handleOpenNewVersion = () => {
@@ -82,7 +82,7 @@ const handleOpenNewVersion = () => {
 };
 
 onMounted(() => {
-  handleGetLastVersion();
+  // handleGetLastVersion();
 });
 
 onUnmounted(() => {

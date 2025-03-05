@@ -29,7 +29,7 @@ app
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();
-    frpcDesktopStore.checkNewVersion();
+    frpcDesktopStore.checkNewVersion(false);
   })
   .then(r => {});
 
