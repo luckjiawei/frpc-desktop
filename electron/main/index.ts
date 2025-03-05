@@ -108,7 +108,6 @@ class FrpcDesktopApp {
       if (url.startsWith("https:")) shell.openExternal(url);
       return { action: "deny" };
     });
-    const { Menu } = require("electron");
     Menu.setApplicationMenu(null);
 
     const that = this;
@@ -348,7 +347,7 @@ class FrpcDesktopApp {
     );
     BeanFactory.setBean(
       "systemController",
-      new SystemController(BeanFactory.getBean("systemService"))
+      new SystemController()
     );
     Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
   }

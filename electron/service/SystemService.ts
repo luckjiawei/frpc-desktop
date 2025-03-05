@@ -108,7 +108,6 @@ class SystemService {
   }
 
   checkInternetConnect() {
-    const { net } = require("electron");
     return new Promise(resolve => {
       const request = net.request({
         method: "get",

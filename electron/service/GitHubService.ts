@@ -5,7 +5,6 @@ class GitHubService {
 
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
-      const { net } = require("electron");
 
       const request = net.request({
         method: "get",
@@ -54,7 +53,6 @@ class GitHubService {
 
   getGithubLastRelease(githubRepo: string) {
     return new Promise((resolve, reject) => {
-      const { net } = require("electron");
       const request = net.request({
         method: "get",
         url: `https://api.github.com/repos/${githubRepo}/releases/latest`
