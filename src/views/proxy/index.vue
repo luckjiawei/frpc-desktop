@@ -70,7 +70,11 @@ const defaultForm: FrpcProxy = {
   https2httpCaFile: "",
   https2httpKeyFile: "",
   keepTunnelOpen: false,
-  status: 1
+  status: 1,
+  transport: {
+    useEncryption: false,
+    useCompression: false
+  }
 };
 
 /**
@@ -154,9 +158,16 @@ const editFormRules = reactive<FormRules>({
     { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
   ],
   httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
-  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
+  httpPassword: [
+    { required: true, message: "请输入认证密码", trigger: "blur" }
+  ],
+  "transport.useEncryption": [
+    { required: true, message: "请选择是否加密传输", trigger: "blur" }
+  ],
+  "transport.useCompression": [
+    { required: true, message: "请选择是否压缩传输", trigger: "blur" }
+  ]
 });
-
 
 /**
  * 表单dom
@@ -934,7 +945,7 @@ onUnmounted(() => {
           <template
             v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
           >
-            <el-col :span="12">
+            <el-col :span="isHttp || isHttps ? 12 : 24">
               <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
                   v-model="editForm.localIP"
@@ -982,7 +993,7 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isTcp || isUdp">
-            <el-col :span="8">
+            <el-col :span="12">
               <el-form-item label="外网端口：" prop="remotePort">
                 <!--                <el-input-number-->
                 <!--                  :min="0"-->
@@ -1000,7 +1011,7 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isHttp || isHttps">
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="子域名：" prop="subdomain">
                 <template #label>
                   <div class="inline-block">
@@ -1107,7 +1118,11 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
-              <el-form-item label="HTTP基本认证：" prop="basicAuth">
+              <el-form-item
+                label="HTTP基本认证："
+                prop="basicAuth"
+                label-position="left"
+              >
                 <el-switch
                   active-text="开"
                   inline-prompt
@@ -1142,6 +1157,7 @@ onUnmounted(() => {
               <el-form-item
                 label="https2http："
                 prop="https2http"
+                label-position="left"
                 :rules="[
                   {
                     required: true,
@@ -1486,6 +1502,87 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
+          <el-col :span="24" />
+
+          <template v-if="!isStcpVisitors">
+            <el-col :span="12">
+              <el-form-item
+                label="压缩传输："
+                prop="transport.useCompression"
+                label-position="left"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >transport.useCompression</span
+                            >
+                            开启后，此代理的流量将被压缩。
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      压缩传输：
+                    </div>
+                  </div>
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.transport.useCompression"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="加密传输："
+                prop="transport.useEncryption"
+                label-position="left"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >transport.useEncryption</span
+                            >
+                            开启后，此代理的流量将被加密传输。
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      加密传输：
+                    </div>
+                  </div>
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.transport.useEncryption"
+                />
+              </el-form-item>
+            </el-col>
+          </template>
+
           <el-col :span="24">
             <el-form-item>
               <div class="w-full flex justify-end">

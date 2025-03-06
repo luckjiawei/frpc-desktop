@@ -54,6 +54,11 @@ interface FrpcCommonConfig {
   metadatas: Record<string, any>;
 }
 
+interface FrpcProxyTransportConfig {
+  useEncryption: boolean;
+  useCompression: boolean;
+}
+
 interface FrpcProxyConfig {
   name: string;
   type: string;
@@ -78,4 +83,5 @@ interface FrpcProxyConfig {
   https2httpCaFile: string;
   https2httpKeyFile: string;
   keepTunnelOpen: boolean;
+  transport: FrpcProxyTransportConfig;
 }

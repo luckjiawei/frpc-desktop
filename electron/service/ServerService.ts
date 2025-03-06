@@ -116,7 +116,8 @@ remotePort = {{ $v.Second }}
             type: proxy.type,
             localIP: proxy.localIP,
             localPort: localPort,
-            remotePort: remotePort
+            remotePort: remotePort,
+            transport: proxy.transport
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
           if (this.isHttps2http(proxy) && proxy.type === "https") {
@@ -125,6 +126,7 @@ remotePort = {{ $v.Second }}
               type: proxy.type,
               customDomains: proxy.customDomains,
               subdomain: proxy.subdomain,
+              transport: proxy.transport,
               ...(proxy.https2http
                 ? {
                     plugin: {
@@ -143,6 +145,7 @@ remotePort = {{ $v.Second }}
               localIP: proxy.localIP,
               localPort: parseInt(proxy.localPort),
               customDomains: proxy.customDomains,
+              transport: proxy.transport,
               subdomain: proxy.subdomain,
               ...(proxy.basicAuth
                 ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
@@ -157,6 +160,7 @@ remotePort = {{ $v.Second }}
           return {
             name: proxy.name,
             type: proxy.type,
+            transport: proxy.transport,
             localIP: proxy.localIP,
             localPort: parseInt(proxy.localPort),
             secretKey: proxy.secretKey
