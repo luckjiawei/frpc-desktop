@@ -4,7 +4,6 @@ import path from "path";
 import fs from "fs";
 import zlib from "zlib";
 import admZip from "adm-zip";
-import tar from "tar";
 
 class SystemService {
   async openUrl(url: string) {
@@ -85,33 +84,33 @@ class SystemService {
       fs.mkdirSync(targetPath, { recursive: true, mode: 0o777 });
     }
 
-    readStream
-      .pipe(unzip)
-      .on("error", err => {
-        // logError(LogModule.APP, `Error during gunzip: ${err.message}`);
-      })
-      .pipe(
-        tar
-          .extract({
-            cwd: targetPath,
-            strip: 1,
-            filter: filePath => path.basename(filePath) === "frpc"
-          })
-          .on("error", err => {
-            // logError(
-            //   LogModule.APP,
-            //   `Error extracting tar file: ${err.message}`
-            // );
-          })
-      )
-      .on("finish", () => {
-        finish();
-        // const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
-        // logInfo(
-        //   LogModule.APP,
-        //   `Extraction completed. Extracted directory: ${frpcPath}`
-        // );
-      });
+    // readStream
+    //   .pipe(unzip)
+    //   .on("error", err => {
+    //     // logError(LogModule.APP, `Error during gunzip: ${err.message}`);
+    //   })
+    //   .pipe(
+    //     tar
+    //       .extract({
+    //         cwd: targetPath,
+    //         strip: 1,
+    //         filter: filePath => path.basename(filePath) === "frpc"
+    //       })
+    //       .on("error", err => {
+    //         // logError(
+    //         //   LogModule.APP,
+    //         //   `Error extracting tar file: ${err.message}`
+    //         // );
+    //       })
+    //   )
+    //   .on("finish", () => {
+    //     finish();
+    //     // const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
+    //     // logInfo(
+    //     //   LogModule.APP,
+    //     //   `Extraction completed. Extracted directory: ${frpcPath}`
+    //     // );
+    //   });
   }
 
   checkInternetConnect() {
