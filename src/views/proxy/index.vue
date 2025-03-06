@@ -87,6 +87,7 @@ const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
  */
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
+const hasPlugin = ref(false);
 
 const visitorsModels = ref([
   {
@@ -607,6 +608,11 @@ onMounted(() => {
 
 const handleProxyTypeChange = e => {
   if (e === "http" || e === "https" || e === "tcp" || e === "udp") {
+    if (e === "https") {
+      hasPlugin.value = true;
+    } else {
+      hasPlugin.value = false;
+    }
     editForm.value.visitorsModel = "";
   } else {
     if (editForm.value.visitorsModel === "") {
@@ -869,6 +875,11 @@ onUnmounted(() => {
               </el-radio-group>
             </el-form-item>
           </el-col>
+          <el-col :span="24">
+            <div class="h3 flex justify-between">
+              <div>基础配置</div>
+            </div>
+          </el-col>
           <template v-if="isStcp || isSudp || isXtcp">
             <el-col :span="12">
               <el-form-item
@@ -945,7 +956,7 @@ onUnmounted(() => {
           <template
             v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
           >
-            <el-col :span="isHttp || isHttps ? 12 : 24">
+            <el-col :span="isHttp || isHttps ? 12 : (isTcp || isUdp ? 24 : 12)">
               <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
                   v-model="editForm.localIP"
@@ -1011,6 +1022,11 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isHttp || isHttps">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>域名配置</div>
+              </div>
+            </el-col>
             <el-col :span="24">
               <el-form-item label="子域名：" prop="subdomain">
                 <template #label>
@@ -1118,6 +1134,11 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>其他代理配置</div>
+              </div>
+            </el-col>
+            <el-col :span="24">
               <el-form-item
                 label="HTTP基本认证："
                 prop="basicAuth"
@@ -1152,42 +1173,48 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="isHttps">
-            <el-col :span="24">
-              <el-form-item
-                label="https2http："
-                prop="https2http"
-                label-position="left"
-                :rules="[
-                  {
-                    required: true,
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <el-switch
-                  active-text="开"
-                  inline-prompt
-                  inactive-text="关"
-                  v-model="editForm.https2http"
-                />
-              </el-form-item>
+          <template v-if="hasPlugin">
+            <el-col :span="24" v-if="hasPlugin">
+              <div class="h3 flex justify-between">
+                <div>插件配置</div>
+              </div>
             </el-col>
+            <template v-if="isHttps">
+              <el-col :span="24">
+                <el-form-item
+                  label="https2http："
+                  prop="https2http"
+                  label-position="left"
+                  :rules="[
+                    {
+                      required: true,
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <el-switch
+                    active-text="开"
+                    inline-prompt
+                    inactive-text="关"
+                    v-model="editForm.https2http"
+                  />
+                </el-form-item>
+              </el-col>
 
-            <el-col :span="24" v-if="editForm.https2http">
-              <el-form-item
-                label="证书文件："
-                prop="https2httpCaFile"
-                label-width="180"
-                :rules="[
-                  {
-                    required: true,
-                    message: '证书文件不能为空',
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <!-- <template #label>
+              <el-col :span="24" v-if="editForm.https2http">
+                <el-form-item
+                  label="证书文件："
+                  prop="https2httpCaFile"
+                  label-width="180"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '证书文件不能为空',
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
@@ -1206,42 +1233,42 @@ onUnmounted(() => {
                   </div>
                   CA 证书文件：
                 </template> -->
-                <el-input
-                  class="button-input"
-                  v-model="editForm.https2httpCaFile"
-                  placeholder="点击选择证书文件"
-                  readonly
-                  @click="handleSelectFile(1, ['crt', 'pem'])"
-                />
-                <!--                  <el-button-->
-                <!--                    class="ml-2"-->
-                <!--                    type="primary"-->
-                <!--                    @click="handleSelectFile(3, ['crt'])"-->
-                <!--                    >选择-->
-                <!--                  </el-button>-->
-                <el-button
-                  v-if="editForm.https2httpCaFile"
-                  class="ml-2"
-                  type="danger"
-                  @click="editForm.https2httpCaFile = ''"
-                  >清除
-                </el-button>
-              </el-form-item>
-            </el-col>
-            <el-col :span="24" v-if="editForm.https2http">
-              <el-form-item
-                label="密钥文件："
-                prop="https2httpKeyFile"
-                label-width="180"
-                :rules="[
-                  {
-                    required: true,
-                    message: '密钥文件不能为空',
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <!-- <template #label>
+                  <el-input
+                    class="button-input"
+                    v-model="editForm.https2httpCaFile"
+                    placeholder="点击选择证书文件"
+                    readonly
+                    @click="handleSelectFile(1, ['crt', 'pem'])"
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="editForm.https2httpCaFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.https2httpCaFile = ''"
+                    >清除
+                  </el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24" v-if="editForm.https2http">
+                <el-form-item
+                  label="密钥文件："
+                  prop="https2httpKeyFile"
+                  label-width="180"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '密钥文件不能为空',
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
@@ -1260,28 +1287,29 @@ onUnmounted(() => {
                   </div>
                   CA 证书文件：
                 </template> -->
-                <el-input
-                  class="button-input cursor-pointer"
-                  v-model="editForm.https2httpKeyFile"
-                  placeholder="点击选择密钥文件"
-                  readonly
-                  @click="handleSelectFile(2, ['key'])"
-                />
-                <!--                  <el-button-->
-                <!--                    class="ml-2"-->
-                <!--                    type="primary"-->
-                <!--                    @click="handleSelectFile(3, ['crt'])"-->
-                <!--                    >选择-->
-                <!--                  </el-button>-->
-                <el-button
-                  v-if="editForm.https2httpKeyFile"
-                  class="ml-2"
-                  type="danger"
-                  @click="editForm.https2httpKeyFile = ''"
-                  >清除
-                </el-button>
-              </el-form-item>
-            </el-col>
+                  <el-input
+                    class="button-input cursor-pointer"
+                    v-model="editForm.https2httpKeyFile"
+                    placeholder="点击选择密钥文件"
+                    readonly
+                    @click="handleSelectFile(2, ['key'])"
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="editForm.https2httpKeyFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.https2httpKeyFile = ''"
+                    >清除
+                  </el-button>
+                </el-form-item>
+              </el-col>
+            </template>
           </template>
           <template v-if="isStcpVisitors">
             <el-col :span="24">
@@ -1382,6 +1410,11 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isXtcp && isStcpVisitors">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>其他配置</div>
+              </div>
+            </el-col>
             <el-col :span="12">
               <el-form-item label="回退stcp代理名称" prop="fallbackTo">
                 <template #label>
@@ -1461,6 +1494,7 @@ onUnmounted(() => {
               <el-form-item
                 label="保持隧道开启："
                 prop="keepTunnelOpen"
+                label-position="left"
                 :rules="[
                   {
                     required: true,
@@ -1505,6 +1539,11 @@ onUnmounted(() => {
           <el-col :span="24" />
 
           <template v-if="!isStcpVisitors">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>代理传输配置</div>
+              </div>
+            </el-col>
             <el-col :span="12">
               <el-form-item
                 label="压缩传输："

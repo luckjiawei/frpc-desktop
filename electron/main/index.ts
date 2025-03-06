@@ -72,9 +72,9 @@ class FrpcDesktopApp {
     this._win = new BrowserWindow({
       title: app.getName(),
       icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
-      width: 800,
+      width: 900,
       height: 600,
-      minWidth: 800,
+      minWidth: 900,
       minHeight: 600,
       maxWidth: 1280,
       maxHeight: 960,
