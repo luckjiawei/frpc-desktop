@@ -22,7 +22,7 @@
       ]
     },
     "types": [
-//      "node",
+      //      "node",
       "vite/client",
       "element-plus/global"
     ],

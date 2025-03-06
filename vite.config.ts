@@ -23,6 +23,13 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
   return {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: "modern-compiler"
+        }
+      }
+    },
     plugins: [
       vue(),
       electron([

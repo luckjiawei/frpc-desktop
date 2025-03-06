@@ -9,12 +9,13 @@ import {
 } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
-import { ipcRenderer } from "electron";
-import { clone } from "@/utils/clone";
-import { formatDate, useClipboard, useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import commonIps from "./commonIp.json";
-import router from "@/router";
+import path from "path";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
+import _ from "lodash";
 
 defineComponent({
   name: "Proxy"
@@ -23,7 +24,7 @@ defineComponent({
 /**
  * 代理列表
  */
-const proxys = ref<Array<Proxy>>([]);
+const proxys = ref<Array<FrpcProxy>>([]);
 /**
  * loading
  */
@@ -44,20 +45,21 @@ const edit = ref({
   visible: false
 });
 
-const defaultForm = ref<Proxy>({
+const defaultForm: FrpcProxy = {
   _id: "",
+  hostHeaderRewrite: "",
+  locations: [],
   name: "",
   type: "http",
-  localIp: "",
+  localIP: "",
   localPort: "8080",
   remotePort: "8080",
   customDomains: [""],
-  stcpModel: "visitors",
+  visitorsModel: "visitors",
   serverName: "",
   secretKey: "",
   bindAddr: "",
   bindPort: null,
-  status: true,
   subdomain: "",
   basicAuth: false,
   httpUser: "",
@@ -67,27 +69,34 @@ const defaultForm = ref<Proxy>({
   https2http: false,
   https2httpCaFile: "",
   https2httpKeyFile: "",
-  keepTunnelOpen: false
-});
+  keepTunnelOpen: false,
+  status: 1,
+  transport: {
+    useEncryption: false,
+    useCompression: false
+  }
+};
 
 /**
  * 表单内容
  */
-const editForm = ref<Proxy>(defaultForm.value);
+const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
 
 /**
  * 代理类型
  */
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
+const currSelectLocalFileType = ref();
+const hasPlugin = ref(false);
 
-const stcpModels = ref([
+const visitorsModels = ref([
   {
     label: "访问者",
     value: "visitors"
   },
   {
     label: "被访问者",
-    value: "visited"
+    value: "visitorsProvider"
   }
 ]);
 
@@ -104,7 +113,7 @@ const editFormRules = reactive<FormRules>({
     // }
   ],
   type: [{ required: true, message: "请选择类型", trigger: "blur" }],
-  localIp: [
+  localIP: [
     { required: true, message: "请输入内网地址", trigger: "blur" },
     {
       pattern: /^[\w-]+(\.[\w-]+)+$/,
@@ -128,7 +137,9 @@ const editFormRules = reactive<FormRules>({
       trigger: "blur"
     }
   ],
-  stcpModel: [{ required: true, message: "请选择stcp模式", trigger: "blur" }],
+  visitorsModel: [
+    { required: true, message: "请选择stcp模式", trigger: "blur" }
+  ],
   secretKey: [
     { required: true, message: "请输入stcp共享密钥", trigger: "blur" }
   ],
@@ -148,7 +159,15 @@ const editFormRules = reactive<FormRules>({
     { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
   ],
   httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
-  httpPassword: [{ required: true, message: "请输入认证密码", trigger: "blur" }]
+  httpPassword: [
+    { required: true, message: "请输入认证密码", trigger: "blur" }
+  ],
+  "transport.useEncryption": [
+    { required: true, message: "请选择是否加密传输", trigger: "blur" }
+  ],
+  "transport.useCompression": [
+    { required: true, message: "请选择是否压缩传输", trigger: "blur" }
+  ]
 });
 
 /**
@@ -184,12 +203,12 @@ const isXtcp = computed(() => {
   return editForm.value.type === "xtcp";
 });
 
-const isStcpVisited = computed(() => {
+const isStcpvisitorsProvider = computed(() => {
   return (
     (editForm.value.type === "stcp" ||
       editForm.value.type === "sudp" ||
       editForm.value.type === "xtcp") &&
-    editForm.value.stcpModel === "visited"
+    editForm.value.visitorsModel === "visitorsProvider"
   );
 });
 
@@ -198,7 +217,7 @@ const isStcpVisitors = computed(() => {
     (editForm.value.type === "stcp" ||
       editForm.value.type === "sudp" ||
       editForm.value.type === "xtcp") &&
-    editForm.value.stcpModel === "visitors"
+    editForm.value.visitorsModel === "visitors"
   );
 });
 
@@ -247,7 +266,7 @@ const handleRangePort = () => {
  */
 const handleSubmit = async () => {
   if (!editFormRef.value) return;
-  await editFormRef.value.validate(valid => {
+  editFormRef.value.validate(valid => {
     if (valid) {
       if (handleRangePort()) {
         const lc = handleGetPortCount(editForm.value.localPort);
@@ -276,11 +295,12 @@ const handleSubmit = async () => {
         return;
       }
       loading.value.form = 1;
-      const data = clone(editForm.value);
+      const data = _.cloneDeep(editForm.value);
+      console.log("submit", data);
       if (data._id) {
-        ipcRenderer.send("proxy.updateProxy", data);
+        send(ipcRouters.PROXY.modifyProxy, data);
       } else {
-        ipcRenderer.send("proxy.insertProxy", data);
+        send(ipcRouters.PROXY.createProxy, data);
       }
     }
   });
@@ -305,97 +325,25 @@ const handleDeleteDomain = (index: number) => {
  * 加载代理
  */
 const handleLoadProxys = () => {
-  ipcRenderer.send("proxy.getProxys");
+  send(ipcRouters.PROXY.getAllProxies);
 };
 
 /**
  * 删除代理
  * @param proxy
  */
-const handleDeleteProxy = (proxy: Proxy) => {
-  ipcRenderer.send("proxy.deleteProxyById", proxy._id);
+const handleDeleteProxy = (proxy: FrpcProxy) => {
+  send(ipcRouters.PROXY.deleteProxy, proxy._id);
+  // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
 };
 
 /**
  * 重置表单
  */
 const handleResetForm = () => {
-  editForm.value = defaultForm.value;
+  editForm.value = _.cloneDeep(defaultForm);
 };
 
-/**
- * 初始化回调
- */
-const handleInitHook = () => {
-  const InsertOrUpdateHook = (message: string, args: any) => {
-    loading.value.form--;
-    const { err } = args;
-    if (!err) {
-      ElMessage({
-        type: "success",
-        message: message
-      });
-      handleResetForm();
-      handleLoadProxys();
-      edit.value.visible = false;
-    }
-  };
-
-  ipcRenderer.on("Proxy.insertProxy.hook", (event, args) => {
-    InsertOrUpdateHook("新增成功", args);
-  });
-  ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
-    InsertOrUpdateHook("修改成功", args);
-  });
-
-  ipcRenderer.on("Proxy.updateProxyStatus.hook", (event, args) => {
-    if (args.data > 0) {
-      handleLoadProxys();
-    }
-    console.log("更新结果", args);
-  });
-
-  ipcRenderer.on("local.getLocalPorts.hook", (event, args) => {
-    loading.value.localPorts--;
-    localPorts.value = args.data;
-    console.log("内网端口", localPorts.value);
-  });
-  // ipcRenderer.on("Proxy.updateProxy.hook", (event, args) => {
-  //   loading.value.form--;
-  //   const { err } = args;
-  //   if (!err) {
-  //     ElMessage({
-  //       type: "success",
-  //       message: "修改成功"
-  //     });
-  //     handleResetForm();
-  //     handleLoadProxys();
-  //     edit.value.visible = false;
-  //   }
-  // });
-  ipcRenderer.on("Proxy.getProxys.hook", (event, args) => {
-    loading.value.list--;
-    const { err, data } = args;
-    if (!err) {
-      data.forEach(f => {
-        if (f.status === null || f.status === undefined) {
-          f.status = true;
-        }
-      });
-      proxys.value = data;
-    }
-  });
-  ipcRenderer.on("Proxy.deleteProxyById.hook", (event, args) => {
-    const { err, data } = args;
-    if (!err) {
-      handleLoadProxys();
-      ElMessage({
-        type: "success",
-        message: "删除成功"
-      });
-    }
-  });
-};
 const handleOpenInsert = () => {
   edit.value = {
     title: "新增代理",
@@ -403,32 +351,33 @@ const handleOpenInsert = () => {
   };
 };
 
-const handleOpenUpdate = (proxy: Proxy) => {
-  editForm.value = clone(proxy);
-  if (!editForm.value.fallbackTimeoutMs) {
-    editForm.value.fallbackTimeoutMs = defaultForm.value.fallbackTimeoutMs;
-  }
+const handleOpenUpdate = (proxy: FrpcProxy) => {
+  editForm.value = _.cloneDeep(proxy);
+  // if (!editForm.value.fallbackTimeoutMs) {
+  //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
+  // }
   edit.value = {
     title: "修改代理",
     visible: true
   };
 };
 
-const handleReversalUpdate = (proxy: Proxy) => {
-  console.log("更新", proxy);
-  ipcRenderer.send("proxy.updateProxyStatus", {
-    _id: proxy._id,
-    status: !proxy.status
+const handleReversalUpdate = (proxy: FrpcProxy) => {
+  send(ipcRouters.PROXY.modifyProxyStatus, {
+    id: proxy._id,
+    status: proxy.status === 1 ? 0 : 1
   });
 };
 
 const handleLoadLocalPorts = () => {
   loading.value.localPorts = 1;
-  ipcRenderer.send("local.getLocalPorts");
+  // ipcRenderer.send("local.getLocalPorts");
+  send(ipcRouters.PROXY.getLocalPorts);
 };
 
 const handleSelectLocalPort = useDebounceFn((port: number) => {
   editForm.value.localPort = port?.toString();
+  editForm.value.localIP = "127.0.0.1";
   handleCloseLocalPortDialog();
 });
 
@@ -441,36 +390,36 @@ const handleOpenLocalPortDialog = () => {
   handleLoadLocalPorts();
 };
 
-const allowCopyAccessAddress = (proxy: Proxy) => {
+const allowCopyAccessAddress = (proxy: FrpcProxy) => {
   if (
     (proxy.type === "http" || proxy.type === "https") &&
     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
   ) {
     return false;
   }
-  if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
+  if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
     return false;
   }
-  if (proxy.type === "xtcp" && proxy.stcpModel === "visited") {
+  if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
     return false;
   }
-  if (proxy.type === "sudp" && proxy.stcpModel === "visited") {
+  if (proxy.type === "sudp" && proxy.visitorsModel === "visitorsProvider") {
     return false;
   }
   return true;
 };
 
-const handleCopyAccessAddress = (proxy: Proxy) => {
+const handleCopyAccessAddress = (proxy: FrpcProxy) => {
   if (
     (proxy.type === "http" || proxy.type === "https") &&
     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
   ) {
     return;
   }
-  if (proxy.type === "stcp" && proxy.stcpModel === "visited") {
+  if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
     return;
   }
-  if (proxy.type === "xtcp" && proxy.stcpModel === "visited") {
+  if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
     return;
   }
   let accessAddressStr = "";
@@ -565,59 +514,134 @@ const handleRandomProxyName = () => {
     `df_${editForm.value.type}_${result}`.toLocaleLowerCase();
 };
 
-import path from "path";
-function normalizePath(filePath: string) {
+const normalizePath = (filePath: string) => {
   return path.normalize(filePath).replace(/\\/g, "/");
-}
+};
 
 const handleSelectFile = (type: number, ext: string[]) => {
-  ipcRenderer.invoke("file.selectFile", ext).then(r => {
-    switch (type) {
-      case 1:
-        editForm.value.https2httpCaFile = normalizePath(r[0]);
-        break;
-      case 2:
-        editForm.value.https2httpKeyFile = normalizePath(r[0]);
-        break;
-    }
-    console.log(r);
+  currSelectLocalFileType.value = type;
+  send(ipcRouters.SYSTEM.selectLocalFile, {
+    name: "",
+    extensions: ext
   });
+  // ipcRenderer.invoke("file.selectFile", ext).then(r => {
+  //   switch (type) {
+  //     case 1:
+  //       editForm.value.https2httpCaFile = normalizePath(r[0]);
+  //       break;
+  //     case 2:
+  //       editForm.value.https2httpKeyFile = normalizePath(r[0]);
+  //       break;
+  //   }
+  //   console.log(r);
+  // });
 };
 
 onMounted(() => {
-  handleInitHook();
   handleLoadProxys();
-  ipcRenderer.send("config.getConfig");
-  ipcRenderer.on("Config.getConfig.hook", (event, args) => {
-    const { err, data } = args;
-    if (!err) {
-      if (data) {
-        frpcConfig.value = data;
+
+  on(ipcRouters.PROXY.getAllProxies, data => {
+    console.log("allProxies", data);
+    loading.value.list--;
+    proxys.value = data;
+  });
+
+  on(ipcRouters.SYSTEM.selectLocalFile, data => {
+    console.log("data", data);
+    if (!data.canceled) {
+      switch (currSelectLocalFileType.value) {
+        case 1:
+          editForm.value.https2httpCaFile = data.path as string;
+          break;
+        case 2:
+          editForm.value.https2httpKeyFile = data.path as string;
+          break;
       }
     }
   });
+
+  const insertOrUpdateHook = (message: string) => {
+    loading.value.form--;
+    // const { err } = args;
+    // if (!err) {
+    ElMessage({
+      type: "success",
+      message: message
+    });
+    handleResetForm();
+    handleLoadProxys();
+    edit.value.visible = false;
+    // }
+  };
+
+  on(ipcRouters.PROXY.createProxy, data => {
+    insertOrUpdateHook("新增成功");
+  });
+
+  on(ipcRouters.PROXY.modifyProxy, data => {
+    insertOrUpdateHook("修改成功");
+  });
+
+  on(ipcRouters.PROXY.deleteProxy, () => {
+    handleLoadProxys();
+    ElMessage({
+      type: "success",
+      message: "删除成功"
+    });
+  });
+
+  on(ipcRouters.PROXY.modifyProxyStatus, () => {
+    ElMessage({
+      type: "success",
+      message: "修改成功"
+    });
+    // handleResetForm();
+    handleLoadProxys();
+    // edit.value.visible = false;
+  });
+
+  on(ipcRouters.PROXY.getLocalPorts, data => {
+    loading.value.localPorts--;
+    localPorts.value = data;
+  });
 });
 
+const handleProxyTypeChange = e => {
+  if (e === "http" || e === "https" || e === "tcp" || e === "udp") {
+    if (e === "https") {
+      hasPlugin.value = true;
+    } else {
+      hasPlugin.value = false;
+    }
+    editForm.value.visitorsModel = "";
+  } else {
+    if (editForm.value.visitorsModel === "") {
+      editForm.value.visitorsModel = "visitorsProvider";
+    }
+  }
+};
+
 onUnmounted(() => {
-  ipcRenderer.removeAllListeners("Proxy.insertProxy.hook");
-  ipcRenderer.removeAllListeners("Proxy.updateProxy.hook");
-  ipcRenderer.removeAllListeners("Proxy.updateProxyStatus.hook");
-  ipcRenderer.removeAllListeners("Proxy.deleteProxyById.hook");
-  ipcRenderer.removeAllListeners("Proxy.getProxys.hook");
-  ipcRenderer.removeAllListeners("local.getLocalPorts.hook");
+  removeRouterListeners(ipcRouters.PROXY.createProxy);
+  removeRouterListeners(ipcRouters.PROXY.modifyProxy);
+  removeRouterListeners(ipcRouters.PROXY.deleteProxy);
+  removeRouterListeners(ipcRouters.PROXY.getAllProxies);
+  removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
+  removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
+  removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
 });
 </script>
 <template>
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
-      <el-button class="mr-2" type="primary" @click="handleOpenInsert">
+      <el-button type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb pr-2" v-loading="loading.list > 0">
+    <div class="app-container-breadcrumb" v-loading="loading.list > 0">
       <template v-if="proxys && proxys.length > 0">
-        <el-row :gutter="20">
+        <el-row :gutter="15">
           <el-col
             v-for="proxy in proxys"
             :key="proxy._id"
@@ -626,13 +650,13 @@ onUnmounted(() => {
             :sm="12"
             :xl="6"
             :xs="12"
-            class="mb-[20px]"
+            class="mb-[15px]"
           >
             <div class="bg-white w-full rounded drop-shadow-xl p-4">
               <div class="w-full flex justify-between">
                 <div class="flex">
                   <div
-                    class="w-12 h-12 rounded mr-4 flex justify-center items-center font-bold"
+                    class="w-12 h-12 rounded mr-3 flex justify-center items-center font-bold"
                     :class="proxy.type"
                   >
                     <span class="text-white text-sm">{{ proxy.type }}</span>
@@ -642,7 +666,7 @@ onUnmounted(() => {
                       <span>{{ proxy.name }}</span>
                     </div>
                     <el-tag
-                      v-if="!proxy.status"
+                      v-if="proxy.status === 0"
                       class="mr-2"
                       type="danger"
                       size="small"
@@ -653,7 +677,7 @@ onUnmounted(() => {
                         (proxy.type === 'stcp' ||
                           proxy.type === 'xtcp' ||
                           proxy.type === 'sudp') &&
-                        proxy.stcpModel === 'visitors'
+                        proxy.visitorsModel === 'visitors'
                       "
                       size="small"
                     >
@@ -665,7 +689,7 @@ onUnmounted(() => {
                         (proxy.type === 'stcp' ||
                           proxy.type === 'xtcp' ||
                           proxy.type === 'sudp') &&
-                        proxy.stcpModel === 'visited'
+                        proxy.visitorsModel === 'visitorsProvider'
                       "
                       >被访问者
                     </el-tag>
@@ -738,11 +762,11 @@ onUnmounted(() => {
                     (proxy.type !== 'stcp' &&
                       proxy.type !== 'xtcp' &&
                       proxy.type !== 'sudp') ||
-                    proxy.stcpModel !== 'visitors'
+                    proxy.visitorsModel !== 'visitors'
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">内网地址</p>
-                  <p>{{ proxy.localIp }}</p>
+                  <p>{{ proxy.localIP }}</p>
                 </div>
 
                 <div class="text-sm text-center" v-if="proxy.type === 'tcp'">
@@ -755,7 +779,7 @@ onUnmounted(() => {
                     (proxy.type !== 'stcp' &&
                       proxy.type !== 'xtcp' &&
                       proxy.type !== 'sudp') ||
-                    proxy.stcpModel !== 'visitors'
+                    proxy.visitorsModel !== 'visitors'
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">内网端口</p>
@@ -768,7 +792,7 @@ onUnmounted(() => {
                     (proxy.type === 'stcp' ||
                       proxy.type === 'xtcp' ||
                       proxy.type === 'sudp') &&
-                    proxy.stcpModel === 'visitors'
+                    proxy.visitorsModel === 'visitors'
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">访问者名称</p>
@@ -781,7 +805,7 @@ onUnmounted(() => {
                     (proxy.type === 'stcp' ||
                       proxy.type === 'xtcp' ||
                       proxy.type === 'sudp') &&
-                    proxy.stcpModel === 'visitors'
+                    proxy.visitorsModel === 'visitors'
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">绑定地址</p>
@@ -794,7 +818,7 @@ onUnmounted(() => {
                     (proxy.type === 'stcp' ||
                       proxy.type === 'xtcp' ||
                       proxy.type === 'sudp') &&
-                    proxy.stcpModel === 'visitors'
+                    proxy.visitorsModel === 'visitors'
                   "
                 >
                   <p class="text-[#ADADAD] font-bold">绑定端口</p>
@@ -819,7 +843,7 @@ onUnmounted(() => {
       v-model="edit.visible"
       direction="rtl"
       size="60%"
-      @close="editForm = defaultForm"
+      @close="editForm = _.cloneDeep(defaultForm)"
     >
       <!--    <el-dialog-->
       <!--      v-model="edit.visible"-->
@@ -838,7 +862,10 @@ onUnmounted(() => {
         <el-row :gutter="10">
           <el-col :span="24">
             <el-form-item label="代理类型：" prop="type">
-              <el-radio-group v-model="editForm.type">
+              <el-radio-group
+                v-model="editForm.type"
+                @change="handleProxyTypeChange"
+              >
                 <el-radio-button
                   v-for="p in proxyTypes"
                   :key="p"
@@ -848,12 +875,20 @@ onUnmounted(() => {
               </el-radio-group>
             </el-form-item>
           </el-col>
+          <el-col :span="24">
+            <div class="h3 flex justify-between">
+              <div>基础配置</div>
+            </div>
+          </el-col>
           <template v-if="isStcp || isSudp || isXtcp">
             <el-col :span="12">
-              <el-form-item :label="`${editForm.type}模式：`" prop="stcpModel">
-                <el-radio-group v-model="editForm.stcpModel">
+              <el-form-item
+                :label="`${editForm.type}模式：`"
+                prop="visitorsModel"
+              >
+                <el-radio-group v-model="editForm.visitorsModel">
                   <el-radio
-                    v-for="p in stcpModels"
+                    v-for="p in visitorsModels"
                     :key="p.value"
                     :label="p.label"
                     :value="p.value"
@@ -918,17 +953,19 @@ onUnmounted(() => {
               </el-button>
             </el-form-item>
           </el-col>
-          <template v-if="!(isStcp || isXtcp || isSudp) || isStcpVisited">
-            <el-col :span="12">
-              <el-form-item label="内网地址：" prop="localIp">
+          <template
+            v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
+          >
+            <el-col :span="isHttp || isHttps ? 12 : (isTcp || isUdp ? 24 : 12)">
+              <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
-                  v-model="editForm.localIp"
+                  v-model="editForm.localIP"
                   :fetch-suggestions="handleIpFetchSuggestions"
                   clearable
                   placeholder="127.0.0.1"
                 />
                 <!--                <el-input-->
-                <!--                  v-model="editForm.localIp"-->
+                <!--                  v-model="editForm.localIP"-->
                 <!--                  placeholder="127.0.0.1"-->
                 <!--                  clearable-->
                 <!--                />-->
@@ -967,7 +1004,7 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isTcp || isUdp">
-            <el-col :span="8">
+            <el-col :span="12">
               <el-form-item label="外网端口：" prop="remotePort">
                 <!--                <el-input-number-->
                 <!--                  :min="0"-->
@@ -985,7 +1022,12 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isHttp || isHttps">
-            <el-col :span="12">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>域名配置</div>
+              </div>
+            </el-col>
+            <el-col :span="24">
               <el-form-item label="子域名：" prop="subdomain">
                 <template #label>
                   <div class="inline-block">
@@ -1092,7 +1134,16 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
-              <el-form-item label="HTTP基本认证：" prop="basicAuth">
+              <div class="h3 flex justify-between">
+                <div>其他代理配置</div>
+              </div>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item
+                label="HTTP基本认证："
+                prop="basicAuth"
+                label-position="left"
+              >
                 <el-switch
                   active-text="开"
                   inline-prompt
@@ -1122,41 +1173,48 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="isHttps">
-            <el-col :span="24">
-              <el-form-item
-                label="https2http："
-                prop="https2http"
-                :rules="[
-                  {
-                    required: true,
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <el-switch
-                  active-text="开"
-                  inline-prompt
-                  inactive-text="关"
-                  v-model="editForm.https2http"
-                />
-              </el-form-item>
+          <template v-if="hasPlugin">
+            <el-col :span="24" v-if="hasPlugin">
+              <div class="h3 flex justify-between">
+                <div>插件配置</div>
+              </div>
             </el-col>
+            <template v-if="isHttps">
+              <el-col :span="24">
+                <el-form-item
+                  label="https2http："
+                  prop="https2http"
+                  label-position="left"
+                  :rules="[
+                    {
+                      required: true,
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <el-switch
+                    active-text="开"
+                    inline-prompt
+                    inactive-text="关"
+                    v-model="editForm.https2http"
+                  />
+                </el-form-item>
+              </el-col>
 
-            <el-col :span="24" v-if="editForm.https2http">
-              <el-form-item
-                label="证书文件："
-                prop="https2httpCaFile"
-                label-width="180"
-                :rules="[
-                  {
-                    required: true,
-                    message: '证书文件不能为空',
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <!-- <template #label>
+              <el-col :span="24" v-if="editForm.https2http">
+                <el-form-item
+                  label="证书文件："
+                  prop="https2httpCaFile"
+                  label-width="180"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '证书文件不能为空',
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
@@ -1175,42 +1233,42 @@ onUnmounted(() => {
                   </div>
                   CA 证书文件：
                 </template> -->
-                <el-input
-                  class="button-input"
-                  v-model="editForm.https2httpCaFile"
-                  placeholder="点击选择证书文件"
-                  readonly
-                  @click="handleSelectFile(1, ['crt', 'pem'])"
-                />
-                <!--                  <el-button-->
-                <!--                    class="ml-2"-->
-                <!--                    type="primary"-->
-                <!--                    @click="handleSelectFile(3, ['crt'])"-->
-                <!--                    >选择-->
-                <!--                  </el-button>-->
-                <el-button
-                  v-if="editForm.https2httpCaFile"
-                  class="ml-2"
-                  type="danger"
-                  @click="editForm.https2httpCaFile = ''"
-                  >清除
-                </el-button>
-              </el-form-item>
-            </el-col>
-            <el-col :span="24" v-if="editForm.https2http">
-              <el-form-item
-                label="密钥文件："
-                prop="https2httpKeyFile"
-                label-width="180"
-                :rules="[
-                  {
-                    required: true,
-                    message: '密钥文件不能为空',
-                    trigger: 'blur'
-                  }
-                ]"
-              >
-                <!-- <template #label>
+                  <el-input
+                    class="button-input"
+                    v-model="editForm.https2httpCaFile"
+                    placeholder="点击选择证书文件"
+                    readonly
+                    @click="handleSelectFile(1, ['crt', 'pem'])"
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="editForm.https2httpCaFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.https2httpCaFile = ''"
+                    >清除
+                  </el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24" v-if="editForm.https2http">
+                <el-form-item
+                  label="密钥文件："
+                  prop="https2httpKeyFile"
+                  label-width="180"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '密钥文件不能为空',
+                      trigger: 'blur'
+                    }
+                  ]"
+                >
+                  <!-- <template #label>
                   <div class="h-full flex items-center mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
@@ -1229,28 +1287,29 @@ onUnmounted(() => {
                   </div>
                   CA 证书文件：
                 </template> -->
-                <el-input
-                  class="button-input cursor-pointer"
-                  v-model="editForm.https2httpKeyFile"
-                  placeholder="点击选择密钥文件"
-                  readonly
-                  @click="handleSelectFile(2, ['key'])"
-                />
-                <!--                  <el-button-->
-                <!--                    class="ml-2"-->
-                <!--                    type="primary"-->
-                <!--                    @click="handleSelectFile(3, ['crt'])"-->
-                <!--                    >选择-->
-                <!--                  </el-button>-->
-                <el-button
-                  v-if="editForm.https2httpKeyFile"
-                  class="ml-2"
-                  type="danger"
-                  @click="editForm.https2httpKeyFile = ''"
-                  >清除
-                </el-button>
-              </el-form-item>
-            </el-col>
+                  <el-input
+                    class="button-input cursor-pointer"
+                    v-model="editForm.https2httpKeyFile"
+                    placeholder="点击选择密钥文件"
+                    readonly
+                    @click="handleSelectFile(2, ['key'])"
+                  />
+                  <!--                  <el-button-->
+                  <!--                    class="ml-2"-->
+                  <!--                    type="primary"-->
+                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                  <!--                    >选择-->
+                  <!--                  </el-button>-->
+                  <el-button
+                    v-if="editForm.https2httpKeyFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.https2httpKeyFile = ''"
+                    >清除
+                  </el-button>
+                </el-form-item>
+              </el-col>
+            </template>
           </template>
           <template v-if="isStcpVisitors">
             <el-col :span="24">
@@ -1351,6 +1410,11 @@ onUnmounted(() => {
             </el-col>
           </template>
           <template v-if="isXtcp && isStcpVisitors">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>其他配置</div>
+              </div>
+            </el-col>
             <el-col :span="12">
               <el-form-item label="回退stcp代理名称" prop="fallbackTo">
                 <template #label>
@@ -1430,6 +1494,7 @@ onUnmounted(() => {
               <el-form-item
                 label="保持隧道开启："
                 prop="keepTunnelOpen"
+                label-position="left"
                 :rules="[
                   {
                     required: true,
@@ -1471,6 +1536,92 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
+          <el-col :span="24" />
+
+          <template v-if="!isStcpVisitors">
+            <el-col :span="24">
+              <div class="h3 flex justify-between">
+                <div>代理传输配置</div>
+              </div>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="压缩传输："
+                prop="transport.useCompression"
+                label-position="left"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >transport.useCompression</span
+                            >
+                            开启后，此代理的流量将被压缩。
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      压缩传输：
+                    </div>
+                  </div>
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.transport.useCompression"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="加密传输："
+                prop="transport.useEncryption"
+                label-position="left"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            对应参数：<span class="font-black text-[#5A3DAA]"
+                              >transport.useEncryption</span
+                            >
+                            开启后，此代理的流量将被加密传输。
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      加密传输：
+                    </div>
+                  </div>
+                </template>
+                <el-switch
+                  active-text="开"
+                  inline-prompt
+                  inactive-text="关"
+                  v-model="editForm.transport.useEncryption"
+                />
+              </el-form-item>
+            </el-col>
+          </template>
+
           <el-col :span="24">
             <el-form-item>
               <div class="w-full flex justify-end">
