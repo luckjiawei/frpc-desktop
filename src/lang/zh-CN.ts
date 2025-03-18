@@ -18,6 +18,9 @@ export default {
     },
     logger: {
       title: "日志"
+    },
+    about: {
+      title: "关于"
     }
   },
   home: {
@@ -88,6 +91,22 @@ export default {
     },
     content: {
       empty: "暂无日志"
+    }
+  },
+  about: {
+    button: {
+      doc: "使用教程",
+      donate: "捐赠名单",
+      github: "仓库地址",
+      issues: "反馈问题"
+    },
+    description: {
+      autoStart: "开机自启",
+      visualConfig: "可视化配置",
+      freeAndOpen: "免费开源"
+    },
+    version: {
+      latest: "最新版本"
     }
   }
 };

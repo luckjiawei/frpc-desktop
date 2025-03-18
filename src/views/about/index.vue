@@ -6,14 +6,14 @@ import pkg from "../../../package.json";
 import { send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useI18n } from "vue-i18n";
 
 const frpcDesktopStore = useFrpcDesktopStore();
+const { t } = useI18n();
 
 /**
  * 最后一个版本号
  */
-// const latestVersionInfo = ref(null);
-
 const isLastVersion = computed(() => {
   if (!frpcDesktopStore.frpcDesktopLastRelease) {
     return true;
@@ -28,10 +28,9 @@ const isLastVersion = computed(() => {
   const lastVersion = tagName.replace("v", "").toString();
   const currVersion = pkg.version;
   console.log(lastVersion, currVersion, currVersion >= lastVersion, "isLast");
-  // console.log()
   return currVersion >= lastVersion;
-  // return false;
 });
+
 /**
  * 打开github issues
  */
@@ -99,7 +98,7 @@ defineComponent({
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center flex-col"
+        class="flex flex-col items-center justify-center w-full h-full p-4 overflow-y-auto bg-white rounded drop-shadow-lg"
       >
         <img
           src="/logo/pack/1024x1024.png"
@@ -128,33 +127,37 @@ defineComponent({
         </div>
         <div class="mt-[8px] text-sm text-center">
           <p>🎉 {{ pkg.description }}</p>
-          <p>开机自启 / 可视化配置 / 免费开源</p>
+          <p>
+            {{ t("about.description.autoStart") }} /
+            {{ t("about.description.visualConfig") }} /
+            {{ t("about.description.freeAndOpen") }}
+          </p>
         </div>
         <div class="mt-[12px]">
           <el-button plain type="success" @click="handleOpenDoc">
             <IconifyIconOffline
-              class="cursor-pointer mr-2"
+              class="mr-2 cursor-pointer"
               icon="description"
             />
-            使用教程
+            {{ t("about.button.doc") }}
           </el-button>
           <el-button plain type="success" @click="handleOpenDonate">
             <IconifyIconOffline
-              class="cursor-pointer mr-2"
+              class="mr-2 cursor-pointer"
               icon="volunteer-activism-sharp"
             />
-            捐赠名单
+            {{ t("about.button.donate") }}
           </el-button>
           <el-button plain type="primary" @click="handleOpenGitHub">
-            <Icon class="cursor-pointer mr-2" icon="logos:github-icon" />
-            仓库地址
+            <Icon class="mr-2 cursor-pointer" icon="logos:github-icon" />
+            {{ t("about.button.github") }}
           </el-button>
           <el-button type="danger" plain @click="handleOpenGitHubIssues">
             <IconifyIconOffline
-              class="cursor-pointer mr-2"
+              class="mr-2 cursor-pointer"
               icon="question-mark"
             />
-            反馈问题
+            {{ t("about.button.issues") }}
           </el-button>
         </div>
       </div>
