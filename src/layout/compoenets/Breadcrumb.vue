@@ -12,14 +12,14 @@ const currentRoute = computed(() => {
 </script>
 
 <template>
-  <div class="breadcrumb flex justify-between items-center">
+  <div class="flex items-center justify-between breadcrumb">
     <!--    animate__animated animate__lightSpeedInLeft-->
     <div class="flex items-center justify-center breadcrumb-left">
       <IconifyIconOffline
         class="inline-block mr-2"
         :icon="currentRoute.meta['icon'] as string"
       />
-      <span>{{ currentRoute.meta["title"] }}</span>
+      <span>{{ $t(currentRoute.meta["title"] as string) }}</span>
     </div>
     <div class="breadcrumb-right">
       <slot></slot>

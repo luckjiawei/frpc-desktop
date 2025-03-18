@@ -7,15 +7,14 @@ import { ipcRouters } from "../../../electron/core/IpcRouter";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { ElMessageBox } from "element-plus";
 import router from "@/router";
-
+import { useI18n } from "vue-i18n";
 defineComponent({
   name: "Home"
 });
 
 const frpcDesktopStore = useFrpcDesktopStore();
-
-// const running = ref(false);
 const loading = ref(false);
+const { t } = useI18n();
 
 const handleStartFrpc = () => {
   send(ipcRouters.LAUNCH.launch);
@@ -33,7 +32,6 @@ const handleButtonClick = useDebounceFn(() => {
     handleStartFrpc();
   }
 }, 300);
-
 let uptime = computed(() => {
   const uptime = frpcDesktopStore.frpcProcessUptime / 1000;
   const days = Math.floor(uptime / (24 * 60 * 60));
@@ -42,15 +40,15 @@ let uptime = computed(() => {
   const seconds = Math.ceil(uptime % 60);
   let result = "";
   if (days > 0) {
-    result += `${days}天`;
+    result += t("home.uptime.days", { days });
   }
   if (hours > 0) {
-    result += `${hours}小时`;
+    result += t("home.uptime.hours", { hours });
   }
   if (minutes > 0) {
-    result += `${minutes}分钟`;
+    result += t("home.uptime.minutes", { minutes });
   }
-  result += `${seconds}秒`;
+  result += t("home.uptime.seconds", { seconds });
   return result;
 });
 
@@ -58,17 +56,18 @@ onMounted(() => {
   on(
     ipcRouters.LAUNCH.launch,
     () => {
-      // send(ipcRouters.LAUNCH.getStatus);
       frpcDesktopStore.refreshRunning();
       loading.value = false;
     },
     (bizCode: string, message: string) => {
       if (bizCode === "B1001") {
-        ElMessageBox.alert("请先前往设置页面，修改配置后再启动", "提示", {
-          // showCancelButton: true,
-          // cancelButtonText: "取消",
-          confirmButtonText: "去设置"
-        }).then(() => {
+        ElMessageBox.alert(
+          $t("home.alert.configRequired.message"),
+          $t("home.alert.configRequired.title"),
+          {
+            confirmButtonText: $t("home.alert.configRequired.confirm")
+          }
+        ).then(() => {
           router.replace({
             name: "Config"
           });
@@ -79,7 +78,6 @@ onMounted(() => {
   );
 
   on(ipcRouters.LAUNCH.terminate, () => {
-    // send(ipcRouters.LAUNCH.getStatus);
     frpcDesktopStore.refreshRunning();
     loading.value = false;
   });
@@ -96,7 +94,7 @@ onUnmounted(() => {
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="w-full h-full bg-white p-4 rounded drop-shadow-lg overflow-y-auto flex justify-center items-center"
+        class="flex items-center justify-center w-full h-full p-4 overflow-y-auto bg-white rounded drop-shadow-lg"
       >
         <div class="flex">
           <div
@@ -121,15 +119,15 @@ onUnmounted(() => {
               />
             </transition>
             <div
-              class="bg-white z-10 w-full h-full absolute rounded-full flex justify-center items-center"
+              class="absolute z-10 flex items-center justify-center w-full h-full bg-white rounded-full"
             >
               <IconifyIconOffline icon="rocket-launch-rounded" />
             </div>
           </div>
-          <div class="flex flex-col justify-center items-center">
-            <div class="pl-10 h-42 w-64 flex flex-col justify-between">
+          <div class="flex flex-col items-center justify-center">
+            <div class="flex flex-col justify-between w-64 pl-10 h-42">
               <transition name="fade">
-                <div class="font-bold text-2xl text-center">
+                <div class="text-2xl font-bold text-center">
                   <IconifyIconOffline
                     v-if="frpcDesktopStore.frpcProcessRunning"
                     class="text-[#7EC050] inline-block relative top-1"
@@ -140,33 +138,31 @@ onUnmounted(() => {
                     class="text-[#E47470] inline-block relative top-1"
                     icon="error"
                   />
-                  Frpc
                   {{
-                    frpcDesktopStore.frpcProcessRunning ? "已启动" : "已断开"
+                    $t("home.status.frpcStatus", {
+                      status: frpcDesktopStore.frpcProcessRunning
+                        ? $t("home.status.running")
+                        : $t("home.status.disconnected")
+                    })
                   }}
                 </div>
               </transition>
-              <!--              <el-button-->
-              <!--                  class="block"-->
-              <!--                  type="text"-->
-              <!--                  v-if="running"-->
-              <!--                  @click="$router.replace({ name: 'Logger' })"-->
-              <!--              >查看日志-->
-              <!--              </el-button>-->
               <div
-                class="w-full justify-center text-center mt-2 text-sm animate__animated animate__fadeIn"
+                class="justify-center w-full mt-2 text-sm text-center animate__animated animate__fadeIn"
                 v-if="frpcDesktopStore.frpcProcessRunning"
               >
-                <span class="el-text--success">已运行</span>
-                <span class="text-primary font-bold">{{ uptime }}</span>
+                <span class="el-text--success">{{
+                  $t("home.status.runningTime")
+                }}</span>
+                <span class="font-bold text-primary">{{ uptime }}</span>
               </div>
-              <div class="w-full justify-center text-center">
+              <div class="justify-center w-full text-center">
                 <el-link
                   v-if="frpcDesktopStore.frpcProcessRunning"
                   class="animate__animated animate__fadeIn"
                   type="primary"
                   @click="$router.replace({ name: 'Logger' })"
-                  >查看日志</el-link
+                  >{{ $t("home.button.viewLog") }}</el-link
                 >
               </div>
 
@@ -175,33 +171,16 @@ onUnmounted(() => {
                 type="primary"
                 @click="handleButtonClick"
                 :disabled="loading"
-                >{{ frpcDesktopStore.frpcProcessRunning ? "断 开" : "启 动" }}
+                >{{
+                  frpcDesktopStore.frpcProcessRunning
+                    ? $t("home.button.stop")
+                    : $t("home.button.start")
+                }}
               </el-button>
-              <!--              <div-->
-              <!--                class="w-full h-8 bg-[#563EA4] rounded flex justify-center items-center text-white font-bold cursor-pointer"-->
-
-              <!--              >-->
-
-              <!--              </div>-->
             </div>
           </div>
         </div>
       </div>
-
-      <!--      <el-button-->
-      <!--        plain-->
-      <!--        type="primary"-->
-      <!--        @click="handleStartFrpc"-->
-      <!--        :disabled="running"-->
-      <!--        >启动-->
-      <!--      </el-button>-->
-      <!--      <el-button-->
-      <!--        plain-->
-      <!--        type="danger"-->
-      <!--        :disabled="!running"-->
-      <!--        @click="handleStopFrpc"-->
-      <!--        >停止-->
-      <!--      </el-button>-->
     </div>
   </div>
 </template>
@@ -250,7 +229,6 @@ $offset: 10px;
   left: $offset;
   top: $offset;
   transform-origin: calc(50% + $offset) center;
-  //transform-origin: calc(50% - 5px) center;
 }
 
 .right-circle {

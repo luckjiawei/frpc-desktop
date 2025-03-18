@@ -3,6 +3,7 @@ import App from "./App.vue";
 import router from "./router";
 import "./styles/index.scss";
 import "animate.css";
+import i18n from "./lang";
 import ElementPlus from "element-plus";
 import {
   IconifyIconOffline,
@@ -18,6 +19,7 @@ app.component("IconifyIconOffline", IconifyIconOffline);
 app.component("IconifyIconOnline", IconifyIconOnline);
 
 app
+  .use(i18n)
   .use(router)
   .use(ElementPlus)
   .use(pinia)

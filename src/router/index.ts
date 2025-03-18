@@ -1,4 +1,8 @@
-import { createRouter, createWebHistory, createWebHashHistory, RouteRecordRaw } from "vue-router";
+import {
+  createRouter,
+  createWebHashHistory,
+  RouteRecordRaw
+} from "vue-router";
 
 const Layout = () => import("@/layout/index.vue");
 
@@ -13,7 +17,7 @@ const routes: RouteRecordRaw[] = [
         path: "/home",
         name: "Home",
         meta: {
-          title: "连接",
+          title: "router.home.title",
           icon: "rocket-launch-rounded",
           keepAlive: true
         },
@@ -23,7 +27,7 @@ const routes: RouteRecordRaw[] = [
         path: "/proxy",
         name: "Proxy",
         meta: {
-          title: "穿透列表",
+          title: "router.proxy.title",
           icon: "cloud",
           keepAlive: true
         },
@@ -33,7 +37,7 @@ const routes: RouteRecordRaw[] = [
         path: "/download",
         name: "Download",
         meta: {
-          title: "版本下载",
+          title: "router.download.title",
           icon: "download",
           keepAlive: true
         },
@@ -43,7 +47,7 @@ const routes: RouteRecordRaw[] = [
         path: "/config",
         name: "Config",
         meta: {
-          title: "系统配置",
+          title: "router.config.title",
           icon: "settings",
           keepAlive: true
         },
@@ -53,7 +57,7 @@ const routes: RouteRecordRaw[] = [
         path: "/logger",
         name: "Logger",
         meta: {
-          title: "日志",
+          title: "router.logger.title",
           icon: "file-copy-sharp",
           keepAlive: true,
           hidden: false
@@ -64,13 +68,13 @@ const routes: RouteRecordRaw[] = [
         path: "/about",
         name: "About",
         meta: {
-          title: "关于",
+          title: "router.about.title",
           icon: "info-sharp",
           keepAlive: true,
           hidden: true
         },
         component: () => import("@/views/about/index.vue")
-      },
+      }
       // {
       //   path: "/comingSoon",
       //   name: "ComingSoon",
