@@ -80,5 +80,14 @@ export default {
       download: "下载",
       noVersions: "暂无可用版本"
     }
+  },
+  logger: {
+    message: {
+      openSuccess: "打开日志成功",
+      refreshSuccess: "刷新成功"
+    },
+    content: {
+      empty: "暂无日志"
+    }
   }
 };

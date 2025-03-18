@@ -12,12 +12,17 @@ import {
   removeRouterListeners2,
   send
 } from "@/utils/ipcUtils";
+import { useI18n } from "vue-i18n";
 
 defineComponent({
   name: "Logger"
 });
 
-const loggerContent = ref('<div class="text-white">暂无日志</div>');
+const { t } = useI18n();
+
+const loggerContent = ref(
+  `<div class="text-white">${t("logger.content.empty")}</div>`
+);
 
 const formatLogContent = (logContent: string) => {
   const logs = logContent
@@ -54,7 +59,7 @@ onMounted(() => {
       // 刷新逻辑
       ElMessage({
         type: "success",
-        message: "刷新成功"
+        message: t("logger.message.refreshSuccess")
       });
       refreshStatus.value = false;
     }
@@ -62,7 +67,7 @@ onMounted(() => {
   on(ipcRouters.LOG.openFrpcLogFile, () => {
     ElMessage({
       type: "success",
-      message: "打开日志成功"
+      message: t("logger.message.openSuccess")
     });
   });
   onListener(listeners.watchFrpcLog, data => {
