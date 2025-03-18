@@ -8,10 +8,13 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useI18n } from "vue-i18n";
 
 defineComponent({
   name: "Download"
 });
+
+const { t } = useI18n();
 
 const versions = ref<Array<FrpcVersion>>([]);
 const loading = ref(1);
@@ -50,13 +53,13 @@ const handleDownload = useDebounceFn((version: FrpcVersion) => {
  */
 const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
   ElMessageBox.alert(
-    `确认要删除 <span class="text-primary font-bold">${version.name} </span>  吗？`,
-    "提示",
+    t("download.alert.deleteConfirm.message", { name: version.name }),
+    t("download.alert.deleteConfirm.title"),
     {
       showCancelButton: true,
-      cancelButtonText: "取消",
+      cancelButtonText: t("download.alert.deleteConfirm.cancel"),
       dangerouslyUseHTMLString: true,
-      confirmButtonText: "删除"
+      confirmButtonText: t("download.alert.deleteConfirm.confirm")
     }
   ).then(() => {
     send(ipcRouters.VERSION.deleteDownloadedVersion, {
@@ -103,7 +106,7 @@ onMounted(() => {
     loading.value++;
     ElMessage({
       type: "success",
-      message: "删除成功"
+      message: t("download.message.deleteSuccess")
     });
     handleLoadAllVersions();
     frpcDesktopStore.refreshDownloadedVersion();
@@ -117,7 +120,7 @@ onMounted(() => {
         loading.value++;
         ElMessage({
           type: "success",
-          message: "导入成功"
+          message: t("download.message.importSuccess")
         });
         handleLoadAllVersions();
         frpcDesktopStore.refreshDownloadedVersion();
@@ -125,16 +128,22 @@ onMounted(() => {
     },
     (bizCode: string, message: string) => {
       if (bizCode === "B1002") {
-        // 导入失败，版本已存在
-        ElMessageBox.alert(`${message}`, `导入失败`);
+        ElMessageBox.alert(
+          t("download.alert.importFailed.versionExists"),
+          t("download.alert.importFailed.title")
+        );
       }
       if (bizCode === "B1003") {
-        // 所选 frp 架构与操作系统不符
-        ElMessageBox.alert(`${message}`, `导入失败`);
+        ElMessageBox.alert(
+          t("download.alert.importFailed.architectureNotMatch"),
+          t("download.alert.importFailed.title")
+        );
       }
       if (bizCode === "B1004") {
-        // 无法识别文件
-        ElMessageBox.alert(`${message}`, `导入失败`);
+        ElMessageBox.alert(
+          t("download.alert.importFailed.unrecognizedFile"),
+          t("download.alert.importFailed.title")
+        );
       }
     }
   );
@@ -155,56 +164,18 @@ onUnmounted(() => {
   <div class="main">
     <breadcrumb>
       <div class="flex">
-        <!--        <div class="h-full flex items-center justify-center mr-3">-->
-        <!--          <span class="text-sm font-bold">下载源： </span>-->
-        <!--          <el-select-->
-        <!--            class="w-40"-->
-        <!--            v-model="currMirror"-->
-        <!--            @change="handleMirrorChange"-->
-        <!--          >-->
-        <!--            <el-option-->
-        <!--              v-for="m in mirrors"-->
-        <!--              :label="m.name"-->
-        <!--              :key="m.id"-->
-        <!--              :value="m.id"-->
-        <!--            />-->
-        <!--          </el-select>-->
-        <!--        </div>-->
         <el-button type="primary" @click="handleImportFrp">
-          <IconifyIconOffline icon="unarchive" />
+          <template #icon>
+            <IconifyIconOffline icon="unarchive" />
+          </template>
+          {{ t("download.button.import") }}
         </el-button>
       </div>
-      <!--      <div-->
-      <!--        class="cursor-pointer h-[36px] w-[36px] bg-[#5f3bb0] rounded text-white flex justify-center items-center"-->
-      <!--        @click="handleOpenInsert"-->
-      <!--      >-->
-      <!--        <IconifyIconOffline icon="add" />-->
-      <!--      </div>-->
     </breadcrumb>
-    <!--    <breadcrumb>-->
-    <!--      <div class="flex items-center">-->
-    <!--        <el-checkbox>加速下载</el-checkbox>-->
-    <!--      </div>-->
-    <!--    </breadcrumb>-->
-    <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
+    <div class="pr-2 app-container-breadcrumb" v-loading="loading > 0">
       <div class="w-full">
         <template v-if="versions && versions.length > 0">
           <el-row :gutter="15">
-            <!--          <el-col :span="24">-->
-            <!--            <div class="h2 flex justify-between !mb-[10px]">-->
-            <!--              <div>镜像源</div>-->
-            <!--            </div>-->
-            <!--            &lt;!&ndash;            <div class="!mb-[10px]">&ndash;&gt;-->
-            <!--            &lt;!&ndash;              <el-radio-group v-model="currMirror">&ndash;&gt;-->
-            <!--            &lt;!&ndash;                <el-radio-button v-for="m in mirrors" :label="m" />&ndash;&gt;-->
-            <!--            &lt;!&ndash;              </el-radio-group>&ndash;&gt;-->
-            <!--            &lt;!&ndash;            </div>&ndash;&gt;-->
-            <!--          </el-col>-->
-            <!--          <el-col :span="24">-->
-            <!--            <div class="h2 flex justify-between">-->
-            <!--              <div>版本选择</div>-->
-            <!--            </div>-->
-            <!--          </el-col>-->
             <el-col
               v-for="version in versions"
               :key="version.githubAssetId"
@@ -216,41 +187,36 @@ onUnmounted(() => {
               class="mb-[15px]"
             >
               <div
-                class="w-full download-card bg-white rounded p-4 drop-shadow flex justify-between items-center animate__animated"
+                class="flex items-center justify-between w-full p-4 bg-white rounded download-card drop-shadow animate__animated"
               >
                 <div class="left">
-                  <div class="mb-2 flex items-center justify-center">
-                    <span class="font-bold text-primary mr-2">{{
+                  <div class="flex items-center justify-center mb-2">
+                    <span class="mr-2 font-bold text-primary">{{
                       version.name
                     }}</span>
                     <el-tag size="small"> {{ version.size }}</el-tag>
-                    <!--              <el-tag class="ml-2">原文件名：{{ version.assets[0]?.name }}</el-tag>-->
                   </div>
                   <div class="text-[12px]">
-                    <span class="">下载数：</span>
-                    <span class="text-primary font-bold"
-                      >{{
-                        // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
-                        version.versionDownloadCount
-                      }}
-                    </span>
+                    <span class="">{{
+                      t("download.version.downloadCount")
+                    }}</span>
+                    <span class="font-bold text-primary">{{
+                      version.versionDownloadCount
+                    }}</span>
                   </div>
                   <div class="text-[12px]">
-                    发布时间：<span class="text-primary font-bold">{{
-                      // moment(version.published_at).format("YYYY-MM-DD HH:mm:ss")
+                    {{ t("download.version.publishTime")
+                    }}<span class="font-bold text-primary">{{
                       version.githubCreatedAt
                     }}</span>
                   </div>
                 </div>
                 <div class="right">
                   <div v-if="version.downloaded">
-                    <!--                  <span class="text-[12px] text-primary font-bold mr-2"-->
-                    <!--                    >已下载</span-->
-                    <!--                  >-->
                     <div>
                       <el-button type="text" size="small">
                         <IconifyIconOffline class="mr-1" icon="check-box" />
-                        已下载
+                        {{ t("download.version.downloaded") }}
                       </el-button>
                     </div>
                     <div>
@@ -264,7 +230,7 @@ onUnmounted(() => {
                           class="mr-1"
                           icon="delete-rounded"
                         />
-                        删 除
+                        {{ t("download.version.delete") }}
                       </el-button>
                     </div>
                   </div>
@@ -286,7 +252,7 @@ onUnmounted(() => {
                       @click="handleDownload(version)"
                     >
                       <IconifyIconOffline class="mr-1" icon="download" />
-                      下载
+                      {{ t("download.version.download") }}
                     </el-button>
                   </template>
                 </div>
@@ -296,9 +262,9 @@ onUnmounted(() => {
         </template>
         <div
           v-else
-          class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
+          class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
         >
-          <el-empty description="暂无可用版本" />
+          <el-empty :description="t('download.version.noVersions')" />
         </div>
       </div>
     </div>
@@ -309,18 +275,4 @@ onUnmounted(() => {
 .download-card {
   border-left: 5px solid #5a3daa;
 }
-
-//@keyframes download-card-animation {
-//  //0% {
-//  //  border-left-width: 5px;
-//  //}
-//  100% {
-//    border-left-width: 10px;
-//  }
-//}
-//
-//
-//.download-card:hover {
-//  animation: download-card-animation 0.5s;
-//}
 </style>

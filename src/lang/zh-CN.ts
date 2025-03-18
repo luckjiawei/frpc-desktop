@@ -45,5 +45,40 @@ export default {
         confirm: "去设置"
       }
     }
+  },
+  comingSoon: {
+    description: "敬请期待"
+  },
+  download: {
+    button: {
+      import: "导入"
+    },
+    message: {
+      importSuccess: "导入成功",
+      deleteSuccess: "删除成功"
+    },
+    alert: {
+      deleteConfirm: {
+        title: "提示",
+        message:
+          '确认要删除 <span class="text-primary font-bold">{name}</span> 吗？',
+        cancel: "取消",
+        confirm: "删除"
+      },
+      importFailed: {
+        title: "导入失败",
+        versionExists: "版本已存在",
+        architectureNotMatch: "所选 frp 架构与操作系统不符",
+        unrecognizedFile: "无法识别文件"
+      }
+    },
+    version: {
+      downloadCount: "下载数：",
+      publishTime: "发布时间：",
+      downloaded: "已下载",
+      delete: "删 除",
+      download: "下载",
+      noVersions: "暂无可用版本"
+    }
   }
 };

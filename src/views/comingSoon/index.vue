@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { defineComponent } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 defineComponent({
   name: "ComingSoon"
@@ -8,8 +11,8 @@ defineComponent({
 
 <template>
   <div
-    class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
+    class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
   >
-    <el-empty description="敬请期待" />
+    <el-empty :description="t('comingSoon.description')" />
   </div>
 </template>
