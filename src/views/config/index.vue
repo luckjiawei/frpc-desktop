@@ -17,6 +17,7 @@ import { ipcRouters } from "../../../electron/core/IpcRouter";
 import _ from "lodash";
 import confetti from "canvas-confetti/src/confetti.js";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useI18n } from "vue-i18n";
 
 defineComponent({
   name: "Config"
@@ -32,6 +33,8 @@ defineComponent({
 //   user: string;
 //   metaToken: string;
 // };
+
+const { t } = useI18n();
 
 const defaultFormData: OpenSourceFrpcDesktopServer = {
   _id: "",
@@ -91,37 +94,87 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
 const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
 const loading = ref(1);
 const rules = reactive<FormRules>({
-  frpcVersion: [{ required: true, message: "请选择版本", trigger: "blur" }],
+  frpcVersion: [
+    {
+      required: true,
+      message: t("config.form.frpcVerson.requireMessage"),
+      trigger: "blur"
+    }
+  ],
   serverAddr: [
-    { required: true, message: "请输入服务端地址", trigger: "blur" },
+    {
+      required: true,
+      message: t("config.form.serverAddr.requireMessage"),
+      trigger: "blur"
+    },
     {
       pattern: /^[\w-]+(\.[\w-]+)+$/,
-      message: "请输入正确的服务端地址",
+      message: t("config.form.serverAddr.patternMessage"),
       trigger: "blur"
     }
   ],
   serverPort: [
-    { required: true, message: "请输入服务器端口", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.serverPort.requireMessage"),
+      trigger: "blur"
+    }
   ],
-  user: [{ required: true, message: "请输入用户", trigger: "blur" }],
-  multiuser: [{ required: true, message: "请选择是否开启多用户", trigger: "blur" }],
+  user: [
+    {
+      required: true,
+      message: t("config.form.user.requireMessage"),
+      trigger: "blur"
+    }
+  ],
+  multiuser: [
+    {
+      required: true,
+      message: t("config.form.multiuser.requireMessage"),
+      trigger: "blur"
+    }
+  ],
   "metadatas.token": [
-    { required: true, message: "请输入多用户令牌", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.metadatasToken.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "auth.method": [
-    { required: true, message: "请选择验证方式", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.authMethod.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "auth.token": [
-    { required: true, message: "请输入 Token 值 ", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.authToken.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "log.level": [
-    { required: true, message: "请选择日志级别 ", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.logLevel.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "log.maxDays": [
-    { required: true, message: "请输入日志保留天数 ", trigger: "blur" }
+    {
+      required: true,
+      message: t("config.form.logMaxDays.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "tls.enable": [
-    { required: true, message: "请选择 TLS 状态", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.tlsEnable.requireMessage"),
+      trigger: "change"
+    }
   ],
   // tlsConfigCertFile: [
   //   { required: true, message: "请选择 TLS 证书文件", trigger: "change" }
@@ -139,51 +192,103 @@ const rules = reactive<FormRules>({
   //   { required: true, message: "请选择代理状态", trigger: "change" }
   // ],
   "transport.proxyURL": [
-    { required: true, message: "请输入代理地址", trigger: "change" },
+    {
+      required: true,
+      message: t("config.form.proxyURL.requireMessage"),
+      trigger: "change"
+    },
     {
       pattern: /^https?\:\/\/(\w+:\w+@)?([a-zA-Z0-9.-]+)(:\d+)?$/,
-      message: "请输入正确的代理地址",
+      message: t("config.form.proxyURL.patternMessage"),
       trigger: "blur"
     }
   ],
   "system.launchAtStartup": [
-    { required: true, message: "请选择是否开机自启", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.systemLaunchAtStartup.requireMessage"),
+      trigger: "change"
+    }
   ],
   "system.silentStartup": [
-    { required: true, message: "请选择是否开启静默启动", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.systemSilentStartup.requireMessage"),
+      trigger: "change"
+    }
   ],
   "system.autoConnectOnStartup": [
-    { required: true, message: "请选择是否开启自动连接", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.systemAutoConnectOnStartup.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.heartbeatInterval": [
-    { required: true, message: "心跳间隔时间不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.heartbeatInterval.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.heartbeatTimeout": [
-    { required: true, message: "心跳超时时间不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.heartbeatTimeout.requireMessage"),
+      trigger: "change"
+    }
   ],
   // webEnable: [
   //   { required: true, message: "web界面开关不能为空", trigger: "change" }
   // ],
   "webServer.port": [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.webPort.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.protocol": [
-    { required: true, message: "传输协议不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.transportProtocol.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.dialServerTimeout": [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.dialServerTimeout.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.dialServerKeepalive": [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.dialServerKeepalive.requireMessage"),
+      trigger: "change"
+    }
   ],
   transportPoolCount: [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.transportPoolCount.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.tcpMux": [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.transportTcpMux.requireMessage"),
+      trigger: "change"
+    }
   ],
   "transport.tcpMuxKeepaliveInterval": [
-    { required: true, message: "web界面端口不能为空", trigger: "change" }
+    {
+      required: true,
+      message: t("config.form.transportTcpMuxKeepaliveInterval.requireMessage"),
+      trigger: "change"
+    }
   ]
 });
 const copyServerConfigBase64 = ref();
@@ -222,12 +327,12 @@ const handleSubmit = useDebounceFn(() => {
 const handleMultiuserChange = e => {
   if (e) {
     ElMessageBox.alert(
-      '多用户插件需要 Frp版本 >= <span class="font-black text-[#5A3DAA]">v0.31.0</span> 请自行选择正确版本',
-      "提示",
+      t("config.alert.multiuserAlert.message"),
+      t("config.alert.multiuserAlert.title"),
       {
         // if you want to disable its autofocus
         autofocus: false,
-        confirmButtonText: "知道了",
+        confirmButtonText: t("config.alert.multiuserAlert.confirm"),
         dangerouslyUseHTMLString: true
       }
     );
@@ -280,7 +385,7 @@ onMounted(() => {
   on(ipcRouters.SERVER.saveConfig, data => {
     ElMessage({
       type: "success",
-      message: "保存成功"
+      message: t("config.message.saveSuccess")
     });
     loading.value--;
   });
@@ -305,11 +410,15 @@ onMounted(() => {
   });
 
   on(ipcRouters.SERVER.resetAllConfig, () => {
-    ElMessageBox.alert("重置成功 请重启软件", `提示`, {
-      closeOnClickModal: false,
-      showClose: false,
-      confirmButtonText: "立即重启"
-    }).then(() => {
+    ElMessageBox.alert(
+      t("config.alert.resetConfigSuccess.message"),
+      t("config.alert.resetConfigSuccess.title"),
+      {
+        closeOnClickModal: false,
+        showClose: false,
+        confirmButtonText: t("config.alert.resetConfigSuccess.confirm")
+      }
+    ).then(() => {
       send(ipcRouters.SYSTEM.relaunchApp);
     });
   });
@@ -324,11 +433,15 @@ onMounted(() => {
         spread: 70,
         origin: { y: 0.6 }
       });
-      ElMessageBox.alert("🎉 恭喜你，导入成功 请重启软件", `提示`, {
-        closeOnClickModal: false,
-        showClose: false,
-        confirmButtonText: "立即重启"
-      }).then(() => {
+      ElMessageBox.alert(
+        t("config.alert.importTomlConfigSuccess.message"),
+        t("config.alert.importTomlConfigSuccess.title"),
+        {
+          closeOnClickModal: false,
+          showClose: false,
+          confirmButtonText: t("config.alert.importTomlConfigSuccess.confirm")
+        }
+      ).then(() => {
         send(ipcRouters.SYSTEM.relaunchApp);
       });
     }
@@ -337,14 +450,17 @@ onMounted(() => {
   on(ipcRouters.SERVER.exportConfig, data => {
     const { canceled, path } = data;
     if (!canceled) {
-      ElMessageBox.alert(`配置路径：${path}`, `🎉 导出成功`);
+      ElMessageBox.alert(
+        t("config.alert.exportConfigSuccess.message", { path }),
+        t("config.alert.exportConfigSuccess.title")
+      );
     }
   });
   // ElMessageBox.alert(data, `提示`);
   on(ipcRouters.SYSTEM.openAppData, () => {
     ElMessage({
       type: "success",
-      message: "打开数据目录成功"
+      message: t("config.message.openAppDataSuccess")
     });
   });
 });
@@ -390,7 +506,7 @@ const handlePasteServerConfigBase64 = useDebounceFn(() => {
   const tips = () => {
     ElMessage({
       type: "warning",
-      message: "链接不正确 请输入正确的链接"
+      message: t("config.message.invalidLink")
     });
   };
   if (!pasteServerConfigBase64.value.startsWith(protocol.value)) {
@@ -444,11 +560,15 @@ const handleImportConfig = () => {
 };
 
 const handleResetConfig = () => {
-  ElMessageBox.alert("是否清空所有配置？", "提示", {
-    showCancelButton: true,
-    cancelButtonText: "取消",
-    confirmButtonText: "清空"
-  }).then(() => {
+  ElMessageBox.alert(
+    t("config.alert.resetConfig.message"),
+    t("config.alert.resetConfig.title"),
+    {
+      showCancelButton: true,
+      cancelButtonText: t("config.alert.resetConfig.cancel"),
+      confirmButtonText: t("config.alert.resetConfig.confirm")
+    }
+  ).then(() => {
     send(ipcRouters.SERVER.resetAllConfig);
   });
 };
@@ -490,8 +610,8 @@ onUnmounted(() => {
         <IconifyIconOffline icon="save-rounded" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb pr-2" v-loading="loading > 0">
-      <div class="w-full bg-white p-4 rounded drop-shadow-lg">
+    <div class="pr-2 app-container-breadcrumb" v-loading="loading > 0">
+      <div class="w-full p-4 bg-white rounded drop-shadow-lg">
         <el-form
           :model="formData"
           :rules="rules"
@@ -501,12 +621,15 @@ onUnmounted(() => {
         >
           <el-row :gutter="10">
             <el-col :span="24">
-              <div class="h2 flex justify-between">
-                <div>版本选择</div>
+              <div class="flex justify-between h2">
+                <div>{{ t("config.title.versionSelection") }}</div>
               </div>
             </el-col>
             <el-col :span="24">
-              <el-form-item label="Frp版本：" prop="frpcVersion">
+              <el-form-item
+                :label="t('config.form.frpcVerson.label')"
+                prop="frpcVersion"
+              >
                 <el-select
                   v-model="formData.frpcVersion"
                   class="w-full"
@@ -519,13 +642,13 @@ onUnmounted(() => {
                     :value="v.githubReleaseId"
                   />
                 </el-select>
-                <div class="w-full flex justify-end">
+                <div class="flex justify-end w-full">
                   <el-link
                     type="primary"
                     @click="frpcDesktopStore.refreshDownloadedVersion()"
                   >
                     <iconify-icon-offline class="mr-1" icon="refresh-rounded" />
-                    手动刷新
+                    {{ t("config.button.manualRefresh") }}
                   </el-link>
                   <el-link
                     class="ml-2"
@@ -533,23 +656,23 @@ onUnmounted(() => {
                     @click="$router.replace({ name: 'Download' })"
                   >
                     <IconifyIconOffline class="mr-1" icon="download" />
-                    点击这里去下载
+                    {{ t("config.button.goToDownload") }}
                   </el-link>
                 </div>
               </el-form-item>
             </el-col>
             <el-col :span="24">
-              <div class="h2 flex justify-between">
+              <div class="flex justify-between h2">
                 <div>服务器配置</div>
                 <div class="flex items-center justify-center">
                   <IconifyIconOffline
                     @click="handleCopyServerConfig2Base64"
-                    class="mr-2 cursor-pointer text-xl font-bold"
+                    class="mr-2 text-xl font-bold cursor-pointer"
                     icon="content-copy"
                   />
                   <IconifyIconOffline
                     @click="handlePasteServerConfig4Base64"
-                    class="mr-2 cursor-pointer text-xl font-bold"
+                    class="mr-2 text-xl font-bold cursor-pointer"
                     icon="content-paste-go"
                   />
                 </div>
@@ -558,7 +681,7 @@ onUnmounted(() => {
             <el-col :span="24">
               <el-form-item label="服务器地址：" prop="serverAddr">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         Frps服务端地址 <br />
@@ -598,7 +721,7 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="验证方式：" prop="auth.method">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="200" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -631,7 +754,7 @@ onUnmounted(() => {
             <el-col :span="24" v-if="formData.auth.method === 'token'">
               <el-form-item label="令牌：" prop="authToken">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover" width="200">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -660,11 +783,9 @@ onUnmounted(() => {
             <el-col :span="24">
               <el-form-item label="多用户：" prop="multiuser">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
-                      <template #default>
-                       是否开启多用户模式
-                      </template>
+                      <template #default> 是否开启多用户模式 </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
@@ -688,7 +809,7 @@ onUnmounted(() => {
             <el-col :span="12" v-if="formData.multiuser">
               <el-form-item label="用户：" prop="user">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -712,7 +833,7 @@ onUnmounted(() => {
             <el-col :span="12" v-if="formData.multiuser">
               <el-form-item label="用户令牌：" prop="metaToken">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="200" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -743,12 +864,14 @@ onUnmounted(() => {
             </el-col> -->
 
             <el-col :span="24">
-              <div class="h2">传输配置</div>
+              <div class="h2">
+                {{ t("config.title.transportConfiguration") }}
+              </div>
             </el-col>
             <el-col :span="12">
               <el-form-item label="传输协议：" prop="transport.protocol">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         和 frps 之间的通信协议。默认为 tcp。<br />
@@ -779,7 +902,7 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="连接池大小：" prop="transport.poolCount">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -810,7 +933,7 @@ onUnmounted(() => {
                 prop="transport.heartbeatInterval"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         多长向服务端发发送一次心跳包 单位：
@@ -853,7 +976,7 @@ onUnmounted(() => {
                 prop="transport.heartbeatTimeout"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         心跳超时时间 单位：
@@ -896,7 +1019,7 @@ onUnmounted(() => {
                 prop="transport.dialServerTimeout"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         与服务器建立连接的最长等待时间。默认值为10秒。单位：
@@ -929,7 +1052,7 @@ onUnmounted(() => {
                 prop="transport.dialServerKeepalive"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         客户端与服务端之间的连接在一定时间内没有任何数据传输，系统会定期发送一些心跳数据包来保持连接的活跃状态。如果为负，则禁用保活探测。
@@ -961,7 +1084,7 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="多路复用：" prop="transport.tcpMux">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         TCP 多路复用，默认启用。<br />
@@ -994,7 +1117,7 @@ onUnmounted(() => {
                 prop="transport.tcpMuxKeepaliveInterval"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         多路复用的保活间隔，默认值为 30 秒。单位：
@@ -1035,7 +1158,7 @@ onUnmounted(() => {
             <el-col :span="24">
               <el-form-item label="代理地址：" prop="proxyConfigProxyUrl">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1078,7 +1201,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="h-full flex items-center mr-1">
+                    <div class="flex items-center h-full mr-1">
                       <el-popover width="260" placement="top" trigger="hover">
                         <template #default>
                           对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1126,7 +1249,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="h-full flex items-center mr-1">
+                    <div class="flex items-center h-full mr-1">
                       <el-popover width="260" placement="top" trigger="hover">
                         <template #default>
                           对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1162,7 +1285,7 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     @click="formData.transport.tls.keyFile = ''"
-                    >清除
+                    >{{ t("config.button.clear") }}
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -1173,7 +1296,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="h-full flex items-center mr-1">
+                    <div class="flex items-center h-full mr-1">
                       <el-popover width="310" placement="top" trigger="hover">
                         <template #default>
                           对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1209,7 +1332,7 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     @click="formData.transport.tls.trustedCaFile = ''"
-                    >清除
+                    >{{ t("config.button.clear") }}
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -1220,7 +1343,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="h-full flex items-center mr-1">
+                    <div class="flex items-center h-full mr-1">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1248,13 +1371,13 @@ onUnmounted(() => {
             </template>
 
             <el-col :span="24">
-              <div class="h2">Web 界面</div>
+              <div class="h2">{{ t("config.title.webInterface") }}</div>
             </el-col>
 
             <!--            <el-col :span="12">-->
             <!--              <el-form-item label="启用Web界面：" prop="webEnable">-->
             <!--                <template #label>-->
-            <!--                  <div class="h-full flex items-center mr-1">-->
+            <!--                  <div class="flex items-center h-full mr-1">-->
             <!--                    <el-popover width="300" placement="top" trigger="hover">-->
             <!--                      <template #reference>-->
             <!--                        <IconifyIconOffline-->
@@ -1285,7 +1408,7 @@ onUnmounted(() => {
             <el-col :span="12">
               <el-form-item label="Web 端口：" prop="webPort">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1317,7 +1440,7 @@ onUnmounted(() => {
             <!--            </template>-->
 
             <el-col :span="24">
-              <div class="h2">日志配置</div>
+              <div class="h2">{{ t("config.title.logConfiguration") }}</div>
             </el-col>
             <el-col :span="12">
               <el-form-item class="!w-full" label="日志级别：" prop="log.level">
@@ -1339,12 +1462,12 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="24">
-              <div class="h2">系统配置</div>
+              <div class="h2">{{ t("config.title.systemConfiguration") }}</div>
             </el-col>
             <el-col :span="8">
               <el-form-item label="开机自启：" prop="system.launchAtStartup">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         开机自动启动 <br /><span
@@ -1374,7 +1497,7 @@ onUnmounted(() => {
             <el-col :span="8">
               <el-form-item label="静默启动：" prop="system.silentStartup">
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         开启后启动时<span class="font-black text-[#5A3DAA]"
@@ -1406,7 +1529,7 @@ onUnmounted(() => {
                 prop="system.autoConnectOnStartup"
               >
                 <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
                       <template #default>
                         启动软件后是否<span class="font-black text-[#5A3DAA]"
@@ -1486,7 +1609,7 @@ onUnmounted(() => {
             @click="handlePasteServerConfigBase64"
           >
             <IconifyIconOffline
-              class="cursor-pointer mr-2"
+              class="mr-2 cursor-pointer"
               icon="label-important-rounded"
             />
             导 入
@@ -1519,7 +1642,7 @@ onUnmounted(() => {
     <!--        <div class="dialog-footer">-->
     <!--          <el-button plain type="primary" @click="handleExportConfig">-->
     <!--            <IconifyIconOffline-->
-    <!--              class="cursor-pointer mr-2"-->
+    <!--              class="mr-2 cursor-pointer"-->
     <!--              icon="downloadRounded"-->
     <!--            />-->
     <!--            导 出-->
