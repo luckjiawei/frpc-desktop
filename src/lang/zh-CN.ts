@@ -224,6 +224,10 @@ export default {
       tlsServerName: {
         label: "TLS Server 名称",
         requireMessage: "请输入TLS Server 名称"
+      },
+      systemLanguage: {
+        label: "系统语言",
+        requireMessage: "请选择系统语言"
       }
     },
     title: {

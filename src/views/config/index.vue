@@ -87,7 +87,8 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   system: {
     launchAtStartup: false,
     silentStartup: false,
-    autoConnectOnStartup: false
+    autoConnectOnStartup: false,
+    language: "zh-CN"
   },
   user: ""
 };
@@ -1451,7 +1452,7 @@ onUnmounted(() => {
             <!--            <template v-if="formData.webEnable">-->
             <el-col :span="12">
               <el-form-item
-                :label="t('config.form.webPort.label')"
+                :label="t('config.form.webServerPort.label')"
                 prop="webPort"
               >
                 <template #label>
@@ -1473,7 +1474,7 @@ onUnmounted(() => {
                       </template>
                     </el-popover>
                   </div>
-                  {{ t("config.form.webPort.label") }}
+                  {{ t("config.form.webServerPort.label") }}
                 </template>
                 <el-input-number
                   placeholder="57400"
@@ -1542,7 +1543,7 @@ onUnmounted(() => {
                       </template>
                     </el-popover>
                   </div>
-                  开机自启：
+                  {{ t("config.form.systemLaunchAtStartup.label") }}
                 </template>
                 <el-switch
                   active-text="开"
@@ -1614,6 +1615,17 @@ onUnmounted(() => {
                   inactive-text="关"
                   v-model="formData.system.autoConnectOnStartup"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item
+                :label="t('config.form.systemLanguage.label')"
+                prop="system.language"
+              >
+                <el-select v-model="formData.system.language">
+                  <el-option label="中文" value="zh-CN" />
+                  <el-option label="en-US" value="en-US" />
+                </el-select>
               </el-form-item>
             </el-col>
             <!--            <el-col :span="24">-->

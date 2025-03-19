@@ -8,6 +8,7 @@ interface FrpcSystemConfiguration {
   launchAtStartup: boolean;
   silentStartup: boolean;
   autoConnectOnStartup: boolean;
+  language: string;
 }
 
 type FrpcDesktopServer = BaseEntity &
