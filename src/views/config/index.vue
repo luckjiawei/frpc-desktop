@@ -194,7 +194,7 @@ const rules = reactive<FormRules>({
   // ],
   "transport.proxyURL": [
     {
-      required: true,
+      required: false,
       message: t("config.form.proxyURL.requireMessage"),
       trigger: "change"
     },
@@ -389,6 +389,7 @@ onMounted(() => {
       message: t("config.message.saveSuccess")
     });
     loading.value--;
+    frpcDesktopStore.getLanguage();
   });
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
