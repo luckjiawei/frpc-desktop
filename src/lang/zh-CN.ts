@@ -141,8 +141,8 @@ export default {
         requireMessage: "请选择验证方式"
       },
       authToken: {
-        label: "Token值",
-        requireMessage: "请输入Token值"
+        label: "令牌",
+        requireMessage: "请输入令牌"
       },
       logLevel: {
         label: "日志级别",
@@ -153,8 +153,8 @@ export default {
         requireMessage: "请输入日志保留天数"
       },
       tlsEnable: {
-        label: "TLS状态",
-        requireMessage: "请选择TLS状态"
+        label: "TLS",
+        requireMessage: "请选择TLS"
       },
       transportProxyURL: {
         label: "代理地址",
@@ -194,8 +194,8 @@ export default {
         requireMessage: "连接超时不能为空"
       },
       transportDialServerKeepalive: {
-        label: "连接保活",
-        requireMessage: "连接保活不能为空"
+        label: "保活探测间隔",
+        requireMessage: "保活探测间隔不能为空"
       },
       transportPoolCount: {
         label: "连接池数量",
@@ -208,19 +208,21 @@ export default {
       transportTcpMuxKeepaliveInterval: {
         label: "多复心跳间隔",
         requireMessage: "多复心跳间隔不能为空"
-      }
+      },
     },
     title: {
       versionSelection: "版本选择",
       webInterface: "Web 界面",
       transportConfiguration: "传输配置",
       logConfiguration: "日志配置",
-      systemConfiguration: "系统配置"
+      systemConfiguration: "系统配置",
+      serverConfiguration: "服务器配置"
     },
     button: {
       manualRefresh: "手动刷新",
       goToDownload: "点击这里去下载",
-      clear: "清除"
+      clear: "清除",
+      import: "导入"
     },
     alert: {
       resetConfig: {
@@ -247,13 +249,28 @@ export default {
       },
       exportConfigSuccess: {
         title: "🎉 导出成功",
-        message: "配置路径：{path}",
+        message: "配置路径：{path}"
       }
     },
     message: {
       invalidLink: "链接不正确 请输入正确的链接",
       openAppDataSuccess: "打开数据目录成功",
       saveSuccess: "保存成功"
+    },
+    popover: {
+      frpParameter: "Frp参数"
+    },
+    dialog: {
+      importLink: {
+        title: "导入链接",
+      },
+      copyLink: {
+        title: "复制链接",
+        message: "复制成功",
+        warning: {
+          message: "生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用"
+        }
+      }
     }
   }
 };
