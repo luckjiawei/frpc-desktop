@@ -1,13 +1,13 @@
 <script lang="ts" setup>
-import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { useDebounceFn } from "@vueuse/core";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
-import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { ElMessageBox } from "element-plus";
 import router from "@/router";
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { useDebounceFn } from "@vueuse/core";
+import { ElMessageBox } from "element-plus";
+import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 defineComponent({
   name: "Home"
 });
@@ -125,7 +125,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-col items-center justify-center">
-            <div class="flex flex-col justify-between w-64 pl-10 h-42">
+            <div class="flex flex-col justify-between pl-10 w-72 h-42">
               <transition name="fade">
                 <div class="text-2xl font-bold text-center">
                   <IconifyIconOffline
@@ -154,7 +154,7 @@ onUnmounted(() => {
                 <span class="el-text--success">{{
                   $t("home.status.runningTime")
                 }}</span>
-                <span class="font-bold text-primary">{{ uptime }}</span>
+                <span class="ml-1 font-bold text-primary">{{ uptime }}</span>
               </div>
               <div class="justify-center w-full text-center">
                 <el-link
