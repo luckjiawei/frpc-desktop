@@ -211,19 +211,23 @@ export default {
       },
       tlsCertFile: {
         label: "TLS证书文件",
-        requireMessage: "请选择TLS证书文件"
+        requireMessage: "请选择TLS证书文件",
+        placeholder: "点击选择 TLS 证书文件"
       },
       tlsKeyFile: {
         label: "TLS密钥文件",
-        requireMessage: "请选择TLS密钥文件"
+        requireMessage: "请选择TLS密钥文件",
+        placeholder: "点击选择 TLS 密钥文件"
       },
       caCertFile: {
         label: "CA证书文件",
-        requireMessage: "请选择CA证书文件"
+        requireMessage: "请选择CA证书文件",
+        placeholder: "点击选择 CA 证书文件"
       },
       tlsServerName: {
         label: "TLS Server 名称",
-        requireMessage: "请输入TLS Server 名称"
+        requireMessage: "请输入TLS Server 名称",
+        placeholder: "请输入TLS Server 名称"
       },
       systemLanguage: {
         label: "系统语言",
@@ -293,5 +297,9 @@ export default {
         }
       }
     }
+  },
+  common: {
+    yes: "是",
+    no: "否"
   }
 };

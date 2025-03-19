@@ -112,186 +112,191 @@ export default {
   config: {
     form: {
       frpcVerson: {
-        label: "Frp版本",
-        requireMessage: "请选择Frp版本"
+        label: "Frp Version",
+        requireMessage: "Please select Frp version"
       },
       serverAddr: {
-        label: "服务端地址",
-        requireMessage: "请输入服务端地址",
-        patternMessage: "请输入正确的服务端地址"
+        label: "Server Address",
+        requireMessage: "Please enter server address",
+        patternMessage: "Please enter the correct server address"
       },
       serverPort: {
-        label: "服务器端口",
-        requireMessage: "请输入服务器端口"
+        label: "Server Port",
+        requireMessage: "Please enter server port"
       },
       user: {
-        label: "用户",
-        requireMessage: "请输入用户"
+        label: "User",
+        requireMessage: "Please enter user"
       },
       multiuser: {
-        label: "多用户",
-        requireMessage: "请选择是否开启多用户"
+        label: "Multi-user",
+        requireMessage: "Please select whether to enable multi-user"
       },
       metadatasToken: {
-        label: "用户令牌",
-        requireMessage: "请输入多用户令牌"
+        label: "User Token",
+        requireMessage: "Please enter user token"
       },
       authMethod: {
-        label: "验证方式",
-        requireMessage: "请选择验证方式"
+        label: "Auth Method",
+        requireMessage: "Please select auth method"
       },
       authToken: {
-        label: "令牌",
-        requireMessage: "请输入令牌"
+        label: "Token",
+        requireMessage: "Please enter token"
       },
       logLevel: {
-        label: "日志级别",
-        requireMessage: "请选择日志级别"
+        label: "Log Level",
+        requireMessage: "Please select log level"
       },
       logMaxDays: {
-        label: "日志保留天数",
-        requireMessage: "请输入日志保留天数"
+        label: "Log Max Days",
+        requireMessage: "Please enter log max days"
       },
       tlsEnable: {
         label: "TLS",
-        requireMessage: "请选择TLS"
+        requireMessage: "Please select TLS"
       },
       transportProxyURL: {
-        label: "代理地址",
-        requireMessage: "请输入代理地址",
-        patternMessage: "请输入正确的代理地址"
+        label: "Proxy URL",
+        requireMessage: "Please enter proxy URL",
+        patternMessage: "Please enter the correct proxy URL"
       },
       systemLaunchAtStartup: {
-        label: "开机自启",
-        requireMessage: "请选择是否开机自启"
+        label: "Auto Start",
+        requireMessage: "Please select whether to auto start"
       },
       systemSilentStartup: {
-        label: "静默启动",
-        requireMessage: "请选择是否开启静默启动"
+        label: "Silent Startup",
+        requireMessage: "Please select whether to enable silent startup"
       },
       systemAutoConnectOnStartup: {
-        label: "自动连接",
-        requireMessage: "请选择是否开启自动连接"
+        label: "Auto Connect",
+        requireMessage: "Please select whether to enable auto connect"
       },
       transportHeartbeatInterval: {
-        label: "心跳间隔时间",
-        requireMessage: "心跳间隔时间不能为空"
+        label: "Heartbeat Interval",
+        requireMessage: "Please enter heartbeat interval"
       },
       transportHeartbeatTimeout: {
-        label: "心跳超时时间",
-        requireMessage: "心跳超时时间不能为空"
+        label: "Heartbeat Timeout",
+        requireMessage: "Please enter heartbeat timeout"
       },
       webServerPort: {
-        label: "Web端口",
-        requireMessage: "web界面端口不能为空"
+        label: "Web Port",
+        requireMessage: "Please enter web port"
       },
       transportProtocol: {
-        label: "传输协议",
-        requireMessage: "传输协议不能为空"
+        label: "Transport Protocol",
+        requireMessage: "Please enter transport protocol"
       },
       transportDialServerTimeout: {
-        label: "连接超时",
-        requireMessage: "连接超时不能为空"
+        label: "Dial Server Timeout",
+        requireMessage: "Please enter dial server timeout"
       },
       transportDialServerKeepalive: {
-        label: "保活探测间隔",
-        requireMessage: "保活探测间隔不能为空"
+        label: "Dial Server Keepalive",
+        requireMessage: "Please enter dial server keepalive"
       },
       transportPoolCount: {
-        label: "连接池数量",
-        requireMessage: "连接池数量不能为空"
+        label: "Pool Count",
+        requireMessage: "Please enter pool count"
       },
       transportTcpMux: {
-        label: "TCP复用",
-        requireMessage: "TCP复用不能为空"
+        label: "TCP Mux",
+        requireMessage: "Please enter TCP mux"
       },
       transportTcpMuxKeepaliveInterval: {
-        label: "多复心跳间隔",
-        requireMessage: "多复心跳间隔不能为空"
+        label: "TCP Mux Keepalive Interval",
+        requireMessage: "Please enter TCP mux keepalive interval"
       },
       tlsCertFile: {
-        label: "TLS证书文件",
-        requireMessage: "请选择TLS证书文件"
+        label: "TLS Cert File",
+        requireMessage: "Please select TLS cert file"
       },
       tlsKeyFile: {
-        label: "TLS密钥文件",
-        requireMessage: "请选择TLS密钥文件"
+        label: "TLS Key File",
+        requireMessage: "Please select TLS key file"
       },
       caCertFile: {
-        label: "CA证书文件",
-        requireMessage: "请选择CA证书文件"
+        label: "CA Cert File",
+        requireMessage: "Please select CA cert file"
       },
       tlsServerName: {
-        label: "TLS Server 名称",
-        requireMessage: "请输入TLS Server 名称"
+        label: "TLS Server Name",
+        requireMessage: "Please enter TLS server name"
       },
       systemLanguage: {
-        label: "系统语言",
-        requireMessage: "请选择系统语言"
+        label: "System Language",
+        requireMessage: "Please select system language"
       }
     },
     title: {
-      versionSelection: "版本选择",
-      webInterface: "Web 界面",
-      transportConfiguration: "传输配置",
-      logConfiguration: "日志配置",
-      systemConfiguration: "系统配置",
-      serverConfiguration: "服务器配置"
+      versionSelection: "Version Selection",
+      webInterface: "Web Interface",
+      transportConfiguration: "Transport Configuration",
+      logConfiguration: "Log Configuration",
+      systemConfiguration: "System Configuration",
+      serverConfiguration: "Server Configuration"
     },
     button: {
-      manualRefresh: "手动刷新",
-      goToDownload: "点击这里去下载",
-      clear: "清除",
-      import: "导入"
+      manualRefresh: "Manual Refresh",
+      goToDownload: "Click here to download",
+      clear: "Clear",
+      import: "Import"
     },
     alert: {
       resetConfig: {
-        title: "提示",
-        message: "确定要重置配置吗？",
-        confirm: "确定",
-        cancel: "取消"
+        title: "Prompt",
+        message: "Are you sure you want to reset the configuration?",
+        confirm: "Confirm",
+        cancel: "Cancel"
       },
       resetConfigSuccess: {
-        title: "提示",
-        message: "重置成功 请重启软件",
-        confirm: "立即重启"
+        title: "Prompt",
+        message: "Reset successfully, please restart the software",
+        confirm: "Restart Now"
       },
       importTomlConfigSuccess: {
-        title: "提示",
-        message: "🎉 恭喜你，导入成功 请重启软件",
-        confirm: "立即重启"
+        title: "Prompt",
+        message:
+          "🎉 Congratulations, import successfully, please restart the software",
+        confirm: "Restart Now"
       },
       multiuserAlert: {
-        title: "提示",
+        title: "Prompt",
         message:
-          "多用户插件需要 Frp版本 >= <span class='font-black text-[#5A3DAA]'>v0.31.0</span> 请自行选择正确版本",
-        confirm: "知道了"
+          "The multi-user plugin requires Frp version >= <span class='font-black text-[#5A3DAA]'>v0.31.0</span>. Please select the correct version.",
+        confirm: "Got it"
       },
       exportConfigSuccess: {
-        title: "🎉 导出成功",
-        message: "配置路径：{path}"
+        title: "Prompt",
+        message: "Configuration path: {path}"
       }
     },
     message: {
-      invalidLink: "链接不正确 请输入正确的链接",
-      openAppDataSuccess: "打开数据目录成功",
-      saveSuccess: "保存成功"
+      invalidLink: "The link is incorrect, please enter the correct link",
+      openAppDataSuccess: "Open data directory successfully",
+      saveSuccess: "Save successfully"
     },
     popover: {
-      frpParameter: "Frp参数"
+      frpParameter: "Frp Parameter"
     },
     dialog: {
       importLink: {
-        title: "导入链接"
+        title: "Import Link"
       },
       copyLink: {
-        title: "复制链接",
-        message: "复制成功",
+        title: "Copy Link",
+        message: "Copy successfully",
         warning: {
           message:
-            "生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用"
+            "The content generated contains server keys and other information. Please keep it safe and the link is only available in Frpc-Desktop."
         }
       }
     }
+  },
+  common: {
+    yes: "Y",
+    no: "N"
   }
 };

@@ -812,9 +812,9 @@ onUnmounted(() => {
                 </template>
                 <el-switch
                   @change="handleMultiuserChange"
-                  active-text="开"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
                   inline-prompt
-                  inactive-text="关"
                   v-model="formData.multiuser"
                 />
               </el-form-item>
@@ -1228,9 +1228,9 @@ onUnmounted(() => {
                 prop="transport.tls.enable"
               >
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
                   inline-prompt
-                  inactive-text="关"
                   v-model="formData.transport.tls.enable"
                 />
               </el-form-item>
@@ -1265,7 +1265,7 @@ onUnmounted(() => {
                   <el-input
                     class="button-input !cursor-pointer"
                     v-model="formData.transport.tls.certFile"
-                    placeholder="点击选择TLS证书文件"
+                    :placeholder="t('config.form.tlsCertFile.placeholder')"
                     readonly
                     clearable
                     @click="handleSelectFile(1, ['crt'])"
@@ -1314,7 +1314,7 @@ onUnmounted(() => {
                   <el-input
                     class="button-input"
                     v-model="formData.transport.tls.keyFile"
-                    placeholder="点击选择 TLS 密钥文件"
+                    :placeholder="t('config.form.tlsKeyFile.placeholder')"
                     readonly
                     @click="handleSelectFile(2, ['key'])"
                   />
@@ -1362,7 +1362,7 @@ onUnmounted(() => {
                   <el-input
                     class="button-input"
                     v-model="formData.transport.tls.trustedCaFile"
-                    placeholder="点击选择 CA 证书文件"
+                    :placeholder="t('config.form.caCertFile.placeholder')"
                     readonly
                     @click="handleSelectFile(3, ['crt'])"
                   />
@@ -1409,7 +1409,7 @@ onUnmounted(() => {
                   </template>
                   <el-input
                     v-model="formData.transport.tls.serverName"
-                    placeholder="请输入TLS Server 名称"
+                    :placeholder="t('config.form.tlsServerName.placeholder')"
                     clearable
                   />
                 </el-form-item>
@@ -1547,9 +1547,9 @@ onUnmounted(() => {
                   {{ t("config.form.systemLaunchAtStartup.label") }}
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
                   inline-prompt
-                  inactive-text="关"
                   v-model="formData.system.launchAtStartup"
                 />
               </el-form-item>
@@ -1579,9 +1579,9 @@ onUnmounted(() => {
                   {{ t("config.form.systemSilentStartup.label") }}
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
                   inline-prompt
-                  inactive-text="关"
                   v-model="formData.system.silentStartup"
                 />
               </el-form-item>
@@ -1611,9 +1611,9 @@ onUnmounted(() => {
                   {{ t("config.form.systemAutoConnectOnStartup.label") }}
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
                   inline-prompt
-                  inactive-text="关"
                   v-model="formData.system.autoConnectOnStartup"
                 />
               </el-form-item>
@@ -1625,7 +1625,7 @@ onUnmounted(() => {
               >
                 <el-select v-model="formData.system.language">
                   <el-option label="中文" value="zh-CN" />
-                  <el-option label="en-US" value="en-US" />
+                  <el-option label="English" value="en-US" />
                 </el-select>
               </el-form-item>
             </el-col>
