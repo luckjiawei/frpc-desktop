@@ -1,7 +1,8 @@
-import { defineStore } from "pinia";
+import i18n from "@/lang";
 import { on, onListener, send } from "@/utils/ipcUtils";
-import { ipcRouters, listeners } from "../../electron/core/IpcRouter";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { defineStore } from "pinia";
+import { ipcRouters, listeners } from "../../electron/core/IpcRouter";
 import pkg from "../../package.json";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
@@ -9,13 +10,15 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     running: false,
     uptime: -1,
     versions: [],
-    lastRelease: null
+    lastRelease: null,
+    language: null
   }),
   getters: {
     frpcProcessRunning: state => state.running,
     frpcProcessUptime: state => state.uptime,
     downloadedVersions: state => state.versions,
-    frpcDesktopLastRelease: state => state.lastRelease
+    frpcDesktopLastRelease: state => state.lastRelease,
+    frpcDesktopLanguage: state => state.language
   },
   actions: {
     onListenerFrpcProcessRunning() {
@@ -67,12 +70,16 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         if (!lastReleaseVersion) {
           let content = this.lastRelease.body;
           content = content.replaceAll("\n", "<br/>");
-          ElMessageBox.alert(content, `🎉 发现新版本 ${this.lastRelease.name}`, {
-            showCancelButton: true,
-            cancelButtonText: "关闭",
-            dangerouslyUseHTMLString: true,
-            confirmButtonText: "去下载"
-          }).then(() => {
+          ElMessageBox.alert(
+            content,
+            `🎉 发现新版本 ${this.lastRelease.name}`,
+            {
+              showCancelButton: true,
+              cancelButtonText: "关闭",
+              dangerouslyUseHTMLString: true,
+              confirmButtonText: "去下载"
+            }
+          ).then(() => {
             send(ipcRouters.SYSTEM.openUrl, {
               url: this.lastRelease["html_url"]
             });
@@ -91,6 +98,16 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
       send(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, {
         manual: manual
       });
+    },
+    onListenerFrpcDesktopLanguage() {
+      on(ipcRouters.SERVER.getLanguage, data => {
+        console.log("language", data);
+        this.language = data;
+        i18n.global.locale = data;
+      });
+    },
+    getLanguage() {
+      send(ipcRouters.SERVER.getLanguage);
     }
   }
 });

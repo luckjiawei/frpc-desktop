@@ -1,13 +1,13 @@
-import BaseService from "./BaseService";
-import ServerRepository from "../repository/ServerRepository";
-import fs from "fs";
-import PathUtils from "../utils/PathUtils";
-import ProxyRepository from "../repository/ProxyRepository";
 import { app, BrowserWindow, dialog } from "electron";
-import BeanFactory from "../core/BeanFactory";
+import fs from "fs";
 import path from "path";
-import GlobalConstant from "../core/GlobalConstant";
 import TOML from "smol-toml";
+import BeanFactory from "../core/BeanFactory";
+import GlobalConstant from "../core/GlobalConstant";
+import ProxyRepository from "../repository/ProxyRepository";
+import ServerRepository from "../repository/ServerRepository";
+import PathUtils from "../utils/PathUtils";
+import BaseService from "./BaseService";
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerRepository;
@@ -257,6 +257,18 @@ ${f}`;
     } else {
       return false;
     }
+  }
+
+  async getLanguage() {
+    const serverConfig = await this.getServerConfig();
+    let language = undefined;
+    if (serverConfig) {
+      language = serverConfig.system.language;
+    }
+    if (!language) {
+      language = GlobalConstant.DEFAULT_LANGUAGE;
+    }
+    return language;
   }
 }
 

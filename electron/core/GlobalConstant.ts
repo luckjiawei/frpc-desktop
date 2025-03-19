@@ -1,4 +1,3 @@
-
 class GlobalConstant {
   public static ZIP_EXT = ".zip";
   public static TOML_EXT = ".toml";
@@ -8,7 +7,7 @@ class GlobalConstant {
   public static FRPC_LOGIN_FAIL_EXIT = false;
   public static INTERNET_CHECK_URL = "https://jwinks.com";
   public static INTERNET_CHECK_TIMEOUT = 10;
-
+  public static DEFAULT_LANGUAGE = "en-US";
   public static FRP_ARCH_VERSION_MAPPING = {
     win32_x64: ["window", "amd64"],
     win32_arm64: ["window", "arm64"],

@@ -1,4 +1,3 @@
-
 export const ipcRouters: IpcRouters = {
   SERVER: {
     saveConfig: {
@@ -20,6 +19,10 @@ export const ipcRouters: IpcRouters = {
     importTomlConfig: {
       path: "server/importTomlConfig",
       controller: "configController.importTomlConfig"
+    },
+    getLanguage: {
+      path: "server/getLanguage",
+      controller: "configController.getLanguage"
     }
   },
   LOG: {

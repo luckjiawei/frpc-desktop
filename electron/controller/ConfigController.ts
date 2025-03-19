@@ -1,14 +1,14 @@
-import BaseController from "./BaseController";
-import ServerService from "../service/ServerService";
-import PathUtils from "../utils/PathUtils";
-import fs from "fs";
-import FrpcProcessService from "../service/FrpcProcessService";
-import SystemService from "../service/SystemService";
-import moment from "moment";
-import ResponseUtils from "../utils/ResponseUtils";
 import { BrowserWindow, dialog } from "electron";
-import Logger from "../core/Logger";
+import fs from "fs";
+import moment from "moment";
 import BeanFactory from "../core/BeanFactory";
+import Logger from "../core/Logger";
+import FrpcProcessService from "../service/FrpcProcessService";
+import ServerService from "../service/ServerService";
+import SystemService from "../service/SystemService";
+import PathUtils from "../utils/PathUtils";
+import ResponseUtils from "../utils/ResponseUtils";
+import BaseController from "./BaseController";
 
 class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
@@ -169,6 +169,12 @@ class ConfigController extends BaseController {
     //     Logger.error("ConfigController.importTomlConfig", err);
     //     req.event.reply(req.channel, ResponseUtils.fail(err));
     //   });
+  }
+
+  getLanguage(req: ControllerParam) {
+    this._serverService.getLanguage().then(data => {
+      req.event.reply(req.channel, ResponseUtils.success(data));
+    });
   }
 }
 

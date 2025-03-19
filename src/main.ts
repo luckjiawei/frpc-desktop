@@ -1,16 +1,16 @@
+import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import "animate.css";
+import ElementPlus from "element-plus";
+import { createPinia } from "pinia";
 import { createApp } from "vue";
 import App from "./App.vue";
-import router from "./router";
-import "./styles/index.scss";
-import "animate.css";
-import i18n from "./lang";
-import ElementPlus from "element-plus";
 import {
   IconifyIconOffline,
   IconifyIconOnline
 } from "./components/IconifyIcon";
-import { createPinia } from "pinia";
-import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import i18n from "./lang";
+import router from "./router";
+import "./styles/index.scss";
 
 const pinia = createPinia();
 
@@ -25,13 +25,14 @@ app
   .use(pinia)
   .mount("#app")
   .$nextTick(() => {
-    postMessage({ payload: "removeLoading" }, "*");
     const frpcDesktopStore = useFrpcDesktopStore();
     frpcDesktopStore.onListenerFrpcProcessRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();
     frpcDesktopStore.checkNewVersion(false);
+    frpcDesktopStore.onListenerFrpcDesktopLanguage();
+    frpcDesktopStore.getLanguage();
+    postMessage({ payload: "removeLoading" }, "*");
   })
   .then(r => {});
-
