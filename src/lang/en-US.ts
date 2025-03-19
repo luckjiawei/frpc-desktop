@@ -54,59 +54,60 @@ export default {
   },
   download: {
     button: {
-      import: "导入"
+      import: "Import"
     },
     message: {
-      importSuccess: "导入成功",
-      deleteSuccess: "删除成功"
+      importSuccess: "Import successfully",
+      deleteSuccess: "Delete successfully"
     },
     alert: {
       deleteConfirm: {
-        title: "提示",
+        title: "Prompt",
         message:
-          '确认要删除 <span class="text-primary font-bold">{name}</span> 吗？',
-        cancel: "取消",
-        confirm: "删除"
+          'Are you sure you want to delete <span class="text-primary font-bold">{name}</span> ?',
+        cancel: "Cancel",
+        confirm: "Delete"
       },
       importFailed: {
-        title: "导入失败",
-        versionExists: "版本已存在",
-        architectureNotMatch: "所选 frp 架构与操作系统不符",
-        unrecognizedFile: "无法识别文件"
+        title: "Import failed",
+        versionExists: "Version already exists",
+        architectureNotMatch:
+          "The selected frp architecture does not match the operating system",
+        unrecognizedFile: "Unable to recognize the file"
       }
     },
     version: {
-      downloadCount: "下载数：",
-      publishTime: "发布时间：",
-      downloaded: "已下载",
-      delete: "删 除",
-      download: "下载",
-      noVersions: "暂无可用版本"
+      downloadCount: "Download count:",
+      publishTime: "Publish time:",
+      downloaded: "Downloaded",
+      delete: "Delete",
+      download: "Download",
+      noVersions: "No available versions"
     }
   },
   logger: {
     message: {
-      openSuccess: "打开日志成功",
-      refreshSuccess: "刷新成功"
+      openSuccess: "Open log successfully",
+      refreshSuccess: "Refresh successfully"
     },
     content: {
-      empty: "暂无日志"
+      empty: "No log"
     }
   },
   about: {
     button: {
-      doc: "使用教程",
-      donate: "捐赠名单",
-      github: "仓库地址",
-      issues: "反馈问题"
+      doc: "Documentation",
+      donate: "Donate",
+      github: "Repository",
+      issues: "Feedback"
     },
     description: {
-      autoStart: "开机自启",
-      visualConfig: "可视化配置",
-      freeAndOpen: "免费开源"
+      autoStart: "Auto Start",
+      visualConfig: "Visual Configuration",
+      freeAndOpen: "Free and Open Source"
     },
     version: {
-      latest: "最新版本"
+      latest: "Latest Version"
     }
   },
   config: {
