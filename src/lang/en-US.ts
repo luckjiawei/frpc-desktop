@@ -138,7 +138,9 @@ export default {
       },
       authMethod: {
         label: "Auth Method",
-        requireMessage: "Please select auth method"
+        requireMessage: "Please select auth method",
+        none: "None",
+        token: "Token"
       },
       authToken: {
         label: "Token",

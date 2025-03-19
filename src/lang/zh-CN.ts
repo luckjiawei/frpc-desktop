@@ -118,7 +118,8 @@ export default {
       serverAddr: {
         label: "服务端地址",
         requireMessage: "请输入服务端地址",
-        patternMessage: "请输入正确的服务端地址"
+        patternMessage: "请输入正确的服务端地址",
+        tips: " Frps服务端地址 支持 <span class='font-black text-[#5A3DAA]'>域名</span>、<span class='font-black text-[#5A3DAA]'>IP</span>"
       },
       serverPort: {
         label: "服务器端口",
@@ -126,7 +127,8 @@ export default {
       },
       user: {
         label: "用户",
-        requireMessage: "请输入用户"
+        requireMessage: "请输入用户",
+        placeholder: "请输入用户"
       },
       multiuser: {
         label: "多用户",
@@ -134,11 +136,14 @@ export default {
       },
       metadatasToken: {
         label: "用户令牌",
-        requireMessage: "请输入多用户令牌"
+        requireMessage: "请输入多用户令牌",
+        placeholder: "请输入多用户令牌"
       },
       authMethod: {
         label: "验证方式",
-        requireMessage: "请选择验证方式"
+        requireMessage: "请选择验证方式",
+        none: "无",
+        token: "令牌"
       },
       authToken: {
         label: "令牌",
@@ -163,39 +168,48 @@ export default {
       },
       systemLaunchAtStartup: {
         label: "开机自启",
-        requireMessage: "请选择是否开机自启"
+        requireMessage: "请选择是否开机自启",
+        tips: " 开启后开机时自动启动 Frpc-Desktop"
       },
       systemSilentStartup: {
         label: "静默启动",
-        requireMessage: "请选择是否开启静默启动"
+        requireMessage: "请选择是否开启静默启动",
+        tips: " 开启后启动时<span class='font-black text-[#5A3DAA]'>不打开界面</span>"
       },
       systemAutoConnectOnStartup: {
         label: "自动连接",
-        requireMessage: "请选择是否开启自动连接"
+        requireMessage: "请选择是否开启自动连接",
+        tips: " 开启后启动时<span class='font-black text-[#5A3DAA]'>自动连接</span>"
       },
       transportHeartbeatInterval: {
         label: "心跳间隔时间",
-        requireMessage: "心跳间隔时间不能为空"
+        requireMessage: "心跳间隔时间不能为空",
+        tips: "多长向服务端发发送一次心跳包 单位：<span class='font-black text-[#5A3DAA]'>秒</span> <br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatInterval</span>"
       },
       transportHeartbeatTimeout: {
         label: "心跳超时时间",
-        requireMessage: "心跳超时时间不能为空"
+        requireMessage: "心跳超时时间不能为空",
+        tips: "心跳超时时间 单位：<span class='font-black text-[#5A3DAA]'>秒</span> <br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatTimeout</span>"
       },
       webServerPort: {
         label: "Web端口",
-        requireMessage: "web界面端口不能为空"
+        requireMessage: "web界面端口不能为空",
+        tips: " 自行保证端口没有被占用，否则会导致启动失败"
       },
       transportProtocol: {
         label: "传输协议",
-        requireMessage: "传输协议不能为空"
+        requireMessage: "传输协议不能为空",
+        tips: "与 frps 之间的通信协议。默认为 tcp。<br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.protocol</span>"
       },
       transportDialServerTimeout: {
         label: "连接超时",
-        requireMessage: "连接超时不能为空"
+        requireMessage: "连接超时不能为空",
+        tips: "与服务器建立连接的最长等待时间。默认值为10秒。单位：<span class='font-black text-[#5A3DAA]'>秒</span> <br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.dialServerTimeout</span>"
       },
       transportDialServerKeepalive: {
         label: "保活探测间隔",
-        requireMessage: "保活探测间隔不能为空"
+        requireMessage: "保活探测间隔不能为空",
+        tips: '客户端与服务端之间的连接在一定时间内没有任何数据传输，系统会定期发送一些心跳数据包来保持连接的活跃状态。如果为负，则禁用保活探测。单位：<span class="font-black text-[#5A3DAA]">秒</span> <br />{frpParameter}:<span class="font-black text-[#5A3DAA]">transport.dialServerKeepalive</span>'
       },
       transportPoolCount: {
         label: "连接池数量",
@@ -203,11 +217,13 @@ export default {
       },
       transportTcpMux: {
         label: "TCP复用",
-        requireMessage: "TCP复用不能为空"
+        requireMessage: "TCP复用不能为空",
+        tips: "TCP 多路复用，默认启用。<br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.tcpMux</span>"
       },
       transportTcpMuxKeepaliveInterval: {
         label: "多复心跳间隔",
-        requireMessage: "多复心跳间隔不能为空"
+        requireMessage: "多复心跳间隔不能为空",
+        tips: "多路复用的保活间隔，默认值为 30 秒。单位：<span class='font-black text-[#5A3DAA]'>秒</span> <br />{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.tcpMuxKeepaliveInterval</span>"
       },
       tlsCertFile: {
         label: "TLS证书文件",

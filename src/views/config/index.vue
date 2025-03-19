@@ -681,12 +681,9 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover">
+                    <el-popover placement="top" trigger="hover" width="260">
                       <template #default>
-                        Frps服务端地址 <br />
-                        支持
-                        <span class="font-black text-[#5A3DAA]">域名</span
-                        >、<span class="font-black text-[#5A3DAA]">IP</span>
+                        <div v-html="t('config.form.serverAddr.tips')"></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -727,7 +724,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="200" placement="top" trigger="hover">
+                    <el-popover width="220" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:
                         <span class="font-black text-[#5A3DAA]"
@@ -751,8 +748,8 @@ onUnmounted(() => {
                   placeholder="请选择验证方式"
                   clearable
                 >
-                  <el-option label="无" value="none"></el-option>
-                  <el-option label="令牌（token）" value="token"></el-option>
+                  <el-option :label="t('config.form.authMethod.none')" value="none"></el-option>
+                  <el-option :label="t('config.form.authMethod.token')" value="token"></el-option>
                   <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
                 </el-select>
               </el-form-item>
@@ -795,6 +792,7 @@ onUnmounted(() => {
                 :label="t('config.form.multiuser.label')"
                 prop="multiuser"
               >
+                <!--
                 <template #label>
                   <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover">
@@ -810,6 +808,7 @@ onUnmounted(() => {
                   </div>
                   {{ t("config.form.multiuser.label") }}
                 </template>
+                -->
                 <el-switch
                   @change="handleMultiuserChange"
                   :active-text="t('common.yes')"
@@ -841,7 +840,10 @@ onUnmounted(() => {
                   </div>
                   {{ t("config.form.user.label") }}
                 </template>
-                <el-input placeholder="请输入用户" v-model="formData.user" />
+                <el-input
+                  :placeholder="t('config.form.user.placeholder')"
+                  v-model="formData.user"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="12" v-if="formData.multiuser">
@@ -851,7 +853,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="200" placement="top" trigger="hover">
+                    <el-popover width="240" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
                           class="font-black text-[#5A3DAA]"
@@ -870,7 +872,7 @@ onUnmounted(() => {
                   {{ t("config.form.metadatasToken.label") }}
                 </template>
                 <el-input
-                  placeholder="请输入用户令牌"
+                  :placeholder="t('config.form.metadatasToken.placeholder')"
                   type="password"
                   v-model="formData.metadatas.token"
                   :show-password="true"
@@ -895,11 +897,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        和 frps 之间的通信协议。默认为 tcp。<br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.protocol</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportProtocol.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -962,12 +966,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        多长向服务端发发送一次心跳包 单位：
-                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.heartbeatInterval</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportHeartbeatInterval.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        />
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1006,12 +1011,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        心跳超时时间 单位：
-                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.heartbeatTimeout</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportHeartbeatTimeout.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        />
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1050,12 +1056,11 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        与服务器建立连接的最长等待时间。默认值为10秒。单位：
-                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.dialServerTimeout</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportDialServerTimeout.tips')
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1084,13 +1089,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        客户端与服务端之间的连接在一定时间内没有任何数据传输，系统会定期发送一些心跳数据包来保持连接的活跃状态。如果为负，则禁用保活探测。
-                        单位：
-                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.dialServerKeepalive</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportDialServerKeepalive.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1120,11 +1125,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        TCP 多路复用，默认启用。<br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.tcpMux</span
-                        >
+                        <div
+                          v-html="
+                            t('config.form.transportTcpMux.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1138,9 +1145,9 @@ onUnmounted(() => {
                   {{ t("config.form.transportTcpMux.label") }}
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
                   inline-prompt
-                  inactive-text="关"
+                  :inactive-text="t('common.no')"
                   v-model="formData.transport.tcpMux"
                 />
               </el-form-item>
@@ -1152,14 +1159,18 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="300" placement="top" trigger="hover">
+                    <el-popover width="330" placement="top" trigger="hover">
                       <template #default>
-                        多路复用的保活间隔，默认值为 30 秒。单位：
-                        <span class="font-black text-[#5A3DAA]">秒</span> <br />
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.tcpMuxKeepaliveInterval</span
-                        >
+                        <div
+                          v-html="
+                            t(
+                              'config.form.transportTcpMuxKeepaliveInterval.tips',
+                              {
+                                frpParameter: t('config.popover.frpParameter')
+                              }
+                            )
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1464,7 +1475,7 @@ onUnmounted(() => {
                           class="font-black text-[#5A3DAA]"
                           >webServer.port</span
                         ><br />
-                        自行保证端口没有被占用，否则会导致启动失败
+                        {{ t("config.form.webServerPort.tips") }}
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1528,12 +1539,11 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover">
+                    <el-popover placement="top" width="260" trigger="hover">
                       <template #default>
-                        开机自动启动 <br /><span
-                          class="font-black text-[#5A3DAA]"
-                          >Frpc Desktop</span
-                        >
+                        <div
+                          v-html="t('config.form.systemLaunchAtStartup.tips')"
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1561,11 +1571,11 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover">
+                    <el-popover placement="top" width="200" trigger="hover">
                       <template #default>
-                        开启后启动时<span class="font-black text-[#5A3DAA]"
-                          >不打开界面</span
-                        >
+                        <div
+                          v-html="t('config.form.systemSilentStartup.tips')"
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1593,11 +1603,13 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover">
+                    <el-popover placement="top" width="260" trigger="hover">
                       <template #default>
-                        启动软件后是否<span class="font-black text-[#5A3DAA]"
-                          >自动连接</span
-                        >服务器
+                        <div
+                          v-html="
+                            t('config.form.systemAutoConnectOnStartup.tips')
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
