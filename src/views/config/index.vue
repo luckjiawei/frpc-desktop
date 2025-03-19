@@ -1236,7 +1236,7 @@ onUnmounted(() => {
             <template v-if="formData.transport.tls.enable">
               <el-col :span="24">
                 <el-form-item
-                  label="TLS证书文件："
+                  :label="t('config.form.tlsCertFile.label')"
                   prop="tlsConfigCertFile"
                   label-width="180"
                 >
@@ -1258,7 +1258,7 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    TLS 证书文件：
+                    {{ t("config.form.tlsCertFile.label") }}
                   </template>
                   <el-input
                     class="button-input !cursor-pointer"
@@ -1285,7 +1285,7 @@ onUnmounted(() => {
               </el-col>
               <el-col :span="24">
                 <el-form-item
-                  label="TLS密钥文件："
+                  :label="t('config.form.tlsKeyFile.label')"
                   prop="transport.tls.keyFile"
                   label-width="180"
                 >
@@ -1307,7 +1307,7 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    TLS 密钥文件：
+                    {{ t("config.form.tlsKeyFile.label") }}
                   </template>
                   <el-input
                     class="button-input"
@@ -1333,7 +1333,7 @@ onUnmounted(() => {
               </el-col>
               <el-col :span="24">
                 <el-form-item
-                  label="CA证书文件："
+                  :label="t('config.form.caCertFile.label')"
                   prop="transport.tls.trustedCaFile"
                   label-width="180"
                 >
@@ -1355,7 +1355,7 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    CA 证书文件：
+                    {{ t("config.form.caCertFile.label") }}
                   </template>
                   <el-input
                     class="button-input"
@@ -1381,7 +1381,7 @@ onUnmounted(() => {
               </el-col>
               <el-col :span="24">
                 <el-form-item
-                  label="TLS Server 名称："
+                  :label="t('config.form.tlsServerName.label')"
                   prop="tlsConfigServerName"
                   label-width="180"
                 >
@@ -1403,7 +1403,7 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    TLS Server 名称：
+                    {{ t("config.form.tlsServerName.label") }}
                   </template>
                   <el-input
                     v-model="formData.transport.tls.serverName"
@@ -1450,7 +1450,10 @@ onUnmounted(() => {
 
             <!--            <template v-if="formData.webEnable">-->
             <el-col :span="12">
-              <el-form-item label="Web 端口：" prop="webPort">
+              <el-form-item
+                :label="t('config.form.webPort.label')"
+                prop="webPort"
+              >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
@@ -1470,7 +1473,7 @@ onUnmounted(() => {
                       </template>
                     </el-popover>
                   </div>
-                  Web 端口：
+                  {{ t("config.form.webPort.label") }}
                 </template>
                 <el-input-number
                   placeholder="57400"

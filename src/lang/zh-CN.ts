@@ -209,6 +209,22 @@ export default {
         label: "多复心跳间隔",
         requireMessage: "多复心跳间隔不能为空"
       },
+      tlsCertFile: {
+        label: "TLS证书文件",
+        requireMessage: "请选择TLS证书文件"
+      },
+      tlsKeyFile: {
+        label: "TLS密钥文件",
+        requireMessage: "请选择TLS密钥文件"
+      },
+      caCertFile: {
+        label: "CA证书文件",
+        requireMessage: "请选择CA证书文件"
+      },
+      tlsServerName: {
+        label: "TLS Server 名称",
+        requireMessage: "请输入TLS Server 名称"
+      }
     },
     title: {
       versionSelection: "版本选择",
@@ -262,13 +278,14 @@ export default {
     },
     dialog: {
       importLink: {
-        title: "导入链接",
+        title: "导入链接"
       },
       copyLink: {
         title: "复制链接",
         message: "复制成功",
         warning: {
-          message: "生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用"
+          message:
+            "生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用"
         }
       }
     }
