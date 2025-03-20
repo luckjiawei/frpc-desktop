@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
-import moment from "moment";
-import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { useDebounceFn } from "@vueuse/core";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { useDebounceFn } from "@vueuse/core";
+import { ElMessage, ElMessageBox } from "element-plus";
+import moment from "moment";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Download"
@@ -187,7 +187,7 @@ onUnmounted(() => {
               class="mb-[15px]"
             >
               <div
-                class="flex items-center justify-between w-full p-4 bg-white rounded download-card drop-shadow animate__animated"
+                class="flex items-center justify-between w-full p-4 bg-white rounded left-border drop-shadow animate__animated"
               >
                 <div class="left">
                   <div class="flex items-center justify-center mb-2">
@@ -270,9 +270,3 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.download-card {
-  border-left: 5px solid #5a3daa;
-}
-</style>
