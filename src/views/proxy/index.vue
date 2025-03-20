@@ -34,9 +34,6 @@ const loading = ref({
 const localPorts = ref<Array<LocalPort>>([]);
 const listPortsVisible = ref(false);
 
-/**
- * 弹出层属性
- */
 const edit = ref({
   title: t("proxy.addTitle"),
   visible: false
@@ -74,14 +71,8 @@ const defaultForm: FrpcProxy = {
   }
 };
 
-/**
- * 表单内容
- */
 const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
 
-/**
- * 代理类型
- */
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
 const hasPlugin = ref(false);
@@ -97,79 +88,141 @@ const visitorsModels = ref([
   }
 ]);
 
-/**
- * 表单校验
- */
 const editFormRules = reactive<FormRules>({
   name: [
-    { required: true, message: "请输入名称", trigger: "blur" }
+    {
+      required: true,
+      message: t("proxy.form.formItem.name.requireMessage"),
+      trigger: "blur"
+    }
     // {
     //   pattern: /^[a-zA-Z]+$/,
     //   message: "名称只能是英文",
     //   trigger: "blur"
     // }
   ],
-  type: [{ required: true, message: "请选择类型", trigger: "blur" }],
+  type: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.type.requireMessage"),
+      trigger: "blur"
+    }
+  ],
   localIP: [
-    { required: true, message: "请输入内网地址", trigger: "blur" },
+    {
+      required: true,
+      message: t("proxy.form.formItem.localIP.requireMessage"),
+      trigger: "blur"
+    },
     {
       pattern: /^[\w-]+(\.[\w-]+)+$/,
-      message: "请输入正确的内网地址",
+      message: t("proxy.form.formItem.localIP.patternMessage"),
       trigger: "blur"
     }
   ],
   localPort: [
-    { required: true, message: "请输入内网端口", trigger: "blur" },
+    {
+      required: true,
+      message: t("proxy.form.formItem.localPort.requireMessage"),
+      trigger: "blur"
+    },
     {
       pattern: /^(?:\d{1,5}|\d{1,5}-\d{1,5})(?:,(?:\d{1,5}|\d{1,5}-\d{1,5}))*$/,
-      message: "请输入正确的端口",
+      message: t("proxy.form.formItem.localPort.patternMessage"),
       trigger: "blur"
     }
   ],
   remotePort: [
-    { required: true, message: "请输入外网端口", trigger: "blur" },
+    {
+      required: true,
+      message: t("proxy.form.formItem.remotePort.requireMessage"),
+      trigger: "blur"
+    },
     {
       pattern: /^(?:\d{1,5}|\d{1,5}-\d{1,5})(?:,(?:\d{1,5}|\d{1,5}-\d{1,5}))*$/,
-      message: "请输入正确的端口",
+      message: t("proxy.form.formItem.remotePort.patternMessage"),
       trigger: "blur"
     }
   ],
   visitorsModel: [
-    { required: true, message: "请选择stcp模式", trigger: "blur" }
-  ],
-  secretKey: [
-    { required: true, message: "请输入stcp共享密钥", trigger: "blur" }
-  ],
-  serverName: [
-    { required: true, message: "请输入stcp被访问者代理名称", trigger: "blur" }
-  ],
-  bindAddr: [
-    { required: true, message: "请输入绑定的地址", trigger: "blur" },
     {
-      pattern: /^[\w-]+(\.[\w-]+)+$/,
-      message: "请输入正确的内网地址",
+      required: true,
+      message: t("proxy.form.formItem.visitorsModel.requireMessage", {
+        mode: editForm.value.type
+      }),
       trigger: "blur"
     }
   ],
-  bindPort: [{ required: true, message: "请输入绑定的端口", trigger: "blur" }],
-  basicAuth: [
-    { required: true, message: "请选择是否开启HTTP基本认证", trigger: "blur" }
+  secretKey: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.secretKey.requireMessage"),
+      trigger: "blur"
+    }
   ],
-  httpUser: [{ required: true, message: "请输入认证用户名", trigger: "blur" }],
+  serverName: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.serverName.requireMessage"),
+      trigger: "blur"
+    }
+  ],
+  bindAddr: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.bindAddr.requireMessage"),
+      trigger: "blur"
+    },
+    {
+      pattern: /^[\w-]+(\.[\w-]+)+$/,
+      message: t("proxy.form.formItem.bindAddr.patternMessage"),
+      trigger: "blur"
+    }
+  ],
+  bindPort: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.bindPort.requireMessage"),
+      trigger: "blur"
+    }
+  ],
+  basicAuth: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.basicAuth.requireMessage"),
+      trigger: "blur"
+    }
+  ],
+  httpUser: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.httpUser.requireMessage"),
+      trigger: "blur"
+    }
+  ],
   httpPassword: [
-    { required: true, message: "请输入认证密码", trigger: "blur" }
+    {
+      required: true,
+      message: t("proxy.form.formItem.httpPassword.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "transport.useEncryption": [
-    { required: true, message: "请选择是否加密传输", trigger: "blur" }
+    {
+      required: true,
+      message: t("proxy.form.formItem.transportUseEncryption.requireMessage"),
+      trigger: "blur"
+    }
   ],
   "transport.useCompression": [
-    { required: true, message: "请选择是否压缩传输", trigger: "blur" }
+    {
+      required: true,
+      message: t("proxy.form.formItem.transportUseCompression.requireMessage"),
+      trigger: "blur"
+    }
   ]
 });
 
-/**
- * 表单dom
- */
 const editFormRef = ref<FormInstance>();
 
 const isTcp = computed(() => {
@@ -226,11 +279,9 @@ const handleGetPortCount = (portString: string) => {
 
   portRanges.forEach(range => {
     if (range.includes("-")) {
-      // 处理范围
       const [start, end] = range.split("-").map(Number);
-      count += end - start + 1; // 包括起始和结束端口
+      count += end - start + 1;
     } else {
-      // 处理单个端口
       count += 1;
     }
   });
@@ -258,9 +309,6 @@ const handleRangePort = () => {
   return false;
 };
 
-/**
- * 提交表单
- */
 const handleSubmit = async () => {
   if (!editFormRef.value) return;
   editFormRef.value.validate(valid => {
@@ -287,7 +335,7 @@ const handleSubmit = async () => {
       ) {
         ElMessage({
           type: "warning",
-          message: "请至少添加一个 子域名 / 自定义域名"
+          message: t("proxy.form.formItem.customDomains.requireMessage")
         });
         return;
       }
@@ -303,24 +351,14 @@ const handleSubmit = async () => {
   });
 };
 
-/**
- * 添加代理域名
- */
 const handleAddDomain = () => {
   editForm.value.customDomains.push("");
 };
 
-/**
- * 删除代理列表
- * @param index
- */
 const handleDeleteDomain = (index: number) => {
   editForm.value.customDomains.splice(index, 1);
 };
 
-/**
- * 加载代理
- */
 const handleLoadProxies = () => {
   send(ipcRouters.PROXY.getAllProxies);
 };
@@ -329,18 +367,11 @@ const handleLoadFrpcConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
 };
 
-/**
- * 删除代理
- * @param proxy
- */
 const handleDeleteProxy = (proxy: FrpcProxy) => {
   send(ipcRouters.PROXY.deleteProxy, proxy._id);
   // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
 };
 
-/**
- * 重置表单
- */
 const handleResetForm = () => {
   editForm.value = _.cloneDeep(defaultForm);
 };
@@ -412,45 +443,12 @@ const handleOpenLocalPortDialog = () => {
 
 const handleCopyString = (str: string) => {
   const { copy, copied } = useClipboard();
-  copy(str); // 执行复制操作
+  copy(str);
   ElMessage({
     type: "success",
-    message: "复制成功"
+    message: t("proxy.message.copySuccess")
   });
 };
-
-// const handleCopyAccessAddress = (proxy: FrpcProxy) => {
-//   if (
-//     (proxy.type === "http" || proxy.type === "https") &&
-//     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
-//   ) {
-//     return;
-//   }
-//   if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
-//     return;
-//   }
-//   if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
-//     return;
-//   }
-//   let accessAddressStr = "";
-//   if (proxy.type === "http" || proxy.type === "https") {
-//     accessAddressStr = `${proxy.type}://${proxy.customDomains[0]}`;
-//   } else if (proxy.type === "tcp" || proxy.type === "udp") {
-//     accessAddressStr = `${frpcConfig.value.serverAddr}:${proxy.remotePort}`;
-//   } else if (
-//     proxy.type === "stcp" ||
-//     proxy.type === "xtcp" ||
-//     proxy.type === "sudp"
-//   ) {
-//     accessAddressStr = `${proxy.bindAddr}:${proxy.bindPort}`;
-//   }
-//   const { copy, copied } = useClipboard();
-//   copy(accessAddressStr); // 执行复制操作
-//   ElMessage({
-//     type: "success",
-//     message: "复制成功"
-//   });
-// };
 
 interface RestaurantItem {
   value: string;
@@ -462,9 +460,7 @@ const handleAutocompleteIP = (input: string) => {
   const parts = input.split(".").map(part => part.trim());
 
   const possibleIPs = [];
-  // 根据输入的部分生成可能的 IP 地址
   if (parts.length === 1 && /^[0-9]{1,3}$/.test(parts[0])) {
-    // 只有一个部分，例如 "192"
     for (let i = 0; i <= 255; i++) {
       possibleIPs.push({ value: `${parts[0]}.${i}.0.1` });
     }
@@ -473,7 +469,6 @@ const handleAutocompleteIP = (input: string) => {
     /^[0-9]{1,3}$/.test(parts[0]) &&
     /^[0-9]{1,3}$/.test(parts[1])
   ) {
-    // 两个部分，例如 "192.168"
     for (let i = 0; i <= 255; i++) {
       possibleIPs.push({ value: `${parts[0]}.${parts[1]}.${i}.1` });
     }
@@ -483,7 +478,6 @@ const handleAutocompleteIP = (input: string) => {
     /^[0-9]{1,3}$/.test(parts[1]) &&
     /^[0-9]{1,3}$/.test(parts[2])
   ) {
-    // 三个部分，例如 "192.168.1"
     for (let i = 1; i <= 255; i++) {
       possibleIPs.push({ value: `${parts[0]}.${parts[1]}.${parts[2]}.${i}` });
     }
@@ -494,8 +488,7 @@ const handleAutocompleteIP = (input: string) => {
     /^[0-9]{1,3}$/.test(parts[2]) &&
     /^[0-9]{1,3}$/.test(parts[3])
   ) {
-    // 四个部分，例如 "192.168.1.1"
-    possibleIPs.push({ value: input }); // 如果输入了完整的 IP，直接返回
+    possibleIPs.push({ value: input });
   }
   return possibleIPs;
 };
@@ -873,13 +866,6 @@ onUnmounted(() => {
                               : t("common.enable")
                           }}
                         </el-dropdown-item>
-                        <!--<el-dropdown-item
-                          v-if="allowCopyAccessAddress(proxy)"
-                          @click="handleCopyAccessAddress(proxy)"
-                        >
-                          <IconifyIconOffline class="mr-1" icon="link" />
-                          复制访问地址
-                        </el-dropdown-item>-->
                         <el-dropdown-item @click="handleDeleteProxy(proxy)">
                           <IconifyIconOffline
                             class="mr-1"
@@ -1311,25 +1297,6 @@ onUnmounted(() => {
                     }
                   ]"
                 >
-                  <!-- <template #label>
-                  <div class="flex items-center h-full mr-1">
-                    <el-popover width="310" placement="top" trigger="hover">
-                      <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]"
-                          >transport.tls.trustedCaFile</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  CA 证书文件：
-                </template> -->
                   <el-input
                     class="button-input"
                     v-model="editForm.https2httpCaFile"
@@ -1369,25 +1336,6 @@ onUnmounted(() => {
                     }
                   ]"
                 >
-                  <!-- <template #label>
-                  <div class="flex items-center h-full mr-1">
-                    <el-popover width="310" placement="top" trigger="hover">
-                      <template #default>
-                        对应参数：<span class="font-black text-[#5A3DAA]"
-                          >transport.tls.trustedCaFile</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  CA 证书文件：
-                </template> -->
                   <el-input
                     class="cursor-pointer button-input"
                     v-model="editForm.https2httpKeyFile"
@@ -1551,7 +1499,11 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </template>
-                <el-input type="text" v-model="editForm.fallbackTo" />
+                <el-input
+                  type="text"
+                  v-model="editForm.fallbackTo"
+                  :placeholder="t('proxy.form.formItem.fallbackTo.placeholder')"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -1777,7 +1729,12 @@ onUnmounted(() => {
     </el-drawer>
     <!--    </el-dialog>-->
 
-    <el-dialog v-model="listPortsVisible" title="内网端口" width="600" top="5%">
+    <el-dialog
+      v-model="listPortsVisible"
+      :title="t('proxy.dialog.listPorts.title')"
+      width="600"
+      top="5%"
+    >
       <el-table
         :data="localPorts"
         stripe
@@ -1785,10 +1742,21 @@ onUnmounted(() => {
         border
         height="400"
       >
-        <el-table-column label="协议" :width="60" prop="protocol" />
-        <el-table-column label="IP" prop="ip" />
-        <el-table-column label="端口" :width="80" prop="port" />
-        <el-table-column label="操作" :width="80">
+        <el-table-column
+          :label="t('proxy.dialog.listPorts.table.columns.protocol')"
+          :width="60"
+          prop="protocol"
+        />
+        <el-table-column
+          :label="t('proxy.dialog.listPorts.table.columns.ip')"
+          prop="ip"
+        />
+        <el-table-column
+          :label="t('proxy.dialog.listPorts.table.columns.port')"
+          :width="80"
+          prop="port"
+        />
+        <el-table-column :label="t('common.operation')" :width="100">
           <template #default="scope">
             <el-button
               type="text"
@@ -1798,7 +1766,7 @@ onUnmounted(() => {
                 class="mr-2 cursor-pointer"
                 icon="gesture-select"
               />
-              选择
+              {{ t("common.select") }}
             </el-button>
           </template>
         </el-table-column>

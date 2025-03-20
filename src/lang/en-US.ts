@@ -305,7 +305,19 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
-
+    dialog: {
+      listPorts: {
+        title: "Inner Port",
+        description: "Inner Port List",
+        table: {
+          columns: {
+            protocol: "Protocol",
+            ip: "IP",
+            port: "Port"
+          }
+        }
+      }
+    },
     form: {
       editTitle: "Edit Proxy",
       addTitle: "Add Proxy",
@@ -417,7 +429,8 @@ export default {
           label: "Fallback STCP Proxy Name",
           requireMessage: "Please enter fallback STCP proxy name",
           description:
-            "When xtcp hole punching fails, it will fall back to using stcp-visitor to establish a connection"
+            "When xtcp hole punching fails, it will fall back to using stcp-visitor to establish a connection",
+          placeholder: "STCP visitor proxy name"
         },
         fallbackTimeoutMs: {
           label: "Fallback Timeout Ms",
@@ -441,6 +454,8 @@ export default {
     save: "Save",
     close: "Close",
     mode: "Mode",
-    frpParameter: "Frp Parameter"
+    frpParameter: "Frp Parameter",
+    operation: "Operation",
+    select: "Select"
   }
 };

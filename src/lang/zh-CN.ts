@@ -325,7 +325,9 @@ export default {
     enabled: "已启用",
     close: "关闭",
     save: "保存",
-    mode: "模式"
+    mode: "模式",
+    selectMode: "请选择{mode}模式",
+    operation: "操作"
   },
   proxy: {
     inner: "内网",
@@ -334,6 +336,23 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
+    message: {
+      copySuccess: "复制成功"
+    },
+    dialog: {
+      listPorts: {
+        title: "内网端口",
+        description: "内网端口列表",
+        table: {
+          columns: {
+            protocol: "协议",
+            ip: "IP",
+            port: "端口",
+            operation: "操作"
+          }
+        }
+      }
+    },
 
     form: {
       editDialog: {
@@ -365,15 +384,18 @@ export default {
         },
         localIP: {
           label: "内网地址",
-          requireMessage: "请输入内网地址"
+          requireMessage: "请输入内网地址",
+          patternMessage: "请输入正确的内网地址"
         },
         localPort: {
           label: "内网端口",
-          requireMessage: "请输入内网端口"
+          requireMessage: "请输入内网端口",
+          patternMessage: "请输入正确的内网端口"
         },
         remotePort: {
           label: "外网端口",
-          requireMessage: "请输入外网端口"
+          requireMessage: "请输入外网端口",
+          patternMessage: "请输入正确的外网端口"
         },
         subdomain: {
           label: "子域名",
@@ -381,7 +403,7 @@ export default {
         },
         customDomains: {
           label: "自定义域名",
-          requireMessage: "请输入自定义域名"
+          requireMessage: "请至少添加一个 子域名 / 自定义域名"
         },
         basicAuth: {
           label: "HTTP基本认证",
@@ -403,6 +425,7 @@ export default {
         bindPort: {
           label: "绑定端口",
           requireMessage: "请输入绑定端口",
+          patternMessage: "请输入正确的绑定端口",
           description:
             "要将被访问者的服务绑定到本地哪个<span class='font-black text-[#5A3DAA]'>端口</span><br />请自行确保端口未被占用"
         },
@@ -419,6 +442,7 @@ export default {
         bindAddr: {
           label: "绑定地址",
           requireMessage: "请输入绑定地址",
+          patternMessage: "请输入正确的绑定地址",
           description:
             "要将被访问者的服务绑定到本地哪个<span class='font-black text-[#5A3DAA]'>IP</span> <br /> 仅本机访问：<span class='font-black text-[#5A3DAA]'>127.0.0.1</span> <br /> 支持局域网其他设备访问：<span class='font-black text-[#5A3DAA]'>0.0.0.0</span>"
         },
@@ -436,7 +460,7 @@ export default {
         serverName: {
           label: "提供者代理名称",
           requireMessage: "请输入提供者代理名称",
-          placeholder: "stcp提供者代理名称"
+          placeholder: "提供者代理名称"
         },
         keepTunnelOpen: {
           label: "保持隧道开启",
@@ -446,7 +470,8 @@ export default {
         fallbackTo: {
           label: "回退stcp代理名称",
           requireMessage: "请输入回退stcp代理名称",
-          description: "当 xtcp 打洞失败时，会回退到使用 stcp-visitor 建立连接"
+          description: "当 xtcp 打洞失败时，会回退到使用 stcp-visitor 建立连接",
+          placeholder: "STCP 访问者代理名称"
         },
         fallbackTimeoutMs: {
           label: "回退超时毫秒",
