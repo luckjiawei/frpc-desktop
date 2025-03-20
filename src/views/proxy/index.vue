@@ -88,11 +88,11 @@ const hasPlugin = ref(false);
 
 const visitorsModels = ref([
   {
-    label: "访问者",
+    label: t("proxy.visitors"),
     value: "visitors"
   },
   {
-    label: "被访问者",
+    label: t("proxy.visitorsProvider"),
     value: "visitorsProvider"
   }
 ]);
@@ -358,7 +358,7 @@ const handleOpenUpdate = (proxy: FrpcProxy) => {
   //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
   // }
   edit.value = {
-    title: "修改代理",
+    title: t("proxy.form.editDialog.title"),
     visible: true
   };
 };
@@ -900,7 +900,7 @@ onUnmounted(() => {
         v-else
         class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
       >
-        <el-empty description="暂无代理" />
+        <el-empty :description="t('proxy.form.noProxy')" />
       </div>
     </div>
 
@@ -927,7 +927,10 @@ onUnmounted(() => {
       >
         <el-row :gutter="10">
           <el-col :span="24">
-            <el-form-item label="代理类型：" prop="type">
+            <el-form-item
+              :label="t('proxy.form.formItem.proxyType.label')"
+              prop="type"
+            >
               <el-radio-group
                 v-model="editForm.type"
                 @change="handleProxyTypeChange"
@@ -943,13 +946,13 @@ onUnmounted(() => {
           </el-col>
           <el-col :span="24">
             <div class="flex justify-between h3">
-              <div>基础配置</div>
+              <div>{{ t("proxy.form.title.basicConfig") }}</div>
             </div>
           </el-col>
           <template v-if="isStcp || isSudp || isXtcp">
             <el-col :span="12">
               <el-form-item
-                :label="`${editForm.type}模式：`"
+                :label="`${editForm.type.toUpperCase()}${t('common.mode')}`"
                 prop="visitorsModel"
               >
                 <el-radio-group v-model="editForm.visitorsModel">
@@ -963,7 +966,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="共享密钥：" prop="secretKey">
+              <el-form-item
+                :label="t('proxy.form.formItem.secretKey.label')"
+                prop="secretKey"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -984,25 +990,28 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      共享密钥：
+                      {{ t("proxy.form.formItem.secretKey.label") }}
                     </div>
                   </div>
                 </template>
                 <el-input
                   type="password"
                   v-model="editForm.secretKey"
-                  placeholder="密钥"
+                  :placeholder="t('proxy.form.formItem.secretKey.placeholder')"
                   :show-password="true"
                 />
               </el-form-item>
             </el-col>
           </template>
           <el-col :span="24">
-            <el-form-item label="代理名称：" prop="name">
+            <el-form-item
+              :label="t('proxy.form.formItem.name.label')"
+              prop="name"
+            >
               <el-input
                 v-model="editForm.name"
                 class="proxy-name-input"
-                placeholder="代理名称"
+                :placeholder="t('proxy.form.formItem.name.placeholder')"
                 clearable
               />
               <el-button
@@ -1015,7 +1024,7 @@ onUnmounted(() => {
                   class="mr-2 cursor-pointer"
                   icon="charger-rounded"
                 />
-                生成
+                {{ t("proxy.form.button.generateName") }}
               </el-button>
             </el-form-item>
           </el-col>
@@ -1023,7 +1032,10 @@ onUnmounted(() => {
             v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
           >
             <el-col :span="isHttp || isHttps ? 12 : isTcp || isUdp ? 24 : 12">
-              <el-form-item label="内网地址：" prop="localIP">
+              <el-form-item
+                :label="t('proxy.form.formItem.localIP.label')"
+                prop="localIP"
+              >
                 <el-autocomplete
                   v-model="editForm.localIP"
                   :fetch-suggestions="handleIpFetchSuggestions"
@@ -1038,7 +1050,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="内网端口：" prop="localPort">
+              <el-form-item
+                :label="t('proxy.form.formItem.localPort.label')"
+                prop="localPort"
+              >
                 <el-input-number
                   v-if="isHttp || isHttps"
                   placeholder="8080"
@@ -1064,14 +1079,17 @@ onUnmounted(() => {
                     class="mr-2 cursor-pointer"
                     icon="bring-your-own-ip-rounded"
                   />
-                  内网端口
+                  {{ t("proxy.form.button.localPort") }}
                 </el-button>
               </el-form-item>
             </el-col>
           </template>
           <template v-if="isTcp || isUdp">
             <el-col :span="12">
-              <el-form-item label="外网端口：" prop="remotePort">
+              <el-form-item
+                :label="t('proxy.form.formItem.remotePort.label')"
+                prop="remotePort"
+              >
                 <!--                <el-input-number-->
                 <!--                  :min="0"-->
                 <!--                  :max="65535"-->
@@ -1090,11 +1108,14 @@ onUnmounted(() => {
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
               <div class="flex justify-between h3">
-                <div>域名配置</div>
+                <div>{{ t("proxy.form.title.domainConfig") }}</div>
               </div>
             </el-col>
             <el-col :span="24">
-              <el-form-item label="子域名：" prop="subdomain">
+              <el-form-item
+                :label="t('proxy.form.formItem.subdomain.label')"
+                prop="subdomain"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -1118,7 +1139,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      子域名：
+                      {{ t("proxy.form.formItem.subdomain.label") }}
                     </div>
                   </div>
                 </template>
@@ -1135,7 +1156,9 @@ onUnmounted(() => {
               <el-form-item
                 v-for="(d, di) in editForm.customDomains"
                 :key="'domain' + di"
-                :label="di === 0 ? '自定义域名：' : ''"
+                :label="
+                  di === 0 ? t('proxy.form.formItem.customDomains.label') : ''
+                "
                 :prop="`customDomains.${di}`"
                 :rules="[
                   // {
@@ -1170,7 +1193,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      自定义域名：
+                      {{ t("proxy.form.formItem.customDomains.label") }}
                     </div>
                   </div>
                 </template>
@@ -1201,12 +1224,12 @@ onUnmounted(() => {
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
               <div class="flex justify-between h3">
-                <div>其他代理配置</div>
+                <div>{{ t("proxy.form.title.otherConfig") }}</div>
               </div>
             </el-col>
             <el-col :span="24">
               <el-form-item
-                label="HTTP基本认证："
+                :label="t('proxy.form.formItem.basicAuth.label')"
                 prop="basicAuth"
                 label-position="left"
               >
@@ -1219,7 +1242,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12" v-if="editForm.basicAuth">
-              <el-form-item label="认证用户名：" prop="httpUser">
+              <el-form-item
+                :label="t('proxy.form.formItem.httpUser.label')"
+                prop="httpUser"
+              >
                 <el-input
                   class="w-full"
                   placeholder="httpUser"
@@ -1228,7 +1254,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12" v-if="editForm.basicAuth">
-              <el-form-item label="认证密码：" prop="httpPassword">
+              <el-form-item
+                :label="t('proxy.form.formItem.httpPassword.label')"
+                prop="httpPassword"
+              >
                 <el-input
                   type="password"
                   class="w-full"
@@ -1242,13 +1271,13 @@ onUnmounted(() => {
           <template v-if="hasPlugin">
             <el-col :span="24" v-if="hasPlugin">
               <div class="flex justify-between h3">
-                <div>插件配置</div>
+                <div>{{ t("proxy.form.title.pluginConfig") }}</div>
               </div>
             </el-col>
             <template v-if="isHttps">
               <el-col :span="24">
                 <el-form-item
-                  label="https2http："
+                  label="https2http"
                   prop="https2http"
                   label-position="left"
                   :rules="[
@@ -1259,9 +1288,9 @@ onUnmounted(() => {
                   ]"
                 >
                   <el-switch
-                    active-text="开"
+                    :active-text="t('common.enable')"
                     inline-prompt
-                    inactive-text="关"
+                    :inactive-text="t('common.disable')"
                     v-model="editForm.https2http"
                   />
                 </el-form-item>
@@ -1269,13 +1298,15 @@ onUnmounted(() => {
 
               <el-col :span="24" v-if="editForm.https2http">
                 <el-form-item
-                  label="证书文件："
+                  :label="t('proxy.form.formItem.https2httpCaFile.label')"
                   prop="https2httpCaFile"
                   label-width="180"
                   :rules="[
                     {
                       required: true,
-                      message: '证书文件不能为空',
+                      message: t(
+                        'proxy.form.formItem.https2httpCaFile.requireMessage'
+                      ),
                       trigger: 'blur'
                     }
                   ]"
@@ -1302,7 +1333,9 @@ onUnmounted(() => {
                   <el-input
                     class="button-input"
                     v-model="editForm.https2httpCaFile"
-                    placeholder="点击选择证书文件"
+                    :placeholder="
+                      t('proxy.form.formItem.https2httpCaFile.placeholder')
+                    "
                     readonly
                     @click="handleSelectFile(1, ['crt', 'pem'])"
                   />
@@ -1317,19 +1350,21 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     @click="editForm.https2httpCaFile = ''"
-                    >清除
+                    >{{ t("common.clear") }}
                   </el-button>
                 </el-form-item>
               </el-col>
               <el-col :span="24" v-if="editForm.https2http">
                 <el-form-item
-                  label="密钥文件："
+                  :label="t('proxy.form.formItem.https2httpKeyFile.label')"
                   prop="https2httpKeyFile"
                   label-width="180"
                   :rules="[
                     {
                       required: true,
-                      message: '密钥文件不能为空',
+                      message: t(
+                        'proxy.form.formItem.https2httpKeyFile.requireMessage'
+                      ),
                       trigger: 'blur'
                     }
                   ]"
@@ -1356,7 +1391,9 @@ onUnmounted(() => {
                   <el-input
                     class="cursor-pointer button-input"
                     v-model="editForm.https2httpKeyFile"
-                    placeholder="点击选择密钥文件"
+                    :placeholder="
+                      t('proxy.form.formItem.https2httpKeyFile.placeholder')
+                    "
                     readonly
                     @click="handleSelectFile(2, ['key'])"
                   />
@@ -1371,7 +1408,7 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     @click="editForm.https2httpKeyFile = ''"
-                    >清除
+                    >{{ t("common.clear") }}
                   </el-button>
                 </el-form-item>
               </el-col>
@@ -1379,16 +1416,22 @@ onUnmounted(() => {
           </template>
           <template v-if="isStcpVisitors">
             <el-col :span="24">
-              <el-form-item label="被访问者代理名称：" prop="serverName">
+              <el-form-item
+                :label="t('proxy.form.formItem.serverName.label')"
+                prop="serverName"
+              >
                 <el-input
                   type="text"
                   v-model="editForm.serverName"
-                  placeholder="stcp被访问者代理名称"
+                  :placeholder="t('proxy.form.formItem.serverName.placeholder')"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="绑定地址：" prop="bindAddr">
+              <el-form-item
+                :label="t('proxy.form.formItem.bindAddr.label')"
+                prop="bindAddr"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -1422,7 +1465,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      绑定地址：
+                      {{ t("proxy.form.formItem.bindAddr.label") }}
                     </div>
                   </div>
                 </template>
@@ -1434,7 +1477,10 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="绑定端口：" prop="bindPort">
+              <el-form-item
+                :label="t('proxy.form.formItem.bindPort.label')"
+                prop="bindPort"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -1460,7 +1506,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      绑定端口：
+                      {{ t("proxy.form.formItem.bindPort.label") }}：
                     </div>
                   </div>
                 </template>
@@ -1478,7 +1524,7 @@ onUnmounted(() => {
           <template v-if="isXtcp && isStcpVisitors">
             <el-col :span="24">
               <div class="flex justify-between h3">
-                <div>其他配置</div>
+                <div>{{ t("proxy.form.title.otherConfig") }}</div>
               </div>
             </el-col>
             <el-col :span="12">
@@ -1607,12 +1653,12 @@ onUnmounted(() => {
           <template v-if="!isStcpVisitors">
             <el-col :span="24">
               <div class="flex justify-between h3">
-                <div>代理传输配置</div>
+                <div>{{ t("proxy.form.title.proxyTransportConfig") }}</div>
               </div>
             </el-col>
             <el-col :span="12">
               <el-form-item
-                label="压缩传输："
+                :label="t('proxy.form.formItem.transportUseCompression.label')"
                 prop="transport.useCompression"
                 label-position="left"
               >
@@ -1636,21 +1682,23 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      压缩传输：
+                      {{
+                        t("proxy.form.formItem.transportUseCompression.label")
+                      }}
                     </div>
                   </div>
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.enable')"
                   inline-prompt
-                  inactive-text="关"
+                  :inactive-text="t('common.disable')"
                   v-model="editForm.transport.useCompression"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item
-                label="加密传输："
+                :label="t('proxy.form.formItem.transportUseEncryption.label')"
                 prop="transport.useEncryption"
                 label-position="left"
               >
@@ -1674,14 +1722,16 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      加密传输：
+                      {{
+                        t("proxy.form.formItem.transportUseEncryption.label")
+                      }}
                     </div>
                   </div>
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.enable')"
                   inline-prompt
-                  inactive-text="关"
+                  :inactive-text="t('common.disable')"
                   v-model="editForm.transport.useEncryption"
                 />
               </el-form-item>
@@ -1696,14 +1746,14 @@ onUnmounted(() => {
                     class="mr-2 cursor-pointer"
                     icon="cancel-presentation"
                   />
-                  关 闭
+                  {{ t("common.close") }}
                 </el-button>
                 <el-button plain type="primary" @click="handleSubmit">
                   <IconifyIconOffline
                     class="mr-2 cursor-pointer"
                     icon="save-rounded"
                   />
-                  保 存
+                  {{ t("common.save") }}
                 </el-button>
               </div>
             </el-form-item>

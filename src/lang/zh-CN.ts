@@ -317,10 +317,121 @@ export default {
     yes: "是",
     no: "否",
     edit: "编辑",
-    delete: "删除"
+    delete: "删除",
+    more: "更多",
+    disable: "禁用",
+    enable: "启用",
+    disabled: "已禁用",
+    enabled: "已启用",
+    close: "关闭",
+    save: "保存",
+    mode: "模式"
   },
   proxy: {
     inner: "内网",
-    mappingAddress: "映射地址"
+    mappingAddress: "映射地址",
+    visitors: "访问者",
+    visitorsProvider: "提供者",
+    visitorsName: "访问者名称",
+    noProxy: "暂无代理",
+
+    form: {
+      editDialog: {
+        title: "编辑代理"
+      },
+
+      title: {
+        basicConfig: "基础配置",
+        domainConfig: "域名配置",
+        proxyTransportConfig: "代理传输配置",
+        customConfig: "自定义配置",
+        pluginConfig: "插件配置",
+        otherConfig: "其他代理配置",
+        editDialog: "编辑代理"
+      },
+      button: {
+        localPort: "本机端口",
+        generateName: "生成"
+      },
+      formItem: {
+        proxyType: {
+          label: "代理类型",
+          requireMessage: "请选择代理类型"
+        },
+        name: {
+          label: "代理名称",
+          requireMessage: "请输入代理名称",
+          placeholder: "请输入代理名称"
+        },
+        localIP: {
+          label: "内网地址",
+          requireMessage: "请输入内网地址"
+        },
+        localPort: {
+          label: "内网端口",
+          requireMessage: "请输入内网端口"
+        },
+        remotePort: {
+          label: "外网端口",
+          requireMessage: "请输入外网端口"
+        },
+        subdomain: {
+          label: "子域名",
+          requireMessage: "请输入子域名"
+        },
+        customDomains: {
+          label: "自定义域名",
+          requireMessage: "请输入自定义域名"
+        },
+        basicAuth: {
+          label: "HTTP基本认证",
+          requireMessage: "请选择是否开启HTTP基本认证"
+        },
+        httpUser: {
+          label: "认证用户名",
+          requireMessage: "请输入认证用户名"
+        },
+        httpPassword: {
+          label: "认证密码",
+          requireMessage: "请输入认证密码"
+        },
+        https2httpCaFile: {
+          label: "证书文件",
+          requireMessage: "请选择证书文件",
+          placeholder: "点击选择证书文件"
+        },
+        bindPort: {
+          label: "绑定端口",
+          requireMessage: "请输入绑定端口"
+        },
+        transportUseEncryption: {
+          label: "加密传输",
+          requireMessage: "请选择是否开启加密传输"
+        },
+        transportUseCompression: {
+          label: "压缩传输",
+          requireMessage: "请选择是否开启压缩传输"
+        },
+        bindAddr: {
+          label: "绑定地址",
+          requireMessage: "请输入绑定地址"
+        },
+        secretKey: {
+          label: "共享密钥",
+          placeholder: "共享密钥",
+          requireMessage: "请输入共享密钥"
+        },
+        https2httpKeyFile: {
+          label: "密钥文件",
+          requireMessage: "请选择密钥文件",
+          placeholder: "点击选择密钥文件"
+        },
+        serverName: {
+          label: "提供者代理名称",
+          requireMessage: "请输入提供者代理名称",
+          placeholder: "stcp提供者代理名称"
+        }
+      }
+    }
   }
 };
