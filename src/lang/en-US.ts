@@ -307,9 +307,8 @@ export default {
     noProxy: "No proxy",
 
     form: {
-      editDialog: {
-        title: "Edit Proxy"
-      },
+      editTitle: "Edit Proxy",
+      addTitle: "Add Proxy",
 
       title: {
         basicConfig: "Basic Configuration",
@@ -373,24 +372,31 @@ export default {
         },
         bindPort: {
           label: "Bind Port",
-          requireMessage: "Please enter bind port"
+          requireMessage: "Please enter bind port",
+          description: "Bind the service of the visitor to which port"
         },
         transportUseEncryption: {
           label: "Encryption",
-          requireMessage: "Please select whether to enable encryption"
+          requireMessage: "Please select whether to enable encryption",
+          description: "Enable encryption for this proxy"
         },
         transportUseCompression: {
           label: "Compression",
-          requireMessage: "Please select whether to enable compression"
+          requireMessage: "Please select whether to enable compression",
+          description: "Enable compression for this proxy"
         },
         bindAddr: {
           label: "Bind Address",
-          requireMessage: "Please enter bind address"
+          requireMessage: "Please enter bind address",
+          description:
+            "To bind the service of the visitor to which <span class='font-black text-[#5A3DAA]'>IP</span> <br /> Only local access: <span class='font-black text-[#5A3DAA]'>127.0.0.1</span> <br /> Support LAN other devices access: <span class='font-black text-[#5A3DAA]'>0.0.0.0</span>"
         },
         secretKey: {
           label: "Secret Key",
           placeholder: "Secret key",
-          requireMessage: "Please enter secret key"
+          requireMessage: "Please enter secret key",
+          description:
+            "Only users with the same secret key as the visitor and provider can access this service"
         },
         https2httpKeyFile: {
           label: "Key File",
@@ -404,15 +410,20 @@ export default {
         },
         keepTunnelOpen: {
           label: "Keep Tunnel Open",
-          requireMessage: "Please select whether to keep tunnel open"
+          requireMessage: "Please select whether to keep tunnel open",
+          description: "Keep the tunnel open even if there is no traffic"
         },
         fallbackTo: {
           label: "Fallback STCP Proxy Name",
-          requireMessage: "Please enter fallback STCP proxy name"
+          requireMessage: "Please enter fallback STCP proxy name",
+          description:
+            "When xtcp hole punching fails, it will fall back to using stcp-visitor to establish a connection"
         },
         fallbackTimeoutMs: {
           label: "Fallback Timeout Ms",
-          requireMessage: "Please enter fallback timeout ms"
+          requireMessage: "Please enter fallback timeout ms",
+          description:
+            "xtcp hole punching time exceeds this time will fall back to using stcp-visitor to establish a connection 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
         }
       }
     }
@@ -429,6 +440,7 @@ export default {
     enabled: "Enabled",
     save: "Save",
     close: "Close",
-    mode: "Mode"
+    mode: "Mode",
+    frpParameter: "Frp Parameter"
   }
 };

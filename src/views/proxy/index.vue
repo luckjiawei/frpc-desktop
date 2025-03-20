@@ -38,7 +38,7 @@ const listPortsVisible = ref(false);
  * 弹出层属性
  */
 const edit = ref({
-  title: "新增代理",
+  title: t("proxy.addTitle"),
   visible: false
 });
 
@@ -358,7 +358,7 @@ const handleOpenUpdate = (proxy: FrpcProxy) => {
   //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
   // }
   edit.value = {
-    title: t("proxy.form.editDialog.title"),
+    title: t("proxy.editTitle"),
     visible: true
   };
 };
@@ -604,14 +604,14 @@ onMounted(() => {
     handleLoadProxies();
     ElMessage({
       type: "success",
-      message: "删除成功"
+      message: t("common.deleteSuccess")
     });
   });
 
   on(ipcRouters.PROXY.modifyProxyStatus, () => {
     ElMessage({
       type: "success",
-      message: "修改成功"
+      message: t("common.modifySuccess")
     });
     // handleResetForm();
     handleLoadProxies();
@@ -663,7 +663,7 @@ onUnmounted(() => {
           <el-col
             v-for="proxy in proxys"
             :key="proxy._id"
-            :lg="6"
+            :lg="8"
             :md="8"
             :sm="12"
             :xl="6"
@@ -702,7 +702,7 @@ onUnmounted(() => {
                         proxy.type === 'sudp') &&
                       proxy.visitorsModel === 'visitorsProvider'
                     "
-                    >被访问者
+                    >{{ t("proxy.visitorsProvider") }}
                   </el-tag>
                   <el-tag
                     v-if="proxy.status === 0"
@@ -976,10 +976,11 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >secretKey</span
                             >
-                            只有访问者与被访问者共享密钥一致的用户才能访问该服务
+                            {{ t("proxy.form.formItem.secretKey.description") }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1055,6 +1056,7 @@ onUnmounted(() => {
                   <el-input-number
                     v-if="isHttp || isHttps"
                     placeholder="8080"
+                    class="w-full"
                     :min="0"
                     :max="65535"
                     v-model="editForm.localPort"
@@ -1119,10 +1121,11 @@ onUnmounted(() => {
                         <el-popover
                           placement="top"
                           trigger="hover"
-                          :width="180"
+                          :width="200"
                         >
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >subdomain</span
                             >
                           </template>
@@ -1174,9 +1177,10 @@ onUnmounted(() => {
                   <div class="inline-block">
                     <div class="flex items-center">
                       <div class="mr-1">
-                        <el-popover placement="top" trigger="hover">
+                        <el-popover placement="top" trigger="hover" width="240">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >customDomains</span
                             >
                           </template>
@@ -1434,23 +1438,15 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >bindAddr</span
                             >
-                            要将被访问者的服务绑定到本地哪个<span
-                              class="font-black text-[#5A3DAA]"
-                              >IP</span
-                            >
-                            <br />
-                            仅本机访问：<span class="font-black text-[#5A3DAA]"
-                              >127.0.0.1</span
-                            >
-                            <br />
-                            支持局域网其他设备访问：<span
-                              class="font-black text-[#5A3DAA]"
-                              >0.0.0.0</span
-                            >
-                            <br />
+                            <div
+                              v-html="
+                                t('proxy.form.formItem.bindAddr.description')
+                              "
+                            ></div>
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1483,15 +1479,15 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >bindAddr</span
                             >
-                            要将被访问者的服务绑定到本地哪个<span
-                              class="font-black text-[#5A3DAA]"
-                              >端口</span
-                            >
-                            <br />
-                            请自行确保端口未被占用
+                            <div
+                              v-html="
+                                t('proxy.form.formItem.bindPort.description')
+                              "
+                            ></div>
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1534,11 +1530,13 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >fallbackTo</span
                             >
-                            <br />
-                            xtcp 打洞失败会回退到使用 stcp-visitor 建立连接
+                            {{
+                              t("proxy.form.formItem.fallbackTo.description")
+                            }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1567,15 +1565,17 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >fallbackTimeoutMs</span
                             >
-                            <br />
-                            xtcp 打洞时间超过该时间会回退到使用 stcp-visitor
-                            建立连接 单位：<span
-                              class="font-black text-[#5A3DAA]"
-                              >毫秒</span
-                            >
+                            <div
+                              v-html="
+                                t(
+                                  'proxy.form.formItem.fallbackTimeoutMs.description'
+                                )
+                              "
+                            ></div>
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1620,10 +1620,15 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >keepTunnelOpen</span
                             >
-                            开启后，即使没有流量通过会保持隧道(即连接)打开。
+                            {{
+                              t(
+                                "proxy.form.formItem.keepTunnelOpen.description"
+                              )
+                            }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1667,10 +1672,15 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >transport.useCompression</span
                             >
-                            开启后，此代理的流量将被压缩。
+                            {{
+                              t(
+                                "proxy.form.formItem.transportUseCompression.description"
+                              )
+                            }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1707,10 +1717,15 @@ onUnmounted(() => {
                       <div class="mr-1">
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
-                            对应参数：<span class="font-black text-[#5A3DAA]"
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
                               >transport.useEncryption</span
                             >
-                            开启后，此代理的流量将被加密传输。
+                            {{
+                              t(
+                                "proxy.form.formItem.transportUseEncryption.description"
+                              )
+                            }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline

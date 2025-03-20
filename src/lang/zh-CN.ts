@@ -402,24 +402,31 @@ export default {
         },
         bindPort: {
           label: "绑定端口",
-          requireMessage: "请输入绑定端口"
+          requireMessage: "请输入绑定端口",
+          description:
+            "要将被访问者的服务绑定到本地哪个<span class='font-black text-[#5A3DAA]'>端口</span><br />请自行确保端口未被占用"
         },
         transportUseEncryption: {
           label: "加密传输",
-          requireMessage: "请选择是否开启加密传输"
+          requireMessage: "请选择是否开启加密传输",
+          description: "开启后，此代理的流量将被加密"
         },
         transportUseCompression: {
           label: "压缩传输",
-          requireMessage: "请选择是否开启压缩传输"
+          requireMessage: "请选择是否开启压缩传输",
+          description: "开启后，此代理的流量将被压缩"
         },
         bindAddr: {
           label: "绑定地址",
-          requireMessage: "请输入绑定地址"
+          requireMessage: "请输入绑定地址",
+          description:
+            "要将被访问者的服务绑定到本地哪个<span class='font-black text-[#5A3DAA]'>IP</span> <br /> 仅本机访问：<span class='font-black text-[#5A3DAA]'>127.0.0.1</span> <br /> 支持局域网其他设备访问：<span class='font-black text-[#5A3DAA]'>0.0.0.0</span>"
         },
         secretKey: {
           label: "共享密钥",
           placeholder: "共享密钥",
-          requireMessage: "请输入共享密钥"
+          requireMessage: "请输入共享密钥",
+          description: "只有访问者与被访问者共享密钥一致的用户才能访问该服务"
         },
         https2httpKeyFile: {
           label: "密钥文件",
@@ -433,15 +440,19 @@ export default {
         },
         keepTunnelOpen: {
           label: "保持隧道开启",
-          requireMessage: "请选择是否保持隧道开启"
+          requireMessage: "请选择是否保持隧道开启",
+          description: "开启后，即使没有流量通过会保持隧道(即连接)打开。"
         },
         fallbackTo: {
           label: "回退stcp代理名称",
-          requireMessage: "请输入回退stcp代理名称"
+          requireMessage: "请输入回退stcp代理名称",
+          description: "当 xtcp 打洞失败时，会回退到使用 stcp-visitor 建立连接"
         },
         fallbackTimeoutMs: {
           label: "回退超时毫秒",
-          requireMessage: "请输入回退超时毫秒"
+          requireMessage: "请输入回退超时毫秒",
+          description:
+            "xtcp 打洞时间超过该时间会回退到使用 stcp-visitor 建立连接 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
         }
       }
     }
