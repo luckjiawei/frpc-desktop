@@ -677,18 +677,13 @@ onUnmounted(() => {
               class="flex items-center justify-between w-full h-full p-4 bg-white rounded left-border drop-shadow animate__animated"
             >
               <div class="left">
-                <div class="flex items-center justify-center mb-2">
+                <div class="flex items-center">
                   <span class="mr-2 font-bold text-primary">{{
                     proxy.name
                   }}</span>
+                </div>
+                <div class="mb-1">
                   <el-tag size="small">{{ proxy.type }}</el-tag>
-                  <el-tag
-                    v-if="proxy.status === 0"
-                    class="ml-2"
-                    type="danger"
-                    size="small"
-                    >已禁用
-                  </el-tag>
                   <el-tag
                     v-if="
                       (proxy.type === 'stcp' ||
@@ -711,6 +706,13 @@ onUnmounted(() => {
                       proxy.visitorsModel === 'visitorsProvider'
                     "
                     >被访问者
+                  </el-tag>
+                  <el-tag
+                    v-if="proxy.status === 0"
+                    class="ml-2"
+                    type="danger"
+                    size="small"
+                    >已禁用
                   </el-tag>
                 </div>
                 <div class="h-[36px]">
@@ -850,7 +852,7 @@ onUnmounted(() => {
                     @click="handleOpenUpdate(proxy)"
                   >
                     <IconifyIconOffline class="mr-1" icon="edit" />
-                    修改
+                    编辑
                   </el-button>
                   <el-dropdown>
                     <el-button type="text" size="small">
