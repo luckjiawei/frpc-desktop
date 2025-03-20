@@ -298,10 +298,22 @@ export default {
       }
     }
   },
+  proxy: {
+    visitors: "Visitors",
+    inner: "Inner",
+    mappingAddress: "Mapping Address",
+    visitorsName: "Visitors Name",
+    visitorsProvider: "Visitors Provider"
+  },
   common: {
     yes: "Y",
     no: "N",
     edit: "Edit",
-    delete: "Delete"
+    delete: "Delete",
+    more: "More",
+    disable: "Disable",
+    enable: "Enable",
+    disabled: "Disabled",
+    enabled: "Enabled"
   }
 };

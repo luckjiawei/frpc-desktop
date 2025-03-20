@@ -319,5 +319,8 @@ export default {
     edit: "编辑",
     delete: "删除"
   },
-  proxy: {}
+  proxy: {
+    inner: "内网",
+    mappingAddress: "映射地址"
+  }
 };

@@ -14,6 +14,7 @@ import {
   reactive,
   ref
 } from "vue";
+import { useI18n } from "vue-i18n";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import commonIps from "./commonIp.json";
 
@@ -21,13 +22,9 @@ defineComponent({
   name: "Proxy"
 });
 
-/**
- * 代理列表
- */
+const { t } = useI18n();
+
 const proxys = ref<Array<FrpcProxy>>([]);
-/**
- * loading
- */
 const loading = ref({
   list: 1,
   form: 0,
@@ -694,7 +691,7 @@ onUnmounted(() => {
                     class="ml-2"
                     size="small"
                   >
-                    访问者
+                    {{ t("proxy.visitors") }}
                   </el-tag>
                   <el-tag
                     size="small"
@@ -712,7 +709,7 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     size="small"
-                    >已禁用
+                    >{{ t("common.disabled") }}
                   </el-tag>
                 </div>
                 <div class="h-[36px]">
@@ -749,7 +746,7 @@ onUnmounted(() => {
                       proxy.visitorsModel !== 'visitors'
                     "
                   >
-                    <span>内网：</span>
+                    <span>{{ t("proxy.inner") }}：</span>
                     <span class="font-bold text-primary">
                       {{ proxy.localIP }}:{{ proxy.localPort }}
                     </span>
@@ -759,7 +756,7 @@ onUnmounted(() => {
                     class="text-[12px] cursor-pointer"
                     v-if="proxy.type === 'tcp' || proxy.type === 'udp'"
                   >
-                    <span>映射地址：</span>
+                    <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
                       class="font-bold underline cursor-pointer text-primary"
                       @click="
@@ -779,7 +776,7 @@ onUnmounted(() => {
                       proxy.customDomains.length > 0
                     "
                   >
-                    <span>映射地址：</span>
+                    <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
                       class="font-bold underline cursor-pointer text-primary"
                       @click="
@@ -802,7 +799,7 @@ onUnmounted(() => {
                       proxy.visitorsModel === 'visitors'
                     "
                   >
-                    <span>访问者名称：</span>
+                    <span>{{ t("proxy.visitorsName") }}：</span>
                     <span class="font-bold text-primary">{{
                       proxy.serverName
                     }}</span>
@@ -816,7 +813,7 @@ onUnmounted(() => {
                       proxy.visitorsModel === 'visitors'
                     "
                   >
-                    <span>映射地址：</span>
+                    <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
                       class="font-bold underline cursor-pointer text-primary"
                       @click="
@@ -854,14 +851,14 @@ onUnmounted(() => {
                     <template #icon>
                       <IconifyIconOffline icon="edit" />
                     </template>
-                    编辑
+                    {{ t("common.edit") }}
                   </el-button>
                   <el-dropdown>
                     <el-button type="text" size="small">
                       <template #icon>
                         <IconifyIconOffline icon="more-horiz" />
                       </template>
-                      更多
+                      {{ t("common.more") }}
                     </el-button>
                     <template #dropdown>
                       <el-dropdown-menu>
@@ -870,7 +867,11 @@ onUnmounted(() => {
                             class="mr-1"
                             :icon="!proxy.status ? 'toggle-on' : 'toggle-off'"
                           />
-                          {{ proxy.status ? "禁用" : "启用" }}
+                          {{
+                            proxy.status
+                              ? t("common.disable")
+                              : t("common.enable")
+                          }}
                         </el-dropdown-item>
                         <!--<el-dropdown-item
                           v-if="allowCopyAccessAddress(proxy)"
@@ -884,7 +885,7 @@ onUnmounted(() => {
                             class="mr-1"
                             icon="delete-rounded"
                           />
-                          删除
+                          {{ t("common.delete") }}
                         </el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
