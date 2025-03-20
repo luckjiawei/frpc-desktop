@@ -845,18 +845,22 @@ onUnmounted(() => {
               </div>
 
               <div class="right">
-                <div class="flex items-center">
+                <div class="flex flex-col items-center gap-1">
                   <el-button
                     type="text"
                     size="small"
                     @click="handleOpenUpdate(proxy)"
                   >
-                    <IconifyIconOffline class="mr-1" icon="edit" />
+                    <template #icon>
+                      <IconifyIconOffline icon="edit" />
+                    </template>
                     编辑
                   </el-button>
                   <el-dropdown>
                     <el-button type="text" size="small">
-                      <IconifyIconOffline class="mr-1" icon="more-horiz" />
+                      <template #icon>
+                        <IconifyIconOffline icon="more-horiz" />
+                      </template>
                       更多
                     </el-button>
                     <template #dropdown>

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
+
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
@@ -190,10 +190,12 @@ onUnmounted(() => {
                 class="flex items-center justify-between w-full p-4 bg-white rounded left-border drop-shadow animate__animated"
               >
                 <div class="left">
-                  <div class="flex items-center justify-center mb-2">
+                  <div class="flex items-center">
                     <span class="mr-2 font-bold text-primary">{{
                       version.name
                     }}</span>
+                  </div>
+                  <div class="mb-1">
                     <el-tag size="small"> {{ version.size }}</el-tag>
                   </div>
                   <div class="text-[12px]">
@@ -211,29 +213,26 @@ onUnmounted(() => {
                     }}</span>
                   </div>
                 </div>
-                <div class="right">
-                  <div v-if="version.downloaded">
-                    <div>
-                      <el-button type="text" size="small">
-                        <IconifyIconOffline class="mr-1" icon="check-box" />
-                        {{ t("download.version.downloaded") }}
-                      </el-button>
-                    </div>
-                    <div>
-                      <el-button
-                        type="text"
-                        size="small"
-                        class="danger-text"
-                        @click="handleDeleteVersion(version)"
-                      >
-                        <IconifyIconOffline
-                          class="mr-1"
-                          icon="delete-rounded"
-                        />
-                        {{ t("download.version.delete") }}
-                      </el-button>
-                    </div>
-                  </div>
+                <div class="flex flex-col items-end gap-1 right">
+                  <template v-if="version.downloaded">
+                    <el-button type="text" size="small">
+                      <template #icon>
+                        <IconifyIconOffline icon="check-box" />
+                      </template>
+                      {{ t("download.version.downloaded") }}
+                    </el-button>
+                    <el-button
+                      type="text"
+                      size="small"
+                      class="danger-text"
+                      @click="handleDeleteVersion(version)"
+                    >
+                      <template #icon>
+                        <IconifyIconOffline icon="delete-rounded" />
+                      </template>
+                      {{ t("download.version.delete") }}
+                    </el-button>
+                  </template>
 
                   <template v-else>
                     <div
@@ -251,7 +250,7 @@ onUnmounted(() => {
                       type="text"
                       @click="handleDownload(version)"
                     >
-                      <IconifyIconOffline class="mr-1" icon="download" />
+                      <IconifyIconOffline icon="download" />
                       {{ t("download.version.download") }}
                     </el-button>
                   </template>
