@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
+import { ElMessage, FormInstance, FormRules } from "element-plus";
+import _ from "lodash";
+import path from "path";
 import {
   computed,
   defineComponent,
@@ -7,15 +14,8 @@ import {
   reactive,
   ref
 } from "vue";
-import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { ElMessage, FormInstance, FormRules } from "element-plus";
-import { useClipboard, useDebounceFn } from "@vueuse/core";
-import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import commonIps from "./commonIp.json";
-import path from "path";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
-import _ from "lodash";
+import commonIps from "./commonIp.json";
 
 defineComponent({
   name: "Proxy"
@@ -324,8 +324,12 @@ const handleDeleteDomain = (index: number) => {
 /**
  * 加载代理
  */
-const handleLoadProxys = () => {
+const handleLoadProxies = () => {
   send(ipcRouters.PROXY.getAllProxies);
+};
+
+const handleLoadFrpcConfig = () => {
+  send(ipcRouters.SERVER.getServerConfig);
 };
 
 /**
@@ -390,57 +394,66 @@ const handleOpenLocalPortDialog = () => {
   handleLoadLocalPorts();
 };
 
-const allowCopyAccessAddress = (proxy: FrpcProxy) => {
-  if (
-    (proxy.type === "http" || proxy.type === "https") &&
-    (proxy.customDomains.length < 1 || !proxy.customDomains[0])
-  ) {
-    return false;
-  }
-  if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
-    return false;
-  }
-  if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
-    return false;
-  }
-  if (proxy.type === "sudp" && proxy.visitorsModel === "visitorsProvider") {
-    return false;
-  }
-  return true;
-};
+// const allowCopyAccessAddress = (proxy: FrpcProxy) => {
+//   if (
+//     (proxy.type === "http" || proxy.type === "https") &&
+//     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
+//   ) {
+//     return false;
+//   }
+//   if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
+//     return false;
+//   }
+//   if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
+//     return false;
+//   }
+//   if (proxy.type === "sudp" && proxy.visitorsModel === "visitorsProvider") {
+//     return false;
+//   }
+//   return true;
+// };
 
-const handleCopyAccessAddress = (proxy: FrpcProxy) => {
-  if (
-    (proxy.type === "http" || proxy.type === "https") &&
-    (proxy.customDomains.length < 1 || !proxy.customDomains[0])
-  ) {
-    return;
-  }
-  if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
-    return;
-  }
-  if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
-    return;
-  }
-  let accessAddressStr = "";
-  if (proxy.type === "http" || proxy.type === "https") {
-    accessAddressStr = `${proxy.type}://${proxy.customDomains[0]}`;
-  } else if (proxy.type === "tcp" || proxy.type === "udp") {
-    accessAddressStr = `${frpcConfig.value.serverAddr}:${proxy.remotePort}`;
-  } else if (
-    proxy.type === "stcp" ||
-    proxy.type === "xtcp" ||
-    proxy.type === "sudp"
-  ) {
-    accessAddressStr = `${proxy.bindAddr}:${proxy.bindPort}`;
-  }
+const handleCopyString = (str: string) => {
   const { copy, copied } = useClipboard();
-  copy(accessAddressStr); // 执行复制操作
+  copy(str); // 执行复制操作
   ElMessage({
     type: "success",
     message: "复制成功"
   });
 };
+
+// const handleCopyAccessAddress = (proxy: FrpcProxy) => {
+//   if (
+//     (proxy.type === "http" || proxy.type === "https") &&
+//     (proxy.customDomains.length < 1 || !proxy.customDomains[0])
+//   ) {
+//     return;
+//   }
+//   if (proxy.type === "stcp" && proxy.visitorsModel === "visitorsProvider") {
+//     return;
+//   }
+//   if (proxy.type === "xtcp" && proxy.visitorsModel === "visitorsProvider") {
+//     return;
+//   }
+//   let accessAddressStr = "";
+//   if (proxy.type === "http" || proxy.type === "https") {
+//     accessAddressStr = `${proxy.type}://${proxy.customDomains[0]}`;
+//   } else if (proxy.type === "tcp" || proxy.type === "udp") {
+//     accessAddressStr = `${frpcConfig.value.serverAddr}:${proxy.remotePort}`;
+//   } else if (
+//     proxy.type === "stcp" ||
+//     proxy.type === "xtcp" ||
+//     proxy.type === "sudp"
+//   ) {
+//     accessAddressStr = `${proxy.bindAddr}:${proxy.bindPort}`;
+//   }
+//   const { copy, copied } = useClipboard();
+//   copy(accessAddressStr); // 执行复制操作
+//   ElMessage({
+//     type: "success",
+//     message: "复制成功"
+//   });
+// };
 
 interface RestaurantItem {
   value: string;
@@ -538,7 +551,15 @@ const handleSelectFile = (type: number, ext: string[]) => {
 };
 
 onMounted(() => {
-  handleLoadProxys();
+  handleLoadProxies();
+  handleLoadFrpcConfig();
+
+  on(ipcRouters.SERVER.getServerConfig, data => {
+    console.log("data", data);
+    if (data) {
+      frpcConfig.value = data;
+    }
+  });
 
   on(ipcRouters.PROXY.getAllProxies, data => {
     console.log("allProxies", data);
@@ -569,7 +590,7 @@ onMounted(() => {
       message: message
     });
     handleResetForm();
-    handleLoadProxys();
+    handleLoadProxies();
     edit.value.visible = false;
     // }
   };
@@ -583,7 +604,7 @@ onMounted(() => {
   });
 
   on(ipcRouters.PROXY.deleteProxy, () => {
-    handleLoadProxys();
+    handleLoadProxies();
     ElMessage({
       type: "success",
       message: "删除成功"
@@ -596,7 +617,7 @@ onMounted(() => {
       message: "修改成功"
     });
     // handleResetForm();
-    handleLoadProxys();
+    handleLoadProxies();
     // edit.value.visible = false;
   });
 
@@ -652,187 +673,225 @@ onUnmounted(() => {
             :xs="12"
             class="mb-[15px]"
           >
-            <div class="bg-white w-full rounded drop-shadow-xl p-4">
-              <div class="w-full flex justify-between">
-                <div class="flex">
-                  <div
-                    class="w-12 h-12 rounded mr-3 flex justify-center items-center font-bold"
-                    :class="proxy.type"
+            <div
+              class="flex items-center justify-between w-full h-full p-4 bg-white rounded left-border drop-shadow animate__animated"
+            >
+              <div class="left">
+                <div class="flex items-center justify-center mb-2">
+                  <span class="mr-2 font-bold text-primary">{{
+                    proxy.name
+                  }}</span>
+                  <el-tag size="small">{{ proxy.type }}</el-tag>
+                  <el-tag
+                    v-if="proxy.status === 0"
+                    class="ml-2"
+                    type="danger"
+                    size="small"
+                    >已禁用
+                  </el-tag>
+                  <el-tag
+                    v-if="
+                      (proxy.type === 'stcp' ||
+                        proxy.type === 'xtcp' ||
+                        proxy.type === 'sudp') &&
+                      proxy.visitorsModel === 'visitors'
+                    "
+                    class="ml-2"
+                    size="small"
                   >
-                    <span class="text-white text-sm">{{ proxy.type }}</span>
-                  </div>
-                  <div class="h-12 relative">
-                    <div class="text-sm font-bold">
-                      <span>{{ proxy.name }}</span>
-                    </div>
-                    <el-tag
-                      v-if="proxy.status === 0"
-                      class="mr-2"
-                      type="danger"
-                      size="small"
-                      >已禁用
-                    </el-tag>
-                    <el-tag
-                      v-if="
-                        (proxy.type === 'stcp' ||
-                          proxy.type === 'xtcp' ||
-                          proxy.type === 'sudp') &&
-                        proxy.visitorsModel === 'visitors'
-                      "
-                      size="small"
-                    >
-                      访问者
-                    </el-tag>
-                    <el-tag
-                      size="small"
-                      v-if="
-                        (proxy.type === 'stcp' ||
-                          proxy.type === 'xtcp' ||
-                          proxy.type === 'sudp') &&
-                        proxy.visitorsModel === 'visitorsProvider'
-                      "
-                      >被访问者
-                    </el-tag>
-                    <!--                    <el-tag-->
-                    <!--                      size="small"-->
-                    <!--                      class="absolute bottom-0"-->
-                    <!--                      type="success"-->
-                    <!--                      effect="plain"-->
-                    <!--                      >正常-->
-                    <!--                    </el-tag>-->
-                  </div>
+                    访问者
+                  </el-tag>
+                  <el-tag
+                    size="small"
+                    class="ml-2"
+                    v-if="
+                      (proxy.type === 'stcp' ||
+                        proxy.type === 'xtcp' ||
+                        proxy.type === 'sudp') &&
+                      proxy.visitorsModel === 'visitorsProvider'
+                    "
+                    >被访问者
+                  </el-tag>
                 </div>
-                <div class="flex items-start">
-                  <a
-                    v-if="allowCopyAccessAddress(proxy)"
-                    href="javascript:void(0)"
-                    class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
-                    @click="handleCopyAccessAddress(proxy)"
+                <div class="h-[36px]">
+                  <!--
+                <div
+                  class="text-[12px]"
+                  v-if="
+                    (proxy.type !== 'stcp' &&
+                      proxy.type !== 'xtcp' &&
+                      proxy.type !== 'sudp') ||
+                    proxy.visitorsModel !== 'visitors'
+                  "
+                >
+                  <span>内网地址：</span>
+                  <span class="font-bold text-primary">{{
+                    proxy.localIP
+                  }}</span>
+                </div>
+                -->
+                  <!--
+                <div class="text-[12px]" v-if="proxy.type === 'tcp'">
+                  <span>外网端口：</span>
+                  <span class="font-bold text-primary">{{
+                    proxy.remotePort
+                  }}</span>
+                </div>
+                -->
+                  <div
+                    class="text-[12px]"
+                    v-if="
+                      (proxy.type !== 'stcp' &&
+                        proxy.type !== 'xtcp' &&
+                        proxy.type !== 'sudp') ||
+                      proxy.visitorsModel !== 'visitors'
+                    "
                   >
-                    <IconifyIconOffline icon="link" />
-                  </a>
-                  <el-dropdown size="small">
-                    <a
-                      href="javascript:void(0)"
-                      class="text-xl text-[#ADADAD] hover:text-[#5A3DAA]"
+                    <span>内网：</span>
+                    <span class="font-bold text-primary">
+                      {{ proxy.localIP }}:{{ proxy.localPort }}
+                    </span>
+                  </div>
+
+                  <div
+                    class="text-[12px] cursor-pointer"
+                    v-if="proxy.type === 'tcp' || proxy.type === 'udp'"
+                  >
+                    <span>映射地址：</span>
+                    <span
+                      class="font-bold underline cursor-pointer text-primary"
+                      @click="
+                        handleCopyString(
+                          `${frpcConfig?.serverAddr}:${proxy.remotePort}`
+                        )
+                      "
                     >
-                      <IconifyIconOffline icon="more-vert" />
-                    </a>
+                      {{ frpcConfig?.serverAddr }}:{{ proxy.remotePort }}
+                    </span>
+                  </div>
+                  <div
+                    class="text-[12px]"
+                    v-if="
+                      (proxy.type === 'http' || proxy.type === 'https') &&
+                      proxy.customDomains &&
+                      proxy.customDomains.length > 0
+                    "
+                  >
+                    <span>映射地址：</span>
+                    <span
+                      class="font-bold underline cursor-pointer text-primary"
+                      @click="
+                        handleCopyString(
+                          `${proxy.type === 'http' ? 'http://' : 'https://'}${
+                            proxy.customDomains[0]
+                          }`
+                        )
+                      "
+                      >{{ proxy.type === "http" ? "http://" : "https://" }}
+                      {{ proxy.customDomains[0] }}</span
+                    >
+                  </div>
+                  <div
+                    class="text-[12px]"
+                    v-if="
+                      (proxy.type === 'stcp' ||
+                        proxy.type === 'xtcp' ||
+                        proxy.type === 'sudp') &&
+                      proxy.visitorsModel === 'visitors'
+                    "
+                  >
+                    <span>访问者名称：</span>
+                    <span class="font-bold text-primary">{{
+                      proxy.serverName
+                    }}</span>
+                  </div>
+                  <div
+                    class="text-[12px]"
+                    v-if="
+                      (proxy.type === 'stcp' ||
+                        proxy.type === 'xtcp' ||
+                        proxy.type === 'sudp') &&
+                      proxy.visitorsModel === 'visitors'
+                    "
+                  >
+                    <span>映射地址：</span>
+                    <span
+                      class="font-bold underline cursor-pointer text-primary"
+                      @click="
+                        handleCopyString(`${proxy.bindAddr}:${proxy.bindPort}`)
+                      "
+                      >{{ proxy.bindAddr }}:{{ proxy.bindPort }}</span
+                    >
+                  </div>
+                  <!--
+                <div
+                  class="text-[12px]"
+                  v-if="
+                    (proxy.type === 'stcp' ||
+                      proxy.type === 'xtcp' ||
+                      proxy.type === 'sudp') &&
+                    proxy.visitorsModel === 'visitors'
+                  "
+                >
+                  <span>绑定端口：</span>
+                  <span class="font-bold text-primary">{{
+                    proxy.bindPort
+                  }}</span>
+                </div>
+                  -->
+                </div>
+              </div>
+
+              <div class="right">
+                <div class="flex items-center">
+                  <el-button
+                    type="text"
+                    size="small"
+                    @click="handleOpenUpdate(proxy)"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="edit" />
+                    修改
+                  </el-button>
+                  <el-dropdown>
+                    <el-button type="text" size="small">
+                      <IconifyIconOffline class="mr-1" icon="more-horiz" />
+                      更多
+                    </el-button>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <el-dropdown-item @click="handleOpenUpdate(proxy)">
-                          <IconifyIconOffline
-                            icon="edit"
-                            class="primary-text text-[14px]"
-                          />
-                          <span class="ml-1">修 改</span>
-                        </el-dropdown-item>
                         <el-dropdown-item @click="handleReversalUpdate(proxy)">
                           <IconifyIconOffline
-                            :icon="
-                              proxy.status
-                                ? 'switchAccessOutlineRounded'
-                                : 'switchAccessRounded'
-                            "
-                            class="primary-text text-[14px]"
-                            :class="
-                              proxy.status ? 'text-red-500' : 'text-green-500'
-                            "
+                            class="mr-1"
+                            :icon="!proxy.status ? 'toggle-on' : 'toggle-off'"
                           />
-                          <span class="ml-1">
-                            {{ proxy.status ? "禁 用" : "启 用" }}
-                          </span>
+                          {{ proxy.status ? "禁用" : "启用" }}
                         </el-dropdown-item>
+                        <!--<el-dropdown-item
+                          v-if="allowCopyAccessAddress(proxy)"
+                          @click="handleCopyAccessAddress(proxy)"
+                        >
+                          <IconifyIconOffline class="mr-1" icon="link" />
+                          复制访问地址
+                        </el-dropdown-item>-->
                         <el-dropdown-item @click="handleDeleteProxy(proxy)">
                           <IconifyIconOffline
+                            class="mr-1"
                             icon="delete-rounded"
-                            class="text-red-500 text-[14px]"
                           />
-                          <span class="ml-1">删 除</span>
+                          删除
                         </el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
                 </div>
               </div>
-              <div class="flex justify-between mt-4">
-                <div
-                  class="text-sm text-left"
-                  v-if="
-                    (proxy.type !== 'stcp' &&
-                      proxy.type !== 'xtcp' &&
-                      proxy.type !== 'sudp') ||
-                    proxy.visitorsModel !== 'visitors'
-                  "
-                >
-                  <p class="text-[#ADADAD] font-bold">内网地址</p>
-                  <p>{{ proxy.localIP }}</p>
-                </div>
-
-                <div class="text-sm text-center" v-if="proxy.type === 'tcp'">
-                  <p class="text-[#ADADAD] font-bold">外网端口</p>
-                  <p>{{ proxy.remotePort }}</p>
-                </div>
-                <div
-                  class="text-sm text-center"
-                  v-if="
-                    (proxy.type !== 'stcp' &&
-                      proxy.type !== 'xtcp' &&
-                      proxy.type !== 'sudp') ||
-                    proxy.visitorsModel !== 'visitors'
-                  "
-                >
-                  <p class="text-[#ADADAD] font-bold">内网端口</p>
-                  <p>{{ proxy.localPort }}</p>
-                </div>
-
-                <div
-                  class="text-sm text-center"
-                  v-if="
-                    (proxy.type === 'stcp' ||
-                      proxy.type === 'xtcp' ||
-                      proxy.type === 'sudp') &&
-                    proxy.visitorsModel === 'visitors'
-                  "
-                >
-                  <p class="text-[#ADADAD] font-bold">访问者名称</p>
-                  <p>{{ proxy.serverName }}</p>
-                </div>
-
-                <div
-                  class="text-sm text-center"
-                  v-if="
-                    (proxy.type === 'stcp' ||
-                      proxy.type === 'xtcp' ||
-                      proxy.type === 'sudp') &&
-                    proxy.visitorsModel === 'visitors'
-                  "
-                >
-                  <p class="text-[#ADADAD] font-bold">绑定地址</p>
-                  <p>{{ proxy.bindAddr }}</p>
-                </div>
-
-                <div
-                  class="text-sm text-center"
-                  v-if="
-                    (proxy.type === 'stcp' ||
-                      proxy.type === 'xtcp' ||
-                      proxy.type === 'sudp') &&
-                    proxy.visitorsModel === 'visitors'
-                  "
-                >
-                  <p class="text-[#ADADAD] font-bold">绑定端口</p>
-                  <p>{{ proxy.bindPort }}</p>
-                </div>
-              </div>
-              <!--            <div class="text-sm text-[#ADADAD] py-2">本地地址 内网端口</div>-->
             </div>
           </el-col>
         </el-row>
       </template>
       <div
         v-else
-        class="w-full h-full bg-white rounded p-2 overflow-hidden drop-shadow-xl flex justify-center items-center"
+        class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
       >
         <el-empty description="暂无代理" />
       </div>
@@ -876,7 +935,7 @@ onUnmounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <div class="h3 flex justify-between">
+            <div class="flex justify-between h3">
               <div>基础配置</div>
             </div>
           </el-col>
@@ -946,7 +1005,7 @@ onUnmounted(() => {
                 @click="handleRandomProxyName"
               >
                 <IconifyIconOffline
-                  class="cursor-pointer mr-2"
+                  class="mr-2 cursor-pointer"
                   icon="charger-rounded"
                 />
                 生成
@@ -956,7 +1015,7 @@ onUnmounted(() => {
           <template
             v-if="!(isStcp || isXtcp || isSudp) || isStcpvisitorsProvider"
           >
-            <el-col :span="isHttp || isHttps ? 12 : (isTcp || isUdp ? 24 : 12)">
+            <el-col :span="isHttp || isHttps ? 12 : isTcp || isUdp ? 24 : 12">
               <el-form-item label="内网地址：" prop="localIP">
                 <el-autocomplete
                   v-model="editForm.localIP"
@@ -995,7 +1054,7 @@ onUnmounted(() => {
                   @click="handleOpenLocalPortDialog"
                 >
                   <IconifyIconOffline
-                    class="cursor-pointer mr-2"
+                    class="mr-2 cursor-pointer"
                     icon="bring-your-own-ip-rounded"
                   />
                   内网端口
@@ -1023,7 +1082,7 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
-              <div class="h3 flex justify-between">
+              <div class="flex justify-between h3">
                 <div>域名配置</div>
               </div>
             </el-col>
@@ -1134,7 +1193,7 @@ onUnmounted(() => {
           </template>
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
-              <div class="h3 flex justify-between">
+              <div class="flex justify-between h3">
                 <div>其他代理配置</div>
               </div>
             </el-col>
@@ -1175,7 +1234,7 @@ onUnmounted(() => {
           </template>
           <template v-if="hasPlugin">
             <el-col :span="24" v-if="hasPlugin">
-              <div class="h3 flex justify-between">
+              <div class="flex justify-between h3">
                 <div>插件配置</div>
               </div>
             </el-col>
@@ -1215,7 +1274,7 @@ onUnmounted(() => {
                   ]"
                 >
                   <!-- <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1269,7 +1328,7 @@ onUnmounted(() => {
                   ]"
                 >
                   <!-- <template #label>
-                  <div class="h-full flex items-center mr-1">
+                  <div class="flex items-center h-full mr-1">
                     <el-popover width="310" placement="top" trigger="hover">
                       <template #default>
                         对应参数：<span class="font-black text-[#5A3DAA]"
@@ -1288,7 +1347,7 @@ onUnmounted(() => {
                   CA 证书文件：
                 </template> -->
                   <el-input
-                    class="button-input cursor-pointer"
+                    class="cursor-pointer button-input"
                     v-model="editForm.https2httpKeyFile"
                     placeholder="点击选择密钥文件"
                     readonly
@@ -1411,7 +1470,7 @@ onUnmounted(() => {
           </template>
           <template v-if="isXtcp && isStcpVisitors">
             <el-col :span="24">
-              <div class="h3 flex justify-between">
+              <div class="flex justify-between h3">
                 <div>其他配置</div>
               </div>
             </el-col>
@@ -1540,7 +1599,7 @@ onUnmounted(() => {
 
           <template v-if="!isStcpVisitors">
             <el-col :span="24">
-              <div class="h3 flex justify-between">
+              <div class="flex justify-between h3">
                 <div>代理传输配置</div>
               </div>
             </el-col>
@@ -1624,17 +1683,17 @@ onUnmounted(() => {
 
           <el-col :span="24">
             <el-form-item>
-              <div class="w-full flex justify-end">
+              <div class="flex justify-end w-full">
                 <el-button @click="edit.visible = false">
                   <iconify-icon-offline
-                    class="cursor-pointer mr-2"
+                    class="mr-2 cursor-pointer"
                     icon="cancel-presentation"
                   />
                   关 闭
                 </el-button>
                 <el-button plain type="primary" @click="handleSubmit">
                   <IconifyIconOffline
-                    class="cursor-pointer mr-2"
+                    class="mr-2 cursor-pointer"
                     icon="save-rounded"
                   />
                   保 存
@@ -1665,7 +1724,7 @@ onUnmounted(() => {
               @click="handleSelectLocalPort(scope.row.port)"
             >
               <IconifyIconOffline
-                class="cursor-pointer mr-2"
+                class="mr-2 cursor-pointer"
                 icon="gesture-select"
               />
               选择
