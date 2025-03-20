@@ -79,7 +79,6 @@ export default {
       downloadCount: "下载数：",
       publishTime: "发布时间：",
       downloaded: "已下载",
-      delete: "删 除",
       download: "下载",
       noVersions: "暂无可用版本"
     }
@@ -316,6 +315,9 @@ export default {
   },
   common: {
     yes: "是",
-    no: "否"
-  }
+    no: "否",
+    edit: "编辑",
+    delete: "删除"
+  },
+  proxy: {}
 };

@@ -300,6 +300,8 @@ export default {
   },
   common: {
     yes: "Y",
-    no: "N"
+    no: "N",
+    edit: "Edit",
+    delete: "Delete"
   }
 };

@@ -230,7 +230,7 @@ onUnmounted(() => {
                       <template #icon>
                         <IconifyIconOffline icon="delete-rounded" />
                       </template>
-                      {{ t("download.version.delete") }}
+                      {{ t("common.delete") }}
                     </el-button>
                   </template>
 
@@ -250,7 +250,9 @@ onUnmounted(() => {
                       type="text"
                       @click="handleDownload(version)"
                     >
-                      <IconifyIconOffline icon="download" />
+                      <template #icon>
+                        <IconifyIconOffline icon="download" />
+                      </template>
                       {{ t("download.version.download") }}
                     </el-button>
                   </template>
