@@ -299,11 +299,111 @@ export default {
     }
   },
   proxy: {
-    visitors: "Visitors",
     inner: "Inner",
     mappingAddress: "Mapping Address",
+    visitors: "Visitors",
+    visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
-    visitorsProvider: "Visitors Provider"
+    noProxy: "No proxy",
+
+    form: {
+      editDialog: {
+        title: "Edit Proxy"
+      },
+
+      title: {
+        basicConfig: "Basic Configuration",
+        domainConfig: "Domain Configuration",
+        proxyTransportConfig: "Proxy Transport Configuration",
+        customConfig: "Custom Configuration",
+        pluginConfig: "Plugin Configuration",
+        otherConfig: "Other Proxy Configuration",
+        editDialog: "Edit Proxy"
+      },
+      button: {
+        localPort: "Local Port",
+        generateName: "Generate"
+      },
+      formItem: {
+        proxyType: {
+          label: "Proxy Type",
+          requireMessage: "Please select proxy type"
+        },
+        name: {
+          label: "Proxy Name",
+          requireMessage: "Please enter proxy name",
+          placeholder: "Please enter proxy name"
+        },
+        localIP: {
+          label: "Local IP",
+          requireMessage: "Please enter local IP"
+        },
+        localPort: {
+          label: "Local Port",
+          requireMessage: "Please enter local port"
+        },
+        remotePort: {
+          label: "Remote Port",
+          requireMessage: "Please enter remote port"
+        },
+        subdomain: {
+          label: "Subdomain",
+          requireMessage: "Please enter subdomain"
+        },
+        customDomains: {
+          label: "Custom Domains",
+          requireMessage: "Please enter custom domains"
+        },
+        basicAuth: {
+          label: "HTTP Basic Auth",
+          requireMessage: "Please select whether to enable HTTP basic auth"
+        },
+        httpUser: {
+          label: "Auth Username",
+          requireMessage: "Please enter auth username"
+        },
+        httpPassword: {
+          label: "Auth Password",
+          requireMessage: "Please enter auth password"
+        },
+        https2httpCaFile: {
+          label: "Certificate File",
+          requireMessage: "Please select certificate file",
+          placeholder: "Click to select certificate file"
+        },
+        bindPort: {
+          label: "Bind Port",
+          requireMessage: "Please enter bind port"
+        },
+        transportUseEncryption: {
+          label: "Encryption",
+          requireMessage: "Please select whether to enable encryption"
+        },
+        transportUseCompression: {
+          label: "Compression",
+          requireMessage: "Please select whether to enable compression"
+        },
+        bindAddr: {
+          label: "Bind Address",
+          requireMessage: "Please enter bind address"
+        },
+        secretKey: {
+          label: "Secret Key",
+          placeholder: "Secret key",
+          requireMessage: "Please enter secret key"
+        },
+        https2httpKeyFile: {
+          label: "Key File",
+          requireMessage: "Please select key file",
+          placeholder: "Click to select key file"
+        },
+        serverName: {
+          label: "Provider Proxy Name",
+          requireMessage: "Please enter provider proxy name",
+          placeholder: "STCP provider proxy name"
+        }
+      }
+    }
   },
   common: {
     yes: "Y",
