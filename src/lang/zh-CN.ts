@@ -327,7 +327,8 @@ export default {
     save: "保存",
     mode: "模式",
     selectMode: "请选择{mode}模式",
-    operation: "操作"
+    operation: "操作",
+    select: "选择"
   },
   proxy: {
     inner: "内网",
@@ -336,6 +337,8 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
+    editTitle: "编辑代理",
+    addTitle: "添加代理",
     message: {
       copySuccess: "复制成功"
     },
@@ -471,7 +474,7 @@ export default {
           label: "回退stcp代理名称",
           requireMessage: "请输入回退stcp代理名称",
           description: "当 xtcp 打洞失败时，会回退到使用 stcp-visitor 建立连接",
-          placeholder: "STCP 访问者代理名称"
+          placeholder: "stcp 访问者代理名称"
         },
         fallbackTimeoutMs: {
           label: "回退超时毫秒",

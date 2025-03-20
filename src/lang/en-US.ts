@@ -418,7 +418,7 @@ export default {
         serverName: {
           label: "Provider Proxy Name",
           requireMessage: "Please enter provider proxy name",
-          placeholder: "STCP provider proxy name"
+          placeholder: "stcp provider proxy name"
         },
         keepTunnelOpen: {
           label: "Keep Tunnel Open",
@@ -426,11 +426,11 @@ export default {
           description: "Keep the tunnel open even if there is no traffic"
         },
         fallbackTo: {
-          label: "Fallback STCP Proxy Name",
-          requireMessage: "Please enter fallback STCP proxy name",
+          label: "Fallback stcp Proxy Name",
+          requireMessage: "Please enter fallback stcp proxy name",
           description:
             "When xtcp hole punching fails, it will fall back to using stcp-visitor to establish a connection",
-          placeholder: "STCP visitor proxy name"
+          placeholder: "stcp visitor proxy name"
         },
         fallbackTimeoutMs: {
           label: "Fallback Timeout Ms",
