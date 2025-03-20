@@ -401,6 +401,18 @@ export default {
           label: "Provider Proxy Name",
           requireMessage: "Please enter provider proxy name",
           placeholder: "STCP provider proxy name"
+        },
+        keepTunnelOpen: {
+          label: "Keep Tunnel Open",
+          requireMessage: "Please select whether to keep tunnel open"
+        },
+        fallbackTo: {
+          label: "Fallback STCP Proxy Name",
+          requireMessage: "Please enter fallback STCP proxy name"
+        },
+        fallbackTimeoutMs: {
+          label: "Fallback Timeout Ms",
+          requireMessage: "Please enter fallback timeout ms"
         }
       }
     }
@@ -414,6 +426,9 @@ export default {
     disable: "Disable",
     enable: "Enable",
     disabled: "Disabled",
-    enabled: "Enabled"
+    enabled: "Enabled",
+    save: "Save",
+    close: "Close",
+    mode: "Mode"
   }
 };

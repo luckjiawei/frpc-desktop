@@ -952,7 +952,7 @@ onUnmounted(() => {
           <template v-if="isStcp || isSudp || isXtcp">
             <el-col :span="12">
               <el-form-item
-                :label="`${editForm.type.toUpperCase()}${t('common.mode')}`"
+                :label="`${editForm.type.toUpperCase()} ${t('common.mode')}`"
                 prop="visitorsModel"
               >
                 <el-radio-group v-model="editForm.visitorsModel">
@@ -1008,24 +1008,21 @@ onUnmounted(() => {
               :label="t('proxy.form.formItem.name.label')"
               prop="name"
             >
-              <el-input
-                v-model="editForm.name"
-                class="proxy-name-input"
-                :placeholder="t('proxy.form.formItem.name.placeholder')"
-                clearable
-              />
-              <el-button
-                class="ml-[10px]"
-                plain
-                type="primary"
-                @click="handleRandomProxyName"
-              >
-                <IconifyIconOffline
-                  class="mr-2 cursor-pointer"
-                  icon="charger-rounded"
+              <div class="flex w-full gap-2">
+                <el-input
+                  v-model="editForm.name"
+                  class="w-full"
+                  :placeholder="t('proxy.form.formItem.name.placeholder')"
+                  clearable
                 />
-                {{ t("proxy.form.button.generateName") }}
-              </el-button>
+                <el-button plain type="primary" @click="handleRandomProxyName">
+                  <IconifyIconOffline
+                    class="mr-2 cursor-pointer"
+                    icon="charger-rounded"
+                  />
+                  {{ t("proxy.form.button.generateName") }}
+                </el-button>
+              </div>
             </el-form-item>
           </el-col>
           <template
@@ -1054,33 +1051,32 @@ onUnmounted(() => {
                 :label="t('proxy.form.formItem.localPort.label')"
                 prop="localPort"
               >
-                <el-input-number
-                  v-if="isHttp || isHttps"
-                  placeholder="8080"
-                  class="local-port-input"
-                  :min="0"
-                  :max="65535"
-                  v-model="editForm.localPort"
-                  controls-position="right"
-                />
-                <el-input
-                  v-else
-                  class="local-port-input"
-                  placeholder="8080"
-                  v-model="editForm.localPort"
-                />
-                <el-button
-                  class="ml-[10px]"
-                  plain
-                  type="primary"
-                  @click="handleOpenLocalPortDialog"
-                >
-                  <IconifyIconOffline
-                    class="mr-2 cursor-pointer"
-                    icon="bring-your-own-ip-rounded"
+                <div class="flex w-full gap-2">
+                  <el-input-number
+                    v-if="isHttp || isHttps"
+                    placeholder="8080"
+                    :min="0"
+                    :max="65535"
+                    v-model="editForm.localPort"
+                    controls-position="right"
                   />
-                  {{ t("proxy.form.button.localPort") }}
-                </el-button>
+                  <el-input
+                    v-else
+                    placeholder="8080"
+                    v-model="editForm.localPort"
+                  />
+                  <el-button
+                    plain
+                    type="primary"
+                    @click="handleOpenLocalPortDialog"
+                  >
+                    <IconifyIconOffline
+                      class="mr-2 cursor-pointer"
+                      icon="bring-your-own-ip-rounded"
+                    />
+                    {{ t("proxy.form.button.localPort") }}
+                  </el-button>
+                </div>
               </el-form-item>
             </el-col>
           </template>
@@ -1199,7 +1195,7 @@ onUnmounted(() => {
                 </template>
                 <el-input
                   class="domain-input"
-                  placeholder="github.com"
+                  placeholder="domain.com"
                   v-model="editForm.customDomains[di]"
                 />
                 <el-button
@@ -1234,9 +1230,9 @@ onUnmounted(() => {
                 label-position="left"
               >
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
                   inline-prompt
-                  inactive-text="关"
+                  :inactive-text="t('common.no')"
                   v-model="editForm.basicAuth"
                 />
               </el-form-item>
@@ -1288,9 +1284,9 @@ onUnmounted(() => {
                   ]"
                 >
                   <el-switch
-                    :active-text="t('common.enable')"
+                    :active-text="t('common.yes')"
                     inline-prompt
-                    :inactive-text="t('common.disable')"
+                    :inactive-text="t('common.no')"
                     v-model="editForm.https2http"
                   />
                 </el-form-item>
@@ -1528,7 +1524,10 @@ onUnmounted(() => {
               </div>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="回退stcp代理名称" prop="fallbackTo">
+              <el-form-item
+                :label="t('proxy.form.formItem.fallbackTo.label')"
+                prop="fallbackTo"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -1550,19 +1549,18 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      回退stcp代理名称：
+                      {{ t("proxy.form.formItem.fallbackTo.label") }}
                     </div>
                   </div>
                 </template>
-                <el-input
-                  type="text"
-                  v-model="editForm.fallbackTo"
-                  placeholder="回退stcp代理名称"
-                />
+                <el-input type="text" v-model="editForm.fallbackTo" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="回退超时毫秒" prop="fallbackTimeoutMs">
+              <el-form-item
+                :label="t('proxy.form.formItem.fallbackTimeoutMs.label')"
+                prop="fallbackTimeoutMs"
+              >
                 <template #label>
                   <div class="inline-block">
                     <div class="flex items-center">
@@ -1588,7 +1586,7 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      回退超时毫秒：
+                      {{ t("proxy.form.formItem.fallbackTimeoutMs.label") }}
                     </div>
                   </div>
                 </template>
@@ -1598,19 +1596,20 @@ onUnmounted(() => {
                   :step="1"
                   controls-position="right"
                   v-model="editForm.fallbackTimeoutMs"
-                  placeholder="回退超时毫秒"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item
-                label="保持隧道开启："
+                :label="t('proxy.form.formItem.keepTunnelOpen.label')"
                 prop="keepTunnelOpen"
                 label-position="left"
                 :rules="[
                   {
                     required: true,
-                    message: '保持隧道开启不能为空',
+                    message: t(
+                      'proxy.form.formItem.keepTunnelOpen.requireMessage'
+                    ),
                     trigger: 'blur'
                   }
                 ]"
@@ -1635,14 +1634,14 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      保持隧道开启：
+                      {{ t("proxy.form.formItem.keepTunnelOpen.label") }}
                     </div>
                   </div>
                 </template>
                 <el-switch
-                  active-text="开"
+                  :active-text="t('common.yes')"
                   inline-prompt
-                  inactive-text="关"
+                  :inactive-text="t('common.no')"
                   v-model="editForm.keepTunnelOpen"
                 />
               </el-form-item>
@@ -1689,9 +1688,9 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-switch
-                  :active-text="t('common.enable')"
+                  :active-text="t('common.yes')"
                   inline-prompt
-                  :inactive-text="t('common.disable')"
+                  :inactive-text="t('common.no')"
                   v-model="editForm.transport.useCompression"
                 />
               </el-form-item>
@@ -1729,9 +1728,9 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-switch
-                  :active-text="t('common.enable')"
+                  :active-text="t('common.yes')"
                   inline-prompt
-                  :inactive-text="t('common.disable')"
+                  :inactive-text="t('common.no')"
                   v-model="editForm.transport.useEncryption"
                 />
               </el-form-item>
@@ -1831,7 +1830,7 @@ onUnmounted(() => {
 }
 
 .proxy-name-input {
-  width: calc(100% - 92px);
+  // width: calc(100% - 130px);
 }
 
 .domain-input-button {

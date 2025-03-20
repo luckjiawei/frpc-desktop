@@ -430,6 +430,18 @@ export default {
           label: "提供者代理名称",
           requireMessage: "请输入提供者代理名称",
           placeholder: "stcp提供者代理名称"
+        },
+        keepTunnelOpen: {
+          label: "保持隧道开启",
+          requireMessage: "请选择是否保持隧道开启"
+        },
+        fallbackTo: {
+          label: "回退stcp代理名称",
+          requireMessage: "请输入回退stcp代理名称"
+        },
+        fallbackTimeoutMs: {
+          label: "回退超时毫秒",
+          requireMessage: "请输入回退超时毫秒"
         }
       }
     }
