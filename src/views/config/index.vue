@@ -290,6 +290,13 @@ const rules = reactive<FormRules>({
       message: t("config.form.transportTcpMuxKeepaliveInterval.requireMessage"),
       trigger: "change"
     }
+  ],
+  "system.language": [
+    {
+      required: true,
+      message: t("config.form.systemLanguage.requireMessage"),
+      trigger: "change"
+    }
   ]
 });
 const copyServerConfigBase64 = ref();
@@ -681,7 +688,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover" width="260">
+                    <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         <div v-html="t('config.form.serverAddr.tips')"></div>
                       </template>
@@ -724,7 +731,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="220" placement="top" trigger="hover">
+                    <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:
                         <span class="font-black text-[#5A3DAA]"
@@ -748,8 +755,14 @@ onUnmounted(() => {
                   placeholder="请选择验证方式"
                   clearable
                 >
-                  <el-option :label="t('config.form.authMethod.none')" value="none"></el-option>
-                  <el-option :label="t('config.form.authMethod.token')" value="token"></el-option>
+                  <el-option
+                    :label="t('config.form.authMethod.none')"
+                    value="none"
+                  ></el-option>
+                  <el-option
+                    :label="t('config.form.authMethod.token')"
+                    value="token"
+                  ></el-option>
                   <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
                 </el-select>
               </el-form-item>
@@ -761,7 +774,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover" width="200">
+                    <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
                           class="font-black text-[#5A3DAA]"
@@ -822,7 +835,7 @@ onUnmounted(() => {
               <el-form-item :label="t('config.form.user.label')" prop="user">
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" trigger="hover">
+                    <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
                           class="font-black text-[#5A3DAA]"
@@ -853,7 +866,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="240" placement="top" trigger="hover">
+                    <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
                           class="font-black text-[#5A3DAA]"
@@ -892,6 +905,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportProtocol.label')"
                 prop="transport.protocol"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -929,6 +943,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportPoolCount.label')"
                 prop="transport.poolCount"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -961,6 +976,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportHeartbeatInterval.label')"
                 prop="transport.heartbeatInterval"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1006,6 +1022,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportHeartbeatTimeout.label')"
                 prop="transport.heartbeatTimeout"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1051,6 +1068,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportDialServerTimeout.label')"
                 prop="transport.dialServerTimeout"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1084,6 +1102,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportDialServerKeepalive.label')"
                 prop="transport.dialServerKeepalive"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1120,6 +1139,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportTcpMux.label')"
                 prop="transport.tcpMux"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1156,10 +1176,11 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportTcpMuxKeepaliveInterval.label')"
                 prop="transport.tcpMuxKeepaliveInterval"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover width="330" placement="top" trigger="hover">
+                    <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
                           v-html="
@@ -1205,6 +1226,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.transportProxyURL.label')"
                 prop="transport.proxyURL"
+                label-width="180"
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
@@ -1237,6 +1259,7 @@ onUnmounted(() => {
               <el-form-item
                 :label="t('config.form.tlsEnable.label')"
                 prop="transport.tls.enable"
+                label-width="180"
               >
                 <el-switch
                   :active-text="t('common.yes')"
@@ -1255,7 +1278,7 @@ onUnmounted(() => {
                 >
                   <template #label>
                     <div class="flex items-center h-full mr-1">
-                      <el-popover width="260" placement="top" trigger="hover">
+                      <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
                             class="font-black text-[#5A3DAA]"
@@ -1304,7 +1327,7 @@ onUnmounted(() => {
                 >
                   <template #label>
                     <div class="flex items-center h-full mr-1">
-                      <el-popover width="260" placement="top" trigger="hover">
+                      <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
                             class="font-black text-[#5A3DAA]"
@@ -1352,7 +1375,7 @@ onUnmounted(() => {
                 >
                   <template #label>
                     <div class="flex items-center h-full mr-1">
-                      <el-popover width="310" placement="top" trigger="hover">
+                      <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
                             class="font-black text-[#5A3DAA]"
@@ -1539,7 +1562,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" width="260" trigger="hover">
+                    <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div
                           v-html="t('config.form.systemLaunchAtStartup.tips')"
@@ -1571,7 +1594,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" width="200" trigger="hover">
+                    <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div
                           v-html="t('config.form.systemSilentStartup.tips')"
@@ -1603,7 +1626,7 @@ onUnmounted(() => {
               >
                 <template #label>
                   <div class="flex items-center h-full mr-1">
-                    <el-popover placement="top" width="260" trigger="hover">
+                    <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div
                           v-html="

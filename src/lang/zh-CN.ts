@@ -328,7 +328,8 @@ export default {
     mode: "模式",
     selectMode: "请选择{mode}模式",
     operation: "操作",
-    select: "选择"
+    select: "选择",
+    frpParameter: "frp参数"
   },
   proxy: {
     inner: "内网",

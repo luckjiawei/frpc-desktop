@@ -1107,7 +1107,7 @@ onUnmounted(() => {
                         <el-popover
                           placement="top"
                           trigger="hover"
-                          :width="200"
+                          :width="300"
                         >
                           <template #default>
                             {{ t("common.frpParameter") }}:
@@ -1163,7 +1163,7 @@ onUnmounted(() => {
                   <div class="inline-block">
                     <div class="flex items-center">
                       <div class="mr-1">
-                        <el-popover placement="top" trigger="hover" width="240">
+                        <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
                             <span class="font-black text-[#5A3DAA]"

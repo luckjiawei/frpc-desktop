@@ -190,6 +190,7 @@ export default {
       },
       transportProtocol: {
         label: "Transport Protocol",
+        // label: "Transport Protocol",
         requireMessage: "Please enter transport protocol"
       },
       transportDialServerTimeout: {
@@ -197,7 +198,7 @@ export default {
         requireMessage: "Please enter dial server timeout"
       },
       transportDialServerKeepalive: {
-        label: "Dial Server Keepalive",
+        label: "DS Keepalive",
         requireMessage: "Please enter dial server keepalive"
       },
       transportPoolCount: {
@@ -209,7 +210,7 @@ export default {
         requireMessage: "Please enter TCP mux"
       },
       transportTcpMuxKeepaliveInterval: {
-        label: "TCP Mux Keepalive Interval",
+        label: "TMux Keep Interval",
         requireMessage: "Please enter TCP mux keepalive interval"
       },
       tlsCertFile: {
