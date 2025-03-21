@@ -690,7 +690,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
-                        <div v-html="t('config.form.serverAddr.tips')"></div>
+                        <div
+                          v-html="
+                            t('config.form.serverAddr.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline
@@ -1076,7 +1082,9 @@ onUnmounted(() => {
                       <template #default>
                         <div
                           v-html="
-                            t('config.form.transportDialServerTimeout.tips')
+                            t('config.form.transportDialServerTimeout.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
                           "
                         ></div>
                       </template>
@@ -1494,11 +1502,13 @@ onUnmounted(() => {
                   <div class="flex items-center h-full mr-1">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >webServer.port</span
-                        ><br />
-                        {{ t("config.form.webServerPort.tips") }}
+                        <div
+                          v-html="
+                            t('config.form.webServerPort.tips', {
+                              frpParameter: t('config.popover.frpParameter')
+                            })
+                          "
+                        ></div>
                       </template>
                       <template #reference>
                         <IconifyIconOffline

@@ -119,7 +119,8 @@ export default {
       serverAddr: {
         label: "Server Address",
         requireMessage: "Please enter server address",
-        patternMessage: "Please enter the correct server address"
+        patternMessage: "Please enter the correct server address",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>serverAddr</span> Frps service address supports <span class='font-black text-[#5A3DAA]'>domain name</span>、<span class='font-black text-[#5A3DAA]'>IP</span>"
       },
       serverPort: {
         label: "Server Port",
@@ -166,40 +167,48 @@ export default {
       },
       systemLaunchAtStartup: {
         label: "Auto Start",
-        requireMessage: "Please select whether to auto start"
+        requireMessage: "Please select whether to auto start",
+        tips: "Auto start the software when the system starts"
       },
       systemSilentStartup: {
         label: "Silent Startup",
-        requireMessage: "Please select whether to enable silent startup"
+        requireMessage: "Please select whether to enable silent startup",
+        tips: "Silent startup will not show any UI when the system starts"
       },
       systemAutoConnectOnStartup: {
         label: "Auto Connect",
-        requireMessage: "Please select whether to enable auto connect"
+        requireMessage: "Please select whether to enable auto connect",
+        tips: "Auto connect to the server when the system starts"
       },
       transportHeartbeatInterval: {
         label: "Heartbeat Interval",
-        requireMessage: "Please enter heartbeat interval"
+        requireMessage: "Please enter heartbeat interval",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatInterval</span> How often to send heartbeat packets to server. Unit: <span class='font-black text-[#5A3DAA]'>seconds</span>"
       },
       transportHeartbeatTimeout: {
         label: "Heartbeat Timeout",
-        requireMessage: "Please enter heartbeat timeout"
+        requireMessage: "Please enter heartbeat timeout",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatTimeout</span> Heartbeat timeout duration. Unit: <span class='font-black text-[#5A3DAA]'>seconds</span>"
       },
       webServerPort: {
         label: "Web Port",
-        requireMessage: "Please enter web port"
+        requireMessage: "Please enter web port",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.webServerPort</span> Ensure the port is not occupied, otherwise it will cause the startup to fail"
       },
       transportProtocol: {
         label: "Transport Protocol",
-        // label: "Transport Protocol",
-        requireMessage: "Please enter transport protocol"
+        requireMessage: "Please enter transport protocol",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.protocol</span> The communication protocol between frps. The default is tcp."
       },
       transportDialServerTimeout: {
         label: "Dial Server Timeout",
-        requireMessage: "Please enter dial server timeout"
+        requireMessage: "Please enter dial server timeout",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.dialServerTimeout</span> Maximum waiting time to establish connection with server. Default value is 10 seconds. Unit: <span class='font-black text-[#5A3DAA]'>seconds</span>"
       },
       transportDialServerKeepalive: {
         label: "DS Keepalive",
-        requireMessage: "Please enter dial server keepalive"
+        requireMessage: "Please enter dial server keepalive",
+        tips: '{frpParameter}:<span class="font-black text-[#5A3DAA]">transport.dialServerKeepalive</span> When there is no data transmission between client and server for a certain period of time, the system will periodically send heartbeat packets to keep the connection active. If negative, keepalive probing is disabled. Unit: <span class="font-black text-[#5A3DAA]">seconds</span>'
       },
       transportPoolCount: {
         label: "Pool Count",
@@ -207,11 +216,13 @@ export default {
       },
       transportTcpMux: {
         label: "TCP Mux",
-        requireMessage: "Please enter TCP mux"
+        requireMessage: "Please enter TCP mux",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.tcpMux</span> Enable TCP multiplexing to improve performance"
       },
       transportTcpMuxKeepaliveInterval: {
         label: "TMux Keep Interval",
-        requireMessage: "Please enter TCP mux keepalive interval"
+        requireMessage: "Please enter TCP mux keepalive interval",
+        tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.tcpMuxKeepaliveInterval</span> The keepalive interval for multiplexing, default value is 30 seconds. Unit: <span class='font-black text-[#5A3DAA]'>seconds</span>"
       },
       tlsCertFile: {
         label: "TLS Cert File",

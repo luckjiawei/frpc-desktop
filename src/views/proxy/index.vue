@@ -586,11 +586,11 @@ onMounted(() => {
   };
 
   on(ipcRouters.PROXY.createProxy, data => {
-    insertOrUpdateHook("新增成功");
+    insertOrUpdateHook(t("common.createSuccess"));
   });
 
   on(ipcRouters.PROXY.modifyProxy, data => {
-    insertOrUpdateHook("修改成功");
+    insertOrUpdateHook(t("common.modifySuccess"));
   });
 
   on(ipcRouters.PROXY.deleteProxy, () => {
