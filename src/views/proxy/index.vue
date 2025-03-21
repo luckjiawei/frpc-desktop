@@ -886,7 +886,7 @@ onUnmounted(() => {
         v-else
         class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
       >
-        <el-empty :description="t('proxy.form.noProxy')" />
+        <el-empty :description="t('proxy.noProxy')" />
       </div>
     </div>
 
@@ -1744,7 +1744,7 @@ onUnmounted(() => {
       >
         <el-table-column
           :label="t('proxy.dialog.listPorts.table.columns.protocol')"
-          :width="60"
+          :width="100"
           prop="protocol"
         />
         <el-table-column

@@ -57,8 +57,7 @@ export default {
       import: "导入"
     },
     message: {
-      importSuccess: "导入成功",
-      deleteSuccess: "删除成功"
+      importSuccess: "导入成功"
     },
     alert: {
       deleteConfirm: {
@@ -329,7 +328,9 @@ export default {
     selectMode: "请选择{mode}模式",
     operation: "操作",
     select: "选择",
-    frpParameter: "frp参数"
+    frpParameter: "frp参数",
+    deleteSuccess: "删除成功",
+    modifySuccess: "修改成功"
   },
   proxy: {
     inner: "内网",
@@ -342,8 +343,7 @@ export default {
     addTitle: "添加代理",
     message: {
       copySuccess: "复制成功",
-      createSuccess: "新增成功",
-      modifySuccess: "修改成功"
+      createSuccess: "新增成功"
     },
     dialog: {
       listPorts: {

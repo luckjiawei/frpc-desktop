@@ -317,6 +317,8 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
+    editTitle: "Edit Proxy",
+    addTitle: "Add Proxy",
     dialog: {
       listPorts: {
         title: "Inner Port",
@@ -375,7 +377,7 @@ export default {
         },
         customDomains: {
           label: "Custom Domains",
-          requireMessage: "Please enter custom domains"
+          requireMessage: "Please add at least one subdomain / custom domain"
         },
         basicAuth: {
           label: "HTTP Basic Auth",
@@ -451,6 +453,11 @@ export default {
             "xtcp hole punching time exceeds this time will fall back to using stcp-visitor to establish a connection 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
         }
       }
+    },
+    message: {
+      copySuccess: "Copy successfully",
+      createSuccess: "Create successfully",
+      modifySuccess: "Modify successfully"
     }
   },
   common: {
@@ -468,6 +475,7 @@ export default {
     mode: "Mode",
     frpParameter: "Frp Parameter",
     operation: "Operation",
-    select: "Select"
+    select: "Select",
+    
   }
 };
