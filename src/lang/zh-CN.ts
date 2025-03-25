@@ -315,7 +315,6 @@ export default {
   common: {
     yes: "是",
     no: "否",
-    edit: "编辑",
     delete: "删除",
     more: "更多",
     disable: "禁用",
@@ -339,11 +338,10 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
-    editTitle: "编辑代理",
-    addTitle: "添加代理",
+    modifyTitle: "编辑代理",
+    createTitle: "添加代理",
     message: {
-      copySuccess: "复制成功",
-      createSuccess: "新增成功"
+      copySuccess: "复制成功"
     },
     dialog: {
       listPorts: {
@@ -361,18 +359,13 @@ export default {
     },
 
     form: {
-      editDialog: {
-        title: "编辑代理"
-      },
-
       title: {
         basicConfig: "基础配置",
         domainConfig: "域名配置",
         proxyTransportConfig: "代理传输配置",
         customConfig: "自定义配置",
         pluginConfig: "插件配置",
-        otherConfig: "其他代理配置",
-        editDialog: "编辑代理"
+        otherConfig: "其他代理配置"
       },
       button: {
         localPort: "本机端口",

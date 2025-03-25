@@ -35,7 +35,7 @@ const localPorts = ref<Array<LocalPort>>([]);
 const listPortsVisible = ref(false);
 
 const edit = ref({
-  title: t("proxy.addTitle"),
+  title: t("proxy.createTitle"),
   visible: false
 });
 
@@ -378,7 +378,7 @@ const handleResetForm = () => {
 
 const handleOpenInsert = () => {
   edit.value = {
-    title: "新增代理",
+    title: t("proxy.createTitle"),
     visible: true
   };
 };
@@ -389,7 +389,7 @@ const handleOpenUpdate = (proxy: FrpcProxy) => {
   //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
   // }
   edit.value = {
-    title: t("proxy.editTitle"),
+    title: t("proxy.modifyTitle"),
     visible: true
   };
 };
@@ -766,7 +766,8 @@ onUnmounted(() => {
                     v-if="
                       (proxy.type === 'http' || proxy.type === 'https') &&
                       proxy.customDomains &&
-                      proxy.customDomains.length > 0
+                      proxy.customDomains.length > 0 &&
+                      proxy.customDomains[0]
                     "
                   >
                     <span>{{ t("proxy.mappingAddress") }}：</span>
@@ -844,7 +845,7 @@ onUnmounted(() => {
                     <template #icon>
                       <IconifyIconOffline icon="edit" />
                     </template>
-                    {{ t("common.edit") }}
+                    {{ t("common.modify") }}
                   </el-button>
                   <el-dropdown>
                     <el-button type="text" size="small">

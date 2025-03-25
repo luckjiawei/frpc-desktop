@@ -317,8 +317,8 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
-    editTitle: "Edit Proxy",
-    addTitle: "Add Proxy",
+    modifyTitle: "Modify Proxy",
+    createTitle: "Create Proxy",
     dialog: {
       listPorts: {
         title: "Inner Port",
@@ -333,8 +333,8 @@ export default {
       }
     },
     form: {
-      editTitle: "Edit Proxy",
-      addTitle: "Add Proxy",
+      modifyTitle: "Modify Proxy",
+      createTitle: "Create Proxy",
 
       title: {
         basicConfig: "Basic Configuration",
@@ -343,7 +343,7 @@ export default {
         customConfig: "Custom Configuration",
         pluginConfig: "Plugin Configuration",
         otherConfig: "Other Proxy Configuration",
-        editDialog: "Edit Proxy"
+        modifyDialog: "Modify Proxy"
       },
       button: {
         localPort: "Local Port",
@@ -463,7 +463,7 @@ export default {
   common: {
     yes: "Y",
     no: "N",
-    edit: "Edit",
+    modify: "Modify",
     delete: "Delete",
     more: "More",
     disable: "Disable",
@@ -476,6 +476,8 @@ export default {
     frpParameter: "Frp Parameter",
     operation: "Operation",
     select: "Select",
-    
+    deleteSuccess: "Delete successfully",
+    modifySuccess: "Modify successfully",
+    createSuccess: "Create successfully"
   }
 };
