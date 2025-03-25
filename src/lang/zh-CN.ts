@@ -315,6 +315,7 @@ export default {
   common: {
     yes: "是",
     no: "否",
+    modify: "修改",
     delete: "删除",
     more: "更多",
     disable: "禁用",

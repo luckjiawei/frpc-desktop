@@ -1,10 +1,6 @@
 <script lang="ts" setup>
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
-import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import { useDebounceFn } from "@vueuse/core";
-import { ElMessage } from "element-plus";
-import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
+import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {
   on,
   onListener,
@@ -12,7 +8,11 @@ import {
   removeRouterListeners2,
   send
 } from "@/utils/ipcUtils";
+import { useDebounceFn } from "@vueuse/core";
+import { ElMessage } from "element-plus";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Logger"
