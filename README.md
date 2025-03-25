@@ -16,12 +16,12 @@
 <h3 align="center">Frpc-Desktop</h3>
 
   <p align="center">
-    🎉 FRP跨平台桌面客户端，可视化配置，轻松实现内网穿透！
+    🎉 Cross-platform desktop client for FRP, visual configuration, easily achieve intranet penetration!
     <br />
-    支持所有frp版本 / 开机自启 / 可视化配置 / 免费开源
+    Support all frp versions / Auto-start / Visual configuration / Free and open source
   </p>
 
-  <p><a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">使用教程</a></p>
+  <p><a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">Tutorial</a></p>
 
 <a href="https://trendshift.io/repositories/12489" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12489" alt="luckjiawei%2Ffrpc-desktop | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://hellogithub.com/repository/b0dc116e9f2e4b8188da5a6d3e1bd8a4" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=b0dc116e9f2e4b8188da5a6d3e1bd8a4&claim_uid=8ZMOhz30mGJAHpa" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
@@ -29,63 +29,61 @@
 
 ## TODO
 
-- [x] 开机自启动
-- [x] 适配多用户 user & meta_token
-- [x] 便携版
-- [x] 增加udp代理类型
-- [x] 支持快速分享frps
-- [x] 增加快速选择本地端口
-- [x] 支持stcp代理类型
-- [x] 通过镜像站下载frp
-- [x] 支持所有配置的导入导出
-- [x] 一键清空所有配置
-- [x] 支持导入识别frpc.toml
-- [x] tcp、udp协议支持批量端口
-- [ ] support multiple languages
+- [x] Auto-start on boot
+- [x] Support multiple users with user & meta_token
+- [x] Portable version
+- [x] Add UDP proxy type
+- [x] Support quick sharing of frps
+- [x] Add quick local port selection
+- [x] Support STCP proxy type
+- [x] Download frp through mirror sites
+- [x] Support import/export of all configurations
+- [x] One-click clear all configurations
+- [x] Support importing and recognizing frpc.toml
+- [x] TCP and UDP protocols support batch ports
+- [ ] Support multiple languages
 
-## 常见问题
+## Common Issues
 
-### Mac提示已损坏
+### Mac shows app is damaged
 
-执行命令：`sudo xattr -cr Frpc-Desktop.app`
+Run command: `sudo xattr -cr Frpc-Desktop.app`
 
-## 里程碑
+## Milestones
 
-- 2025-03-06: 发布v1.2.0版本 底层重构，提高稳定性
-- 2025-01-09: 发布v1.1.6版本
-- 2024-12-04: 发布v1.1.5版本 优化体验、支持修改webport、解决github限流问题、日志优化
-- 2024-11-08: 发布v1.1.4版本 修复已知BUG
-- 2024-10-14: 发布v1.1.3版本 支持xtcp协议、优化体验
-- 2024-09-25: 发布v1.1.2版本 支持 http basic、子域名
-- 2024-09-07: 发布v1.1.0版本 支持批量端口、支持单条代理开关控制
-- 2024-08-24: 发布v1.0.9版本 支持镜像下载、导出导入配置
-- 2024-08-17: 发布v1.0.8版本 支持stcp代理
-- 2024-08-11: 发布v1.0.7版本
-- 2024-08-09: 发布v1.0.6版本
-- 2024-08-06: 发布v1.0.5版本
-- 2024-08-06: 发布v1.0.4版本 适配支持多用户插件
-- 2024-07-17: 发布v1.0.3版本 修复已知bug 增加开机自启 增加删除frp版本
-- 2024-01-29: 发布v1.0.2版本 增加Linux客户端和代理模式
-- 2023-12-01: 发布v1.0.1版本
-- 2023-11-28: 发布v1.0版本
+- 2025-03-06: Released v1.2.0 Underlying reconstruction, improved stability
+- 2025-01-09: Released v1.1.6
+- 2024-12-04: Released v1.1.5 Optimized experience, support modifying webport, solved GitHub rate limit issues, log optimization
+- 2024-11-08: Released v1.1.4 Fixed known bugs
+- 2024-10-14: Released v1.1.3 Support XTCP protocol, optimized experience
+- 2024-09-25: Released v1.1.2 Support HTTP basic auth, subdomains
+- 2024-09-07: Released v1.1.0 Support batch ports, single proxy switch control
+- 2024-08-24: Released v1.0.9 Support mirror downloads, config import/export
+- 2024-08-17: Released v1.0.8 Support STCP proxy
+- 2024-08-11: Released v1.0.7
+- 2024-08-09: Released v1.0.6
+- 2024-08-06: Released v1.0.5
+- 2024-08-06: Released v1.0.4 Adapted to support multi-user plugin
+- 2024-07-17: Released v1.0.3 Fixed known bugs, added auto-start, added frp version deletion
+- 2024-01-29: Released v1.0.2 Added Linux client and proxy mode
+- 2023-12-01: Released v1.0.1
+- 2023-11-28: Released v1.0
 
-## 社区
+## Community
 
-广告勿进！！！
+No advertisements allowed!!!
 
-### TG
+### Telegram
 
 [https://t.me/+4kziSBL3LxVmYzVl](https://t.me/+4kziSBL3LxVmYzVl)
 
-### 微信群
+### WeChat Group
 
-**~~微信扫描加入开源项目交流群~~ 微信群超过200人无法扫码进群 关注公众号进群**
+**~~Scan WeChat QR code to join open source project discussion group~~ WeChat group exceeds 200 people, cannot scan code to join. Follow official account to join group**
 
+<img src="screenshots/wechat-qr.png" alt="QR Code" width="200"><img src="screenshots/mp_qr.jpg" alt="Official Account QR Code" width="200">
 
-
- <img src="screenshots/wechat-qr.png" alt="二维码" width="200"><img src="screenshots/mp_qr.jpg" alt="公众号二维码" width="200">
-
-## 演示
+## Demo
 
 ![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/conn.png?raw=true)
 
@@ -99,48 +97,48 @@
 
 ![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
 
-## 捐赠
+## Donate
 
-👉👉👉[点击去捐赠](https://jwinks.com/donate/)👈👈👈
+👉👉👉[Click to donate](https://jwinks.com/donate/)👈👈👈
 
-**捐赠名单**
+**Donation List**
 
-| 🕰 时间      | 📡 平台 | 🤲 捐赠者        | 💰 金额   | ✉️ 捐赠留言                  |
-|------------|-------|---------------|---------|--------------------------|
-| 2024-08-06 | 微信    | 三木            | 1 元     | 无                        |
-| 2024-08-25 | 微信    | 晚风            | 1 元     | 无                        |
-| 2024-08-27 | 微信    | x             | 1 元     | 无                        |
-| 2024-10-09 | 微信    | 解脱            | 20 元    | 无                        |
-| 2024-10-09 | 微信    | KMDN          | 20 元    | 无                        |
-| 2024-10-14 | 微信    | 121           | 5 元     | 无                        |
-| 2024-10-14 | 微信    | Different     | 10 元    | 感谢您的开源                   |
-| 2024-10-16 | 微信    | 。 。 。         | 50 元    | 感谢开源的frp软件               |
-| 2024-11-2  | 微信    | gesoft        | 10 元    | 加油                       |
-| 2024-11-7  | 微信    | *进            | 10 元    | 谢谢，可见可得，省心省力             |
-| 2024-11-8  | 微信    | **创           | 10 元    | 无                        |
-| 2024-11-20 | 微信    | 一東            | 20 元    | 请你喝咖啡                    |
-| 2024-11-20 | 微信    | KEVINSKH      | 10 元    | 感谢开发方便快捷的图形化操作界面👍       |
-| 2024-11-26 | 微信    |               | 3 元     | 无                        |
-| 2024-11-26 | 微信    | Kaori         | 1 元     | 谢谢大佬的项目，要是能添加web控制页面就更好了 |
-| 2024-12-03 | 微信    | 17¥           | 20 元    | 谢谢，很方便的软件                |
-| 2024-12-03 | 微信    | Cr@k3r        | 5 元     | 感谢你的工作                   |
-| 2024-12-09 | 微信    | Vince         | 20 元    | 支持国人开发！                  |
-| 2024-12-11 | 支付宝   | **萌           | 20 元    | 加油加油                     |
-| 2024-12-11 | 支付宝   | *石            | 20 元    | 无                        |
-| 2024-12-16 | 微信    | 铁汉柔情          | 1 元     | 加油支持国人                   |
-| 2024-12-16 | 微信    | 亚索🌪️         | 1 元     | 无                        |
-| 2024-12-17 | 微信    | ppp789        | 1.6 元   | 无                        |
-| 2024-12-17 | 支付宝   | *涛            | 10 元    | 无                        |
-| 2024-12-18 | 微信    | 觉远            | 6.66 元  | 开源不易                     |
-| 2024-12-19 | 微信    | 官方提醒          | 1 元     | 无                        |
-| 2024-12-19 | 微信    | 木~易           | 6.66 元  | 加油                       |
-| 2025-01-06 | 微信    | 如是            | 2 元     | 支持开源                     |
-| 2025-01-13 | 微信    | David Veith   | 18.88 元 | 开源无价，么么哒                 |
-| 2025-01-14 | 微信    | Xterminal SSH | 199 元   | Xterminal SSH 客户端前来支援    |
-| 2025-02-19 | 支付宝   | **杨           | 3 元     | 无                        |
-| 2025-03-03 | 微信    | **杨           | 6.66 元  | 感谢大佬，牛批                  |
+| 🕰 Time     | 📡 Platform | 🤲 Donor           | 💰 Amount | ✉️ Message                                             |
+| ---------- | ---------- | ----------------- | -------- | ----------------------------------------------------- |
+| 2024-08-06 | WeChat     | San Mu            | ¥1       | None                                                  |
+| 2024-08-25 | WeChat     | Late Wind         | ¥1       | None                                                  |
+| 2024-08-27 | WeChat     | x                 | ¥1       | None                                                  |
+| 2024-10-09 | WeChat     | Liberation        | ¥20      | None                                                  |
+| 2024-10-09 | WeChat     | KMDN              | ¥20      | None                                                  |
+| 2024-10-14 | WeChat     | 121               | ¥5       | None                                                  |
+| 2024-10-14 | WeChat     | Different         | ¥10      | Thanks for open source                                |
+| 2024-10-16 | WeChat     | . . .             | ¥50      | Thanks for open source frp software                   |
+| 2024-11-2  | WeChat     | gesoft            | ¥10      | Keep going                                            |
+| 2024-11-7  | WeChat     | *Jin              | ¥10      | Thanks, visible and obtainable, saves effort          |
+| 2024-11-8  | WeChat     | **Chuang          | ¥10      | None                                                  |
+| 2024-11-20 | WeChat     | Yi Dong           | ¥20      | Buy you a coffee                                      |
+| 2024-11-20 | WeChat     | KEVINSKH          | ¥10      | Thanks for developing convenient graphical interface👍 |
+| 2024-11-26 | WeChat     |                   | ¥3       | None                                                  |
+| 2024-11-26 | WeChat     | Kaori             | ¥1       | Thanks, would be better with web control interface    |
+| 2024-12-03 | WeChat     | 17¥               | ¥20      | Thanks, very convenient software                      |
+| 2024-12-03 | WeChat     | Cr@k3r            | ¥5       | Thanks for your work                                  |
+| 2024-12-09 | WeChat     | Vince             | ¥20      | Support Chinese developers!                           |
+| 2024-12-11 | Alipay     | **Meng            | ¥20      | Keep going                                            |
+| 2024-12-11 | Alipay     | *Shi              | ¥20      | None                                                  |
+| 2024-12-16 | WeChat     | Iron Man Gentle   | ¥1       | Support Chinese developers                            |
+| 2024-12-16 | WeChat     | Yasuo🌪️            | ¥1       | None                                                  |
+| 2024-12-17 | WeChat     | ppp789            | ¥1.6     | None                                                  |
+| 2024-12-17 | Alipay     | *Tao              | ¥10      | None                                                  |
+| 2024-12-18 | WeChat     | Jue Yuan          | ¥6.66    | Open source is not easy                               |
+| 2024-12-19 | WeChat     | Official Reminder | ¥1       | None                                                  |
+| 2024-12-19 | WeChat     | Mu~Yi             | ¥6.66    | Keep going                                            |
+| 2025-01-06 | WeChat     | Ru Shi            | ¥2       | Support open source                                   |
+| 2025-01-13 | WeChat     | David Veith       | ¥18.88   | Open source is priceless, XOXO                        |
+| 2025-01-14 | WeChat     | Xterminal SSH     | ¥199     | Xterminal SSH client comes to support                 |
+| 2025-02-19 | Alipay     | **Yang            | ¥3       | None                                                  |
+| 2025-03-03 | WeChat     | **Yang            | ¥6.66    | Thanks master, awesome                                |
 
-## 贡献者
+## Contributors
 
 <a href="https://github.com/luckjiawei/frpc-desktop/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=luckjiawei/frpc-desktop" />
