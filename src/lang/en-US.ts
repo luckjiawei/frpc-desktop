@@ -5,7 +5,7 @@ export default {
   },
   router: {
     home: {
-      title: "Home"
+      title: "Launch"
     },
     proxy: {
       title: "Proxy"

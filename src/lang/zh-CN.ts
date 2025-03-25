@@ -5,7 +5,7 @@ export default {
   },
   router: {
     home: {
-      title: "主页"
+      title: "启动"
     },
     proxy: {
       title: "代理"

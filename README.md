@@ -83,19 +83,19 @@ No advertisements allowed!!!
 
 <img src="screenshots/wechat-qr.png" alt="QR Code" width="200"><img src="screenshots/mp_qr.jpg" alt="Official Account QR Code" width="200">
 
-## Demo
+## Screenshot
 
-![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/conn.png?raw=true)
+![launch](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/launch.png?raw=true)
 
-![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/proxys.png?raw=true)
+![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/proxy.png?raw=true)
 
-![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/versions.png?raw=true)
+![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/download.png?raw=true)
 
-![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/config.png?raw=true)
+![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/config.png?raw=true)
 
-![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/log.png?raw=true)
+![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/loggger.png?raw=true)
 
-![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
+![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/about.png?raw=true)
 
 ## Donate
 
