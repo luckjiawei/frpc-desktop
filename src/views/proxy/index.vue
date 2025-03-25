@@ -618,11 +618,10 @@ onMounted(() => {
 });
 
 const handleProxyTypeChange = e => {
+  hasPlugin.value = false;
   if (e === "http" || e === "https" || e === "tcp" || e === "udp") {
     if (e === "https") {
       hasPlugin.value = true;
-    } else {
-      hasPlugin.value = false;
     }
     editForm.value.visitorsModel = "";
   } else {
