@@ -87,17 +87,17 @@
 
 ## 演示
 
-![connect server](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/conn.png?raw=true)
+![launch](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/launch.png?raw=true)
 
-![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/proxys.png?raw=true)
+![proxys manager](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/proxy.png?raw=true)
 
-![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/versions.png?raw=true)
+![frp download](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/download.png?raw=true)
 
-![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/config.png?raw=true)
+![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/config.png?raw=true)
 
-![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/log.png?raw=true)
+![logger](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/logger.png?raw=true)
 
-![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/about.png?raw=true)
+![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/zh/about.png?raw=true)
 
 ## 捐赠
 
