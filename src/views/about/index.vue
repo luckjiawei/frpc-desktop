@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { computed, defineComponent, onMounted, onUnmounted } from "vue";
-import { Icon } from "@iconify/vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import pkg from "../../../package.json";
-import { send } from "@/utils/ipcUtils";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { send } from "@/utils/ipcUtils";
+import { Icon } from "@iconify/vue";
+import { computed, defineComponent, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
+import pkg from "../../../package.json";
 
 const frpcDesktopStore = useFrpcDesktopStore();
 const { t } = useI18n();
@@ -126,11 +126,11 @@ defineComponent({
           />
         </div>
         <div class="mt-[8px] text-sm text-center">
-          <p>🎉 {{ pkg.description }}</p>
+          <p>🎉 {{ t("about.description") }}</p>
           <p>
-            {{ t("about.description.autoStart") }} /
-            {{ t("about.description.visualConfig") }} /
-            {{ t("about.description.freeAndOpen") }}
+            {{ t("about.features.autoStart") }} /
+            {{ t("about.features.visualConfig") }} /
+            {{ t("about.features.freeAndOpen") }}
           </p>
         </div>
         <div class="mt-[12px]">
