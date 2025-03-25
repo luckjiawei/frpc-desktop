@@ -93,7 +93,7 @@ No advertisements allowed!!!
 
 ![config](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/config.png?raw=true)
 
-![log](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/loggger.png?raw=true)
+![logger](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/logger.png?raw=true)
 
 ![about](https://github.com/luckjiawei/frpc-desktop/blob/main/screenshots/en/about.png?raw=true)
 
