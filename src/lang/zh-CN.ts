@@ -98,13 +98,17 @@ export default {
       github: "仓库地址",
       issues: "反馈问题"
     },
-    description: {
+    features: {
       autoStart: "开机自启",
       visualConfig: "可视化配置",
       freeAndOpen: "免费开源"
     },
+    description: "FRP跨平台桌面客户端，可视化配置，轻松实现内网穿透！",
     version: {
       latest: "最新版本"
+    },
+    tips: {
+      latestVersion: "当前已是最新版本"
     }
   },
   config: {

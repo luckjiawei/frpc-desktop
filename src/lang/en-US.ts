@@ -101,11 +101,13 @@ export default {
       github: "Repository",
       issues: "Feedback"
     },
-    description: {
+    features: {
       autoStart: "Auto Start",
       visualConfig: "Visual Configuration",
       freeAndOpen: "Free and Open Source"
     },
+    description:
+      "FRP cross-platform desktop client, visual configuration, easy to implement intranet penetration!",
     version: {
       latest: "Latest Version"
     }
@@ -226,19 +228,23 @@ export default {
       },
       tlsCertFile: {
         label: "TLS Cert File",
-        requireMessage: "Please select TLS cert file"
+        requireMessage: "Please select TLS cert file",
+        placeholder: "Click to select TLS cert file"
       },
       tlsKeyFile: {
         label: "TLS Key File",
-        requireMessage: "Please select TLS key file"
+        requireMessage: "Please select TLS key file",
+        placeholder: "Click to select TLS key file"
       },
       caCertFile: {
         label: "CA Cert File",
-        requireMessage: "Please select CA cert file"
+        requireMessage: "Please select CA cert file",
+        placeholder: "Click to select CA cert file"
       },
       tlsServerName: {
         label: "TLS Server Name",
-        requireMessage: "Please enter TLS server name"
+        requireMessage: "Please enter TLS server name",
+        placeholder: "Enter TLS server name"
       },
       systemLanguage: {
         label: "System Language",
