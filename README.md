@@ -136,7 +136,8 @@ No advertisements allowed!!!
 | 2025-01-13 | WeChat     | David Veith       | ¥18.88   | Open source is priceless, XOXO                        |
 | 2025-01-14 | WeChat     | Xterminal SSH     | ¥199     | Xterminal SSH client comes to support                 |
 | 2025-02-19 | Alipay     | **Yang            | ¥3       | None                                                  |
-| 2025-03-03 | WeChat     | **Yang            | ¥6.66    | Thanks master, awesome                                |
+| 2025-03-03 | WeChat     |                   | ¥6.66    |                                                       |
+| 2025-03-23 | WeChat     | AFC               | ¥3       |                                                       |
 
 ## Contributors
 
