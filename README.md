@@ -41,7 +41,7 @@
 - [x] One-click clear all configurations
 - [x] Support importing and recognizing frpc.toml
 - [x] TCP and UDP protocols support batch ports
-- [ ] Support multiple languages
+- [x] Support multiple languages
 
 ## Common Issues
 
@@ -138,6 +138,8 @@ No advertisements allowed!!!
 | 2025-02-19 | Alipay     | **Yang            | ¥3       | None                                                  |
 | 2025-03-03 | WeChat     |                   | ¥6.66    |                                                       |
 | 2025-03-23 | WeChat     | AFC               | ¥3       |                                                       |
+| 2025-03-28 | Alipay     | **飞              | ¥2       |                                                       |
+
 
 ## Contributors
 
