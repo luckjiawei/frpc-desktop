@@ -138,7 +138,9 @@ No advertisements allowed!!!
 | 2025-02-19 | Alipay     | **Yang            | ¥3       | None                                                  |
 | 2025-03-03 | WeChat     |                   | ¥6.66    |                                                       |
 | 2025-03-23 | WeChat     | AFC               | ¥3       |                                                       |
-| 2025-03-28 | Alipay     | **飞              | ¥2       |                                                       |
+| 2025-03-28 | Alipay     | **Fei             | ¥2       |                                                       |
+| 2025-04-04 | WeChat     | *                 | ¥18.88   | Thanks for open source                                |
+| 2025-04-07 | Alipay     | **Tian            | ¥32      |                                                       |
 
 
 ## Contributors
