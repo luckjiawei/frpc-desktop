@@ -772,7 +772,7 @@ onUnmounted(() => {
                 </template>
                 <el-select
                   v-model="formData.auth.method"
-                  placeholder="请选择验证方式"
+                  :placeholder="t('config.form.authMethod.requireMessage')"
                   clearable
                 >
                   <el-option
