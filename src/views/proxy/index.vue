@@ -1162,7 +1162,9 @@ onUnmounted(() => {
                   {
                     pattern:
                       /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/,
-                    message: '请输入正确的域名',
+                    message: t(
+                      'proxy.form.formItem.customDomains.patternMessage'
+                    ),
                     trigger: 'blur'
                   }
                 ]"

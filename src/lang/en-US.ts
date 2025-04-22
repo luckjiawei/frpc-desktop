@@ -384,7 +384,8 @@ export default {
         },
         customDomains: {
           label: "Custom Domains",
-          requireMessage: "Please add at least one subdomain / custom domain"
+          requireMessage: "Please add at least one subdomain / custom domain",
+          patternMessage: "Please enter a valid domain name"
         },
         basicAuth: {
           label: "HTTP Basic Auth",
@@ -458,6 +459,11 @@ export default {
           requireMessage: "Please enter fallback timeout ms",
           description:
             "xtcp hole punching time exceeds this time will fall back to using stcp-visitor to establish a connection 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
+        },
+        locations: {
+          label: "URL Path",
+          requireMessage: "Please enter URL path",
+          description: "URL path, supports regular expressions, e.g.: /api/.*"
         }
       }
     },

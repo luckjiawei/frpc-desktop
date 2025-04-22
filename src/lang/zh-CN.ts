@@ -407,7 +407,8 @@ export default {
         },
         customDomains: {
           label: "自定义域名",
-          requireMessage: "请至少添加一个 子域名 / 自定义域名"
+          requireMessage: "请至少添加一个 子域名 / 自定义域名",
+          patternMessage: "请输入正确的域名"
         },
         basicAuth: {
           label: "HTTP基本认证",
