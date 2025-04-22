@@ -23,6 +23,10 @@ export const ipcRouters: IpcRouters = {
     getLanguage: {
       path: "server/getLanguage",
       controller: "configController.getLanguage"
+    },
+    saveLanguage: {
+      path: "server/saveLanguage",
+      controller: "configController.saveLanguage"
     }
   },
   LOG: {

@@ -472,6 +472,15 @@ onMounted(() => {
       message: t("config.message.openAppDataSuccess")
     });
   });
+
+  on(ipcRouters.SERVER.saveLanguage, data => {
+    ElMessage({
+      type: "success",
+      message: t("config.message.saveSuccess")
+    });
+    loading.value--;
+    frpcDesktopStore.getLanguage();
+  });
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -582,6 +591,11 @@ const handleResetConfig = () => {
 const handleOpenDataFolder = useDebounceFn(() => {
   send(ipcRouters.SYSTEM.openAppData);
 }, 300);
+
+const handleSystemLanguageChange = e => {
+  console.log("language Change", e);
+  send(ipcRouters.SERVER.saveLanguage, e);
+};
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
@@ -1668,7 +1682,10 @@ onUnmounted(() => {
                 :label="t('config.form.systemLanguage.label')"
                 prop="system.language"
               >
-                <el-select v-model="formData.system.language">
+                <el-select
+                  v-model="formData.system.language"
+                  @change="handleSystemLanguageChange"
+                >
                   <el-option label="中文" value="zh-CN" />
                   <el-option label="English" value="en-US" />
                 </el-select>

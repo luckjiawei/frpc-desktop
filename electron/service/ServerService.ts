@@ -49,8 +49,13 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return new Promise((resolve, reject) => {
       this._serverDao
         .exists(this._serverId)
-        .then(r => {
-          resolve(r);
+        .then(async r => {
+          if (r) {
+            const config = await this.getServerConfig();
+            resolve(!!config && !!config.serverAddr);
+          } else {
+            resolve(false);
+          }
         })
         .catch(err => reject(err));
     });
@@ -269,6 +274,71 @@ ${f}`;
       language = GlobalConstant.DEFAULT_LANGUAGE;
     }
     return language;
+  }
+
+  async saveLanguage(language: string) {
+    let serverConfig = await this.getServerConfig();
+    if (!serverConfig) {
+      serverConfig = {
+        _id: "",
+        multiuser: false,
+        frpcVersion: null,
+        loginFailExit: false,
+        udpPacketSize: 1500,
+        serverAddr: "",
+        serverPort: 7000,
+        auth: {
+          method: "",
+          token: ""
+        },
+        log: {
+          to: "",
+          level: "info",
+          maxDays: 3,
+          disablePrintColor: false
+        },
+        transport: {
+          dialServerTimeout: 10,
+          dialServerKeepalive: 7200,
+          poolCount: 0,
+          tcpMux: true,
+          tcpMuxKeepaliveInterval: 30,
+          protocol: "tcp",
+          connectServerLocalIP: "",
+          proxyURL: "",
+          tls: {
+            enable: true,
+            certFile: "",
+            keyFile: "",
+            trustedCaFile: "",
+            serverName: "",
+            disableCustomTLSFirstByte: true
+          },
+          heartbeatInterval: 30,
+          heartbeatTimeout: 90
+        },
+        metadatas: {
+          token: ""
+        },
+        webServer: {
+          addr: "127.0.0.1",
+          port: 57400,
+          user: "",
+          password: "",
+          pprofEnable: false
+        },
+        system: {
+          launchAtStartup: false,
+          silentStartup: false,
+          autoConnectOnStartup: false,
+          language: language
+        },
+        user: ""
+      };
+    } else {
+      serverConfig.system.language = language;
+    }
+    await this.saveServerConfig(serverConfig);
   }
 }
 

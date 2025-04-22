@@ -43,9 +43,10 @@ export default {
     },
     alert: {
       configRequired: {
-        title: "提示",
-        message: "请先前往设置页面，修改配置后再启动",
-        confirm: "去设置"
+        title: "Prompt",
+        message:
+          "Please go to the settings page and modify the configuration before starting",
+        confirm: "Go to Settings"
       }
     }
   },

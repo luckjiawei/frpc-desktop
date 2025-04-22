@@ -17,6 +17,7 @@ class LogService {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this._logPath)) {
         resolve("");
+        return;
       }
       fs.readFile(this._logPath, "utf-8", (error, data) => {
         if (!error) {
@@ -28,13 +29,25 @@ class LogService {
     });
   }
 
+  private _watcher: fs.FSWatcher | null = null;
+
   watchFrpcLog(listenerParam: ListenerParam) {
+    // 如果已存在watcher,先清理掉旧的
+    if (this._watcher) {
+      this._watcher.close();
+      this._watcher = null;
+    }
+
     if (!fs.existsSync(this._logPath)) {
-      setTimeout(() => this.watchFrpcLog(listenerParam), 1000);
+      const timer = setTimeout(() => {
+        this.watchFrpcLog(listenerParam);
+        clearTimeout(timer);
+      }, 1000);
       return;
     }
+
     console.log("watchFrpcLog succcess");
-    fs.watch(this._logPath, (eventType, filename) => {
+    this._watcher = fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
         console.log("change", eventType, listenerParam.channel);
         const win: BrowserWindow = BeanFactory.getBean("win");
@@ -42,12 +55,8 @@ class LogService {
           listenerParam.channel,
           ResponseUtils.success(true)
         );
-      } else {
       }
     });
-    // return new Promise<boolean>((resolve, reject) => {
-    //
-    // });
   }
 
   openFrpcLogFile(): Promise<boolean> {

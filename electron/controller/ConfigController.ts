@@ -176,6 +176,18 @@ class ConfigController extends BaseController {
       req.event.reply(req.channel, ResponseUtils.success(data));
     });
   }
+
+  saveLanguage(req: ControllerParam) {
+    this._serverService
+      .saveLanguage(req.args)
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.saveLanguage", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
 }
 
 export default ConfigController;

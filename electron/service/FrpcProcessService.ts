@@ -1,15 +1,15 @@
-import ServerService from "./ServerService";
-import VersionRepository from "../repository/VersionRepository";
-import PathUtils from "../utils/PathUtils";
-import GlobalConstant from "../core/GlobalConstant";
+import { exec, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
-import ResponseUtils from "../utils/ResponseUtils";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
+import GlobalConstant from "../core/GlobalConstant";
 import Logger from "../core/Logger";
+import VersionRepository from "../repository/VersionRepository";
+import PathUtils from "../utils/PathUtils";
+import ResponseUtils from "../utils/ResponseUtils";
+import ServerService from "./ServerService";
 import SystemService from "./SystemService";
-import { exec, spawn } from "child_process";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
@@ -50,10 +50,11 @@ class FrpcProcessService {
     if (this.isRunning()) {
       return;
     }
-    const config = await this._serverService.getServerConfig();
-    if (!config) {
+    if (!(await this._serverService.hasServerConfig())) {
       throw new BusinessError(ResponseCode.NOT_CONFIG);
     }
+    const config = await this._serverService.getServerConfig();
+
     const version = await this._versionRepository.findByGithubReleaseId(
       config.frpcVersion
     );

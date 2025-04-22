@@ -60,12 +60,13 @@ onMounted(() => {
       loading.value = false;
     },
     (bizCode: string, message: string) => {
+      console.log("bizCode", bizCode);
       if (bizCode === "B1001") {
         ElMessageBox.alert(
-          $t("home.alert.configRequired.message"),
-          $t("home.alert.configRequired.title"),
+          t("home.alert.configRequired.message"),
+          t("home.alert.configRequired.title"),
           {
-            confirmButtonText: $t("home.alert.configRequired.confirm")
+            confirmButtonText: t("home.alert.configRequired.confirm")
           }
         ).then(() => {
           router.replace({
