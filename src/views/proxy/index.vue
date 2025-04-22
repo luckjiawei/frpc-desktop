@@ -42,7 +42,7 @@ const edit = ref({
 const defaultForm: FrpcProxy = {
   _id: "",
   hostHeaderRewrite: "",
-  locations: [],
+  locations: [""],
   name: "",
   type: "http",
   localIP: "",
@@ -357,6 +357,14 @@ const handleAddDomain = () => {
 
 const handleDeleteDomain = (index: number) => {
   editForm.value.customDomains.splice(index, 1);
+};
+
+const handleAddLocation = () => {
+  editForm.value.locations.push("");
+};
+
+const handleDeleteLocation = (index: number) => {
+  editForm.value.locations.splice(index, 1);
 };
 
 const handleLoadProxies = () => {
@@ -1207,6 +1215,79 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
+
+          <template v-if="isHttp || isHttps">
+            <el-col :span="24">
+              <el-form-item
+                v-for="(d, di) in editForm.locations"
+                :key="'locations' + di"
+                :label="
+                  di === 0 ? t('proxy.form.formItem.locations.label') : ''
+                "
+                :prop="`locations.${di}`"
+                :rules="[
+                  // {
+                  //   required: true,
+                  //   message: `自定义域名不能为空`,
+                  //   trigger: 'blur'
+                  // },
+                  // {
+                  //   pattern:
+                  //     /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/,
+                  //   message: '请输入正确的域名',
+                  //   trigger: 'blur'
+                  // }
+                ]"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="300">
+                          <template #default>
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
+                              >locations</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("proxy.form.formItem.locations.label") }}
+                    </div>
+                  </div>
+                </template>
+                <el-input
+                  class="domain-input"
+                  placeholder="domain.com"
+                  v-model="editForm.locations[di]"
+                />
+                <el-button
+                  class="ml-[10px]"
+                  type="primary"
+                  plain
+                  @click="handleAddLocation"
+                >
+                  <IconifyIconOffline icon="add" />
+                </el-button>
+                <el-button
+                  type="danger"
+                  plain
+                  @click="handleDeleteLocation(di)"
+                  :disabled="editForm.locations.length === 1"
+                >
+                  <IconifyIconOffline icon="delete-rounded" />
+                </el-button>
+              </el-form-item>
+            </el-col>
+          </template>
+
           <template v-if="isHttp || isHttps">
             <el-col :span="24">
               <div class="flex justify-between h3">

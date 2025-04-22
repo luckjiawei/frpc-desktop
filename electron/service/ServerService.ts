@@ -125,6 +125,7 @@ remotePort = {{ $v.Second }}
             transport: proxy.transport
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
+          const locations = proxy.locations.filter(l => l !== "");
           if (this.isHttps2http(proxy) && proxy.type === "https") {
             return {
               name: proxy.name,
@@ -132,6 +133,7 @@ remotePort = {{ $v.Second }}
               customDomains: proxy.customDomains,
               subdomain: proxy.subdomain,
               transport: proxy.transport,
+              ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.https2http
                 ? {
                     plugin: {
@@ -152,6 +154,7 @@ remotePort = {{ $v.Second }}
               customDomains: proxy.customDomains,
               transport: proxy.transport,
               subdomain: proxy.subdomain,
+              ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.basicAuth
                 ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
                 : {})
