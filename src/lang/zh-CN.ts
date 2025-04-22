@@ -482,6 +482,11 @@ export default {
           requireMessage: "请输入回退超时毫秒",
           description:
             "xtcp 打洞时间超过该时间会回退到使用 stcp-visitor 建立连接 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
+        },
+        locations: {
+          label: "URL 路径",
+          requireMessage: "请输入 URL 路径",
+          description: "URL 路径,支持正则表达式,如: /api/.*"
         }
       }
     }

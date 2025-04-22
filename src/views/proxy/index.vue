@@ -1265,7 +1265,7 @@ onUnmounted(() => {
                 </template>
                 <el-input
                   class="domain-input"
-                  placeholder="domain.com"
+                  placeholder="/api"
                   v-model="editForm.locations[di]"
                 />
                 <el-button
