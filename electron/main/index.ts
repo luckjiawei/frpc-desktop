@@ -146,7 +146,12 @@ class FrpcDesktopApp {
         click: () => {
           that._quitting = true;
           // todo stop frpc process
-          app.quit();
+          const frpcProcessService: FrpcProcessService =
+            BeanFactory.getBean("frpcProcessService");
+          frpcProcessService.stopFrpcProcess().finally(() => {
+            app.quit();
+          });
+
         }
       }
     ];
@@ -246,10 +251,15 @@ class FrpcDesktopApp {
       // logInfo(LogModule.APP, `All windows closed.`);
       this._win = null;
       if (process.platform !== "darwin") {
+        const frpcProcessService: FrpcProcessService =
+          BeanFactory.getBean("frpcProcessService");
+        frpcProcessService.stopFrpcProcess().finally(() => {
+          app.quit();
+        });
         // todo stop frpc process
         // stopFrpcProcess(() => {
         //   logInfo(LogModule.APP, `FRPC process stopped. Quitting application.`);
-        app.quit();
+        // app.quit();
         // });
       }
     });
@@ -274,6 +284,12 @@ class FrpcDesktopApp {
     app.on("before-quit", () => {
       // todo stop frpc process
       this._quitting = true;
+      const frpcProcessService: FrpcProcessService =
+        BeanFactory.getBean("frpcProcessService");
+      frpcProcessService.stopFrpcProcess().finally(() => {
+      });
+
+
     });
 
     Logger.info(
