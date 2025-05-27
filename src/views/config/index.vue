@@ -88,7 +88,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
     launchAtStartup: false,
     silentStartup: false,
     autoConnectOnStartup: false,
-    language: "zh-CN"
+    language: "en-US"
   },
   user: ""
 };
