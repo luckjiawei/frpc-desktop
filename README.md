@@ -141,6 +141,13 @@ No advertisements allowed!!!
 | 2025-03-28 | Alipay     | **Fei             | ¥2       |                                                       |
 | 2025-04-04 | WeChat     | *                 | ¥18.88   | Thanks for open source                                |
 | 2025-04-07 | Alipay     | **Tian            | ¥32      |                                                       |
+| 2025-05-13 | WeChat     | San Mu            | ¥0.1     |                                                       |
+| 2025-05-23 | WeChat     | Dream mud volume  | ¥8.88    |                                                       |
+| 2025-06-26 | WeChat     | Beidou🛰           | ¥6.66    |                                                       |
+| 2025-07-11 | WeChat     |                   | ¥1       |                                                       |
+| 2025-07-13 | WeChat     | Kyle              | ¥1.88    |                                                       |
+| 2025-07-14 | WeChat     | Rabbit God        | ¥8.88    |                                                       |
+
 
 
 ## Contributors
