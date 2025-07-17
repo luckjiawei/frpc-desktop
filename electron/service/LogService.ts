@@ -1,9 +1,9 @@
-import fs from "fs";
-import PathUtils from "../utils/PathUtils";
-import SystemService from "./SystemService";
-import BeanFactory from "../core/BeanFactory";
 import { BrowserWindow } from "electron";
+import fs from "fs";
+import BeanFactory from "../core/BeanFactory";
+import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
+import SystemService from "./SystemService";
 
 class LogService {
   private readonly _systemService: SystemService;
@@ -46,10 +46,8 @@ class LogService {
       return;
     }
 
-    console.log("watchFrpcLog succcess");
     this._watcher = fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
-        console.log("change", eventType, listenerParam.channel);
         const win: BrowserWindow = BeanFactory.getBean("win");
         win.webContents.send(
           listenerParam.channel,

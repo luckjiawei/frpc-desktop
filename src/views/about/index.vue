@@ -20,14 +20,12 @@ const isLastVersion = computed(() => {
   }
   // tagName相对固定
   const tagName = frpcDesktopStore.frpcDesktopLastRelease["tag_name"];
-  console.log(tagName, frpcDesktopStore.frpcDesktopLastRelease, "tagName");
   if (!tagName) {
     return true;
   }
   // 最后版本号
   const lastVersion = tagName.replace("v", "").toString();
   const currVersion = pkg.version;
-  console.log(lastVersion, currVersion, currVersion >= lastVersion, "isLast");
   return currVersion >= lastVersion;
 });
 
@@ -98,7 +96,7 @@ defineComponent({
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="flex flex-col items-center justify-center w-full h-full p-4 overflow-y-auto bg-white rounded drop-shadow-lg"
+        class="flex overflow-y-auto flex-col justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
       >
         <img
           src="/logo/pack/1024x1024.png"

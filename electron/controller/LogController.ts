@@ -25,7 +25,6 @@ class LogController extends BaseController {
 
   // watchFrpcLogContent(req: ControllerRequest) {
   //   this._logService.watchFrpcLog().then(data => {
-  //     console.log('reply watch', data);
   //     req.event.reply(req.reply, this.ResponseUtils.success(data));
   //   });
   // }

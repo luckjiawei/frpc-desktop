@@ -375,7 +375,6 @@ class FrpcDesktopApp {
    */
   private initializeListeners() {
     Object.keys(listeners).forEach(listenerKey => {
-      console.log(listenerKey, "listenerKey", listeners[listenerKey]);
       const { listenerMethod, channel } = listeners[listenerKey];
       const [beanName, method] = listenerMethod.split(".");
       const bean = BeanFactory.getBean(beanName);

@@ -20,6 +20,5 @@
 // // export default function Component(beanName?: string): ClassDecorator {
 // //   return function (target) {
 // //     const paramtypes = Reflect.getMetadata('design:paramtypes', target);
-// //     console.log(paramtypes);
 // //   };
 // // }

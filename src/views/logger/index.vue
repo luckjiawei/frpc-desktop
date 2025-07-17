@@ -71,7 +71,6 @@ onMounted(() => {
     });
   });
   onListener(listeners.watchFrpcLog, data => {
-    console.log("onListener Data", data);
     send(ipcRouters.LOG.getFrpLogContent);
   });
 });

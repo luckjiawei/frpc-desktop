@@ -293,7 +293,6 @@ const handleRangePort = () => {
   if (isHttp.value || isHttps.value) {
     return false;
   }
-  console.log(editForm.value);
   if (String(editForm.value.localPort).indexOf("-") !== -1) {
     return true;
   }
@@ -316,7 +315,6 @@ const handleSubmit = async () => {
       if (handleRangePort()) {
         const lc = handleGetPortCount(editForm.value.localPort);
         const rc = handleGetPortCount(editForm.value.remotePort);
-        console.log("范围端口 ", lc, rc);
         if (lc !== rc) {
           ElMessage({
             type: "warning",
@@ -341,7 +339,6 @@ const handleSubmit = async () => {
       }
       loading.value.form = 1;
       const data = _.cloneDeep(editForm.value);
-      console.log("submit", data);
       if (data._id) {
         send(ipcRouters.PROXY.modifyProxy, data);
       } else {
@@ -544,7 +541,6 @@ const handleSelectFile = (type: number, ext: string[]) => {
   //       editForm.value.https2httpKeyFile = normalizePath(r[0]);
   //       break;
   //   }
-  //   console.log(r);
   // });
 };
 
@@ -553,20 +549,17 @@ onMounted(() => {
   handleLoadFrpcConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
-    console.log("data", data);
     if (data) {
       frpcConfig.value = data;
     }
   });
 
   on(ipcRouters.PROXY.getAllProxies, data => {
-    console.log("allProxies", data);
     loading.value.list--;
     proxys.value = data;
   });
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
-    console.log("data", data);
     if (!data.canceled) {
       switch (currSelectLocalFileType.value) {
         case 1:
@@ -671,7 +664,7 @@ onUnmounted(() => {
             class="mb-[15px]"
           >
             <div
-              class="flex items-center justify-between w-full h-full p-4 bg-white rounded left-border drop-shadow animate__animated"
+              class="flex justify-between items-center p-4 w-full h-full bg-white rounded drop-shadow left-border animate__animated"
             >
               <div class="left">
                 <div class="flex items-center">
@@ -843,7 +836,7 @@ onUnmounted(() => {
               </div>
 
               <div class="right">
-                <div class="flex flex-col items-center gap-1">
+                <div class="flex flex-col gap-1 items-center">
                   <el-button
                     type="text"
                     size="small"
@@ -892,7 +885,7 @@ onUnmounted(() => {
       </template>
       <div
         v-else
-        class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
+        class="flex overflow-hidden justify-center items-center p-2 w-full h-full bg-white rounded drop-shadow-xl"
       >
         <el-empty :description="t('proxy.noProxy')" />
       </div>
@@ -1003,7 +996,7 @@ onUnmounted(() => {
               :label="t('proxy.form.formItem.name.label')"
               prop="name"
             >
-              <div class="flex w-full gap-2">
+              <div class="flex gap-2 w-full">
                 <el-input
                   v-model="editForm.name"
                   class="w-full"
@@ -1046,7 +1039,7 @@ onUnmounted(() => {
                 :label="t('proxy.form.formItem.localPort.label')"
                 prop="localPort"
               >
-                <div class="flex w-full gap-2">
+                <div class="flex gap-2 w-full">
                   <el-input-number
                     v-if="isHttp || isHttps"
                     placeholder="8080"

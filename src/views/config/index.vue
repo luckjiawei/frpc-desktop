@@ -372,7 +372,6 @@ onMounted(() => {
   handleLoadSavedConfig();
 
   on(ipcRouters.SERVER.getServerConfig, data => {
-    console.log("data", data);
     if (data) {
       formData.value = data;
       Object.keys(defaultFormData).forEach(key => {
@@ -400,7 +399,6 @@ onMounted(() => {
   });
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
-    console.log("data", data);
     if (!data.canceled) {
       switch (currSelectLocalFileType.value) {
         case 1:
@@ -593,7 +591,6 @@ const handleOpenDataFolder = useDebounceFn(() => {
 }, 300);
 
 const handleSystemLanguageChange = e => {
-  console.log("language Change", e);
   send(ipcRouters.SERVER.saveLanguage, e);
 };
 
@@ -628,7 +625,7 @@ onUnmounted(() => {
       </el-button>
     </breadcrumb>
     <div class="pr-2 app-container-breadcrumb" v-loading="loading > 0">
-      <div class="w-full p-4 bg-white rounded drop-shadow-lg">
+      <div class="p-4 w-full bg-white rounded drop-shadow-lg">
         <el-form
           :model="formData"
           :rules="rules"
@@ -681,7 +678,7 @@ onUnmounted(() => {
             <el-col :span="24">
               <div class="flex justify-between h2">
                 <div>{{ t("config.title.serverConfiguration") }}</div>
-                <div class="flex items-center justify-center">
+                <div class="flex justify-center items-center">
                   <IconifyIconOffline
                     @click="handleCopyServerConfig2Base64"
                     class="mr-2 text-xl font-bold cursor-pointer"
@@ -701,7 +698,7 @@ onUnmounted(() => {
                 prop="serverAddr"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         <div
@@ -750,7 +747,7 @@ onUnmounted(() => {
                 prop="auth.method"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:
@@ -793,7 +790,7 @@ onUnmounted(() => {
                 prop="authToken"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
@@ -827,7 +824,7 @@ onUnmounted(() => {
               >
                 <!--
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" trigger="hover">
                       <template #default> 是否开启多用户模式 </template>
                       <template #reference>
@@ -854,7 +851,7 @@ onUnmounted(() => {
             <el-col :span="12" v-if="formData.multiuser">
               <el-form-item :label="t('config.form.user.label')" prop="user">
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
@@ -885,7 +882,7 @@ onUnmounted(() => {
                 prop="metadatas.token"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
@@ -928,7 +925,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -966,7 +963,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
@@ -999,7 +996,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1045,7 +1042,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1091,7 +1088,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1127,7 +1124,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1164,7 +1161,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1201,7 +1198,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1251,7 +1248,7 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
@@ -1299,7 +1296,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="flex items-center h-full mr-1">
+                    <div class="flex items-center mr-1 h-full">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
@@ -1348,7 +1345,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="flex items-center h-full mr-1">
+                    <div class="flex items-center mr-1 h-full">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
@@ -1396,7 +1393,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="flex items-center h-full mr-1">
+                    <div class="flex items-center mr-1 h-full">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
@@ -1444,7 +1441,7 @@ onUnmounted(() => {
                   label-width="180"
                 >
                   <template #label>
-                    <div class="flex items-center h-full mr-1">
+                    <div class="flex items-center mr-1 h-full">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
@@ -1479,7 +1476,7 @@ onUnmounted(() => {
             <!--            <el-col :span="12">-->
             <!--              <el-form-item label="启用Web界面：" prop="webEnable">-->
             <!--                <template #label>-->
-            <!--                  <div class="flex items-center h-full mr-1">-->
+            <!--                  <div class="flex items-center mr-1 h-full">-->
             <!--                    <el-popover width="300" placement="top" trigger="hover">-->
             <!--                      <template #reference>-->
             <!--                        <IconifyIconOffline-->
@@ -1513,7 +1510,7 @@ onUnmounted(() => {
                 prop="webPort"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         <div
@@ -1585,7 +1582,7 @@ onUnmounted(() => {
                 prop="system.launchAtStartup"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div
@@ -1617,7 +1614,7 @@ onUnmounted(() => {
                 prop="system.silentStartup"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div
@@ -1649,7 +1646,7 @@ onUnmounted(() => {
                 prop="system.autoConnectOnStartup"
               >
                 <template #label>
-                  <div class="flex items-center h-full mr-1">
+                  <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" width="300" trigger="hover">
                       <template #default>
                         <div

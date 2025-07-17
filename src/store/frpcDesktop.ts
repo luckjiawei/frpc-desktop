@@ -56,7 +56,6 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         this.lastRelease = version;
         // tagName相对固定
         const tagName = this.lastRelease["tag_name"];
-        console.log(tagName, this.lastRelease, "tagName");
         let lastReleaseVersion = true;
         if (!tagName) {
           // new
@@ -101,7 +100,6 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     },
     onListenerFrpcDesktopLanguage() {
       on(ipcRouters.SERVER.getLanguage, data => {
-        console.log("language", data);
         this.language = data;
         i18n.global.locale = data;
       });

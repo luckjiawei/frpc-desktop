@@ -60,7 +60,6 @@ onMounted(() => {
       loading.value = false;
     },
     (bizCode: string, message: string) => {
-      console.log("bizCode", bizCode);
       if (bizCode === "B1001") {
         ElMessageBox.alert(
           t("home.alert.configRequired.message"),
