@@ -266,7 +266,8 @@ class FrpcDesktopApp {
 
     app.on("second-instance", () => {
       if (this._win) {
-        if (this._win.isMinimized()) this._win.restore();
+        if (this._win.isMinimized()) this._win.show();
+        if (!this._win.isVisible()) this._win.show();
         this._win.focus();
       }
     });
