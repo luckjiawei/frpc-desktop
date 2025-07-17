@@ -1,9 +1,9 @@
 import BaseRepository from "./BaseRepository";
 
 // @Component()
-class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
+class ManyServerRepository extends BaseRepository<FrpcDesktopServer> {
   constructor() {
-    super("server");
+    super("many-server-v2");
   }
 
   exists(id: string): Promise<boolean> {
@@ -19,4 +19,4 @@ class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
   }
 }
 
-export default ServerRepository
+export default ManyServerRepository

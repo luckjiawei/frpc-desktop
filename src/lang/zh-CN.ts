@@ -21,6 +21,9 @@ export default {
     },
     about: {
       title: "关于"
+    },
+    server: {
+      title: "服务器"
     }
   },
   home: {
@@ -63,7 +66,7 @@ export default {
       deleteConfirm: {
         title: "提示",
         message:
-          '确认要删除 <span class="text-primary font-bold">{name}</span> 吗？',
+          '确认要删除 <span class="font-bold text-primary">{name}</span> 吗？',
         cancel: "取消",
         confirm: "删除"
       },
@@ -112,10 +115,16 @@ export default {
     }
   },
   config: {
+    createTitle: "创建服务器",
+    modifyTitle: "修改服务器",
     form: {
       frpcVerson: {
         label: "Frp版本",
         requireMessage: "请选择Frp版本"
+      },
+      name: {
+        label: "名称",
+        requireMessage: "请输入服务器名称"
       },
       serverAddr: {
         label: "服务端地址",
@@ -253,6 +262,7 @@ export default {
       }
     },
     title: {
+      basicConfig: "基础配置",
       versionSelection: "版本选择",
       webInterface: "Web 界面",
       transportConfiguration: "传输配置",
@@ -345,6 +355,7 @@ export default {
     noProxy: "暂无代理",
     modifyTitle: "编辑代理",
     createTitle: "添加代理",
+    addProxy: "添加代理",
     message: {
       copySuccess: "复制成功"
     },
@@ -491,5 +502,13 @@ export default {
         }
       }
     }
+  },
+  server: {
+    noServer: "暂无服务器",
+    addServer: "添加服务器",
+    modifyTitle: "修改服务器",
+    createTitle: "添加服务器",
+    serverAddr: "服务器地址",
+    serverPort: "服务器端口"
   }
 };

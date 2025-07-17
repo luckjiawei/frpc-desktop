@@ -10,25 +10,28 @@ import {
 } from "electron";
 import { release } from "node:os";
 import node_path, { join } from "node:path";
-import BeanFactory from "../core/BeanFactory";
-import ServerRepository from "../repository/ServerRepository";
-import VersionRepository from "../repository/VersionRepository";
-import ProxyRepository from "../repository/ProxyRepository";
-import SystemService from "../service/SystemService";
-import ServerService from "../service/ServerService";
-import GitHubService from "../service/GitHubService";
-import VersionService from "../service/VersionService";
-import LogService from "../service/LogService";
-import FrpcProcessService from "../service/FrpcProcessService";
-import ProxyService from "../service/ProxyService";
 import ConfigController from "../controller/ConfigController";
-import VersionController from "../controller/VersionController";
-import LogController from "../controller/LogController";
 import LaunchController from "../controller/LaunchController";
+import LogController from "../controller/LogController";
+import ManyServerController from "../controller/ManyServerController";
 import ProxyController from "../controller/ProxyController";
 import SystemController from "../controller/SystemController";
+import VersionController from "../controller/VersionController";
+import BeanFactory from "../core/BeanFactory";
 import { ipcRouters, listeners } from "../core/IpcRouter";
 import Logger from "../core/Logger";
+import ManyServerRepository from "../repository/ManyServerRepository";
+import ProxyRepository from "../repository/ProxyRepository";
+import ServerRepository from "../repository/ServerRepository";
+import VersionRepository from "../repository/VersionRepository";
+import FrpcProcessService from "../service/FrpcProcessService";
+import GitHubService from "../service/GitHubService";
+import LogService from "../service/LogService";
+import ManyServerService from "../service/ManyServerService";
+import ProxyService from "../service/ProxyService";
+import ServerService from "../service/ServerService";
+import SystemService from "../service/SystemService";
+import VersionService from "../service/VersionService";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -39,7 +42,6 @@ process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
 const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
-
 
 class FrpcDesktopApp {
   private _win: BrowserWindow | null = null;
@@ -151,7 +153,6 @@ class FrpcDesktopApp {
           frpcProcessService.stopFrpcProcess().finally(() => {
             app.quit();
           });
-
         }
       }
     ];
@@ -286,10 +287,7 @@ class FrpcDesktopApp {
       this._quitting = true;
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");
-      frpcProcessService.stopFrpcProcess().finally(() => {
-      });
-
-
+      frpcProcessService.stopFrpcProcess().finally(() => {});
     });
 
     Logger.info(
@@ -302,12 +300,20 @@ class FrpcDesktopApp {
     BeanFactory.setBean("serverRepository", new ServerRepository());
     BeanFactory.setBean("versionRepository", new VersionRepository());
     BeanFactory.setBean("proxyRepository", new ProxyRepository());
+    BeanFactory.setBean("manyServerRepository", new ManyServerRepository());
     BeanFactory.setBean("systemService", new SystemService());
     BeanFactory.setBean(
       "serverService",
       new ServerService(
         BeanFactory.getBean("serverRepository"),
         BeanFactory.getBean("proxyRepository")
+      )
+    );
+    BeanFactory.setBean(
+      "manyServerService",
+      new ManyServerService(
+        BeanFactory.getBean("manyServerRepository"),
+        BeanFactory.getBean("versionRepository")
       )
     );
     BeanFactory.setBean("gitHubService", new GitHubService());
@@ -361,9 +367,13 @@ class FrpcDesktopApp {
         BeanFactory.getBean("proxyRepository")
       )
     );
+    BeanFactory.setBean("systemController", new SystemController());
     BeanFactory.setBean(
-      "systemController",
-      new SystemController()
+      "manyServerController",
+      new ManyServerController(
+        BeanFactory.getBean("manyServerService"),
+        BeanFactory.getBean("manyServerRepository")
+      )
     );
     Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
   }
@@ -374,7 +384,6 @@ class FrpcDesktopApp {
    */
   private initializeListeners() {
     Object.keys(listeners).forEach(listenerKey => {
-      console.log(listenerKey, "listenerKey", listeners[listenerKey]);
       const { listenerMethod, channel } = listeners[listenerKey];
       const [beanName, method] = listenerMethod.split(".");
       const bean = BeanFactory.getBean(beanName);
@@ -387,7 +396,7 @@ class FrpcDesktopApp {
     });
     Logger.info(`FrpcDesktopApp.initializeListeners`, `Listeners initialized.`);
     // this._beans.get("logService").watchFrpcLog(this._win);
-  }
+  } 
 
   /**
    * initRouters

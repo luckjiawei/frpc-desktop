@@ -1,7 +1,7 @@
 import Datastore from "nedb";
 import path from "path";
-import PathUtils from "../utils/PathUtils";
 import IdUtils from "../utils/IdUtils";
+import PathUtils from "../utils/PathUtils";
 
 // interface BaseDaoInterface<T> {
 //   db: Datastore;

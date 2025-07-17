@@ -1156,7 +1156,6 @@ onUnmounted(() => {
                 ></el-input-number>
               </el-form-item>
             </el-col>
-
             <el-col :span="12">
               <el-form-item
                 :label="t('config.form.transportTcpMux.label')"
@@ -1471,11 +1470,9 @@ onUnmounted(() => {
                 </el-form-item>
               </el-col>
             </template>
-
             <el-col :span="24">
               <div class="h2">{{ t("config.title.webInterface") }}</div>
             </el-col>
-
             <!--            <el-col :span="12">-->
             <!--              <el-form-item label="启用Web界面：" prop="webEnable">-->
             <!--                <template #label>-->

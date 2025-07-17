@@ -29,6 +29,24 @@ export const ipcRouters: IpcRouters = {
       controller: "configController.saveLanguage"
     }
   },
+  MANY_SERVER: {
+    getAllServers: {
+      path: "manyServer/getAllServer",
+      controller: "manyServerController.getAllServer"
+    },
+    modifyServer: {
+      path: "manyServer/modifyServer",
+      controller: "manyServerController.modifyServer"
+    },
+    createServer: {
+      path: "manyServer/createServer",
+      controller: "manyServerController.createServer"
+    },
+    deleteServer: {
+      path: "manyServer/deleteServer",
+      controller: "manyServerController.deleteServer"
+    }
+  },
   LOG: {
     getFrpLogContent: {
       path: "log/getFrpLogContent",

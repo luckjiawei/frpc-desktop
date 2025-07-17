@@ -24,7 +24,7 @@ defineComponent({
 
 const { t } = useI18n();
 
-const proxys = ref<Array<FrpcProxy>>([]);
+const proxys = ref<Array<ManyServerFrpcProxy>>([]);
 const loading = ref({
   list: 1,
   form: 0,
@@ -39,8 +39,9 @@ const edit = ref({
   visible: false
 });
 
-const defaultForm: FrpcProxy = {
+const defaultForm: ManyServerFrpcProxy = {
   _id: "",
+  serverId: "",
   hostHeaderRewrite: "",
   locations: [""],
   name: "",
@@ -71,7 +72,7 @@ const defaultForm: FrpcProxy = {
   }
 };
 
-const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
+const editForm = ref<ManyServerFrpcProxy>(_.cloneDeep(defaultForm));
 
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
@@ -252,6 +253,8 @@ const isSudp = computed(() => {
 const isXtcp = computed(() => {
   return editForm.value.type === "xtcp";
 });
+
+const servers = ref<Array<FrpcDesktopServer>>([]);
 
 const isStcpvisitorsProvider = computed(() => {
   return (
@@ -548,12 +551,20 @@ const handleSelectFile = (type: number, ext: string[]) => {
   // });
 };
 
+const handleLoadServers = () => {
+  send(ipcRouters.MANY_SERVER.getAllServers);
+};
+
 onMounted(() => {
   handleLoadProxies();
   handleLoadFrpcConfig();
+  handleLoadServers();
+
+  on(ipcRouters.MANY_SERVER.getAllServers, data => {
+    servers.value = data;
+  });
 
   on(ipcRouters.SERVER.getServerConfig, data => {
-    console.log("data", data);
     if (data) {
       frpcConfig.value = data;
     }
@@ -647,6 +658,7 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
   removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
   removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
+  removeRouterListeners(ipcRouters.MANY_SERVER.getAllServers);
 });
 </script>
 <template>
@@ -671,13 +683,18 @@ onUnmounted(() => {
             class="mb-[15px]"
           >
             <div
-              class="flex items-center justify-between w-full h-full p-4 bg-white rounded left-border drop-shadow animate__animated"
+              class="flex justify-between items-center p-4 w-full h-full bg-white rounded drop-shadow left-border animate__animated"
             >
               <div class="left">
                 <div class="flex items-center">
                   <span class="mr-2 font-bold text-primary">{{
                     proxy.name
                   }}</span>
+                </div>
+                <div>
+                  <el-tag size="small">{{
+                    servers.find(s => s._id === proxy.serverId)?.name
+                  }}</el-tag>
                 </div>
                 <div class="mb-1">
                   <el-tag size="small">{{ proxy.type }}</el-tag>
@@ -843,7 +860,7 @@ onUnmounted(() => {
               </div>
 
               <div class="right">
-                <div class="flex flex-col items-center gap-1">
+                <div class="flex flex-col gap-1 items-center">
                   <el-button
                     type="text"
                     size="small"
@@ -892,9 +909,14 @@ onUnmounted(() => {
       </template>
       <div
         v-else
-        class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
+        class="flex overflow-hidden justify-center items-center p-2 w-full h-full bg-white rounded drop-shadow-xl"
       >
-        <el-empty :description="t('proxy.noProxy')" />
+        <el-empty :description="t('proxy.noProxy')">
+          <el-button type="primary" @click="handleOpenInsert">
+            <IconifyIconOffline class="mr-2 cursor-pointer" icon="add" />
+            {{ t("proxy.addProxy") }}
+          </el-button>
+        </el-empty>
       </div>
     </div>
 
@@ -903,6 +925,7 @@ onUnmounted(() => {
       v-model="edit.visible"
       direction="rtl"
       size="60%"
+      header-class="custom-drawer-header"
       @close="editForm = _.cloneDeep(defaultForm)"
     >
       <!--    <el-dialog-->
@@ -936,6 +959,23 @@ onUnmounted(() => {
                   :value="p"
                 />
               </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <div class="flex justify-between h3">
+              <div>服务器</div>
+            </div>
+          </el-col>
+          <el-col>
+            <el-form-item label="服务器" prop="visitorsModel">
+              <el-select v-model="editForm.serverId">
+                <el-option
+                  v-for="server in servers"
+                  :key="server._id"
+                  :label="server.name"
+                  :value="server._id"
+                ></el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -1003,7 +1043,7 @@ onUnmounted(() => {
               :label="t('proxy.form.formItem.name.label')"
               prop="name"
             >
-              <div class="flex w-full gap-2">
+              <div class="flex gap-2 w-full">
                 <el-input
                   v-model="editForm.name"
                   class="w-full"
@@ -1046,7 +1086,7 @@ onUnmounted(() => {
                 :label="t('proxy.form.formItem.localPort.label')"
                 prop="localPort"
               >
-                <div class="flex w-full gap-2">
+                <div class="flex gap-2 w-full">
                   <el-input-number
                     v-if="isHttp || isHttps"
                     placeholder="8080"

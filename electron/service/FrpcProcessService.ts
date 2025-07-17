@@ -10,13 +10,15 @@ import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import ServerService from "./ServerService";
 import SystemService from "./SystemService";
+import ManyServerService from "./ManyServerService";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
   private readonly _systemService: SystemService;
   private readonly _versionRepository: VersionRepository;
-  private _frpcProcess: any;
-  private _frpcProcessListener: any;
+  private readonly _manyServerService: ManyServerService;
+  private _frpcProcess: Map<string, any> = new Map();
+  private _frpcProcessListener: Map<string, any> = new Map();
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
 
@@ -27,19 +29,23 @@ class FrpcProcessService {
   }
 
   isRunning(): boolean {
-    if (!this._frpcProcess) {
+    // 检查所有frpc进程是否都在线
+    if (this._frpcProcess.size === 0) {
       return false;
     }
-    try {
-      Logger.debug(
-        `FrpcProcessService.isRunning`,
-        `pid: ${this._frpcProcess.pid}`
-      );
-      process.kill(this._frpcProcess.pid, 0);
-      return true;
-    } catch (err) {
-      return false;
+
+    for (const [serverId, process] of this._frpcProcess.entries()) {
+      try {
+        if (!process || !process.pid) {
+          return false;
+        }
+        process.kill(0); // 检查进程是否存在
+      } catch (err) {
+        return false; // 任何一个进程不存在，返回false
+      }
     }
+
+    return true; // 所有进程都在线
   }
 
   get frpcLastStartTime(): number {
@@ -83,6 +89,14 @@ class FrpcProcessService {
     this._frpcProcess.stderr.on("data", data => {
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stderr: ${data}`);
     });
+  }
+
+  async startSingleFrpcProcess(serverId: string) {
+    if (this._frpcProcess.has(serverId)) {
+      return;
+    }
+    const config = await this._manyServerService.(serverId);
+    
   }
 
   async stopFrpcProcess() {

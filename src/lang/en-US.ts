@@ -21,6 +21,9 @@ export default {
     },
     about: {
       title: "About"
+    },
+    server: {
+      title: "Server"
     }
   },
   home: {
@@ -326,6 +329,7 @@ export default {
     noProxy: "No proxy",
     modifyTitle: "Modify Proxy",
     createTitle: "Create Proxy",
+    addProxy: "Add Proxy",
     dialog: {
       listPorts: {
         title: "Inner Port",
@@ -492,5 +496,9 @@ export default {
     deleteSuccess: "Delete successfully",
     modifySuccess: "Modify successfully",
     createSuccess: "Create successfully"
+  },
+  server: {
+    noServer: "No server",
+    addServer: "Add Server"
   }
 };

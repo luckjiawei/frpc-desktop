@@ -18,7 +18,7 @@ class BeanFactory {
     this._beans.set(name, bean);
     Logger.info(
       `${this.name}.${arguments[0]}`,
-      `register bean ${name} ${bean}`
+      `register bean ${name}`
     );
     // Logger.info(`register bean ${name} ${bean}`);
   }

@@ -7,3 +7,8 @@
 );
 
 @use "element-plus/theme-chalk/src/index.scss" as *;
+
+
+.custom-drawer-header{
+  margin-bottom: 0px !important;
+}

@@ -20,7 +20,7 @@ interface ListenerParam {
 type IpcRouter = {
   path: string;
   controller: string;
-}
+};
 
 type Listener = {
   channel: string;
@@ -34,6 +34,7 @@ enum IpcRouterKeys {
   LAUNCH = "LAUNCH",
   PROXY = "PROXY",
   SYSTEM = "SYSTEM",
+  MANY_SERVER = "MANY_SERVER"
 }
 
 type IpcRouters = Record<

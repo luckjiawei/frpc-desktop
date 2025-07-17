@@ -14,6 +14,7 @@ defineComponent({
 
 const frpcDesktopStore = useFrpcDesktopStore();
 const loading = ref(false);
+const selectedServerId = ref("");
 const { t } = useI18n();
 
 const handleStartFrpc = () => {
@@ -52,7 +53,14 @@ let uptime = computed(() => {
   return result;
 });
 
+const servers = ref<Array<FrpcDesktopServer>>([]);
+
+const handleLoadServers = () => {
+  send(ipcRouters.MANY_SERVER.getAllServers);
+};
+
 onMounted(() => {
+  // handleLoadServers();
   on(
     ipcRouters.LAUNCH.launch,
     () => {
@@ -78,6 +86,10 @@ onMounted(() => {
     }
   );
 
+  on(ipcRouters.MANY_SERVER.getAllServers, data => {
+    servers.value = data;
+  });
+
   on(ipcRouters.LAUNCH.terminate, () => {
     frpcDesktopStore.refreshRunning();
     loading.value = false;
@@ -87,6 +99,7 @@ onMounted(() => {
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LAUNCH.launch);
   removeRouterListeners(ipcRouters.LAUNCH.terminate);
+  removeRouterListeners(ipcRouters.MANY_SERVER.getAllServers);
 });
 </script>
 
@@ -95,7 +108,7 @@ onUnmounted(() => {
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="flex items-center justify-center w-full h-full p-4 overflow-y-auto bg-white rounded drop-shadow-lg"
+        class="flex overflow-y-auto justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
       >
         <div class="flex">
           <div
@@ -120,12 +133,12 @@ onUnmounted(() => {
               />
             </transition>
             <div
-              class="absolute z-10 flex items-center justify-center w-full h-full bg-white rounded-full"
+              class="flex absolute z-10 justify-center items-center w-full h-full bg-white rounded-full"
             >
               <IconifyIconOffline icon="rocket-launch-rounded" />
             </div>
           </div>
-          <div class="flex flex-col items-center justify-center">
+          <div class="flex flex-col justify-center items-center">
             <div class="flex flex-col justify-between pl-10 w-72 h-42">
               <transition name="fade">
                 <div class="text-2xl font-bold text-center">
@@ -149,7 +162,7 @@ onUnmounted(() => {
                 </div>
               </transition>
               <div
-                class="justify-center w-full mt-2 text-sm text-center animate__animated animate__fadeIn"
+                class="justify-center mt-2 w-full text-sm text-center animate__animated animate__fadeIn"
                 v-if="frpcDesktopStore.frpcProcessRunning"
               >
                 <span class="el-text--success">{{
@@ -166,6 +179,11 @@ onUnmounted(() => {
                   >{{ $t("home.button.viewLog") }}</el-link
                 >
               </div>
+              <!--<el-radio-group v-model="selectedServerId">
+                <el-radio border v-for="server in servers" :key="server._id" :label="server._id" :value="server._id">
+                  {{ server.name }}
+                </el-radio>
+              </el-radio-group>-->
 
               <el-button
                 class="mt-4"

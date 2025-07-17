@@ -1,8 +1,4 @@
-import {
-  createRouter,
-  createWebHashHistory,
-  RouteRecordRaw
-} from "vue-router";
+import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 
 const Layout = () => import("@/layout/index.vue");
 
@@ -24,11 +20,21 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/home/index.vue")
       },
       {
+        path: "/server",
+        name: "Server",
+        meta: {
+          title: "router.server.title",
+          icon: "cloud",
+          keepAlive: true
+        },
+        component: () => import("@/views/server/index.vue")
+      },
+      {
         path: "/proxy",
         name: "Proxy",
         meta: {
           title: "router.proxy.title",
-          icon: "cloud",
+          icon: "network-node",
           keepAlive: true
         },
         component: () => import("@/views/proxy/index.vue")
