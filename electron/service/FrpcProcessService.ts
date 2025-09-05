@@ -1,4 +1,4 @@
-import { exec, spawn } from "child_process";
+import { exec, spawn, execSync } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
@@ -28,7 +28,28 @@ class FrpcProcessService {
 
   isRunning(): boolean {
     if (!this._frpcProcess) {
-      return false;
+      // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
+      try {
+        if (process.platform !== "win32") {
+          const processName = PathUtils.getFrpcFilename();
+          const stdout = execSync(`pgrep -x ${processName}`).toString().trim();
+          if (stdout) {
+            const pid = parseInt(stdout.split("\n")[0], 10);
+            if (!Number.isNaN(pid)) {
+              this._frpcProcess = { pid };
+              if (this._frpcLastStartTime === -1) {
+                this._frpcLastStartTime = Date.now();
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // 忽略未找到进程的错误
+      }
+
+      if (!this._frpcProcess) {
+        return false;
+      }
     }
     try {
       Logger.debug(
