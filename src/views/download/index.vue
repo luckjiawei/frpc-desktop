@@ -151,15 +151,15 @@ onMounted(() => {
 
 const handleImportFrp = () => {
   ElMessageBox.alert(
-    "仅支持导入版本大于 v0.52.0 且小于等于 v0.64.0 的文件",
+    '仅支持导入版本 > <span class="font-bold text-primary">v0.52.0</span> <= <span class="font-bold text-primary">v0.64.0</span><div class="font-bold text-primary">导入文件不要解压！！！',
     "导入提示",
     {
-      confirmButtonText: "知道了"
+      confirmButtonText: "知道了",
+      dangerouslyUseHTMLString: true
     }
   ).then(() => {
     send(ipcRouters.VERSION.importLocalFrpcVersion);
   });
-  
 };
 
 onUnmounted(() => {

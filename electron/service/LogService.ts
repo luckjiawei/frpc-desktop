@@ -19,13 +19,12 @@ class LogService {
         resolve("");
         return;
       }
-      fs.readFile(this._logPath, "utf-8", (error, data) => {
-        if (!error) {
-          resolve(data);
-        } else {
-          reject(error);
-        }
-      });
+      try {
+        const data = fs.readFileSync(this._logPath, "utf-8");
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
