@@ -72,6 +72,18 @@ onMounted(() => {
             name: "Config"
           });
         });
+      } else if (bizCode === "B1005") {
+        ElMessageBox.alert(
+          t("home.alert.versionNotFound.message"),
+          t("home.alert.versionNotFound.title"),
+          {
+            confirmButtonText: t("home.alert.versionNotFound.confirm")
+          }
+        ).then(() => {
+          router.replace({
+            name: "Config"
+          });
+        });
       }
       loading.value = false;
     }
@@ -94,7 +106,7 @@ onUnmounted(() => {
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="flex items-center justify-center w-full h-full p-4 overflow-y-auto bg-white rounded drop-shadow-lg"
+        class="flex overflow-y-auto justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
       >
         <div class="flex">
           <div
@@ -119,12 +131,12 @@ onUnmounted(() => {
               />
             </transition>
             <div
-              class="absolute z-10 flex items-center justify-center w-full h-full bg-white rounded-full"
+              class="flex absolute z-10 justify-center items-center w-full h-full bg-white rounded-full"
             >
               <IconifyIconOffline icon="rocket-launch-rounded" />
             </div>
           </div>
-          <div class="flex flex-col items-center justify-center">
+          <div class="flex flex-col justify-center items-center">
             <div class="flex flex-col justify-between pl-10 w-72 h-42">
               <transition name="fade">
                 <div class="text-2xl font-bold text-center">
@@ -148,7 +160,7 @@ onUnmounted(() => {
                 </div>
               </transition>
               <div
-                class="justify-center w-full mt-2 text-sm text-center animate__animated animate__fadeIn"
+                class="justify-center mt-2 w-full text-sm text-center animate__animated animate__fadeIn"
                 v-if="frpcDesktopStore.frpcProcessRunning"
               >
                 <span class="el-text--success">{{

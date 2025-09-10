@@ -46,6 +46,11 @@ export default {
         title: "提示",
         message: "请先前往设置页面，修改配置后再启动",
         confirm: "去设置"
+      },
+      versionNotFound: {
+        title: "提示",
+        message: "请先前往设置页面，选择版本后再启动",
+        confirm: "去设置"
       }
     }
   },

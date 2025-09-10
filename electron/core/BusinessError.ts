@@ -5,7 +5,8 @@ enum ResponseCode {
   NOT_CONFIG = "B1001;未配置",
   VERSION_EXISTS = "B1002;导入失败，版本已存在",
   VERSION_ARGS_ERROR = "B1003;所选 frp 架构与操作系统不符",
-  UNKNOWN_VERSION = "B1004;无法识别文件"
+  UNKNOWN_VERSION = "B1004;无法识别文件",
+  NOT_FOUND_VERSION = "B1005;未找到版本"
 }
 
 class BusinessError extends Error {
