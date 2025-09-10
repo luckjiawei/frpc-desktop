@@ -1,11 +1,7 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import {
-  on,
-  removeRouterListeners,
-  send
-} from "@/utils/ipcUtils";
+import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
@@ -43,6 +39,9 @@ const formatLogContent = (logContent: string) => {
 };
 const refreshStatus = ref(false);
 const logLoading = ref(true);
+const autoRefresh = ref(false);
+const autoRefreshTimer = ref(null);
+const autoRefreshTime = ref(10);
 // const isWatch = ref(false);
 
 onMounted(() => {
@@ -88,6 +87,21 @@ const refreshLog = useDebounceFn(() => {
   send(ipcRouters.LOG.getFrpLogContent);
 }, 300);
 
+const handleAutoRefreshChange = () => {
+  if (autoRefresh.value) {
+    autoRefreshTimer.value = setInterval(() => {
+      autoRefreshTime.value--;
+      if (autoRefreshTime.value <= 0) {
+        autoRefreshTime.value = 10;
+        refreshLog();
+      }
+    }, 1000);
+  } else {
+    clearInterval(autoRefreshTimer.value);
+    autoRefreshTime.value = 10;
+  }
+};
+
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
@@ -97,6 +111,15 @@ onUnmounted(() => {
 <template>
   <div class="main">
     <breadcrumb>
+      <span v-if="autoRefresh" class="mr-2 text-sm text-primary"
+        >{{ autoRefreshTime }}s 后自动刷新</span
+      >
+      <el-switch
+        class="mr-2"
+        v-model="autoRefresh"
+        @change="handleAutoRefreshChange"
+        >自动刷新</el-switch
+      >
       <el-button plain type="primary" @click="refreshLog">
         <IconifyIconOffline icon="refresh-rounded" />
       </el-button>
