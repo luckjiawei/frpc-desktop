@@ -1,5 +1,4 @@
 import BaseRepository from "./BaseRepository";
-import Component from "../core/annotation/Component";
 
 // @Component()
 class ProxyRepository extends BaseRepository<FrpcProxy> {
