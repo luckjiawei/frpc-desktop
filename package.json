@@ -60,14 +60,14 @@
     "vite": "^5.4.11",
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
-    "vue-tsc": "^2.0.28"
+    "vue-tsc": "^2.0.28",
+    "electron": "^29.4.6"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "adm-zip": "^0.5.14",
     "animate.css": "^4.1.1",
     "canvas-confetti": "^1.9.0",
-    "electron": "^29.4.6",
     "electron-dl": "3.5.1",
     "electron-log": "^5.4.3",
     "element-plus": "^2.11.2",
