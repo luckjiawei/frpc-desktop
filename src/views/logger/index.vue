@@ -45,7 +45,6 @@ const autoRefreshTime = ref(10);
 // const isWatch = ref(false);
 
 onMounted(() => {
-  send(ipcRouters.LOG.getFrpLogContent);
   on(ipcRouters.LOG.getFrpLogContent, data => {
     if (data) {
       loggerContent.value = formatLogContent(data as string);
@@ -67,6 +66,7 @@ onMounted(() => {
       message: t("logger.message.openSuccess")
     });
   });
+  send(ipcRouters.LOG.getFrpLogContent);
   // onListener(listeners.watchFrpcLog, data => {
   //   send(ipcRouters.LOG.getFrpLogContent);
   // });
@@ -107,6 +107,8 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
   // removeRouterListeners2(listeners.watchFrpcLog);
   clearInterval(autoRefreshTimer.value);
+  autoRefreshTime.value = 10;
+  console.log("onUnmounted");
 });
 </script>
 <template>
