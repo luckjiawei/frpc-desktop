@@ -67,7 +67,8 @@ const defaultForm: FrpcProxy = {
   status: 1,
   transport: {
     useEncryption: false,
-    useCompression: false
+    useCompression: false,
+    proxyProtocolVersion: ""
   }
 };
 
@@ -1776,6 +1777,46 @@ onUnmounted(() => {
                   :inactive-text="t('common.no')"
                   v-model="editForm.transport.useEncryption"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item
+                :label="t('proxy.form.formItem.transportProxyProtocolVersion.label')"
+                prop="transport.proxyProtocolVersion"
+                label-position="left"
+              >
+                <template #label>
+                  <div class="inline-block">
+                    <div class="flex items-center">
+                      <div class="mr-1">
+                        <el-popover placement="top" trigger="hover" width="350">
+                          <template #default>
+                            {{ t("common.frpParameter") }}:
+                            <span class="font-black text-[#5A3DAA]"
+                              >transport.proxyProtocolVersion</span
+                            >
+                            {{ t("proxy.form.formItem.transportProxyProtocolVersion.description") }}
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("proxy.form.formItem.transportProxyProtocolVersion.label") }}
+                    </div>
+                  </div>
+                </template>
+                <el-radio-group
+                  v-model="editForm.transport.proxyProtocolVersion"
+                >
+                  <el-radio :label="t('proxy.form.formItem.transportProxyProtocolVersion.empty')" value="" />
+                  <el-radio label="v1" value="v1" />
+                  <el-radio label="v2" value="v2" />
+                </el-radio-group>
               </el-form-item>
             </el-col>
           </template>

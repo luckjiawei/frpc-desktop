@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.home.title",
           icon: "rocket-launch-rounded",
-          keepAlive: true
+          keepAlive: false
         },
         component: () => import("@/views/home/index.vue")
       },
@@ -29,7 +29,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.proxy.title",
           icon: "cloud",
-          keepAlive: true
+          keepAlive: false
         },
         component: () => import("@/views/proxy/index.vue")
       },
@@ -39,7 +39,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.download.title",
           icon: "download",
-          keepAlive: true
+          keepAlive: false
         },
         component: () => import("@/views/download/index.vue")
       },
@@ -49,7 +49,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.config.title",
           icon: "settings",
-          keepAlive: true
+          keepAlive: false
         },
         component: () => import("@/views/config/index.vue")
       },
@@ -59,7 +59,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.logger.title",
           icon: "file-copy-sharp",
-          keepAlive: true,
+          keepAlive: false,
           hidden: false
         },
         component: () => import("@/views/logger/index.vue")
@@ -70,8 +70,8 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "router.about.title",
           icon: "info-sharp",
-          keepAlive: true,
-          hidden: true
+          keepAlive: false,
+          hidden: false
         },
         component: () => import("@/views/about/index.vue")
       }

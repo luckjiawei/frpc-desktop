@@ -150,7 +150,16 @@ onMounted(() => {
 });
 
 const handleImportFrp = () => {
-  send(ipcRouters.VERSION.importLocalFrpcVersion);
+  ElMessageBox.alert(
+    '仅支持导入版本 > <span class="font-bold text-primary">v0.52.0</span> <= <span class="font-bold text-primary">v0.64.0</span><div class="font-bold text-primary">导入文件不要解压！！！',
+    "导入提示",
+    {
+      confirmButtonText: "知道了",
+      dangerouslyUseHTMLString: true
+    }
+  ).then(() => {
+    send(ipcRouters.VERSION.importLocalFrpcVersion);
+  });
 };
 
 onUnmounted(() => {
@@ -187,7 +196,7 @@ onUnmounted(() => {
               class="mb-[15px]"
             >
               <div
-                class="flex items-center justify-between w-full p-4 bg-white rounded left-border drop-shadow animate__animated"
+                class="flex justify-between items-center p-4 w-full bg-white rounded drop-shadow left-border animate__animated"
               >
                 <div class="left">
                   <div class="flex items-center">
@@ -213,7 +222,7 @@ onUnmounted(() => {
                     }}</span>
                   </div>
                 </div>
-                <div class="flex flex-col items-end gap-1 right">
+                <div class="flex flex-col gap-1 items-end right">
                   <template v-if="version.downloaded">
                     <el-button type="text" size="small">
                       <template #icon>
@@ -263,7 +272,7 @@ onUnmounted(() => {
         </template>
         <div
           v-else
-          class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
+          class="flex overflow-hidden justify-center items-center p-2 w-full h-full bg-white rounded drop-shadow-xl"
         >
           <el-empty :description="t('download.version.noVersions')" />
         </div>

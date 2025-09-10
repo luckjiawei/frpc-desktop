@@ -79,6 +79,9 @@ class FrpcProcessService {
     const version = await this._versionRepository.findByGithubReleaseId(
       config.frpcVersion
     );
+    if (!version) {
+      throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
+    }
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
     let command = "";
@@ -87,16 +90,20 @@ class FrpcProcessService {
     } else {
       command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
     }
+    Logger.debug(
+      `FrpcProcessService.startFrpcProcess`,
+      `version: ${version} cwd: ${version?.localPath} command: ${command}`
+    );
 
     this._frpcProcess = spawn(command, {
       cwd: version.localPath,
       shell: true
     });
     this._frpcLastStartTime = Date.now();
-    Logger.debug(
-      `FrpcProcessService.startFrpcProcess`,
-      `start frpc cwd: ${version.localPath} command: ${command}`
-    );
+    // Logger.debug(
+    //   `FrpcProcessService.startFrpcProcess`,
+    //   `start frpc cwd: ${version.localPath} command: ${command}`
+    // );
     this._frpcProcess.stdout.on("data", data => {
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);
     });

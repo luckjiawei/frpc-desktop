@@ -126,10 +126,10 @@ export const ipcRouters: IpcRouters = {
 };
 
 export const listeners: Listeners = {
-  watchFrpcLog: {
-    listenerMethod: "logService.watchFrpcLog",
-    channel: "log:watchFrpcLog"
-  },
+  // watchFrpcLog: {
+  //   listenerMethod: "logService.watchFrpcLog",
+  //   channel: "log:watchFrpcLog"
+  // },
   watchFrpcProcess: {
     listenerMethod: "frpcProcessService.watchFrpcProcess",
     channel: "frpcProcess:watchFrpcLog"
