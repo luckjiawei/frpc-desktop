@@ -57,6 +57,7 @@ interface FrpcCommonConfig {
 interface FrpcProxyTransportConfig {
   useEncryption: boolean;
   useCompression: boolean;
+  proxyProtocolVersion: string;
 }
 
 interface FrpcProxyConfig {

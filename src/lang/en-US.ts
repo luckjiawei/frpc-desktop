@@ -65,7 +65,7 @@ export default {
       deleteConfirm: {
         title: "Prompt",
         message:
-          'Are you sure you want to delete <span class="text-primary font-bold">{name}</span> ?',
+          'Are you sure you want to delete <span class="font-bold text-primary">{name}</span> ?',
         cancel: "Cancel",
         confirm: "Delete"
       },
@@ -418,6 +418,11 @@ export default {
           label: "Compression",
           requireMessage: "Please select whether to enable compression",
           description: "Enable compression for this proxy"
+        },
+        transportProxyProtocolVersion: {
+          label: "Proxy Protocol Version",
+          description: "if not empty, frpc will use proxy protocol to transfer connection info to your local service",
+          empty: "Empty"
         },
         bindAddr: {
           label: "Bind Address",

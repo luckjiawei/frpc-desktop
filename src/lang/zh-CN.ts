@@ -63,7 +63,7 @@ export default {
       deleteConfirm: {
         title: "提示",
         message:
-          '确认要删除 <span class="text-primary font-bold">{name}</span> 吗？',
+          '确认要删除 <span class="font-bold text-primary">{name}</span> 吗？',
         cancel: "取消",
         confirm: "删除"
       },
@@ -443,6 +443,11 @@ export default {
           label: "压缩传输",
           requireMessage: "请选择是否开启压缩传输",
           description: "开启后，此代理的流量将被压缩"
+        },
+        transportProxyProtocolVersion: {
+          label: "代理协议版本",
+          description: "如果非空，frpc将使用代理协议传输连接信息到本地服务",
+          empty: "空"
         },
         bindAddr: {
           label: "绑定地址",
