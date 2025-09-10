@@ -112,14 +112,14 @@ onUnmounted(() => {
 <template>
   <div class="main">
     <breadcrumb>
-      <span v-if="autoRefresh" class="mr-2 text-sm text-primary"
-        >{{ autoRefreshTime }}s 后自动刷新</span
-      >
+      <span v-if="autoRefresh" class="mr-2 text-sm text-primary">{{
+        t("logger.autoRefreshTime", { time: autoRefreshTime })
+      }}</span>
       <el-switch
         class="mr-2"
         v-model="autoRefresh"
         @change="handleAutoRefreshChange"
-        >自动刷新</el-switch
+        >{{ t("logger.autoRefresh") }}</el-switch
       >
       <el-button plain type="primary" @click="refreshLog">
         <IconifyIconOffline icon="refresh-rounded" />

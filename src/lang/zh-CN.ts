@@ -94,7 +94,9 @@ export default {
     },
     content: {
       empty: "暂无日志"
-    }
+    },
+    autoRefresh: "自动刷新",
+    autoRefreshTime: "{time}秒 后自动刷新"
   },
   about: {
     button: {

@@ -93,7 +93,9 @@ export default {
     },
     content: {
       empty: "No log"
-    }
+    },
+    autoRefresh: "Auto Refresh",
+    autoRefreshTime: "{time}s after auto refresh"
   },
   about: {
     button: {
@@ -421,7 +423,8 @@ export default {
         },
         transportProxyProtocolVersion: {
           label: "Proxy Protocol Version",
-          description: "if not empty, frpc will use proxy protocol to transfer connection info to your local service",
+          description:
+            "if not empty, frpc will use proxy protocol to transfer connection info to your local service",
           empty: "Empty"
         },
         bindAddr: {
