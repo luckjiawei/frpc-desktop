@@ -106,6 +106,7 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
   // removeRouterListeners2(listeners.watchFrpcLog);
+  clearInterval(autoRefreshTimer.value);
 });
 </script>
 <template>
