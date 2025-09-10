@@ -44,34 +44,6 @@ const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
 // const isWatch = ref(false);
 
-onMounted(() => {
-  on(ipcRouters.LOG.getFrpLogContent, data => {
-    if (data) {
-      loggerContent.value = formatLogContent(data as string);
-    }
-
-    logLoading.value = false;
-    if (refreshStatus.value) {
-      // 刷新逻辑
-      ElMessage({
-        type: "success",
-        message: t("logger.message.refreshSuccess")
-      });
-      refreshStatus.value = false;
-    }
-  });
-  on(ipcRouters.LOG.openFrpcLogFile, () => {
-    ElMessage({
-      type: "success",
-      message: t("logger.message.openSuccess")
-    });
-  });
-  send(ipcRouters.LOG.getFrpLogContent);
-  // onListener(listeners.watchFrpcLog, data => {
-  //   send(ipcRouters.LOG.getFrpLogContent);
-  // });
-});
-
 const openLocalLog = useDebounceFn(() => {
   send(ipcRouters.LOG.openFrpcLogFile);
 }, 1000);
@@ -102,14 +74,45 @@ const handleAutoRefreshChange = () => {
   }
 };
 
+onMounted(() => {
+  on(ipcRouters.LOG.getFrpLogContent, data => {
+    if (data) {
+      loggerContent.value = formatLogContent(data as string);
+    }
+
+    logLoading.value = false;
+    if (refreshStatus.value) {
+      // 刷新逻辑
+      ElMessage({
+        type: "success",
+        message: t("logger.message.refreshSuccess")
+      });
+      refreshStatus.value = false;
+    }
+  });
+  on(ipcRouters.LOG.openFrpcLogFile, () => {
+    ElMessage({
+      type: "success",
+      message: t("logger.message.openSuccess")
+    });
+  });
+  send(ipcRouters.LOG.getFrpLogContent);
+  // onListener(listeners.watchFrpcLog, data => {
+  //   send(ipcRouters.LOG.getFrpLogContent);
+  // });
+});
+
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
   // removeRouterListeners2(listeners.watchFrpcLog);
   clearInterval(autoRefreshTimer.value);
   autoRefreshTime.value = 10;
-  console.log("onUnmounted");
 });
+
+// onDeactivated(() => {
+//   console.log("onDeactivated");
+// });
 </script>
 <template>
   <div class="main">
