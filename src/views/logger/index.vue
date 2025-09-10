@@ -3,16 +3,14 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import {
   on,
-  onListener,
   removeRouterListeners,
-  removeRouterListeners2,
   send
 } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters, listeners } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Logger"
@@ -70,9 +68,9 @@ onMounted(() => {
       message: t("logger.message.openSuccess")
     });
   });
-  onListener(listeners.watchFrpcLog, data => {
-    send(ipcRouters.LOG.getFrpLogContent);
-  });
+  // onListener(listeners.watchFrpcLog, data => {
+  //   send(ipcRouters.LOG.getFrpLogContent);
+  // });
 });
 
 const openLocalLog = useDebounceFn(() => {
@@ -93,7 +91,7 @@ const refreshLog = useDebounceFn(() => {
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
-  removeRouterListeners2(listeners.watchFrpcLog);
+  // removeRouterListeners2(listeners.watchFrpcLog);
 });
 </script>
 <template>
