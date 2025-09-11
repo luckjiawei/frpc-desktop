@@ -47,6 +47,12 @@ export default {
         message:
           "Please go to the settings page and modify the configuration before starting",
         confirm: "Go to Settings"
+      },
+      versionNotFound: {
+        title: "Prompt",
+        message:
+          "Please go to the settings page and select the version before starting",
+        confirm: "Go to Settings"
       }
     }
   },

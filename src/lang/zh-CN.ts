@@ -62,7 +62,8 @@ export default {
       import: "导入"
     },
     message: {
-      importSuccess: "导入成功"
+      importSuccess: "导入成功",
+      deleteSuccess: "删除成功"
     },
     alert: {
       deleteConfirm: {
