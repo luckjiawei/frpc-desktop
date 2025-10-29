@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from "electron";
+import {app, BrowserWindow, dialog} from "electron";
 import fs from "fs";
 import path from "path";
 import TOML from "smol-toml";
@@ -8,6 +8,7 @@ import ProxyRepository from "../repository/ProxyRepository";
 import ServerRepository from "../repository/ServerRepository";
 import PathUtils from "../utils/PathUtils";
 import BaseService from "./BaseService";
+import Logger from "../core/Logger";
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerRepository;
@@ -38,6 +39,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       openAtLogin: newConfig.system.launchAtStartup || false, //win
       openAsHidden: newConfig.system.launchAtStartup || false //macOs
     });
+      Logger.setLevel(newConfig.log.level);
     return newConfig;
   }
 
@@ -266,6 +268,15 @@ ${f}`;
       return false;
     }
   }
+
+    async getLoggerLevel() {
+        const serverConfig = await this.getServerConfig();
+        if (serverConfig) {
+            return serverConfig.log.level;
+        } else {
+            return "info";
+        }
+    }
 
   async getLanguage() {
     const serverConfig = await this.getServerConfig();

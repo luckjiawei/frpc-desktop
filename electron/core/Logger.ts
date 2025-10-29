@@ -2,8 +2,16 @@ import log from "electron-log";
 
 class Logger {
   static {
-    log.transports.file.level = "debug";
-    log.transports.console.level = "debug";
+    log.transports.file.level = "info";
+    log.transports.console.level = "info";
+  }
+
+  public static setLevel(level: string) {
+      if (!level) {
+          return
+      }
+      log.transports.file.level = level;
+      log.transports.console.level = level;
   }
 
   public static info(module: string, msg: string) {

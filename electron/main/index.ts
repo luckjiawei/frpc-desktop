@@ -57,7 +57,7 @@ class FrpcDesktopApp {
       return;
     }
     const serverService: ServerService = BeanFactory.getBean("serverService");
-
+    Logger.setLevel(await serverService.getLoggerLevel());
     if (await serverService.isAutoConnectOnStartup()) {
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");
