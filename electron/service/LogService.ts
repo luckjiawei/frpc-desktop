@@ -8,6 +8,7 @@ import SystemService from "./SystemService";
 class LogService {
   private readonly _systemService: SystemService;
   private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
+  private readonly _appPath: string = PathUtils.getAppLogFilePath();
 
   constructor(systemService: SystemService) {
     this._systemService = systemService;
@@ -26,6 +27,21 @@ class LogService {
         reject(error);
       }
     });
+  }
+
+  async getAppLogContent() {
+      return new Promise((resolve, reject) => {
+          if (!fs.existsSync(this._appPath)) {
+              resolve("");
+              return;
+          }
+          try {
+              const data = fs.readFileSync(this._appPath, "utf-8");
+              resolve(data);
+          } catch (error) {
+              reject(error);
+          }
+      });
   }
 
   private _watcher: fs.FSWatcher | null = null;

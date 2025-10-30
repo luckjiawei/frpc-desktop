@@ -23,13 +23,13 @@ const formatLogContent = (logContent: string) => {
     .split("\n")
     .filter(f => f)
     .map(m => {
-      if (m.indexOf("[E]") !== -1) {
+      if (m.indexOf("[E]") !== -1 || m.indexOf("[error]") !== -1) {
         return `<div class="text-[#FF0006]">${m}</div> `;
-      } else if (m.indexOf("[I]") !== -1) {
+      } else if (m.indexOf("[I]") !== -1 || m.indexOf("[info]") !== -1) {
         return `<div class="text-[#48BB31]">${m}</div> `;
-      } else if (m.indexOf("[D]") !== -1) {
+      } else if (m.indexOf("[D]") !== -1 || m.indexOf("[debug]") !== -1) {
         return `<div class="text-[#0070BB]">${m}</div> `;
-      } else if (m.indexOf("[W]") !== -1) {
+      } else if (m.indexOf("[W]") !== -1 || m.indexOf("[warn]") !== -1) {
         return `<div class="text-[#BBBB23]">${m}</div> `;
       } else {
         return `<div class="text-[#BBBBBB]">${m}</div> `;
@@ -42,6 +42,7 @@ const logLoading = ref(true);
 const autoRefresh = ref(false);
 const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
+const activeTabName = ref("system_log");
 // const isWatch = ref(false);
 
 const openLocalLog = useDebounceFn(() => {
@@ -90,20 +91,39 @@ onMounted(() => {
       refreshStatus.value = false;
     }
   });
+
+  on(ipcRouters.LOG.getAppLogContent, data => {
+    if (data) {
+      loggerContent.value = formatLogContent(data as string);
+    }
+
+    logLoading.value = false;
+    if (refreshStatus.value) {
+      // 刷新逻辑
+      ElMessage({
+        type: "success",
+        message: t("logger.message.refreshSuccess")
+      });
+      refreshStatus.value = false;
+    }
+  });
+
   on(ipcRouters.LOG.openFrpcLogFile, () => {
     ElMessage({
       type: "success",
       message: t("logger.message.openSuccess")
     });
   });
-  send(ipcRouters.LOG.getFrpLogContent);
-  // onListener(listeners.watchFrpcLog, data => {
-  //   send(ipcRouters.LOG.getFrpLogContent);
-  // });
+
+
+
+  // send(ipcRouters.LOG.getFrpLogContent);
+  send(ipcRouters.LOG.getAppLogContent);
 });
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
+  removeRouterListeners(ipcRouters.LOG.getAppLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
   // removeRouterListeners2(listeners.watchFrpcLog);
   clearInterval(autoRefreshTimer.value);
@@ -133,17 +153,37 @@ onUnmounted(() => {
         <IconifyIconOffline icon="file-open-rounded" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb" v-loading="logLoading">
-      <div
-        class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-        v-html="loggerContent"
-      ></div>
+    <div class="app-container-breadcrumb">
+      <el-tabs v-model="activeTabName" class="log-tabs">
+        <el-tab-pane label="系统日志" name="system_log" class="log-container">
+          <div
+              class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
+              v-html="loggerContent"
+          ></div>
+        </el-tab-pane>
+        <el-tab-pane label="连接日志" name="frpc_log" class="log-container">
+          <div
+              class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
+              v-html="loggerContent"
+          ></div>
+        </el-tab-pane>
+      </el-tabs>
     </div>
+
+
   </div>
 </template>
 
 <style lang="scss" scoped>
 ::-webkit-scrollbar-track-piece {
   background-color: transparent;
+}
+
+.log-tabs {
+  height: 100%;
+}
+
+.log-container {
+  height: 100%;
 }
 </style>

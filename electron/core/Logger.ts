@@ -1,4 +1,4 @@
-import log from "electron-log";
+import log, { LevelOption } from "electron-log";
 
 class Logger {
   static {
@@ -10,8 +10,8 @@ class Logger {
       if (!level) {
           return
       }
-      log.transports.file.level = level;
-      log.transports.console.level = level;
+      log.transports.file.level = level as LevelOption;
+      log.transports.console.level = level as LevelOption;
   }
 
   public static info(module: string, msg: string) {

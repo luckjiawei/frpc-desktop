@@ -68,6 +68,10 @@ class PathUtils {
       SecureUtils.calculateMD5("frpc-log") + ".log"
     );
   }
+
+  public static getAppLogFilePath() {
+      return path.join(app.getPath("logs"), "main.log");
+  }
 }
 
 export default PathUtils;

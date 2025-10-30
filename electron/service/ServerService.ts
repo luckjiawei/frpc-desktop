@@ -1,14 +1,14 @@
-import {app, BrowserWindow, dialog} from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import fs from "fs";
 import path from "path";
 import TOML from "smol-toml";
 import BeanFactory from "../core/BeanFactory";
 import GlobalConstant from "../core/GlobalConstant";
+import Logger from "../core/Logger";
 import ProxyRepository from "../repository/ProxyRepository";
 import ServerRepository from "../repository/ServerRepository";
 import PathUtils from "../utils/PathUtils";
 import BaseService from "./BaseService";
-import Logger from "../core/Logger";
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private readonly _serverDao: ServerRepository;
@@ -39,7 +39,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       openAtLogin: newConfig.system.launchAtStartup || false, //win
       openAsHidden: newConfig.system.launchAtStartup || false //macOs
     });
-      Logger.setLevel(newConfig.log.level);
+    Logger.setLevel(newConfig.log.level);
     return newConfig;
   }
 
@@ -244,6 +244,202 @@ ${f}`;
       if (fileExtension === GlobalConstant.TOML_EXT) {
         const tomlData = fs.readFileSync(filePath, "utf-8");
         const sourceConfig = TOML.parse(tomlData);
+        const { proxies, visitors, ...serverConfig } = sourceConfig;
+        // 默认配置
+        const config: OpenSourceFrpcDesktopServer = {
+          _id: "",
+          multiuser: false,
+          frpcVersion: null,
+          loginFailExit: false,
+          udpPacketSize: 1500,
+          serverAddr: "",
+          serverPort: 7000,
+          auth: {
+            method: "",
+            token: ""
+          },
+          log: {
+            to: "",
+            level: "info",
+            maxDays: 3,
+            disablePrintColor: false
+          },
+          transport: {
+            dialServerTimeout: 10,
+            dialServerKeepalive: 7200,
+            poolCount: 0,
+            tcpMux: true,
+            tcpMuxKeepaliveInterval: 30,
+            protocol: "tcp",
+            connectServerLocalIP: "",
+            proxyURL: "",
+            tls: {
+              enable: true,
+              certFile: "",
+              keyFile: "",
+              trustedCaFile: "",
+              serverName: "",
+              disableCustomTLSFirstByte: true
+            },
+            heartbeatInterval: 30,
+            heartbeatTimeout: 90
+          },
+          metadatas: {
+            token: ""
+          },
+          webServer: {
+            addr: "127.0.0.1",
+            port: 57400,
+            user: "",
+            password: "",
+            pprofEnable: false
+          },
+          system: {
+            launchAtStartup: false,
+            silentStartup: false,
+            autoConnectOnStartup: false,
+            language: "en-US"
+          },
+          user: ""
+        };
+        // 判断 toml 中是否有这些配置项，有则覆盖默认的
+        if (sourceConfig.loginFailExit !== undefined) {
+          config.loginFailExit = sourceConfig.loginFailExit as boolean;
+        }
+        if (sourceConfig.udpPacketSize !== undefined) {
+          config.udpPacketSize = sourceConfig.udpPacketSize as number;
+        }
+        if (sourceConfig.serverAddr !== undefined) {
+          config.serverAddr = sourceConfig.serverAddr as string;
+        }
+        if (sourceConfig.serverPort !== undefined) {
+          config.serverPort = sourceConfig.serverPort as number;
+        }
+        if (sourceConfig.user !== undefined) {
+          config.user = sourceConfig.user as string;
+        }
+
+        // auth 配置
+        if (sourceConfig.auth) {
+          if ((sourceConfig.auth as AuthConfig).method !== undefined) {
+            config.auth.method = (sourceConfig.auth as AuthConfig).method as string;
+          }
+          if ((sourceConfig.auth as AuthConfig).token !== undefined) {
+            config.auth.token = (sourceConfig.auth as AuthConfig).token as string;
+          }
+        }
+
+        // log 配置
+        if (sourceConfig.log as LogConfig) {
+          if ((sourceConfig.log as LogConfig).to !== undefined) {
+            config.log.to = (sourceConfig.log as LogConfig).to as string;
+          }
+          if ((sourceConfig.log as LogConfig).level !== undefined) {
+            config.log.level = (sourceConfig.log as LogConfig).level as string;
+          }
+          if ((sourceConfig.log as LogConfig).maxDays !== undefined) {
+            config.log.maxDays = (sourceConfig.log as LogConfig).maxDays as number;
+          }
+          if ((sourceConfig.log as LogConfig).disablePrintColor !== undefined) {
+            config.log.disablePrintColor = (sourceConfig.log as LogConfig).disablePrintColor as boolean;
+          }
+        }
+
+        // transport 配置
+        if (sourceConfig.transport as TransportConfig) {
+          if ((sourceConfig.transport as TransportConfig).dialServerTimeout !== undefined) {
+            config.transport.dialServerTimeout =
+              (sourceConfig.transport as TransportConfig).dialServerTimeout as number;
+          }
+          if ((sourceConfig.transport as TransportConfig).dialServerKeepalive !== undefined) {
+            config.transport.dialServerKeepalive =
+              (sourceConfig.transport as TransportConfig).dialServerKeepalive as number;
+          }
+          if ((sourceConfig.transport as TransportConfig).poolCount !== undefined) {
+            config.transport.poolCount = (sourceConfig.transport as TransportConfig).poolCount as number;
+          }
+          if ((sourceConfig.transport as TransportConfig).tcpMux !== undefined) {
+            config.transport.tcpMux = (sourceConfig.transport as TransportConfig).tcpMux as boolean;
+          }
+          if ((sourceConfig.transport as TransportConfig).tcpMuxKeepaliveInterval !== undefined) {
+            config.transport.tcpMuxKeepaliveInterval =
+              (sourceConfig.transport as TransportConfig).tcpMuxKeepaliveInterval as number;
+          }
+          if ((sourceConfig.transport as TransportConfig).protocol !== undefined) {
+            config.transport.protocol = (sourceConfig.transport as TransportConfig).protocol as string;
+          }
+          if ((sourceConfig.transport as TransportConfig).connectServerLocalIP !== undefined) {
+            config.transport.connectServerLocalIP =
+              (sourceConfig.transport as TransportConfig).connectServerLocalIP as string;
+          }
+          if ((sourceConfig.transport as TransportConfig).proxyURL !== undefined) {
+            config.transport.proxyURL = (sourceConfig.transport as TransportConfig).proxyURL as string;
+          }
+          if ((sourceConfig.transport as TransportConfig).heartbeatInterval !== undefined) {
+            config.transport.heartbeatInterval =
+              (sourceConfig.transport as TransportConfig).heartbeatInterval as number;
+          }
+          if ((sourceConfig.transport as TransportConfig) .heartbeatTimeout !== undefined) {
+            config.transport.heartbeatTimeout =
+              (sourceConfig.transport as TransportConfig).heartbeatTimeout as number;
+          }
+
+          // transport.tls 配置
+          if (sourceConfig.transport as TransportTlsConfig) {
+            if ((sourceConfig.transport as TransportTlsConfig).enable !== undefined) {
+              config.transport.tls.enable = (sourceConfig.transport as TransportTlsConfig).enable as boolean;
+            }
+            if ((sourceConfig.transport as TransportTlsConfig).certFile !== undefined) {
+              config.transport.tls.certFile =
+                (sourceConfig.transport as TransportTlsConfig).certFile as string;
+            }
+            if ((sourceConfig.transport as TransportTlsConfig).keyFile !== undefined) {
+              config.transport.tls.keyFile = (sourceConfig.transport as TransportTlsConfig).keyFile as string;
+            }
+            if ((sourceConfig.transport as TransportTlsConfig).trustedCaFile !== undefined) {
+              config.transport.tls.trustedCaFile =
+                (sourceConfig.transport as TransportTlsConfig).trustedCaFile as string;
+            }
+            if ((sourceConfig.transport as TransportTlsConfig).serverName !== undefined) {
+              config.transport.tls.serverName =
+                (sourceConfig.transport as TransportTlsConfig).serverName as string;
+            }
+            if (
+              (sourceConfig.transport as TransportTlsConfig).disableCustomTLSFirstByte !== undefined
+            ) {
+              config.transport.tls.disableCustomTLSFirstByte =
+                (sourceConfig.transport as TransportTlsConfig).disableCustomTLSFirstByte as boolean;
+            }
+          }
+        }
+
+        // metadatas 配置
+        if (sourceConfig.metadatas as Record<string, any>) {
+          if ((sourceConfig.metadatas as Record<string, any>).token !== undefined) {
+            config.metadatas.token = (sourceConfig.metadatas as Record<string, any>).token as string;
+          }
+        }
+
+        // webServer 配置
+        if (sourceConfig.webServer as WebServerConfig) {
+          if ((sourceConfig.webServer as WebServerConfig).addr !== undefined) {
+            config.webServer.addr = (sourceConfig.webServer as WebServerConfig).addr as string;
+          }
+          if ((sourceConfig.webServer as WebServerConfig).port !== undefined) {
+            config.webServer.port = (sourceConfig.webServer as WebServerConfig).port as number;
+          }
+          if ((sourceConfig.webServer as WebServerConfig).user !== undefined) {
+            config.webServer.user = (sourceConfig.webServer as WebServerConfig).user as string;
+          }
+          if ((sourceConfig.webServer as WebServerConfig).password !== undefined) {
+            config.webServer.password = (sourceConfig.webServer as WebServerConfig).password as string;
+          }
+          if ((sourceConfig.webServer as WebServerConfig).pprofEnable !== undefined) {
+            config.webServer.pprofEnable = (sourceConfig.webServer as WebServerConfig).pprofEnable as boolean;
+          }
+        }
+
+        await this.saveServerConfig(config);
       } else {
         throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
       }
@@ -269,14 +465,14 @@ ${f}`;
     }
   }
 
-    async getLoggerLevel() {
-        const serverConfig = await this.getServerConfig();
-        if (serverConfig) {
-            return serverConfig.log.level;
-        } else {
-            return "info";
-        }
+  async getLoggerLevel() {
+    const serverConfig = await this.getServerConfig();
+    if (serverConfig) {
+      return serverConfig.log.level;
+    } else {
+      return "info";
     }
+  }
 
   async getLanguage() {
     const serverConfig = await this.getServerConfig();
