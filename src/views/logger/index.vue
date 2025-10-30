@@ -46,7 +46,11 @@ const activeTabName = ref("system_log");
 // const isWatch = ref(false);
 
 const openLocalLog = useDebounceFn(() => {
-  send(ipcRouters.LOG.openFrpcLogFile);
+  if (activeTabName.value === "system_log") {
+    send(ipcRouters.LOG.openAppLogFile);
+  } else {
+    send(ipcRouters.LOG.openFrpcLogFile);
+  }
 }, 1000);
 
 const refreshLog = useDebounceFn(() => {
@@ -57,7 +61,11 @@ const refreshLog = useDebounceFn(() => {
   // });
   refreshStatus.value = true;
   logLoading.value = true;
-  send(ipcRouters.LOG.getFrpLogContent);
+  if (activeTabName.value === "system_log") {
+    send(ipcRouters.LOG.getAppLogContent);
+  } else {
+    send(ipcRouters.LOG.getFrpLogContent);
+  }
 }, 300);
 
 const handleAutoRefreshChange = () => {
@@ -72,6 +80,15 @@ const handleAutoRefreshChange = () => {
   } else {
     clearInterval(autoRefreshTimer.value);
     autoRefreshTime.value = 10;
+  }
+};
+
+const handleTabChange = (tab: string) => {
+  activeTabName.value = tab;
+  if (tab === "system_log") {
+    send(ipcRouters.LOG.getAppLogContent);
+  } else {
+    send(ipcRouters.LOG.getFrpLogContent);
   }
 };
 
@@ -115,8 +132,6 @@ onMounted(() => {
     });
   });
 
-
-
   // send(ipcRouters.LOG.getFrpLogContent);
   send(ipcRouters.LOG.getAppLogContent);
 });
@@ -154,23 +169,25 @@ onUnmounted(() => {
       </el-button>
     </breadcrumb>
     <div class="app-container-breadcrumb">
-      <el-tabs v-model="activeTabName" class="log-tabs">
+      <el-tabs
+        v-model="activeTabName"
+        class="log-tabs"
+        @tab-change="handleTabChange"
+      >
         <el-tab-pane label="系统日志" name="system_log" class="log-container">
           <div
-              class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-              v-html="loggerContent"
+            class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
+            v-html="loggerContent"
           ></div>
         </el-tab-pane>
         <el-tab-pane label="连接日志" name="frpc_log" class="log-container">
           <div
-              class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-              v-html="loggerContent"
+            class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
+            v-html="loggerContent"
           ></div>
         </el-tab-pane>
       </el-tabs>
     </div>
-
-
   </div>
 </template>
 

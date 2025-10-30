@@ -30,18 +30,18 @@ class LogService {
   }
 
   async getAppLogContent() {
-      return new Promise((resolve, reject) => {
-          if (!fs.existsSync(this._appPath)) {
-              resolve("");
-              return;
-          }
-          try {
-              const data = fs.readFileSync(this._appPath, "utf-8");
-              resolve(data);
-          } catch (error) {
-              reject(error);
-          }
-      });
+    return new Promise((resolve, reject) => {
+      if (!fs.existsSync(this._appPath)) {
+        resolve("");
+        return;
+      }
+      try {
+        const data = fs.readFileSync(this._appPath, "utf-8");
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   private _watcher: fs.FSWatcher | null = null;
@@ -76,6 +76,19 @@ class LogService {
     return new Promise<boolean>((resolve, reject) => {
       this._systemService
         .openLocalFile(this._logPath)
+        .then(result => {
+          resolve(result);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  }
+
+  openAppLogFile(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this._systemService
+        .openLocalFile(this._appPath)
         .then(result => {
           resolve(result);
         })

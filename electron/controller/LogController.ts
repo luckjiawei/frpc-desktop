@@ -1,7 +1,7 @@
-import BaseController from "./BaseController";
+import Logger from "../core/Logger";
 import LogService from "../service/LogService";
 import ResponseUtils from "../utils/ResponseUtils";
-import Logger from "../core/Logger";
+import BaseController from "./BaseController";
 
 class LogController extends BaseController {
   private readonly _logService: LogService;
@@ -54,6 +54,22 @@ class LogController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("LogController.openFrpcLogFile", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  openAppLogFile(req: ControllerParam) {
+    this._logService
+      .openAppLogFile()
+      .then(data => {
+        if (data) {
+          ResponseUtils.success();
+        } else {
+          // ResponseUtils.fail();
+        }
+      })
+      .catch((err: Error) => {
+        Logger.error("LogController.openAppLogFile", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
