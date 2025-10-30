@@ -96,6 +96,10 @@ export default {
     content: {
       empty: "暂无日志"
     },
+    tab: {
+      appLog: "应用日志",
+      frpcLog: "连接日志"
+    },
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
   },

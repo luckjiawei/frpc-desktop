@@ -42,11 +42,11 @@ const logLoading = ref(true);
 const autoRefresh = ref(false);
 const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
-const activeTabName = ref("system_log");
+const activeTabName = ref("app_log");
 // const isWatch = ref(false);
 
 const openLocalLog = useDebounceFn(() => {
-  if (activeTabName.value === "system_log") {
+  if (activeTabName.value === "app_log") {
     send(ipcRouters.LOG.openAppLogFile);
   } else {
     send(ipcRouters.LOG.openFrpcLogFile);
@@ -61,7 +61,7 @@ const refreshLog = useDebounceFn(() => {
   // });
   refreshStatus.value = true;
   logLoading.value = true;
-  if (activeTabName.value === "system_log") {
+  if (activeTabName.value === "app_log") {
     send(ipcRouters.LOG.getAppLogContent);
   } else {
     send(ipcRouters.LOG.getFrpLogContent);
@@ -85,7 +85,7 @@ const handleAutoRefreshChange = () => {
 
 const handleTabChange = (tab: string) => {
   activeTabName.value = tab;
-  if (tab === "system_log") {
+  if (tab === "app_log") {
     send(ipcRouters.LOG.getAppLogContent);
   } else {
     send(ipcRouters.LOG.getFrpLogContent);
@@ -174,13 +174,13 @@ onUnmounted(() => {
         class="log-tabs"
         @tab-change="handleTabChange"
       >
-        <el-tab-pane label="系统日志" name="system_log" class="log-container">
+        <el-tab-pane :label="t('logger.tab.appLog')" name="app_log" class="log-container">
           <div
             class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
             v-html="loggerContent"
           ></div>
         </el-tab-pane>
-        <el-tab-pane label="连接日志" name="frpc_log" class="log-container">
+        <el-tab-pane :label="t('logger.tab.frpcLog')" name="frpc_log" class="log-container">
           <div
             class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
             v-html="loggerContent"

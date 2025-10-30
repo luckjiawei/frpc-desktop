@@ -100,6 +100,10 @@ export default {
     content: {
       empty: "No log"
     },
+    tab: {
+      appLog: "App Log",
+      frpcLog: "Frpc Log"
+    },
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"
   },
