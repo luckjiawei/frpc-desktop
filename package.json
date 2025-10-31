@@ -41,9 +41,9 @@
   },
   "devDependencies": {
     "@iconify-icons/material-symbols": "^1.2.58",
-    "@iconify/vue": "^4.1.1",
+    "@iconify/vue": "^5.0.0",
     "@types/nedb": "^1.8.16",
-    "@vitejs/plugin-vue": "^4.3.3",
+    "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^7.1.0",
     "autoprefixer": "^10.4.21",
     "cssnano": "^6.0.1",
@@ -57,7 +57,7 @@
     "sass": "^1.92.1",
     "tailwindcss": "^3.3.3",
     "typescript": "5.7.3",
-    "vite": "^5.4.11",
+    "vite": "^7.1.12",
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vue-tsc": "^2.0.28"
