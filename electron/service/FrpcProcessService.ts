@@ -86,7 +86,10 @@ class FrpcProcessService {
 
     if (config.webServer.port) {
       // 检查端口是否被占用
-      const isPortInUse = await NetUtils.checkPortInUse(config.webServer.port, "127.0.0.1");
+      const isPortInUse = await NetUtils.checkPortInUse(
+        config.webServer.port,
+        "127.0.0.1"
+      );
       if (isPortInUse) {
         Logger.warn(
           `FrpcProcessService.startFrpcProcess`,
@@ -159,9 +162,17 @@ class FrpcProcessService {
     );
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
-    const command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
+    let command = "";
+    if (process.platform === "win32") {
+      command = `${PathUtils.getWinFrpFilename()} reload -c "${configPath}"`;
+    } else {
+      command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
+    }
     exec(
       command,
+      {
+        cwd: version.localPath
+      },
       // {
       //   cwd: version.localPath,
       //   shell: true
