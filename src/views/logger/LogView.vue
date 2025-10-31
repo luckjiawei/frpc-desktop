@@ -15,6 +15,10 @@ defineEmits<{
   refresh: [];
   openFile: [];
 }>();
+
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -54,6 +58,15 @@ defineEmits<{
           {{ record.context }}
         </span>
       </div>
+      <div
+        v-if="logRecords.length === 0"
+        class="flex justify-center items-center w-full h-full text-gray-400"
+      >
+        <!--
+        <el-empty :image-size="80" :description="t('logger.content.empty')" />
+        -->
+        <span>{{ t("logger.content.empty") }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -61,5 +74,9 @@ defineEmits<{
 <style lang="scss" scoped>
 ::-webkit-scrollbar-track-piece {
   background-color: transparent;
+}
+
+:deep(.el-empty__image) {
+  color: red;
 }
 </style>

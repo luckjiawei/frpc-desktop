@@ -14,38 +14,14 @@ defineComponent({
 });
 
 const { t } = useI18n();
-const logRecords = ref<Array<LogRecord>>([]);
 
-const loggerContent = ref(
-  `<div class="text-white">${t("logger.content.empty")}</div>`
-);
-
-// const formatLogContent = (logContent: string) => {
-//   const logs = logContent
-//     .split("\n")
-//     .filter(f => f)
-//     .map(m => {
-//       if (m.indexOf("[E]") !== -1 || m.indexOf("[error]") !== -1) {
-//         return `<div class="text-[#FF0006] w-full">${m}</div> `;
-//       } else if (m.indexOf("[I]") !== -1 || m.indexOf("[info]") !== -1) {
-//         return `<div class="text-[#48BB31] w-full">${m}</div> `;
-//       } else if (m.indexOf("[D]") !== -1 || m.indexOf("[debug]") !== -1) {
-//         return `<div class="text-[#0070BB] w-full">${m}</div> `;
-//       } else if (m.indexOf("[W]") !== -1 || m.indexOf("[warn]") !== -1) {
-//         return `<div class="text-[#BBBB23] w-full">${m}</div> `;
-//       } else {
-//         return `<div class="text-[#BBBBBB] w-full">${m}</div> `;
-//       }
-//     });
-//   return logs.reverse().join("");
-// };
 const refreshStatus = ref(false);
 const logLoading = ref(true);
 const autoRefresh = ref(false);
 const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
 const activeTabName = ref("app_log");
-// const isWatch = ref(false);
+const logRecords = ref<Array<LogRecord>>([]);
 
 const openLocalLog = useDebounceFn(() => {
   if (activeTabName.value === "app_log") {
@@ -72,6 +48,9 @@ const refreshLog = useDebounceFn(() => {
 
 const handleAutoRefreshChange = () => {
   if (autoRefresh.value) {
+    if (autoRefreshTimer.value) {
+      clearInterval(autoRefreshTimer.value);
+    }
     autoRefreshTimer.value = setInterval(() => {
       autoRefreshTime.value--;
       if (autoRefreshTime.value <= 0) {
@@ -87,6 +66,7 @@ const handleAutoRefreshChange = () => {
 
 const handleTabChange = (tab: string) => {
   activeTabName.value = tab;
+  logRecords.value = [];
   if (tab === "app_log") {
     send(ipcRouters.LOG.getAppLogContent);
   } else {
@@ -127,21 +107,21 @@ onMounted(() => {
 
   on(ipcRouters.LOG.getAppLogContent, data => {
     if (data) {
-      logRecords.value = data.split("\n").map(line => {
-        if (line.indexOf("[error]") !== -1) {
-          return { context: line, level: LogLevel.ERROR };
-        } else if (line.indexOf("[info]") !== -1) {
-          return { context: line, level: LogLevel.INFO };
-        } else if (line.indexOf("[debug]") !== -1) {
-          return { context: line, level: LogLevel.DEBUG };
-        } else if (line.indexOf("[warn]") !== -1) {
-          return { context: line, level: LogLevel.WARN };
-        } else {
-          return { context: line, level: LogLevel.INFO };
-        }
-      });
+      // logRecords.value = data.split("\n").map(line => {
+      //   if (line.indexOf("[error]") !== -1) {
+      //     return { context: line, level: LogLevel.ERROR };
+      //   } else if (line.indexOf("[info]") !== -1) {
+      //     return { context: line, level: LogLevel.INFO };
+      //   } else if (line.indexOf("[debug]") !== -1) {
+      //     return { context: line, level: LogLevel.DEBUG };
+      //   } else if (line.indexOf("[warn]") !== -1) {
+      //     return { context: line, level: LogLevel.WARN };
+      //   } else {
+      //     return { context: line, level: LogLevel.INFO };
+      //   }
+      // });
 
-      logRecords.value = logRecords.value.reverse();
+      // logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;
@@ -193,79 +173,6 @@ onUnmounted(() => {
           name="app_log"
           class="log-container"
         >
-          <!--
-          <div
-            class="w-full h-full bg-[#0f0f23] flex flex-col rounded-lg overflow-hidden border border-[#2d3748] shadow-lg"
-          >
-            <div
-              class="flex justify-end w-full bg-gradient-to-r from-[#1a202c] to-[#2d3748] py-1 px-3 items-center gap-3 border-b border-[#4a5568]"
-            >
-              <span
-                v-if="autoRefresh"
-                class="text-sm font-medium text-gray-300"
-                >{{
-                  t("logger.autoRefreshTime", { time: autoRefreshTime })
-                }}</span
-              >
-              <el-switch
-                size="small"
-                v-model="autoRefresh"
-                @change="handleAutoRefreshChange"
-                class="text-gray-300"
-                >{{ t("logger.autoRefresh") }}</el-switch
-              >
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="refresh-rounded"
-                @click="refreshLog"
-                size="small"
-              />
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="file-open-rounded"
-                @click="openLocalLog"
-              />
-            </div>
-            <div
-              class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
-            >
-              <div
-                v-for="record in logRecords"
-                :key="record.context"
-                class="overflow-hidden w-full break-words"
-              >
-                <span
-                  v-if="record.level === LogLevel.ERROR"
-                  class="text-[#FF0006]"
-                >
-                  {{ record.context }}
-                </span>
-                <span
-                  v-else-if="record.level === LogLevel.INFO"
-                  class="text-[#48BB31]"
-                >
-                  {{ record.context }}
-                </span>
-                <span
-                  v-else-if="record.level === LogLevel.DEBUG"
-                  class="text-[#0070BB]"
-                >
-                  {{ record.context }}
-                </span>
-                <span
-                  v-else-if="record.level === LogLevel.WARN"
-                  class="text-[#BBBB23]"
-                >
-                  {{ record.context }}
-                </span>
-
-                <span v-else class="text-[#BBBBBB]">
-                  {{ record.context }}
-                </span>
-              </div>
-            </div>
-          </div>
-          -->
           <log-view :logRecords="logRecords" :loading="logLoading">
             <template #toolbar>
               <span
