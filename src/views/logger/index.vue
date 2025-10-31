@@ -39,6 +39,7 @@ const refreshLog = useDebounceFn(() => {
   // });
   refreshStatus.value = true;
   logLoading.value = true;
+  logRecords.value = [];
   if (activeTabName.value === "app_log") {
     send(ipcRouters.LOG.getAppLogContent);
   } else {

@@ -73,7 +73,6 @@ watch(
           size="small"
           class="search-input"
           :placeholder="t('logger.search.placeholder')"
-          :disabled="loading"
           clearable
           style="
             --el-input-bg-color: #2d3748;
@@ -90,10 +89,10 @@ watch(
 
     <!-- 日志内容区域 -->
     <div
-      v-loading="loading"
       :element-loading-text="t('logger.loading.text')"
       element-loading-background="rgba(15, 15, 35, 0.8)"
       class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
+      v-loading="loading"
     >
       <div
         v-for="record in filteredLogRecords"
