@@ -119,7 +119,7 @@ export default {
     button: {
       doc: "Documentation",
       donate: "Donate",
-      github: "Repository",
+      github: "Github",
       issues: "Feedback"
     },
     features: {

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import gitcodeIcon from "@/assets/gitcode.svg";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { send } from "@/utils/ipcUtils";
@@ -44,6 +45,12 @@ const handleOpenGitHubIssues = () => {
 const handleOpenGitHub = () => {
   send(ipcRouters.SYSTEM.openUrl, {
     url: "https://github.com/luckjiawei/frpc-desktop"
+  });
+};
+
+const handleOpenGitCode = () => {
+  send(ipcRouters.SYSTEM.openUrl, {
+    url: "https://gitcode.com/luckjiawei/frpc-desktop"
   });
 };
 
@@ -132,6 +139,16 @@ defineComponent({
           </p>
         </div>
         <div class="mt-[12px]">
+          <el-button plain type="primary" @click="handleOpenGitHub">
+            <Icon class="mr-2 cursor-pointer" icon="logos:github-icon" />
+            {{ t("about.button.github") }}
+          </el-button>
+          <el-button plain type="primary" @click="handleOpenGitCode">
+            <img :src="gitcodeIcon" class="mr-2 w-4 h-4" alt="GitCode" />
+            GitCode
+          </el-button>
+        </div>
+        <div class="mt-[12px]">
           <el-button plain type="success" @click="handleOpenDoc">
             <IconifyIconOffline
               class="mr-2 cursor-pointer"
@@ -145,10 +162,6 @@ defineComponent({
               icon="volunteer-activism-sharp"
             />
             {{ t("about.button.donate") }}
-          </el-button>
-          <el-button plain type="primary" @click="handleOpenGitHub">
-            <Icon class="mr-2 cursor-pointer" icon="logos:github-icon" />
-            {{ t("about.button.github") }}
           </el-button>
           <el-button type="danger" plain @click="handleOpenGitHubIssues">
             <IconifyIconOffline

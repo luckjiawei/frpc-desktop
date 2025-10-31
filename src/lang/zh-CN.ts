@@ -114,7 +114,7 @@ export default {
     button: {
       doc: "使用教程",
       donate: "捐赠名单",
-      github: "仓库地址",
+      github: "GitHub",
       issues: "反馈问题"
     },
     features: {
