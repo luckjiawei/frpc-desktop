@@ -115,6 +115,9 @@ export default {
     search: {
       placeholder: "Search logs..."
     },
+    loading: {
+      text: "Loading..."
+    },
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"
   },

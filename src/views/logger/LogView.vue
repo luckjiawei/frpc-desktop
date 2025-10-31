@@ -73,6 +73,7 @@ watch(
           size="small"
           class="search-input"
           :placeholder="t('logger.search.placeholder')"
+          :disabled="loading"
           clearable
           style="
             --el-input-bg-color: #2d3748;
@@ -88,7 +89,12 @@ watch(
     </div>
 
     <!-- 日志内容区域 -->
-    <div class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg">
+    <div
+      v-loading="loading"
+      :element-loading-text="t('logger.loading.text')"
+      element-loading-background="rgba(15, 15, 35, 0.8)"
+      class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
+    >
       <div
         v-for="record in filteredLogRecords"
         :key="record.id"
@@ -114,7 +120,7 @@ watch(
         </span>
       </div>
       <div
-        v-if="filteredLogRecords.length === 0"
+        v-if="!loading && filteredLogRecords.length === 0"
         class="flex justify-center items-center w-full h-full text-gray-400"
       >
         <!--

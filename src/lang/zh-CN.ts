@@ -110,6 +110,9 @@ export default {
     search: {
       placeholder: "搜索日志内容..."
     },
+    loading: {
+      text: "加载中..."
+    },
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
   },
