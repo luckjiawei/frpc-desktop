@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
@@ -7,36 +6,39 @@ import { ElMessage } from "element-plus";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
+import LogView from "./LogView.vue";
+import { LogLevel, LogRecord } from "./log";
 
 defineComponent({
   name: "Logger"
 });
 
 const { t } = useI18n();
+const logRecords = ref<Array<LogRecord>>([]);
 
 const loggerContent = ref(
   `<div class="text-white">${t("logger.content.empty")}</div>`
 );
 
-const formatLogContent = (logContent: string) => {
-  const logs = logContent
-    .split("\n")
-    .filter(f => f)
-    .map(m => {
-      if (m.indexOf("[E]") !== -1 || m.indexOf("[error]") !== -1) {
-        return `<div class="text-[#FF0006]">${m}</div> `;
-      } else if (m.indexOf("[I]") !== -1 || m.indexOf("[info]") !== -1) {
-        return `<div class="text-[#48BB31]">${m}</div> `;
-      } else if (m.indexOf("[D]") !== -1 || m.indexOf("[debug]") !== -1) {
-        return `<div class="text-[#0070BB]">${m}</div> `;
-      } else if (m.indexOf("[W]") !== -1 || m.indexOf("[warn]") !== -1) {
-        return `<div class="text-[#BBBB23]">${m}</div> `;
-      } else {
-        return `<div class="text-[#BBBBBB]">${m}</div> `;
-      }
-    });
-  return logs.reverse().join("");
-};
+// const formatLogContent = (logContent: string) => {
+//   const logs = logContent
+//     .split("\n")
+//     .filter(f => f)
+//     .map(m => {
+//       if (m.indexOf("[E]") !== -1 || m.indexOf("[error]") !== -1) {
+//         return `<div class="text-[#FF0006] w-full">${m}</div> `;
+//       } else if (m.indexOf("[I]") !== -1 || m.indexOf("[info]") !== -1) {
+//         return `<div class="text-[#48BB31] w-full">${m}</div> `;
+//       } else if (m.indexOf("[D]") !== -1 || m.indexOf("[debug]") !== -1) {
+//         return `<div class="text-[#0070BB] w-full">${m}</div> `;
+//       } else if (m.indexOf("[W]") !== -1 || m.indexOf("[warn]") !== -1) {
+//         return `<div class="text-[#BBBB23] w-full">${m}</div> `;
+//       } else {
+//         return `<div class="text-[#BBBBBB] w-full">${m}</div> `;
+//       }
+//     });
+//   return logs.reverse().join("");
+// };
 const refreshStatus = ref(false);
 const logLoading = ref(true);
 const autoRefresh = ref(false);
@@ -95,7 +97,21 @@ const handleTabChange = (tab: string) => {
 onMounted(() => {
   on(ipcRouters.LOG.getFrpLogContent, data => {
     if (data) {
-      loggerContent.value = formatLogContent(data as string);
+      data.split("\n").forEach(line => {
+        if (line.indexOf("[E]") !== -1) {
+          logRecords.value.push({ context: line, level: LogLevel.ERROR });
+        } else if (line.indexOf("[I]") !== -1) {
+          logRecords.value.push({ context: line, level: LogLevel.INFO });
+        } else if (line.indexOf("[D]") !== -1) {
+          logRecords.value.push({ context: line, level: LogLevel.DEBUG });
+        } else if (line.indexOf("[W]") !== -1) {
+          logRecords.value.push({ context: line, level: LogLevel.WARN });
+        } else {
+          logRecords.value.push({ context: line, level: LogLevel.INFO });
+        }
+      });
+
+      logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;
@@ -111,7 +127,21 @@ onMounted(() => {
 
   on(ipcRouters.LOG.getAppLogContent, data => {
     if (data) {
-      loggerContent.value = formatLogContent(data as string);
+      logRecords.value = data.split("\n").map(line => {
+        if (line.indexOf("[error]") !== -1) {
+          return { context: line, level: LogLevel.ERROR };
+        } else if (line.indexOf("[info]") !== -1) {
+          return { context: line, level: LogLevel.INFO };
+        } else if (line.indexOf("[debug]") !== -1) {
+          return { context: line, level: LogLevel.DEBUG };
+        } else if (line.indexOf("[warn]") !== -1) {
+          return { context: line, level: LogLevel.WARN };
+        } else {
+          return { context: line, level: LogLevel.INFO };
+        }
+      });
+
+      logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;
@@ -151,40 +181,155 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <breadcrumb>
-      <span v-if="autoRefresh" class="mr-2 text-sm text-primary">{{
-        t("logger.autoRefreshTime", { time: autoRefreshTime })
-      }}</span>
-      <el-switch
-        class="mr-2"
-        v-model="autoRefresh"
-        @change="handleAutoRefreshChange"
-        >{{ t("logger.autoRefresh") }}</el-switch
-      >
-      <el-button plain type="primary" @click="refreshLog">
-        <IconifyIconOffline icon="refresh-rounded" />
-      </el-button>
-      <el-button plain type="primary" @click="openLocalLog">
-        <IconifyIconOffline icon="file-open-rounded" />
-      </el-button>
-    </breadcrumb>
+    <breadcrumb> </breadcrumb>
     <div class="app-container-breadcrumb">
       <el-tabs
         v-model="activeTabName"
         class="log-tabs"
         @tab-change="handleTabChange"
       >
-        <el-tab-pane :label="t('logger.tab.appLog')" name="app_log" class="log-container">
+        <el-tab-pane
+          :label="t('logger.tab.appLog')"
+          name="app_log"
+          class="log-container"
+        >
+          <!--
           <div
-            class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-            v-html="loggerContent"
-          ></div>
+            class="w-full h-full bg-[#0f0f23] flex flex-col rounded-lg overflow-hidden border border-[#2d3748] shadow-lg"
+          >
+            <div
+              class="flex justify-end w-full bg-gradient-to-r from-[#1a202c] to-[#2d3748] py-1 px-3 items-center gap-3 border-b border-[#4a5568]"
+            >
+              <span
+                v-if="autoRefresh"
+                class="text-sm font-medium text-gray-300"
+                >{{
+                  t("logger.autoRefreshTime", { time: autoRefreshTime })
+                }}</span
+              >
+              <el-switch
+                size="small"
+                v-model="autoRefresh"
+                @change="handleAutoRefreshChange"
+                class="text-gray-300"
+                >{{ t("logger.autoRefresh") }}</el-switch
+              >
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="refresh-rounded"
+                @click="refreshLog"
+                size="small"
+              />
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="file-open-rounded"
+                @click="openLocalLog"
+              />
+            </div>
+            <div
+              class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
+            >
+              <div
+                v-for="record in logRecords"
+                :key="record.context"
+                class="overflow-hidden w-full break-words"
+              >
+                <span
+                  v-if="record.level === LogLevel.ERROR"
+                  class="text-[#FF0006]"
+                >
+                  {{ record.context }}
+                </span>
+                <span
+                  v-else-if="record.level === LogLevel.INFO"
+                  class="text-[#48BB31]"
+                >
+                  {{ record.context }}
+                </span>
+                <span
+                  v-else-if="record.level === LogLevel.DEBUG"
+                  class="text-[#0070BB]"
+                >
+                  {{ record.context }}
+                </span>
+                <span
+                  v-else-if="record.level === LogLevel.WARN"
+                  class="text-[#BBBB23]"
+                >
+                  {{ record.context }}
+                </span>
+
+                <span v-else class="text-[#BBBBBB]">
+                  {{ record.context }}
+                </span>
+              </div>
+            </div>
+          </div>
+          -->
+          <log-view :logRecords="logRecords" :loading="logLoading">
+            <template #toolbar>
+              <span
+                v-if="autoRefresh"
+                class="text-sm font-medium text-gray-300"
+                >{{
+                  t("logger.autoRefreshTime", { time: autoRefreshTime })
+                }}</span
+              >
+              <el-switch
+                size="small"
+                v-model="autoRefresh"
+                @change="handleAutoRefreshChange"
+                class="text-gray-300"
+                >{{ t("logger.autoRefresh") }}</el-switch
+              >
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="refresh-rounded"
+                @click="refreshLog"
+                size="small"
+              />
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="file-open-rounded"
+                @click="openLocalLog"
+              />
+            </template>
+          </log-view>
         </el-tab-pane>
-        <el-tab-pane :label="t('logger.tab.frpcLog')" name="frpc_log" class="log-container">
-          <div
-            class="w-full h-full p-2 bg-[#2B2B2B] rounded drop-shadow-lg overflow-y-auto"
-            v-html="loggerContent"
-          ></div>
+        <el-tab-pane
+          :label="t('logger.tab.frpcLog')"
+          name="frpc_log"
+          class="log-container"
+        >
+          <log-view :logRecords="logRecords" :loading="logLoading">
+            <template #toolbar>
+              <span
+                v-if="autoRefresh"
+                class="text-sm font-medium text-gray-300"
+                >{{
+                  t("logger.autoRefreshTime", { time: autoRefreshTime })
+                }}</span
+              >
+              <el-switch
+                size="small"
+                v-model="autoRefresh"
+                @change="handleAutoRefreshChange"
+                class="text-gray-300"
+                >{{ t("logger.autoRefresh") }}</el-switch
+              >
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="refresh-rounded"
+                @click="refreshLog"
+                size="small"
+              />
+              <IconifyIconOffline
+                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+                icon="file-open-rounded"
+                @click="openLocalLog"
+              />
+            </template>
+          </log-view>
         </el-tab-pane>
       </el-tabs>
     </div>
