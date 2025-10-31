@@ -108,6 +108,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
 
 type = "${proxy.type}"
 name = "${proxy.name}-{{ $v.First }}"
+localIP = "${proxy.localIP}"
 localPort = {{ $v.First }}
 remotePort = {{ $v.Second }}
 {{- end }}
