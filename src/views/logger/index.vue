@@ -77,17 +77,17 @@ const handleTabChange = (tab: string) => {
 onMounted(() => {
   on(ipcRouters.LOG.getFrpLogContent, data => {
     if (data) {
-      data.split("\n").forEach(line => {
+      logRecords.value = data.split("\n").map(line => {
         if (line.indexOf("[E]") !== -1) {
-          logRecords.value.push({ context: line, level: LogLevel.ERROR });
+          return { context: line, level: LogLevel.ERROR };
         } else if (line.indexOf("[I]") !== -1) {
-          logRecords.value.push({ context: line, level: LogLevel.INFO });
+          return { context: line, level: LogLevel.INFO };
         } else if (line.indexOf("[D]") !== -1) {
-          logRecords.value.push({ context: line, level: LogLevel.DEBUG });
+          return { context: line, level: LogLevel.DEBUG };
         } else if (line.indexOf("[W]") !== -1) {
-          logRecords.value.push({ context: line, level: LogLevel.WARN });
+          return { context: line, level: LogLevel.WARN };
         } else {
-          logRecords.value.push({ context: line, level: LogLevel.INFO });
+          return { context: line, level: LogLevel.INFO };
         }
       });
 
@@ -107,20 +107,20 @@ onMounted(() => {
 
   on(ipcRouters.LOG.getAppLogContent, data => {
     if (data) {
-      // logRecords.value = data.split("\n").map(line => {
-      //   if (line.indexOf("[error]") !== -1) {
-      //     return { context: line, level: LogLevel.ERROR };
-      //   } else if (line.indexOf("[info]") !== -1) {
-      //     return { context: line, level: LogLevel.INFO };
-      //   } else if (line.indexOf("[debug]") !== -1) {
-      //     return { context: line, level: LogLevel.DEBUG };
-      //   } else if (line.indexOf("[warn]") !== -1) {
-      //     return { context: line, level: LogLevel.WARN };
-      //   } else {
-      //     return { context: line, level: LogLevel.INFO };
-      //   }
-      // });
-      // logRecords.value = logRecords.value.reverse();
+      logRecords.value = data.split("\n").map(line => {
+        if (line.indexOf("[error]") !== -1) {
+          return { context: line, level: LogLevel.ERROR };
+        } else if (line.indexOf("[info]") !== -1) {
+          return { context: line, level: LogLevel.INFO };
+        } else if (line.indexOf("[debug]") !== -1) {
+          return { context: line, level: LogLevel.DEBUG };
+        } else if (line.indexOf("[warn]") !== -1) {
+          return { context: line, level: LogLevel.WARN };
+        } else {
+          return { context: line, level: LogLevel.INFO };
+        }
+      });
+      logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;
@@ -181,20 +181,13 @@ onUnmounted(() => {
                   t("logger.autoRefreshTime", { time: autoRefreshTime })
                 }}</span
               >
-              <el-popover
-                class="box-item"
-                title="Title"
-                content="Top Left prompts info"
-                placement="top-start"
+              <el-switch
+                size="small"
+                v-model="autoRefresh"
+                @change="handleAutoRefreshChange"
+                class="text-gray-300"
+                >{{ t("logger.autoRefresh") }}</el-switch
               >
-                <el-switch
-                  size="small"
-                  v-model="autoRefresh"
-                  @change="handleAutoRefreshChange"
-                  class="text-gray-300"
-                  >{{ t("logger.autoRefresh") }}</el-switch
-                >
-              </el-popover>
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
                 icon="refresh-rounded"
