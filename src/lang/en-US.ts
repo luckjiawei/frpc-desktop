@@ -71,7 +71,8 @@ export default {
     },
     message: {
       importSuccess: "Import successfully",
-      deleteSuccess: "Delete successfully"
+      deleteSuccess: "Delete successfully",
+      copyDownloadLinkSuccess: "Copy download link successfully"
     },
     alert: {
       deleteConfirm: {
@@ -95,6 +96,7 @@ export default {
       downloaded: "Downloaded",
       delete: "Delete",
       download: "Download",
+      downloadLink: "Download Link",
       noVersions: "No available versions"
     }
   },

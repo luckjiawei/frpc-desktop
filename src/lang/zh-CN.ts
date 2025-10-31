@@ -68,7 +68,8 @@ export default {
     },
     message: {
       importSuccess: "导入成功",
-      deleteSuccess: "删除成功"
+      deleteSuccess: "删除成功",
+      copyDownloadLinkSuccess: "复制下载链接成功"
     },
     alert: {
       deleteConfirm: {
@@ -90,6 +91,7 @@ export default {
       publishTime: "发布时间：",
       downloaded: "已下载",
       download: "下载",
+      downloadLink: "下载链接",
       noVersions: "暂无可用版本"
     }
   },

@@ -3,7 +3,7 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox } from "element-plus";
 import moment from "moment";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
@@ -45,6 +45,15 @@ const handleDownload = useDebounceFn((version: FrpcVersion) => {
     githubReleaseId: version.githubReleaseId
   });
   downloading.value.set(version.githubReleaseId, 0);
+}, 300);
+
+const handleCopyDownloadLink = useDebounceFn((version: FrpcVersion) => {
+  const { copy, copied } = useClipboard();
+  copy(version.browserDownloadUrl);
+  ElMessage({
+    type: "success",
+    message: t("download.message.copyDownloadLinkSuccess")
+  });
 }, 300);
 
 /**
@@ -263,6 +272,12 @@ onUnmounted(() => {
                         <IconifyIconOffline icon="download" />
                       </template>
                       {{ t("download.version.download") }}
+                    </el-button>
+
+                    <el-button type="text" size="small" @click="handleCopyDownloadLink(version)">
+                      <template #icon>
+                        <IconifyIconOffline icon="link" /> </template
+                      >{{ t("download.version.downloadLink") }}
                     </el-button>
                   </template>
                 </div>
