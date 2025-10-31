@@ -1,10 +1,14 @@
-import { app, net, shell } from "electron";
-import GlobalConstant from "../core/GlobalConstant";
-import path from "path";
-import fs from "fs";
-import zlib from "zlib";
 import admZip from "adm-zip";
+import { app, BrowserWindow, net, shell } from "electron";
+import BeanFactory from "../core/BeanFactory";
+
+import fs from "fs";
+import path from "path";
 import tar from "tar";
+import zlib from "zlib";
+import GlobalConstant from "../core/GlobalConstant";
+import Logger from "../core/Logger";
+import ResponseUtils from "../utils/ResponseUtils";
 
 class SystemService {
   async openUrl(url: string) {
@@ -132,6 +136,60 @@ class SystemService {
       });
       request.end();
     });
+  }
+
+  getSystemUsage(listenerParam: ListenerParam) {
+    const process = require("process");
+    const os = require("os");
+    // const { event, channel } = listenerParam;
+    let lastCpuUsage = process.cpuUsage();
+    let lastTime = Date.now();
+
+    setInterval(() => {
+      // 获取内存使用情况
+      const memoryUsage = process.memoryUsage();
+      // const totalMemory = os.totalmem();
+      const usedMemory = memoryUsage.rss; // 实际物理内存使用量
+      // const memoryPercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
+
+      // 获取当前 Electron 进程的 CPU 使用情况
+      const currentTime = Date.now();
+      const currentCpuUsage = process.cpuUsage();
+
+      // 计算时间差（毫秒转微秒）
+      const timeDiff = (currentTime - lastTime) * 1000;
+
+      // 计算CPU使用时间差（微秒）
+      const userCPUTimeDiff = currentCpuUsage.user - lastCpuUsage.user;
+      const systemCPUTimeDiff = currentCpuUsage.system - lastCpuUsage.system;
+      const totalCPUTimeDiff = userCPUTimeDiff + systemCPUTimeDiff;
+
+      // 计算当前Electron进程的CPU使用率百分比
+      const cpuPercentage =
+        timeDiff > 0
+          ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2)
+          : "0.00";
+
+      // 更新上次的值
+      lastCpuUsage = currentCpuUsage;
+      lastTime = currentTime;
+
+      const result = {
+        cpu: parseFloat(cpuPercentage),
+        memory: {
+          used: Math.round(usedMemory / 1024 / 1024) // MB
+          // percentage: parseFloat(memoryPercentage)
+        }
+      };
+
+      Logger.debug("SystemService.getSystemUsage", JSON.stringify(result));
+
+      const win: BrowserWindow = BeanFactory.getBean("win");
+      win.webContents.send(
+        listenerParam.channel,
+        ResponseUtils.success(result)
+      );
+    }, 1000);
   }
 }
 

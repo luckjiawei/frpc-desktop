@@ -1,18 +1,20 @@
 <script lang="ts" setup>
-import { computed, defineComponent, onMounted, ref } from "vue";
-import router from "@/router";
-import { RouteRecordRaw } from "vue-router";
+import { IconifyIconOffline } from "@/components/IconifyIcon";
 import Intro from "@/intro";
-import "intro.js/introjs.css";
+import router from "@/router";
+import { useSystemUsageStore } from "@/store/systemUsage";
 import confetti from "canvas-confetti/src/confetti.js";
-import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import "intro.js/introjs.css";
+import { computed, defineComponent, onMounted, ref } from "vue";
+import { RouteRecordRaw } from "vue-router";
 import pkg from "../../../package.json";
 
 defineComponent({
   name: "AppMain"
 });
 
-const frpcDesktopStore = useFrpcDesktopStore();
+// const frpcDesktopStore = useFrpcDesktopStore();
+const systemUsageStore = useSystemUsageStore();
 const routes = ref<Array<RouteRecordRaw>>([]);
 const guideSteps = ref({
   Home: {
@@ -93,7 +95,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="left-menu-container drop-shadow-xl">
+  <div class="drop-shadow-xl left-menu-container">
     <div class="logo-container">
       <!--      <img-->
       <!--        src="/logo/only/128x128.png"-->
@@ -123,7 +125,7 @@ onMounted(() => {
         ></IconifyIconOffline>
       </li>
     </ul>
-    <div class="menu-footer mb-2">
+    <div class="mb-2 menu-footer">
       <!--      <el-tag-->
       <!--        :type="frpcProcessStore.running ? 'primary' : 'warning'"-->
       <!--        effect="light"-->
@@ -142,6 +144,28 @@ onMounted(() => {
       <!--          icon="attach-money-rounded"-->
       <!--        ></IconifyIconOffline>-->
       <!--      </div>-->
+      <div
+        class="flex flex-col gap-2 justify-center items-center text-[12px] text-[#6b7280]"
+      >
+        <div class="flex flex-col justify-center items-center w-full">
+          <p class="flex gap-1 items-center font-medium">
+            <IconifyIconOffline icon="memory-rounded" />
+            CPU
+          </p>
+          <p class="text-[12px] font-bold">
+            {{ systemUsageStore.systemUsageCpu }}%
+          </p>
+        </div>
+        <div class="flex flex-col justify-center items-center w-full">
+          <p class="flex gap-1 items-center font-medium">
+            <IconifyIconOffline icon="memory-alt-rounded" />
+            内存
+          </p>
+          <p class="text-[12px] font-bold">
+            {{ systemUsageStore.systemUsageMemory.used }}MB
+          </p>
+        </div>
+      </div>
       <div
         class="version animate__animated"
         @click="handleOpenGitHubReleases"

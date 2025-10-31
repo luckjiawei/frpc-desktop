@@ -10,6 +10,7 @@ import {
 } from "./components/IconifyIcon";
 import i18n from "./lang";
 import router from "./router";
+import { useSystemUsageStore } from "./store/systemUsage";
 import "./styles/index.scss";
 
 const pinia = createPinia();
@@ -33,6 +34,10 @@ app
     frpcDesktopStore.checkNewVersion(false);
     frpcDesktopStore.onListenerFrpcDesktopLanguage();
     frpcDesktopStore.getLanguage();
+
+    const systemUsageStore = useSystemUsageStore();
+    systemUsageStore.onListenerSystemUsage();
+
     postMessage({ payload: "removeLoading" }, "*");
   })
   .then(r => {});

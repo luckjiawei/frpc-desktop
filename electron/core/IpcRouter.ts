@@ -145,5 +145,9 @@ export const listeners: Listeners = {
   frpcProcessGuardian: {
     listenerMethod: "frpcProcessService.frpcProcessGuardian",
     channel: "frpcProcess:frpcProcessGuardian"
+  },
+  watchSystemUsage: {
+    listenerMethod: "systemService.getSystemUsage",
+    channel: "system:watchSystemUsage"
   }
 };
