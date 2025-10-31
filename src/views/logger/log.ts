@@ -8,4 +8,5 @@ export enum LogLevel {
 export type LogRecord = {
   context: string;
   level: LogLevel;
+  id: number;
 };

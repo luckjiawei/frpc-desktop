@@ -112,6 +112,9 @@ export default {
       appLog: "App Log",
       frpcLog: "Frpc Log"
     },
+    search: {
+      placeholder: "Search logs..."
+    },
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"
   },

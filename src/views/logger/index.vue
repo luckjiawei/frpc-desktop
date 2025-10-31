@@ -79,15 +79,15 @@ onMounted(() => {
     if (data) {
       logRecords.value = data.split("\n").map(line => {
         if (line.indexOf("[E]") !== -1) {
-          return { context: line, level: LogLevel.ERROR };
+          return { id: Date.now(), context: line, level: LogLevel.ERROR };
         } else if (line.indexOf("[I]") !== -1) {
-          return { context: line, level: LogLevel.INFO };
+          return { id: Date.now(), context: line, level: LogLevel.INFO };
         } else if (line.indexOf("[D]") !== -1) {
-          return { context: line, level: LogLevel.DEBUG };
+          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
         } else if (line.indexOf("[W]") !== -1) {
-          return { context: line, level: LogLevel.WARN };
+          return { id: Date.now(), context: line, level: LogLevel.WARN };
         } else {
-          return { context: line, level: LogLevel.INFO };
+          return { id: Date.now(), context: line, level: LogLevel.INFO };
         }
       });
 
@@ -109,15 +109,15 @@ onMounted(() => {
     if (data) {
       logRecords.value = data.split("\n").map(line => {
         if (line.indexOf("[error]") !== -1) {
-          return { context: line, level: LogLevel.ERROR };
+          return { id: Date.now(), context: line, level: LogLevel.ERROR };
         } else if (line.indexOf("[info]") !== -1) {
-          return { context: line, level: LogLevel.INFO };
+          return { id: Date.now(), context: line, level: LogLevel.INFO };
         } else if (line.indexOf("[debug]") !== -1) {
-          return { context: line, level: LogLevel.DEBUG };
+          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
         } else if (line.indexOf("[warn]") !== -1) {
-          return { context: line, level: LogLevel.WARN };
+          return { id: Date.now(), context: line, level: LogLevel.WARN };
         } else {
-          return { context: line, level: LogLevel.INFO };
+          return { id: Date.now(), context: line, level: LogLevel.INFO };
         }
       });
       logRecords.value = logRecords.value.reverse();

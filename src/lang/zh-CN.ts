@@ -107,6 +107,9 @@ export default {
       appLog: "应用日志",
       frpcLog: "连接日志"
     },
+    search: {
+      placeholder: "搜索日志内容..."
+    },
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
   },
