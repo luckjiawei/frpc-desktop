@@ -10,25 +10,25 @@ import {
 } from "electron";
 import { release } from "node:os";
 import node_path, { join } from "node:path";
-import BeanFactory from "../core/BeanFactory";
-import ServerRepository from "../repository/ServerRepository";
-import VersionRepository from "../repository/VersionRepository";
-import ProxyRepository from "../repository/ProxyRepository";
-import SystemService from "../service/SystemService";
-import ServerService from "../service/ServerService";
-import GitHubService from "../service/GitHubService";
-import VersionService from "../service/VersionService";
-import LogService from "../service/LogService";
-import FrpcProcessService from "../service/FrpcProcessService";
-import ProxyService from "../service/ProxyService";
 import ConfigController from "../controller/ConfigController";
-import VersionController from "../controller/VersionController";
-import LogController from "../controller/LogController";
 import LaunchController from "../controller/LaunchController";
+import LogController from "../controller/LogController";
 import ProxyController from "../controller/ProxyController";
 import SystemController from "../controller/SystemController";
+import VersionController from "../controller/VersionController";
+import BeanFactory from "../core/BeanFactory";
 import { ipcRouters, listeners } from "../core/IpcRouter";
 import Logger from "../core/Logger";
+import ProxyRepository from "../repository/ProxyRepository";
+import ServerRepository from "../repository/ServerRepository";
+import VersionRepository from "../repository/VersionRepository";
+import FrpcProcessService from "../service/FrpcProcessService";
+import GitHubService from "../service/GitHubService";
+import LogService from "../service/LogService";
+import ProxyService from "../service/ProxyService";
+import ServerService from "../service/ServerService";
+import SystemService from "../service/SystemService";
+import VersionService from "../service/VersionService";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -39,7 +39,6 @@ process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
 const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
-
 
 class FrpcDesktopApp {
   private _win: BrowserWindow | null = null;
@@ -70,7 +69,7 @@ class FrpcDesktopApp {
     }
 
     this._win = new BrowserWindow({
-      title: app.getName(),
+      title: `${app.getName()} v${app.getVersion()} (${process.arch})`,
       icon: join(process.env.VITE_PUBLIC, "logo/only/16x16.png"),
       width: 900,
       height: 600,
@@ -151,7 +150,6 @@ class FrpcDesktopApp {
           frpcProcessService.stopFrpcProcess().finally(() => {
             app.quit();
           });
-
         }
       }
     ];
@@ -287,10 +285,7 @@ class FrpcDesktopApp {
       this._quitting = true;
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");
-      frpcProcessService.stopFrpcProcess().finally(() => {
-      });
-
-
+      frpcProcessService.stopFrpcProcess().finally(() => {});
     });
 
     Logger.info(
@@ -362,10 +357,7 @@ class FrpcDesktopApp {
         BeanFactory.getBean("proxyRepository")
       )
     );
-    BeanFactory.setBean(
-      "systemController",
-      new SystemController()
-    );
+    BeanFactory.setBean("systemController", new SystemController());
     Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
   }
 
