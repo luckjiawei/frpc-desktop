@@ -1,18 +1,17 @@
+import { BrowserWindow } from "electron";
+import fs from "fs";
+import path from "path";
+import { BusinessError, ResponseCode } from "../core/BusinessError";
+import GlobalConstant from "../core/GlobalConstant";
+import frpReleasesJson from "../json/frp-releases.json";
+import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/VersionRepository";
+import FileUtils from "../utils/FileUtils";
+import PathUtils from "../utils/PathUtils";
+import SecureUtils from "../utils/SecureUtils";
 import BaseService from "./BaseService";
 import GitHubService from "./GitHubService";
-import frpReleasesJson from "../json/frp-releases.json";
-import { download } from "electron-dl";
-import { BrowserWindow } from "electron";
-import GlobalConstant from "../core/GlobalConstant";
-import path from "path";
-import fs from "fs";
-import SecureUtils from "../utils/SecureUtils";
-import PathUtils from "../utils/PathUtils";
-import FileUtils from "../utils/FileUtils";
-import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import SystemService from "./SystemService";
-import { BusinessError, ResponseCode } from "../core/BusinessError";
 
 class VersionService extends BaseService<FrpcVersion> {
   private readonly _versionDao: VersionRepository;
@@ -34,8 +33,8 @@ class VersionService extends BaseService<FrpcVersion> {
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
 
-  downloadFrpVersion(githubReleaseId: number, onProgress: Function) {
-    return new Promise((resolve, reject) => {
+  async downloadFrpVersion(githubReleaseId: number, onProgress: Function) {
+    return new Promise(async (resolve, reject) => {
       const version = this._versions.find(
         f => f.githubReleaseId === githubReleaseId
       );
@@ -56,6 +55,10 @@ class VersionService extends BaseService<FrpcVersion> {
       if (fs.existsSync(versionFilePath)) {
         fs.rmSync(versionFilePath, { recursive: true, force: true });
       }
+      
+      // 动态导入 electron-dl (ESM 模块)
+      const { download } = await import("electron-dl");
+      
       // const targetPath = path.resolve();
       download(BrowserWindow.getFocusedWindow(), url, {
         filename: `${version.assetName}`,
@@ -200,7 +203,10 @@ class VersionService extends BaseService<FrpcVersion> {
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
       const frpTempPath = path.join(versionFilePath, fileName);
-      fs.renameSync(path.join(frpTempPath, "frpc.exe"), path.join(versionFilePath, PathUtils.getWinFrpFilename()));
+      fs.renameSync(
+        path.join(frpTempPath, "frpc.exe"),
+        path.join(versionFilePath, PathUtils.getWinFrpFilename())
+      );
       fs.rmSync(frpTempPath, { recursive: true, force: true });
     } else if (
       ext === GlobalConstant.GZ_EXT &&
