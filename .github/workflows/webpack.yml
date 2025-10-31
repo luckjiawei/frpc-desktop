@@ -2,9 +2,9 @@ name: NodeJS with Webpack
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -12,18 +12,18 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.8.0]
+        node-version: [18.20.2]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Build
-      run: |
-        npm i -g pnpm
-        pnpm install
-        pnpm build:electron
+      - name: Build
+        run: |
+          npm i -g pnpm
+          pnpm install
+          pnpm build:electron
