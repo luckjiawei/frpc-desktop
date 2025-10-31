@@ -120,7 +120,6 @@ onMounted(() => {
       //     return { context: line, level: LogLevel.INFO };
       //   }
       // });
-
       // logRecords.value = logRecords.value.reverse();
     }
 
@@ -182,13 +181,20 @@ onUnmounted(() => {
                   t("logger.autoRefreshTime", { time: autoRefreshTime })
                 }}</span
               >
-              <el-switch
-                size="small"
-                v-model="autoRefresh"
-                @change="handleAutoRefreshChange"
-                class="text-gray-300"
-                >{{ t("logger.autoRefresh") }}</el-switch
+              <el-popover
+                class="box-item"
+                title="Title"
+                content="Top Left prompts info"
+                placement="top-start"
               >
+                <el-switch
+                  size="small"
+                  v-model="autoRefresh"
+                  @change="handleAutoRefreshChange"
+                  class="text-gray-300"
+                  >{{ t("logger.autoRefresh") }}</el-switch
+                >
+              </el-popover>
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
                 icon="refresh-rounded"
