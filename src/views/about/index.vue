@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import gitcodeIcon from "@/assets/gitcode.svg";
+import gitcodeIcon from "@/assets/GitCode.svg";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { send } from "@/utils/ipcUtils";
