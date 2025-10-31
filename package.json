@@ -83,7 +83,7 @@
     "tar": "^7.5.2",
     "tree-kill": "^1.2.2",
     "unused-filename": "^4.0.1",
-    "vue": "^3.5.21",
+    "vue": "^3.5.22",
     "vue-i18n": "^11.1.2",
     "vue-router": "^4.5.1",
     "vue-types": "^5.1.1"
