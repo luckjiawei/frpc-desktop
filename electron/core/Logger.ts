@@ -27,7 +27,7 @@ class Logger {
   }
 
   public static error(module: string, error: Error) {
-    log.error(`[${module}] ${error}`);
+    log.error(`[${module}] ${error} ${error.message}`);
   }
 }
 

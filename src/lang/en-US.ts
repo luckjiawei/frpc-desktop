@@ -53,6 +53,12 @@ export default {
         message:
           "Please go to the settings page and select the version before starting",
         confirm: "Go to Settings"
+      },
+      webServerPortInUse: {
+        title: "Prompt",
+        message:
+          "The web server port is already in use, please go to the settings page and change the port",
+        confirm: "Go to Settings"
       }
     }
   },
@@ -266,7 +272,7 @@ export default {
     },
     title: {
       versionSelection: "Version Selection",
-      webInterface: "Web Interface",
+      webInterface: "Web Server",
       transportConfiguration: "Transport Configuration",
       logConfiguration: "Log Configuration",
       systemConfiguration: "System Configuration",

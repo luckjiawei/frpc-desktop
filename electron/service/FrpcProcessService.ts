@@ -1,4 +1,4 @@
-import { exec, spawn, execSync } from "child_process";
+import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
@@ -6,6 +6,7 @@ import { BusinessError, ResponseCode } from "../core/BusinessError";
 import GlobalConstant from "../core/GlobalConstant";
 import Logger from "../core/Logger";
 import VersionRepository from "../repository/VersionRepository";
+import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import ServerService from "./ServerService";
@@ -82,6 +83,19 @@ class FrpcProcessService {
     if (!version) {
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
+
+    if (config.webServer.port) {
+      // 检查端口是否被占用
+      const isPortInUse = await NetUtils.checkPortInUse(config.webServer.port, "127.0.0.1");
+      if (isPortInUse) {
+        Logger.warn(
+          `FrpcProcessService.startFrpcProcess`,
+          `Web Server Port ${config.webServer.port} is already in use`
+        );
+        throw new BusinessError(ResponseCode.WEB_SERVER_PORT_IN_USE);
+      }
+    }
+
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
     let command = "";

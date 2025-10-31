@@ -51,6 +51,11 @@ export default {
         title: "提示",
         message: "请先前往设置页面，选择版本后再启动",
         confirm: "去设置"
+      },
+      webServerPortInUse: {
+        title: "提示",
+        message: "Web界面端口已被占用，请前往设置页面更换 Web界面端口后再启动",
+        confirm: "去设置"
       }
     }
   },

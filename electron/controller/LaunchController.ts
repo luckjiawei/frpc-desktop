@@ -1,7 +1,7 @@
-import BaseController from "./BaseController";
+import Logger from "../core/Logger";
 import FrpcProcessService from "../service/FrpcProcessService";
 import ResponseUtils from "../utils/ResponseUtils";
-import Logger from "../core/Logger";
+import BaseController from "./BaseController";
 
 class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;

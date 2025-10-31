@@ -61,6 +61,7 @@ onMounted(() => {
       loading.value = false;
     },
     (bizCode: string, message: string) => {
+      console.log("bizCode", bizCode);
       if (bizCode === "B1001") {
         ElMessageBox.alert(
           t("home.alert.configRequired.message"),
@@ -79,6 +80,18 @@ onMounted(() => {
           t("home.alert.versionNotFound.title"),
           {
             confirmButtonText: t("home.alert.versionNotFound.confirm")
+          }
+        ).then(() => {
+          router.replace({
+            name: "Config"
+          });
+        });
+      } else if (bizCode === "B1006") {
+        ElMessageBox.alert(
+          t("home.alert.webServerPortInUse.message"),
+          t("home.alert.webServerPortInUse.title"),
+          {
+            confirmButtonText: t("home.alert.webServerPortInUse.confirm")
           }
         ).then(() => {
           router.replace({
