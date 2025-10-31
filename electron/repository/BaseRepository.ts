@@ -57,6 +57,21 @@ class BaseRepository<T> {
     });
   }
 
+  insertMany(ts: Array<T>): Promise<Array<T>> {
+    return new Promise<Array<T>>((resolve, reject) => {
+      ts.forEach(t => {
+        t["_id"] = this.genId();
+      });
+      this.db.insert(ts, (err, documents) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(documents);
+        }
+      });
+    });
+  }
+
   updateById(id: string, t: T): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.db.update(

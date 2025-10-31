@@ -1,4 +1,4 @@
-import {dialog} from "electron";
+import { dialog } from "electron";
 import fs from "fs";
 import moment from "moment";
 import Logger from "../core/Logger";
@@ -131,43 +131,43 @@ class ConfigController extends BaseController {
   }
 
   importTomlConfig(req: ControllerParam) {
-      // const win: BrowserWindow = BeanFactory.getBean("win");
-      // dialog
-      //   .showOpenDialog(win, {
-      //     properties: ["openFile"],
-      //     filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
-      //   })
-      //   .then(result => {
-      //     if (result.canceled) {
-      //       req.event.reply(
-      //         req.channel,
-      //         ResponseUtils.success({
-      //           canceled: true,
-      //           path: ""
-      //         })
-      //       );
-      //     } else {
-      //       req.event.reply(
-      //         req.channel,
-      //         ResponseUtils.success({
-      //           canceled: false,
-      //           path: ""
-      //         })
-      //       );
-      //     }
-      //   });
+    // const win: BrowserWindow = BeanFactory.getBean("win");
+    // dialog
+    //   .showOpenDialog(win, {
+    //     properties: ["openFile"],
+    //     filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
+    //   })
+    //   .then(result => {
+    //     if (result.canceled) {
+    //       req.event.reply(
+    //         req.channel,
+    //         ResponseUtils.success({
+    //           canceled: true,
+    //           path: ""
+    //         })
+    //       );
+    //     } else {
+    //       req.event.reply(
+    //         req.channel,
+    //         ResponseUtils.success({
+    //           canceled: false,
+    //           path: ""
+    //         })
+    //       );
+    //     }
+    //   });
     // if (result.canceled) {
     // } else {
     // }
-      this._serverService
-          .importTomlConfig()
-          .then(() => {
-              req.event.reply(req.channel, ResponseUtils.success());
-          })
-          .catch((err: Error) => {
-              Logger.error("ConfigController.importTomlConfig", err);
-              req.event.reply(req.channel, ResponseUtils.fail(err));
-          });
+    this._serverService
+      .importTomlConfig()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.importTomlConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
   }
 
   getLanguage(req: ControllerParam) {
