@@ -85,7 +85,7 @@
     "unused-filename": "^4.0.1",
     "vue": "^3.5.22",
     "vue-i18n": "^11.1.2",
-    "vue-router": "^4.5.1",
-    "vue-types": "^5.1.1"
+    "vue-router": "^4.6.3",
+    "vue-types": "^6.0.0"
   }
 }
