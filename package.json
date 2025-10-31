@@ -80,7 +80,7 @@
     "node-cmd": "^5.0.0",
     "pinia": "^3.0.3",
     "smol-toml": "^1.4.2",
-    "tar": "^6.2.1",
+    "tar": "^7.5.2",
     "tree-kill": "^1.2.2",
     "unused-filename": "^4.0.1",
     "vue": "^3.5.21",
