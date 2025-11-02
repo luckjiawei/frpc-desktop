@@ -17,7 +17,7 @@
     "vite"
   ],
   "engines": {
-    "node": ">= 18"
+    "node": ">= 22.12.0"
   },
   "debug": {
     "env": {
@@ -44,15 +44,16 @@
     "@iconify/vue": "^5.0.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/nedb": "^1.8.16",
+    "@types/node": "^24.9.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^7.1.0",
     "autoprefixer": "^10.4.21",
-    "cssnano": "^6.0.1",
-    "electron": "^29.4.6",
-    "electron-builder": "^24.13.3",
-    "electron-builder-squirrel-windows": "^24.13.3",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
+    "electron-builder-squirrel-windows": "^26.0.12",
     "eslint": "^7.28.0",
     "eslint-plugin-prettier": "^4.2.5",
+    "fs-extra": "^11.3.2",
     "postcss": "^8.4.31",
     "postcss-import": "^16.1.1",
     "prettier": "^3.6.2",
@@ -84,7 +85,6 @@
     "tree-kill": "^1.2.2",
     "vue": "^3.5.22",
     "vue-i18n": "^11.1.2",
-    "vue-router": "^4.6.3",
-    "vue-types": "^6.0.0"
+    "vue-router": "^4.6.3"
   }
 }

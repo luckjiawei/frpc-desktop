@@ -6,7 +6,6 @@ import renderer from "vite-plugin-electron-renderer";
 import { notBundle } from "vite-plugin-electron/plugin";
 import { resolve } from "path";
 
-
 import pkg from "./package.json";
 
 /** 路径查找 */
@@ -28,7 +27,7 @@ export default defineConfig(({ command }) => {
         scss: {
           api: "modern-compiler"
         }
-      }
+      } as any
     },
     plugins: [
       vue(),

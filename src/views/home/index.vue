@@ -124,7 +124,7 @@ onUnmounted(() => {
       >
         <div class="flex">
           <div
-            class="w-52 h-52 border-[#5A3DAA] text-[#5A3DAA] border-4 rounded-full flex justify-center items-center text-[100px] relative"
+            class="w-52 h-52 !border-4 border-[#5A3DAA] text-[#5A3DAA] rounded-full flex justify-center items-center text-[100px] relative"
           >
             <transition name="fade">
               <div

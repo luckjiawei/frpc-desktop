@@ -4,7 +4,7 @@ import BeanFactory from "../core/BeanFactory";
 
 import fs from "fs";
 import path from "path";
-import tar from "tar";
+import * as tar from "tar";
 import zlib from "zlib";
 import GlobalConstant from "../core/GlobalConstant";
 import Logger from "../core/Logger";

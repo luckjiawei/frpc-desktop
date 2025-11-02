@@ -110,7 +110,7 @@ class FrpcDesktopApp {
     Menu.setApplicationMenu(null);
 
     const that = this;
-    this._win.on("minimize", function (event) {
+    (this._win as any).on("minimize", function (event: any) {
       event.preventDefault();
       that._win.hide();
     });
