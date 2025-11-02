@@ -16,10 +16,7 @@ class BeanFactory {
 
   public static setBean<T>(name: string, bean: T): void {
     this._beans.set(name, bean);
-    Logger.info(
-      `${this.name}.${arguments[0]}`,
-      `register bean ${name}`
-    );
+    Logger.info(`${this.name}.${arguments[0]}`, `register bean ${name}`);
     // Logger.info(`register bean ${name} ${bean}`);
   }
 
@@ -39,9 +36,5 @@ class BeanFactory {
     return className.charAt(0).toLowerCase() + className.slice(1);
   }
 }
-
-
-
-
 
 export default BeanFactory;

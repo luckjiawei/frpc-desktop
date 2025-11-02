@@ -130,7 +130,7 @@ class FrpcDesktopApp {
 
   initializeTray() {
     const that = this;
-    let menu: Array<MenuItemConstructorOptions | MenuItem> = [
+    const menu: Array<MenuItemConstructorOptions | MenuItem> = [
       {
         label: "显示主窗口",
         click: function () {

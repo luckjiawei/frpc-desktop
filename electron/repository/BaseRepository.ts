@@ -19,7 +19,6 @@ import IdUtils from "../utils/IdUtils";
 //   findById(id: string): Promise<T>;
 // }
 
-
 class BaseRepository<T> {
   protected readonly db: Datastore;
 

@@ -55,10 +55,10 @@ class VersionService extends BaseService<FrpcVersion> {
       if (fs.existsSync(versionFilePath)) {
         fs.rmSync(versionFilePath, { recursive: true, force: true });
       }
-      
+
       // 动态导入 electron-dl (ESM 模块)
       const { download } = await import("electron-dl");
-      
+
       // const targetPath = path.resolve();
       download(BrowserWindow.getFocusedWindow(), url, {
         filename: `${version.assetName}`,
@@ -83,9 +83,8 @@ class VersionService extends BaseService<FrpcVersion> {
     if (!githubReleaseId) {
       return;
     }
-    const version = await this._versionDao.findByGithubReleaseId(
-      githubReleaseId
-    );
+    const version =
+      await this._versionDao.findByGithubReleaseId(githubReleaseId);
     if (this.frpcVersionExists(version)) {
       fs.rmSync(version.localPath, { recursive: true, force: true });
       await this._versionDao.deleteById(version._id);

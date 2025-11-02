@@ -38,7 +38,6 @@ class PathUtils {
     return SecureUtils.calculateMD5("frpc") + ".exe";
   }
 
-
   public static getAppData() {
     return app.getPath("userData");
   }
@@ -70,7 +69,7 @@ class PathUtils {
   }
 
   public static getAppLogFilePath() {
-      return path.join(app.getPath("logs"), "main.log");
+    return path.join(app.getPath("logs"), "main.log");
   }
 }
 

@@ -5,7 +5,6 @@ class GitHubService {
 
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
-
       const request = net.request({
         method: "get",
         url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`

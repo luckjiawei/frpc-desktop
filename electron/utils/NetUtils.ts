@@ -7,17 +7,20 @@ class NetUtils {
    * @param host 主机地址，默认为 localhost
    * @returns Promise<boolean> true表示端口被占用，false表示端口可用
    */
-  static async checkPortInUse(port: number, host: string = "localhost"): Promise<boolean> {
-    return new Promise((resolve) => {
+  static async checkPortInUse(
+    port: number,
+    host: string = "localhost"
+  ): Promise<boolean> {
+    return new Promise(resolve => {
       const server = net.createServer();
-      
+
       server.listen(port, host, () => {
         server.once("close", () => {
           resolve(false); // 端口可用
         });
         server.close();
       });
-      
+
       server.on("error", (err: any) => {
         if (err.code === "EADDRINUSE") {
           resolve(true); // 端口被占用

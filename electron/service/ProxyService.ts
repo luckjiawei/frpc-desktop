@@ -55,8 +55,8 @@ class ProxyService {
                 const cols = m.split(" ").filter(f => f != "");
                 const local = cols[1];
                 const s = local.lastIndexOf(":");
-                let localIP = local.slice(0, s);
-                let localPort = local.slice(s - local.length + 1);
+                const localIP = local.slice(0, s);
+                const localPort = local.slice(s - local.length + 1);
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,
@@ -78,8 +78,8 @@ class ProxyService {
                 const cols = m.split(" ").filter(f => f != "");
                 const local = cols[3];
                 const s = local.lastIndexOf(".");
-                let localIP = local.slice(0, s);
-                let localPort = local.slice(s - local.length + 1);
+                const localIP = local.slice(0, s);
+                const localPort = local.slice(s - local.length + 1);
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,
@@ -101,8 +101,8 @@ class ProxyService {
                 const cols = m.split(" ").filter(f => f != "");
                 const local = cols[3];
                 const s = local.lastIndexOf(":");
-                let localIP = local.slice(0, s);
-                let localPort = local.slice(s - local.length + 1);
+                const localIP = local.slice(0, s);
+                const localPort = local.slice(s - local.length + 1);
                 const singe: LocalPort = {
                   protocol: cols[0],
                   ip: localIP,

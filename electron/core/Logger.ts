@@ -7,11 +7,11 @@ class Logger {
   }
 
   public static setLevel(level: string) {
-      if (!level) {
-          return
-      }
-      log.transports.file.level = level as LevelOption;
-      log.transports.console.level = level as LevelOption;
+    if (!level) {
+      return;
+    }
+    log.transports.file.level = level as LevelOption;
+    log.transports.console.level = level as LevelOption;
   }
 
   public static info(module: string, msg: string) {

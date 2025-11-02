@@ -19,4 +19,4 @@ class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
   }
 }
 
-export default ServerRepository
+export default ServerRepository;

@@ -1,4 +1,3 @@
-
 enum ResponseCode {
   SUCCESS = "A1000;successful.",
   INTERNAL_ERROR = "B1000;internal error.",

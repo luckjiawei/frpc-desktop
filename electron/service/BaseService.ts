@@ -1,6 +1,5 @@
 import BaseRepository from "../repository/BaseRepository";
 
-
 interface BaseServiceInterface<T> {
   // dao: BaseRepository<T>;
 }
