@@ -43,6 +43,25 @@ class FrpcProcessService {
               }
             }
           }
+        } else {
+          const processName = PathUtils.getWinFrpFilename();
+          const stdout = execSync(
+            `tasklist /FI "IMAGENAME eq ${processName}" /FO CSV`
+          ).toString();
+          const lines = stdout.split("\n").filter(Boolean);
+
+          if (lines.length > 1) {
+            const info = lines[1]
+              .split('","')
+              .map(s => s.replace(/(^"|"$)/g, ""));
+            const pid = parseInt(info[1], 10);
+            if (!Number.isNaN(pid)) {
+              this._frpcProcess = { pid };
+              if (this._frpcLastStartTime === -1) {
+                this._frpcLastStartTime = Date.now();
+              }
+            }
+          }
         }
       } catch (e) {
         // 忽略未找到进程的错误
