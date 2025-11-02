@@ -51,7 +51,7 @@
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12",
     "electron-builder-squirrel-windows": "^26.0.12",
-    "eslint": "^7.28.0",
+    "eslint": "^9.39.0",
     "eslint-plugin-prettier": "^4.2.5",
     "fs-extra": "^11.3.2",
     "postcss": "^8.4.31",
