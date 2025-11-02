@@ -651,7 +651,7 @@ onUnmounted(() => {
         <IconifyIconOffline icon="add" />
       </el-button>
     </breadcrumb>
-    <div class="app-container-breadcrumb" v-loading="loading.list > 0">
+    <div v-loading="loading.list > 0" class="app-container-breadcrumb">
       <template v-if="proxys && proxys.length > 0">
         <el-row :gutter="15">
           <el-col
@@ -688,14 +688,14 @@ onUnmounted(() => {
                     {{ t("proxy.visitors") }}
                   </el-tag>
                   <el-tag
-                    size="small"
-                    class="ml-2"
                     v-if="
                       (proxy.type === 'stcp' ||
                         proxy.type === 'xtcp' ||
                         proxy.type === 'sudp') &&
                       proxy.visitorsModel === 'visitorsProvider'
                     "
+                    size="small"
+                    class="ml-2"
                     >{{ t("proxy.visitorsProvider") }}
                   </el-tag>
                   <el-tag
@@ -732,13 +732,13 @@ onUnmounted(() => {
                 </div>
                 -->
                   <div
-                    class="text-[12px]"
                     v-if="
                       (proxy.type !== 'stcp' &&
                         proxy.type !== 'xtcp' &&
                         proxy.type !== 'sudp') ||
                       proxy.visitorsModel !== 'visitors'
                     "
+                    class="text-[12px]"
                   >
                     <span>{{ t("proxy.inner") }}：</span>
                     <span class="font-bold text-primary">
@@ -747,8 +747,8 @@ onUnmounted(() => {
                   </div>
 
                   <div
-                    class="text-[12px] cursor-pointer"
                     v-if="proxy.type === 'tcp' || proxy.type === 'udp'"
+                    class="text-[12px] cursor-pointer"
                   >
                     <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
@@ -763,13 +763,13 @@ onUnmounted(() => {
                     </span>
                   </div>
                   <div
-                    class="text-[12px]"
                     v-if="
                       (proxy.type === 'http' || proxy.type === 'https') &&
                       proxy.customDomains &&
                       proxy.customDomains.length > 0 &&
                       proxy.customDomains[0]
                     "
+                    class="text-[12px]"
                   >
                     <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
@@ -786,13 +786,13 @@ onUnmounted(() => {
                     >
                   </div>
                   <div
-                    class="text-[12px]"
                     v-if="
                       (proxy.type === 'stcp' ||
                         proxy.type === 'xtcp' ||
                         proxy.type === 'sudp') &&
                       proxy.visitorsModel === 'visitors'
                     "
+                    class="text-[12px]"
                   >
                     <span>{{ t("proxy.visitorsName") }}：</span>
                     <span class="font-bold text-primary">{{
@@ -800,13 +800,13 @@ onUnmounted(() => {
                     }}</span>
                   </div>
                   <div
-                    class="text-[12px]"
                     v-if="
                       (proxy.type === 'stcp' ||
                         proxy.type === 'xtcp' ||
                         proxy.type === 'sudp') &&
                       proxy.visitorsModel === 'visitors'
                     "
+                    class="text-[12px]"
                   >
                     <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
@@ -893,8 +893,8 @@ onUnmounted(() => {
     </div>
 
     <el-drawer
-      :title="edit.title"
       v-model="edit.visible"
+      :title="edit.title"
       direction="rtl"
       size="60%"
       @close="editForm = _.cloneDeep(defaultForm)"
@@ -907,11 +907,11 @@ onUnmounted(() => {
       <!--      @close="editForm = defaultForm"-->
       <!--    >-->
       <el-form
+        ref="editFormRef"
         v-loading="loading.form"
         label-position="top"
         :model="editForm"
         :rules="editFormRules"
-        ref="editFormRef"
       >
         <el-row :gutter="10">
           <el-col :span="24">
@@ -984,8 +984,8 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
-                  type="password"
                   v-model="editForm.secretKey"
+                  type="password"
                   :placeholder="t('proxy.form.formItem.secretKey.placeholder')"
                   :show-password="true"
                 />
@@ -1043,17 +1043,17 @@ onUnmounted(() => {
                 <div class="flex gap-2 w-full">
                   <el-input-number
                     v-if="isHttp || isHttps"
+                    v-model="editForm.localPort"
                     placeholder="8080"
                     class="w-full"
                     :min="0"
                     :max="65535"
-                    v-model="editForm.localPort"
                     controls-position="right"
                   />
                   <el-input
                     v-else
-                    placeholder="8080"
                     v-model="editForm.localPort"
+                    placeholder="8080"
                   />
                   <el-button
                     plain
@@ -1084,9 +1084,9 @@ onUnmounted(() => {
                 <!--                  controls-position="right"-->
                 <!--                />-->
                 <el-input
+                  v-model="editForm.remotePort"
                   class="w-full"
                   placeholder="8080"
-                  v-model="editForm.remotePort"
                 />
               </el-form-item>
             </el-col>
@@ -1131,9 +1131,9 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
+                  v-model="editForm.subdomain"
                   class="w-full"
                   placeholder="subdomain"
-                  v-model="editForm.subdomain"
                 />
               </el-form-item>
             </el-col>
@@ -1188,9 +1188,9 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
+                  v-model="editForm.customDomains[di]"
                   class="domain-input"
                   placeholder="domain.com"
-                  v-model="editForm.customDomains[di]"
                 />
                 <el-button
                   class="ml-[10px]"
@@ -1203,8 +1203,8 @@ onUnmounted(() => {
                 <el-button
                   type="danger"
                   plain
-                  @click="handleDeleteDomain(di)"
                   :disabled="editForm.customDomains.length === 1"
+                  @click="handleDeleteDomain(di)"
                 >
                   <IconifyIconOffline icon="delete-rounded" />
                 </el-button>
@@ -1260,9 +1260,9 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
+                  v-model="editForm.locations[di]"
                   class="domain-input"
                   placeholder="/api"
-                  v-model="editForm.locations[di]"
                 />
                 <el-button
                   class="ml-[10px]"
@@ -1275,8 +1275,8 @@ onUnmounted(() => {
                 <el-button
                   type="danger"
                   plain
-                  @click="handleDeleteLocation(di)"
                   :disabled="editForm.locations.length === 1"
+                  @click="handleDeleteLocation(di)"
                 >
                   <IconifyIconOffline icon="delete-rounded" />
                 </el-button>
@@ -1297,42 +1297,42 @@ onUnmounted(() => {
                 label-position="left"
               >
                 <el-switch
+                  v-model="editForm.basicAuth"
                   :active-text="t('common.yes')"
                   inline-prompt
                   :inactive-text="t('common.no')"
-                  v-model="editForm.basicAuth"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="editForm.basicAuth">
+            <el-col v-if="editForm.basicAuth" :span="12">
               <el-form-item
                 :label="t('proxy.form.formItem.httpUser.label')"
                 prop="httpUser"
               >
                 <el-input
+                  v-model="editForm.httpUser"
                   class="w-full"
                   placeholder="httpUser"
-                  v-model="editForm.httpUser"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="editForm.basicAuth">
+            <el-col v-if="editForm.basicAuth" :span="12">
               <el-form-item
                 :label="t('proxy.form.formItem.httpPassword.label')"
                 prop="httpPassword"
               >
                 <el-input
+                  v-model="editForm.httpPassword"
                   type="password"
                   class="w-full"
                   placeholder="httpPassword"
-                  v-model="editForm.httpPassword"
                   :show-password="true"
                 />
               </el-form-item>
             </el-col>
           </template>
           <template v-if="hasPlugin">
-            <el-col :span="24" v-if="hasPlugin">
+            <el-col v-if="hasPlugin" :span="24">
               <div class="flex justify-between h3">
                 <div>{{ t("proxy.form.title.pluginConfig") }}</div>
               </div>
@@ -1351,15 +1351,15 @@ onUnmounted(() => {
                   ]"
                 >
                   <el-switch
+                    v-model="editForm.https2http"
                     :active-text="t('common.yes')"
                     inline-prompt
                     :inactive-text="t('common.no')"
-                    v-model="editForm.https2http"
                   />
                 </el-form-item>
               </el-col>
 
-              <el-col :span="24" v-if="editForm.https2http">
+              <el-col v-if="editForm.https2http" :span="24">
                 <el-form-item
                   :label="t('proxy.form.formItem.https2httpCaFile.label')"
                   prop="https2httpCaFile"
@@ -1375,8 +1375,8 @@ onUnmounted(() => {
                   ]"
                 >
                   <el-input
-                    class="button-input"
                     v-model="editForm.https2httpCaFile"
+                    class="button-input"
                     :placeholder="
                       t('proxy.form.formItem.https2httpCaFile.placeholder')
                     "
@@ -1398,7 +1398,7 @@ onUnmounted(() => {
                   </el-button>
                 </el-form-item>
               </el-col>
-              <el-col :span="24" v-if="editForm.https2http">
+              <el-col v-if="editForm.https2http" :span="24">
                 <el-form-item
                   :label="t('proxy.form.formItem.https2httpKeyFile.label')"
                   prop="https2httpKeyFile"
@@ -1414,8 +1414,8 @@ onUnmounted(() => {
                   ]"
                 >
                   <el-input
-                    class="cursor-pointer button-input"
                     v-model="editForm.https2httpKeyFile"
+                    class="cursor-pointer button-input"
                     :placeholder="
                       t('proxy.form.formItem.https2httpKeyFile.placeholder')
                     "
@@ -1446,8 +1446,8 @@ onUnmounted(() => {
                 prop="serverName"
               >
                 <el-input
-                  type="text"
                   v-model="editForm.serverName"
+                  type="text"
                   :placeholder="t('proxy.form.formItem.serverName.placeholder')"
                 />
               </el-form-item>
@@ -1487,8 +1487,8 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
-                  type="text"
                   v-model="editForm.bindAddr"
+                  type="text"
                   placeholder="127.0.0.1"
                 />
               </el-form-item>
@@ -1528,11 +1528,11 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input-number
+                  v-model="editForm.bindPort"
                   class="w-full"
                   :min="-1"
                   :step="1"
                   controls-position="right"
-                  v-model="editForm.bindPort"
                   placeholder="8080"
                 />
               </el-form-item>
@@ -1577,8 +1577,8 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input
-                  type="text"
                   v-model="editForm.fallbackTo"
+                  type="text"
                   :placeholder="t('proxy.form.formItem.fallbackTo.placeholder')"
                 />
               </el-form-item>
@@ -1620,11 +1620,11 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-input-number
+                  v-model="editForm.fallbackTimeoutMs"
                   class="w-full"
                   :min="0"
                   :step="1"
                   controls-position="right"
-                  v-model="editForm.fallbackTimeoutMs"
                 />
               </el-form-item>
             </el-col>
@@ -1673,10 +1673,10 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-switch
+                  v-model="editForm.keepTunnelOpen"
                   :active-text="t('common.yes')"
                   inline-prompt
                   :inactive-text="t('common.no')"
-                  v-model="editForm.keepTunnelOpen"
                 />
               </el-form-item>
             </el-col>
@@ -1727,10 +1727,10 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-switch
+                  v-model="editForm.transport.useCompression"
                   :active-text="t('common.yes')"
                   inline-prompt
                   :inactive-text="t('common.no')"
-                  v-model="editForm.transport.useCompression"
                 />
               </el-form-item>
             </el-col>
@@ -1772,16 +1772,18 @@ onUnmounted(() => {
                   </div>
                 </template>
                 <el-switch
+                  v-model="editForm.transport.useEncryption"
                   :active-text="t('common.yes')"
                   inline-prompt
                   :inactive-text="t('common.no')"
-                  v-model="editForm.transport.useEncryption"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item
-                :label="t('proxy.form.formItem.transportProxyProtocolVersion.label')"
+                :label="
+                  t('proxy.form.formItem.transportProxyProtocolVersion.label')
+                "
                 prop="transport.proxyProtocolVersion"
                 label-position="left"
               >
@@ -1795,7 +1797,11 @@ onUnmounted(() => {
                             <span class="font-black text-[#5A3DAA]"
                               >transport.proxyProtocolVersion</span
                             >
-                            {{ t("proxy.form.formItem.transportProxyProtocolVersion.description") }}
+                            {{
+                              t(
+                                "proxy.form.formItem.transportProxyProtocolVersion.description"
+                              )
+                            }}
                           </template>
                           <template #reference>
                             <IconifyIconOffline
@@ -1806,14 +1812,25 @@ onUnmounted(() => {
                           </template>
                         </el-popover>
                       </div>
-                      {{ t("proxy.form.formItem.transportProxyProtocolVersion.label") }}
+                      {{
+                        t(
+                          "proxy.form.formItem.transportProxyProtocolVersion.label"
+                        )
+                      }}
                     </div>
                   </div>
                 </template>
                 <el-radio-group
                   v-model="editForm.transport.proxyProtocolVersion"
                 >
-                  <el-radio :label="t('proxy.form.formItem.transportProxyProtocolVersion.empty')" value="" />
+                  <el-radio
+                    :label="
+                      t(
+                        'proxy.form.formItem.transportProxyProtocolVersion.empty'
+                      )
+                    "
+                    value=""
+                  />
                   <el-radio label="v1" value="v1" />
                   <el-radio label="v2" value="v2" />
                 </el-radio-group>
@@ -1853,9 +1870,9 @@ onUnmounted(() => {
       top="5%"
     >
       <el-table
+        v-loading="loading.localPorts"
         :data="localPorts"
         stripe
-        v-loading="loading.localPorts"
         border
         height="400"
       >

@@ -173,7 +173,7 @@ onUnmounted(() => {
           name="app_log"
           class="log-container"
         >
-          <log-view :logRecords="logRecords" :loading="logLoading">
+          <log-view :log-records="logRecords" :loading="logLoading">
             <template #toolbar>
               <span
                 v-if="autoRefresh"
@@ -183,17 +183,17 @@ onUnmounted(() => {
                 }}</span
               >
               <el-switch
-                size="small"
                 v-model="autoRefresh"
-                @change="handleAutoRefreshChange"
+                size="small"
                 class="text-gray-300"
+                @change="handleAutoRefreshChange"
                 >{{ t("logger.autoRefresh") }}</el-switch
               >
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
                 icon="refresh-rounded"
-                @click="refreshLog"
                 size="small"
+                @click="refreshLog"
               />
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
@@ -208,7 +208,7 @@ onUnmounted(() => {
           name="frpc_log"
           class="log-container"
         >
-          <log-view :logRecords="logRecords" :loading="logLoading">
+          <log-view :log-records="logRecords" :loading="logLoading">
             <template #toolbar>
               <span
                 v-if="autoRefresh"
@@ -218,17 +218,17 @@ onUnmounted(() => {
                 }}</span
               >
               <el-switch
-                size="small"
                 v-model="autoRefresh"
-                @change="handleAutoRefreshChange"
+                size="small"
                 class="text-gray-300"
+                @change="handleAutoRefreshChange"
                 >{{ t("logger.autoRefresh") }}</el-switch
               >
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
                 icon="refresh-rounded"
-                @click="refreshLog"
                 size="small"
+                @click="refreshLog"
               />
               <IconifyIconOffline
                 class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"

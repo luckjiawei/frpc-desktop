@@ -5,7 +5,6 @@ export const send = (router: IpcRouter, params?: any) => {
   ipcRenderer.send(router.path, params);
 };
 
-
 // export const invoke = (router: IpcRouter, params?: any) => {
 //   return new Promise((resolve, reject) => {
 //     ipcRenderer
@@ -66,7 +65,7 @@ export const removeRouterListeners = (router: IpcRouter) => {
 
 export const removeRouterListeners2 = (listen: Listener) => {
   ipcRenderer.removeAllListeners(`${listen.channel}`);
-}
+};
 // export const removeAllListeners = (listen: Listener) => {
 //   ipcRenderer.removeAllListeners(`${listen.channel}:hook`);
 // };

@@ -190,7 +190,7 @@ onUnmounted(() => {
         </el-button>
       </div>
     </breadcrumb>
-    <div class="pr-2 app-container-breadcrumb" v-loading="loading > 0">
+    <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
       <div class="w-full">
         <template v-if="versions && versions.length > 0">
           <el-row :gutter="15">
@@ -254,8 +254,8 @@ onUnmounted(() => {
 
                   <template v-else>
                     <div
-                      class="w-32"
                       v-if="downloading.has(version.githubReleaseId)"
+                      class="w-32"
                     >
                       <el-progress
                         :percentage="downloading.get(version.githubReleaseId)"
@@ -274,7 +274,11 @@ onUnmounted(() => {
                       {{ t("download.version.download") }}
                     </el-button>
 
-                    <el-button type="text" size="small" @click="handleCopyDownloadLink(version)">
+                    <el-button
+                      type="text"
+                      size="small"
+                      @click="handleCopyDownloadLink(version)"
+                    >
                       <template #icon>
                         <IconifyIconOffline icon="link" /> </template
                       >{{ t("download.version.downloadLink") }}

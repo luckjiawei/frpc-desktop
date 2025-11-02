@@ -6,7 +6,7 @@ import { defineComponent } from "vue";
 import { useFrpcDesktopStore } from "./store/frpcDesktop";
 
 export default defineComponent({
-  name: "app",
+  name: "App",
   components: {
     [ElConfigProvider.name]: ElConfigProvider
   },

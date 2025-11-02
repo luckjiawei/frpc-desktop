@@ -69,7 +69,6 @@ watch(
       <div class="">
         <el-input
           :model-value="searchInput"
-          @input="handleSearchInput"
           size="small"
           class="search-input"
           :placeholder="t('logger.search.placeholder')"
@@ -80,6 +79,7 @@ watch(
             --el-input-text-color: #e2e8f0;
             --el-input-placeholder-color: #a0aec0;
           "
+          @input="handleSearchInput"
         />
       </div>
       <div class="flex gap-3 items-center">
@@ -89,10 +89,10 @@ watch(
 
     <!-- 日志内容区域 -->
     <div
+      v-loading="loading"
       :element-loading-text="t('logger.loading.text')"
       element-loading-background="rgba(15, 15, 35, 0.8)"
       class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
-      v-loading="loading"
     >
       <div
         v-for="record in filteredLogRecords"

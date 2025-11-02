@@ -624,13 +624,13 @@ onUnmounted(() => {
         <IconifyIconOffline icon="save-rounded" />
       </el-button>
     </breadcrumb>
-    <div class="pr-2 app-container-breadcrumb" v-loading="loading > 0">
+    <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
       <div class="p-4 w-full bg-white rounded drop-shadow-lg">
         <el-form
+          ref="formRef"
           :model="formData"
           :rules="rules"
           label-position="right"
-          ref="formRef"
           label-width="150"
         >
           <el-row :gutter="10">
@@ -680,14 +680,14 @@ onUnmounted(() => {
                 <div>{{ t("config.title.serverConfiguration") }}</div>
                 <div class="flex justify-center items-center">
                   <IconifyIconOffline
-                    @click="handleCopyServerConfig2Base64"
                     class="mr-2 text-xl font-bold cursor-pointer"
                     icon="content-copy"
+                    @click="handleCopyServerConfig2Base64"
                   />
                   <IconifyIconOffline
-                    @click="handlePasteServerConfig4Base64"
                     class="mr-2 text-xl font-bold cursor-pointer"
                     icon="content-paste-go"
+                    @click="handlePasteServerConfig4Base64"
                   />
                 </div>
               </div>
@@ -732,8 +732,8 @@ onUnmounted(() => {
                 prop="serverPort"
               >
                 <el-input-number
-                  placeholder="7000"
                   v-model="formData.serverPort"
+                  placeholder="7000"
                   :min="0"
                   :max="65535"
                   controls-position="right"
@@ -784,7 +784,7 @@ onUnmounted(() => {
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="24" v-if="formData.auth.method === 'token'">
+            <el-col v-if="formData.auth.method === 'token'" :span="24">
               <el-form-item
                 :label="t('config.form.authToken.label')"
                 prop="authToken"
@@ -810,9 +810,9 @@ onUnmounted(() => {
                   {{ t("config.form.authToken.label") }}
                 </template>
                 <el-input
+                  v-model="formData.auth.token"
                   placeholder="token"
                   type="password"
-                  v-model="formData.auth.token"
                   :show-password="true"
                 />
               </el-form-item>
@@ -840,15 +840,15 @@ onUnmounted(() => {
                 </template>
                 -->
                 <el-switch
-                  @change="handleMultiuserChange"
+                  v-model="formData.multiuser"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt
-                  v-model="formData.multiuser"
+                  @change="handleMultiuserChange"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="formData.multiuser">
+            <el-col v-if="formData.multiuser" :span="12">
               <el-form-item :label="t('config.form.user.label')" prop="user">
                 <template #label>
                   <div class="flex items-center mr-1 h-full">
@@ -871,12 +871,12 @@ onUnmounted(() => {
                   {{ t("config.form.user.label") }}
                 </template>
                 <el-input
-                  :placeholder="t('config.form.user.placeholder')"
                   v-model="formData.user"
+                  :placeholder="t('config.form.user.placeholder')"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="formData.multiuser">
+            <el-col v-if="formData.multiuser" :span="12">
               <el-form-item
                 :label="t('config.form.metadatasToken.label')"
                 prop="metadatas.token"
@@ -902,9 +902,9 @@ onUnmounted(() => {
                   {{ t("config.form.metadatasToken.label") }}
                 </template>
                 <el-input
+                  v-model="formData.metadatas.token"
                   :placeholder="t('config.form.metadatasToken.placeholder')"
                   type="password"
-                  v-model="formData.metadatas.token"
                   :show-password="true"
                 />
               </el-form-item>
@@ -983,8 +983,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportPoolCount.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.poolCount"
+                  class="w-full"
                   controls-position="right"
                 ></el-input-number>
               </el-form-item>
@@ -1019,8 +1019,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportHeartbeatInterval.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.heartbeatInterval"
+                  class="w-full"
                   :min="1"
                   :max="600"
                   controls-position="right"
@@ -1065,8 +1065,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportHeartbeatTimeout.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.heartbeatTimeout"
+                  class="w-full"
                   :min="1"
                   :max="600"
                   controls-position="right"
@@ -1111,8 +1111,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportDialServerTimeout.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.dialServerTimeout"
+                  class="w-full"
                   controls-position="right"
                 ></el-input-number>
               </el-form-item>
@@ -1147,8 +1147,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportDialServerKeepalive.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.dialServerKeepalive"
+                  class="w-full"
                   controls-position="right"
                 ></el-input-number>
               </el-form-item>
@@ -1184,14 +1184,14 @@ onUnmounted(() => {
                   {{ t("config.form.transportTcpMux.label") }}
                 </template>
                 <el-switch
+                  v-model="formData.transport.tcpMux"
                   :active-text="t('common.yes')"
                   inline-prompt
                   :inactive-text="t('common.no')"
-                  v-model="formData.transport.tcpMux"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12" v-if="formData.transport.tcpMux">
+            <el-col v-if="formData.transport.tcpMux" :span="12">
               <el-form-item
                 :label="t('config.form.transportTcpMuxKeepaliveInterval.label')"
                 prop="transport.tcpMuxKeepaliveInterval"
@@ -1224,8 +1224,8 @@ onUnmounted(() => {
                   {{ t("config.form.transportTcpMuxKeepaliveInterval.label") }}
                 </template>
                 <el-input-number
-                  class="w-full"
                   v-model="formData.transport.tcpMuxKeepaliveInterval"
+                  class="w-full"
                   controls-position="right"
                 ></el-input-number>
               </el-form-item>
@@ -1281,10 +1281,10 @@ onUnmounted(() => {
                 label-width="180"
               >
                 <el-switch
+                  v-model="formData.transport.tls.enable"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt
-                  v-model="formData.transport.tls.enable"
                 />
               </el-form-item>
             </el-col>
@@ -1316,8 +1316,8 @@ onUnmounted(() => {
                     {{ t("config.form.tlsCertFile.label") }}
                   </template>
                   <el-input
-                    class="button-input !cursor-pointer"
                     v-model="formData.transport.tls.certFile"
+                    class="button-input !cursor-pointer"
                     :placeholder="t('config.form.tlsCertFile.placeholder')"
                     readonly
                     clearable
@@ -1365,8 +1365,8 @@ onUnmounted(() => {
                     {{ t("config.form.tlsKeyFile.label") }}
                   </template>
                   <el-input
-                    class="button-input"
                     v-model="formData.transport.tls.keyFile"
+                    class="button-input"
                     :placeholder="t('config.form.tlsKeyFile.placeholder')"
                     readonly
                     @click="handleSelectFile(2, ['key'])"
@@ -1413,8 +1413,8 @@ onUnmounted(() => {
                     {{ t("config.form.caCertFile.label") }}
                   </template>
                   <el-input
-                    class="button-input"
                     v-model="formData.transport.tls.trustedCaFile"
+                    class="button-input"
                     :placeholder="t('config.form.caCertFile.placeholder')"
                     readonly
                     @click="handleSelectFile(3, ['crt'])"
@@ -1533,8 +1533,8 @@ onUnmounted(() => {
                   {{ t("config.form.webServerPort.label") }}
                 </template>
                 <el-input-number
-                  placeholder="57400"
                   v-model="formData.webServer.port"
+                  placeholder="57400"
                   :min="0"
                   :max="65535"
                   controls-position="right"
@@ -1567,9 +1567,9 @@ onUnmounted(() => {
                 prop="log.maxDays"
               >
                 <el-input-number
+                  v-model="formData.log.maxDays"
                   class="!w-full"
                   controls-position="right"
-                  v-model="formData.log.maxDays"
                 />
               </el-form-item>
             </el-col>
@@ -1601,10 +1601,10 @@ onUnmounted(() => {
                   {{ t("config.form.systemLaunchAtStartup.label") }}
                 </template>
                 <el-switch
+                  v-model="formData.system.launchAtStartup"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt
-                  v-model="formData.system.launchAtStartup"
                 />
               </el-form-item>
             </el-col>
@@ -1633,10 +1633,10 @@ onUnmounted(() => {
                   {{ t("config.form.systemSilentStartup.label") }}
                 </template>
                 <el-switch
+                  v-model="formData.system.silentStartup"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt
-                  v-model="formData.system.silentStartup"
                 />
               </el-form-item>
             </el-col>
@@ -1667,10 +1667,10 @@ onUnmounted(() => {
                   {{ t("config.form.systemAutoConnectOnStartup.label") }}
                 </template>
                 <el-switch
+                  v-model="formData.system.autoConnectOnStartup"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt
-                  v-model="formData.system.autoConnectOnStartup"
                 />
               </el-form-item>
             </el-col>
@@ -1714,8 +1714,8 @@ onUnmounted(() => {
         :closable="false"
       />
       <el-input
-        class="h-30"
         v-model="copyServerConfigBase64"
+        class="h-30"
         type="textarea"
         :rows="8"
       ></el-input>
@@ -1728,8 +1728,8 @@ onUnmounted(() => {
       top="5%"
     >
       <el-input
-        class="h-30"
         v-model="pasteServerConfigBase64"
+        class="h-30"
         type="textarea"
         placeholder="frp://......"
         :rows="8"

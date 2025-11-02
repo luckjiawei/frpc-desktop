@@ -119,9 +119,9 @@ defineComponent({
           </el-link>
           <el-link
             v-if="!isLastVersion && frpcDesktopStore.frpcDesktopLastRelease"
-            @click="handleOpenNewVersion"
             class="ml-2 text-[#67C23A] font-bold"
             type="success"
+            @click="handleOpenNewVersion"
             >v{{ frpcDesktopStore.frpcDesktopLastRelease.name }}
           </el-link>
           <IconifyIconOffline

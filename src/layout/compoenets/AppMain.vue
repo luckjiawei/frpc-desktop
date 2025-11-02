@@ -16,7 +16,7 @@ const currentRoute = computed(() => {
       <keep-alive v-if="currentRoute.meta['keepAlive']">
         <component :is="Component" />
       </keep-alive>
-      <component v-else :is="Component" />
+      <component :is="Component" v-else />
     </router-view>
   </div>
 </template>

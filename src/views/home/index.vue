@@ -33,7 +33,7 @@ const handleButtonClick = useDebounceFn(() => {
   }
 }, 300);
 
-let uptime = computed(() => {
+const uptime = computed(() => {
   const uptime = frpcDesktopStore.frpcProcessUptime / 1000;
   const days = Math.floor(uptime / (24 * 60 * 60));
   const hours = Math.floor((uptime % (24 * 60 * 60)) / (60 * 60));
@@ -178,8 +178,8 @@ onUnmounted(() => {
                 </div>
               </transition>
               <div
-                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
                 v-if="frpcDesktopStore.frpcProcessRunning"
+                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
               >
                 <span class="el-text--success">{{
                   $t("home.status.runningTime")
@@ -200,8 +200,8 @@ onUnmounted(() => {
               <el-button
                 class="mt-4"
                 type="primary"
-                @click="handleButtonClick"
                 :disabled="loading"
+                @click="handleButtonClick"
                 >{{
                   frpcDesktopStore.frpcProcessRunning
                     ? $t("home.button.stop")

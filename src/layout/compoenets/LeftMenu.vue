@@ -110,13 +110,13 @@ onMounted(() => {
       <!--      enter-active-class="animate__animated animate__bounceIn"-->
       <!--      leave-active-class="animate__animated animate__fadeOut"-->
       <li
+        v-for="r in routes"
+        :key="r.name"
         :data-step="guideSteps[r.name]?.step"
         :data-intro="guideSteps[r.name]?.intro"
         :data-disable-interaction="true"
         class="menu animate__animated"
         :class="currentRoute?.name === r.name ? 'menu-selected' : ''"
-        v-for="r in routes"
-        :key="r.name"
         @click="handleMenuChange(r)"
       >
         <IconifyIconOffline
@@ -168,10 +168,10 @@ onMounted(() => {
       </div>
       <div
         class="version animate__animated"
-        @click="handleOpenGitHubReleases"
         :data-step="guideSteps.Version?.step"
         :data-intro="guideSteps.Version?.intro"
         data-position="top"
+        @click="handleOpenGitHubReleases"
       >
         {{ pkg.version }}
       </div>

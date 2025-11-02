@@ -10,7 +10,7 @@ intro.setOptions({
   doneLabel: "🎉 立即体验", // 完成按钮文字
   autoPosition: false,
   tooltipPosition: "right",
-  exitOnOverlayClick: false,
+  exitOnOverlayClick: false
   // hidePrev: true,       // 在第一步中是否隐藏上一个按钮
   // hideNext: true,       // 在最后一步中是否隐藏下一个按钮
   // exitOnOverlayClick: false,  // 点击叠加层时是否退出介绍

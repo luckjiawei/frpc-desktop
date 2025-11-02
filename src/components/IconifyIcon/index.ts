@@ -6,4 +6,4 @@ const IconifyIconOffline = iconifyIconOffline;
 /** 在线图标组件 */
 const IconifyIconOnline = iconifyIconOnline;
 
-export {IconifyIconOffline, IconifyIconOnline};
+export { IconifyIconOffline, IconifyIconOnline };
