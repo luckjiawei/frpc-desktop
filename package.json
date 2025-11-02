@@ -58,7 +58,7 @@
     "prettier": "^2.8.8",
     "sass": "^1.92.1",
     "tailwindcss": "^4.1.16",
-    "typescript": "5.7.3",
+    "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
