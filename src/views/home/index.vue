@@ -151,9 +151,11 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-col justify-center items-center">
-            <div class="flex flex-col justify-between pl-10 w-72 h-42">
+            <div class="flex flex-col gap-4 justify-between pl-10 w-72">
               <transition name="fade">
-                <div class="text-2xl font-bold text-center">
+                <div
+                  class="flex gap-1 justify-center text-2xl font-bold text-center"
+                >
                   <IconifyIconOffline
                     v-if="frpcDesktopStore.frpcProcessRunning"
                     class="text-[#7EC050] inline-block relative top-1"
@@ -164,32 +166,35 @@ onUnmounted(() => {
                     class="text-[#E47470] inline-block relative top-1"
                     icon="error"
                   />
-                  {{
-                    $t("home.status.frpcStatus", {
-                      status: frpcDesktopStore.frpcProcessRunning
-                        ? $t("home.status.running")
-                        : $t("home.status.disconnected")
-                    })
-                  }}
+                  <span>
+                    {{
+                      $t("home.status.frpcStatus", {
+                        status: frpcDesktopStore.frpcProcessRunning
+                          ? $t("home.status.running")
+                          : $t("home.status.disconnected")
+                      })
+                    }}
+                  </span>
                 </div>
               </transition>
               <div
-                class="justify-center mt-2 w-full text-sm text-center animate__animated animate__fadeIn"
+                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
                 v-if="frpcDesktopStore.frpcProcessRunning"
               >
                 <span class="el-text--success">{{
                   $t("home.status.runningTime")
                 }}</span>
                 <span class="ml-1 font-bold text-primary">{{ uptime }}</span>
-              </div>
-              <div class="justify-center w-full text-center">
-                <el-link
-                  v-if="frpcDesktopStore.frpcProcessRunning"
-                  class="animate__animated animate__fadeIn"
-                  type="primary"
-                  @click="$router.replace({ name: 'Logger' })"
-                  >{{ $t("home.button.viewLog") }}</el-link
-                >
+
+                <div class="justify-center w-full text-center">
+                  <el-link
+                    v-if="frpcDesktopStore.frpcProcessRunning"
+                    class="animate__animated animate__fadeIn"
+                    type="primary"
+                    @click="$router.replace({ name: 'Logger' })"
+                    >{{ $t("home.button.viewLog") }}</el-link
+                  >
+                </div>
               </div>
 
               <el-button
