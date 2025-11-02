@@ -21,13 +21,7 @@ export default ts.config(
   ...ts.configs.recommended,
   ...vue.configs["flat/recommended"],
   {
-    files: ["**/*.vue"],
     languageOptions: {
-      parserOptions: {
-        parser: ts.parser,
-        ecmaVersion: "latest",
-        sourceType: "module"
-      },
       globals: {
         // Browser globals
         console: "readonly",
@@ -42,7 +36,19 @@ export default ts.config(
         GitHubMirror: "readonly",
         FrpcProxy: "readonly",
         LocalPort: "readonly",
-        FrpConfig: "readonly"
+        FrpConfig: "readonly",
+        Proxy: "readonly",
+        FrpVersion: "readonly"
+      }
+    }
+  },
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parserOptions: {
+        parser: ts.parser,
+        ecmaVersion: "latest",
+        sourceType: "module"
       }
     }
   },

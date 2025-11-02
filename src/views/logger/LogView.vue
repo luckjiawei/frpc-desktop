@@ -35,7 +35,6 @@ const updateFilteredLogs = () => {
 // 使用节流函数处理搜索输入
 const throttledSearch = useDebounceFn((value: string) => {
   searchKeyword.value = value;
-  console.log(searchKeyword.value, "keyword");
   updateFilteredLogs();
 }, 300);
 
