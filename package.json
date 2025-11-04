@@ -52,6 +52,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^7.1.0",
     "autoprefixer": "^10.4.21",
+    "dmg-license": "^1.0.11",
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12",
     "electron-builder-squirrel-windows": "^26.0.12",
