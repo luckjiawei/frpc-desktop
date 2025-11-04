@@ -8,21 +8,37 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         node-version: [22.12.0]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Install Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Build
+      - name: Install dependencies
         run: |
           npm install
-          npm run build:electron
+
+      - name: Build Window
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          npm run build:electron:win
+
+      - name: Build MacOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          npm run build:electron:mac
+
+      - name: Build Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          npm run build:electron:linux
