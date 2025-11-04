@@ -31,20 +31,20 @@ jobs:
       - name: Build Window
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          npm run build:electron:win
+          npm run release:electron:win
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Build MacOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          npm run build:electron:mac
+          npm run release:electron:mac
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Build Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          npm run build:electron:linux
+          npm run release:electron:linux
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
