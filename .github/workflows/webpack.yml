@@ -25,4 +25,4 @@ jobs:
       - name: Build
         run: |
           npm install
-          pnpm build:electron
+          npm run build:electron
