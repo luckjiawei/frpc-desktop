@@ -71,6 +71,10 @@ class PathUtils {
   public static getAppLogFilePath() {
     return path.join(app.getPath("logs"), "main.log");
   }
+
+  public static getDatabaseFilename() {
+      return path.join(PathUtils.getAppData(), "data.db")
+  }
 }
 
 export default PathUtils;

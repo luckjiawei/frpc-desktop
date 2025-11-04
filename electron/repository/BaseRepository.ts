@@ -1,151 +1,96 @@
-import Datastore from "nedb";
-import path from "path";
-import PathUtils from "../utils/PathUtils";
-import IdUtils from "../utils/IdUtils";
+import knex from "knex";
 
-// interface BaseDaoInterface<T> {
-//   db: Datastore;
-//
-//   insert(t: T): Promise<T>;
-//
-//   //
-//   updateById(id: string, t: T): Promise<T>;
-//
-//   //
-//   // deleteById(id: string): void;
-//   //
-//   // findAll(): T[];
-//
-//   findById(id: string): Promise<T>;
-// }
 
-class BaseRepository<T> {
-  protected readonly db: Datastore;
+abstract class BaseRepository<T extends BaseModel> {
+  protected readonly db: knex.Knex;
 
-  constructor(dbName: string) {
-    const dbFilename = path.join(
-      PathUtils.getDataBaseStoragePath(),
-      `${dbName}-v2.db`
-    );
-    this.db = new Datastore({
-      autoload: true,
-      filename: dbFilename
-    });
-    // todo log
+  protected constructor(db: knex.Knex) {
+    this.table = db;
+    this.initTableSchema();
   }
 
-  protected genId(): string {
-    return IdUtils.genUUID();
-  }
+  /**
+   * Initialize the table schema
+   * @protected
+   */
+  protected abstract initTableSchema(): void;
 
-  // async insert(t: T): Promise<T> {
-  //   return new Promise<T>((resolve, reject) => {
-  //     resolve(t);
-  //   });
-  // }
-  //
-  insert(t: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      t["_id"] = this.genId();
-      this.db.insert(t, (err, document) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(document);
-      });
-    });
-  }
+  /**
+   * Define the table name
+   * @protected
+   */
+  protected abstract tableName(): string;
 
-  insertMany(ts: Array<T>): Promise<Array<T>> {
-    return new Promise<Array<T>>((resolve, reject) => {
-      ts.forEach(t => {
-        t["_id"] = this.genId();
-      });
-      this.db.insert(ts, (err, documents) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(documents);
-        }
-      });
-    });
-  }
-
-  updateById(id: string, t: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.db.update(
-        { _id: id },
-        t,
-        { upsert: true },
-        (err, numberOfUpdated, upsert) => {
-          if (err) {
-            reject(err);
-          } else {
-            t["_id"] = id;
-            resolve(t);
-            // this.findById(id)
-            //   .then(data => {
-            //     resolve(t);
-            //   })
-            //   .catch(err2 => {
-            //     reject(err2);
-            //   });
-          }
-        }
-      );
-    });
-  }
-
-  deleteById(id: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.db.remove({ _id: id }, err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-  //
-  // findAll(): T[] {
-  //   return null;
+  /**
+   * Generate a unique ID
+   * @returns A unique UUID string
+   */
+  // protected genId(): string {
+  //   return IdUtils.genUUID();
   // }
 
-  findById(id: string): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.db.findOne({ _id: id }, (err, document) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(document);
-        }
-      });
-    });
+  /**
+   * Get database table reference
+   * @returns Database table query builder
+   */
+  public table() {
+    return this.db.table(this.tableName);
   }
 
-  findAll(): Promise<Array<T>> {
-    return new Promise<Array<T>>((resolve, reject) => {
-      this.db.find({}, (err, document) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(document);
-        }
-      });
-    });
+  /**
+   * Insert a single record into the database
+   * @param t - The record to insert
+   * @returns Promise resolving to the insert result
+   */
+  async insert(t: T) {
+    return this.table().insert(t);
   }
 
-  truncate() {
-    return new Promise<void>((resolve, reject) => {
-      this.db.remove({}, { multi: true }, (err, n) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+  /**
+   * Insert multiple records into the database
+   * @param t - Array of records to insert
+   * @returns Promise resolving to the insert result
+   */
+  async insertMany(t: Array<T>) {
+    return this.table().insert(t);
+  }
+
+  /**
+   * Select all records from the table
+   * @returns Promise resolving to all records
+   */
+  async selectAll() {
+    return this.table().select("*");
+  }
+
+  /**
+   * Select a record by its ID
+   * @param id - The ID of the record to find
+   * @returns Promise resolving to the found record or null
+   */
+  async selectById(id: number): Promise<T> {
+    return this.table().select("*").where("id", "=", id).first();
+  }
+
+  /**
+   * Delete a record by its ID
+   * @param id - The ID of the record to delete
+   * @returns Promise resolving to the delete result
+   */
+  async deleteById(id: number) {
+    return this.table().where("id", "=", id).delete();
+  }
+
+  /**
+   * Update a record by its ID
+   * @param t - The record with updated values (must include ID)
+   * @returns Promise resolving to the update result
+   */
+  async updateById(t: T) {
+    if (!(t && t.id)) {
+      return;
+    }
+    return this.table().where("id", "=", t.id).update(t);
   }
 }
 
