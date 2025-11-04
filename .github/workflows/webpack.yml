@@ -24,6 +24,5 @@ jobs:
 
       - name: Build
         run: |
-          npm i -g pnpm
-          pnpm install
+          npm install
           pnpm build:electron
