@@ -27,7 +27,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "build:electron": "npm run build && electron-builder  --mac --win --linux",
+    "build:electron": "npm run build && electron-builder --mac --win --linux",
     "build:electron:mac": "npm run build && electron-builder --mac",
     "build:electron:mac:arm": "npm run build && electron-builder --mac --arm64",
     "build:electron:win": "npm run build && electron-builder --win",
