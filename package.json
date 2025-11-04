@@ -52,7 +52,6 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^7.1.0",
     "autoprefixer": "^10.4.21",
-    "dmg-license": "^1.0.11",
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12",
     "electron-builder-squirrel-windows": "^26.0.12",
@@ -72,6 +71,9 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vue-tsc": "^3.1.2"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
   },
   "dependencies": {
     "@vueuse/core": "^14.0.0",
