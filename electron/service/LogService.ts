@@ -64,10 +64,12 @@ class LogService {
     this._watcher = fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
         const win: BrowserWindow = BeanFactory.getBean("win");
-        win.webContents.send(
-          listenerParam.channel,
-          ResponseUtils.success(true)
-        );
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(
+            listenerParam.channel,
+            ResponseUtils.success(true)
+          );
+        }
       }
     });
   }

@@ -185,10 +185,12 @@ class SystemService {
       Logger.debug("SystemService.getSystemUsage", JSON.stringify(result));
 
       const win: BrowserWindow = BeanFactory.getBean("win");
-      win.webContents.send(
-        listenerParam.channel,
-        ResponseUtils.success(result)
-      );
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(
+          listenerParam.channel,
+          ResponseUtils.success(result)
+        );
+      }
     }, 1000);
   }
 }

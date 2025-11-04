@@ -266,13 +266,15 @@ class FrpcProcessService {
         // clearInterval(this._frpcProcessListener);
       }
       const win: BrowserWindow = BeanFactory.getBean("win");
-      win.webContents.send(
-        listenerParam.channel,
-        ResponseUtils.success({
-          running: running,
-          lastStartTime: this._frpcLastStartTime
-        })
-      );
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(
+          listenerParam.channel,
+          ResponseUtils.success({
+            running: running,
+            lastStartTime: this._frpcLastStartTime
+          })
+        );
+      }
     }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
   }
 }
