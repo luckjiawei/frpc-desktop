@@ -1,28 +1,29 @@
 import { dialog } from "electron";
 import fs from "fs";
 import moment from "moment";
-import Logger from "../core/Logger";
 import FrpcProcessService from "../service/FrpcProcessService";
-import ServerService from "../service/ServerService";
+import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
 import SystemService from "../service/SystemService";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
-import BaseController from "./BaseController";
+import BaseController from "../core/BaseController";
+import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
-class ConfigController extends BaseController {
-  private readonly _serverService: ServerService;
+export default class ConfigController extends BaseController {
+  private readonly _serverService: OpenSourceFrpcDesktopConfigService;
   private readonly _systemService: SystemService;
   private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor(
-    serverService: ServerService,
-    systemService: SystemService,
-    frpcProcessService: FrpcProcessService
-  ) {
+  constructor() {
     super();
-    this._serverService = serverService;
-    this._systemService = systemService;
-    this._frpcProcessService = frpcProcessService;
+    this._serverService =
+      BeanFactory.getBean<OpenSourceFrpcDesktopConfigService>(
+        "openSourceFrpcDesktopConfigService"
+      );
+    this._systemService = BeanFactory.getBean<SystemService>("systemService");
+    this._frpcProcessService =
+      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
   }
 
   saveConfig(req: ControllerParam) {
@@ -32,7 +33,7 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.saveConfig", err);
+        log.error("ConfigController.saveConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -44,7 +45,7 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.getServerConfig", err);
+        log.error("ConfigController.getServerConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -56,7 +57,7 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.openAppData", err);
+        log.error("ConfigController.openAppData", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -90,7 +91,7 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.resetAllConfig", err);
+        log.error("ConfigController.resetAllConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -125,7 +126,7 @@ class ConfigController extends BaseController {
         }
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.exportConfig", err);
+        log.error("ConfigController.exportConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -165,7 +166,7 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.importTomlConfig", err);
+        log.error("ConfigController.importTomlConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -183,10 +184,8 @@ class ConfigController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("ConfigController.saveLanguage", err);
+        log.error("ConfigController.saveLanguage", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }
-
-export default ConfigController;

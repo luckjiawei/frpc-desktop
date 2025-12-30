@@ -1,54 +1,65 @@
-import BaseRepository from "./BaseRepository";
-import knex from "knex";
-import Logger from "../core/Logger";
+import BaseRepository from "../core/BaseRepository";
 
-class ProxyRepository extends BaseRepository<ProxyModel> {
-  constructor(db: knex.Knex) {
-    super(db);
+/**
+ * Repository for managing proxy configurations in the database
+ */
+export default class ProxyRepository extends BaseRepository<ProxyModel> {
+  constructor() {
+    super();
   }
 
+  /**
+   * Get the table name
+   * @returns Table name string
+   */
   protected tableName() {
-    return "frpc_proxies";
+    return "frpc_proxy";
   }
 
+  /**
+   * Initialize the table schema
+   * @protected
+   */
   protected initTableSchema() {
     this.db.schema.hasTable(this.tableName()).then(exist => {
       if (exist) return;
-      Logger.info(
-        `FrpcDesktopApp.initializeDatabase`,
-        `creating proxies table schema.`
-      );
       return this.db.schema.createTable(this.tableName(), table => {
         table.bigIncrements("id", { primaryKey: true });
         table.string("name");
         table.string("type");
-        table.string("localIP");
-        table.integer("localPort");
-        table.integer("remotePort");
-        table.json("customDomains");
+        table.string("local_ip");
+        table.string("local_port");
+        table.string("remote_port");
+        table.json("custom_domains");
         table.json("locations");
-        table.string("hostHeaderRewrite");
-        table.string("visitorsModel");
-        table.string("serverName");
-        table.string("secretKey");
-        table.string("bindAddr");
-        table.integer("bindPort");
+        table.string("host_header_rewrite");
+        table.string("visitors_model");
+        table.string("server_name");
+        table.string("secret_key");
+        table.string("bind_addr");
+        table.string("bind_port");
         table.string("subdomain");
-        table.boolean("basicAuth");
-        table.string("httpUser");
-        table.string("httpPassword");
-        table.string("fallbackTo");
-        table.integer("fallbackTimeoutMs");
+        table.boolean("basic_auth");
+        table.string("http_user");
+        table.string("http_password");
+        table.string("fallback_to");
+        table.integer("fallback_timeout_ms");
         table.boolean("https2http");
-        table.string("https2httpCaFile");
-        table.string("https2httpKeyFile");
-        table.boolean("keepTunnelOpen");
+        table.string("https2http_ca_file");
+        table.string("https2http_key_file");
+        table.boolean("keep_tunnel_open");
         table.json("transport");
         table.timestamps(true, true);
       });
     });
   }
 
+  /**
+   * Update proxy status by ID
+   * @param id Proxy ID
+   * @param status New status value
+   * @returns Promise that resolves when update is complete
+   */
   updateProxyStatus(id: number, status: number): Promise<void> {
     return this.db
       .table(this.tableName())
@@ -56,5 +67,3 @@ class ProxyRepository extends BaseRepository<ProxyModel> {
       .update({ status: status });
   }
 }
-
-export default ProxyRepository;

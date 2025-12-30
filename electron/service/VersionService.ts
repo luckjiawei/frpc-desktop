@@ -9,26 +9,23 @@ import VersionRepository from "../repository/VersionRepository";
 import FileUtils from "../utils/FileUtils";
 import PathUtils from "../utils/PathUtils";
 import SecureUtils from "../utils/SecureUtils";
-import BaseService from "./BaseService";
 import GitHubService from "./GitHubService";
 import SystemService from "./SystemService";
+import BeanFactory from "../core/BeanFactory";
 
-class VersionService extends BaseService<FrpcVersion> {
+class VersionService {
   private readonly _versionDao: VersionRepository;
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
   private readonly _currFrpArch: Array<string>;
-  private _versions: Array<FrpcVersion> = [];
+  private _versions: Array<VersionModel> = [];
 
-  constructor(
-    versionDao: VersionRepository,
-    systemService: SystemService,
-    gitHubService: GitHubService
-  ) {
-    super();
-    this._versionDao = versionDao;
-    this._gitHubService = gitHubService;
-    this._systemService = systemService;
+  constructor() {
+    this._versionDao =
+      BeanFactory.getBean<VersionRepository>("versionRepository");
+    this._systemService = BeanFactory.getBean<SystemService>("systemService");
+    this._gitHubService = BeanFactory.getBean<GitHubService>("gitHubService");
+
     const nodeVersion = `${process.platform}_${process.arch}`;
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
@@ -85,20 +82,20 @@ class VersionService extends BaseService<FrpcVersion> {
     }
     const version =
       await this._versionDao.findByGithubReleaseId(githubReleaseId);
-    if (this.frpcVersionExists(version)) {
+    if (this.VersionModelExists(version)) {
       fs.rmSync(version.localPath, { recursive: true, force: true });
-      await this._versionDao.deleteById(version._id);
+      await this._versionDao.deleteById(version.id);
     }
   }
 
-  async getFrpVersionsByGitHub(): Promise<Array<FrpcVersion>> {
-    return new Promise<Array<FrpcVersion>>((resolve, reject) => {
+  async getFrpVersionsByGitHub(): Promise<Array<VersionModel>> {
+    return new Promise<Array<VersionModel>>((resolve, reject) => {
       this._gitHubService
         .getGithubRepoAllReleases("fatedier/frp")
         .then(async (releases: Array<GithubRelease>) => {
-          const versions: Array<FrpcVersion> =
-            await this.githubRelease2FrpcVersion(releases);
-          // const _versions: Array<FrpcVersion> = (this._versions = _versions);
+          const versions: Array<VersionModel> =
+            await this.githubRelease2VersionModel(releases);
+          // const _versions: Array<VersionModel> = (this._versions = _versions);
           this._versions = versions;
           resolve(versions);
         })
@@ -106,8 +103,8 @@ class VersionService extends BaseService<FrpcVersion> {
     });
   }
 
-  async getFrpVersionByLocalJson(): Promise<Array<FrpcVersion>> {
-    return this.githubRelease2FrpcVersion(frpReleasesJson);
+  async getFrpVersionByLocalJson(): Promise<Array<VersionModel>> {
+    return this.githubRelease2VersionModel(frpReleasesJson);
   }
 
   getFrpVersion() {}
@@ -118,10 +115,10 @@ class VersionService extends BaseService<FrpcVersion> {
     });
   }
 
-  private async githubRelease2FrpcVersion(
+  private async githubRelease2VersionModel(
     releases: Array<GithubRelease>
-  ): Promise<Array<FrpcVersion>> {
-    const allVersions = await this._versionDao.findAll();
+  ): Promise<Array<VersionModel>> {
+    const allVersions = await this._versionDao.selectAll();
     return releases
       .filter(release => {
         // only support toml version.
@@ -138,8 +135,8 @@ class VersionService extends BaseService<FrpcVersion> {
         );
 
         const currVersion = allVersions.find(ff => ff.githubReleaseId === m.id);
-        const v: FrpcVersion = {
-          _id: "",
+        const v: VersionModel = {
+          id: null,
           githubReleaseId: m.id,
           githubAssetId: asset.id,
           githubCreatedAt: asset.created_at,
@@ -148,7 +145,7 @@ class VersionService extends BaseService<FrpcVersion> {
           versionDownloadCount: download_count,
           assetDownloadCount: asset.download_count,
           browserDownloadUrl: asset.browser_download_url,
-          downloaded: this.frpcVersionExists(currVersion),
+          downloaded: this.VersionModelExists(currVersion),
           localPath: currVersion && currVersion.localPath,
           size: FileUtils.formatBytes(asset.size)
         };
@@ -156,7 +153,7 @@ class VersionService extends BaseService<FrpcVersion> {
       });
   }
 
-  private frpcVersionExists(version: FrpcVersion): boolean {
+  private VersionModelExists(version: VersionModel): boolean {
     // const version = await this._versionDao.findByGithubReleaseId(
     //   githubReleaseId
     // );
@@ -167,7 +164,7 @@ class VersionService extends BaseService<FrpcVersion> {
     return false;
   }
 
-  async importLocalFrpcVersion(filePath: string) {
+  async importLocalVersionModel(filePath: string) {
     const checksum = FileUtils.calculateFileChecksum(filePath);
     const frpName = frpChecksums[checksum];
     if (frpName) {
@@ -192,7 +189,7 @@ class VersionService extends BaseService<FrpcVersion> {
     return this._versions.find(f => f.assetName === assetName);
   }
 
-  async decompressFrp(version: FrpcVersion, compressedPath: string) {
+  async decompressFrp(version: VersionModel, compressedPath: string) {
     const versionFilePath = path.join(
       PathUtils.getVersionStoragePath(),
       SecureUtils.calculateMD5(version.name)

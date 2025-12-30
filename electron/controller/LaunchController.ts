@@ -1,14 +1,16 @@
-import Logger from "../core/Logger";
 import FrpcProcessService from "../service/FrpcProcessService";
 import ResponseUtils from "../utils/ResponseUtils";
-import BaseController from "./BaseController";
+import BaseController from "../core/BaseController";
+import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
-class LaunchController extends BaseController {
+export default class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor(frpcProcessService: FrpcProcessService) {
+  constructor() {
     super();
-    this._frpcProcessService = frpcProcessService;
+    this._frpcProcessService =
+      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
   }
 
   launch(req: ControllerParam) {
@@ -18,7 +20,7 @@ class LaunchController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("LaunchController.launch", err);
+        log.error("LaunchController.launch", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -30,7 +32,7 @@ class LaunchController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch(err => {
-        Logger.error("LaunchController.terminate", err);
+        log.error("LaunchController.terminate", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -46,5 +48,3 @@ class LaunchController extends BaseController {
     );
   }
 }
-
-export default LaunchController;

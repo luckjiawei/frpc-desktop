@@ -24,7 +24,7 @@ defineComponent({
 
 const { t } = useI18n();
 
-const proxys = ref<Array<FrpcProxy>>([]);
+const proxys = ref<Array<FrpcDesktopProxy>>([]);
 const loading = ref({
   list: 1,
   form: 0,
@@ -39,7 +39,7 @@ const edit = ref({
   visible: false
 });
 
-const defaultForm: FrpcProxy = {
+const defaultForm: FrpcDesktopProxy = {
   _id: "",
   hostHeaderRewrite: "",
   locations: [""],
@@ -72,7 +72,7 @@ const defaultForm: FrpcProxy = {
   }
 };
 
-const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
+const editForm = ref<FrpcDesktopProxy>(_.cloneDeep(defaultForm));
 
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
@@ -373,8 +373,8 @@ const handleLoadFrpcConfig = () => {
   send(ipcRouters.SERVER.getServerConfig);
 };
 
-const handleDeleteProxy = (proxy: FrpcProxy) => {
-  send(ipcRouters.PROXY.deleteProxy, proxy._id);
+const handleDeleteProxy = (proxy: FrpcDesktopProxy) => {
+  send(ipcRouters.PROXY.deleteProxy, proxy.id);
   // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
 };
 
@@ -389,7 +389,7 @@ const handleOpenInsert = () => {
   };
 };
 
-const handleOpenUpdate = (proxy: FrpcProxy) => {
+const handleOpenUpdate = (proxy: FrpcDesktopProxy) => {
   editForm.value = _.cloneDeep(proxy);
   // if (!editForm.value.fallbackTimeoutMs) {
   //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
@@ -400,7 +400,7 @@ const handleOpenUpdate = (proxy: FrpcProxy) => {
   };
 };
 
-const handleReversalUpdate = (proxy: FrpcProxy) => {
+const handleReversalUpdate = (proxy: FrpcDesktopProxy) => {
   send(ipcRouters.PROXY.modifyProxyStatus, {
     id: proxy._id,
     status: proxy.status === 1 ? 0 : 1

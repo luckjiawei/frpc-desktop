@@ -10,8 +10,8 @@ class LogService {
   private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
   private readonly _appPath: string = PathUtils.getAppLogFilePath();
 
-  constructor(systemService: SystemService) {
-    this._systemService = systemService;
+  constructor() {
+    this._systemService = BeanFactory.getBean<SystemService>("systemService");
   }
 
   async getFrpLogContent() {

@@ -67,6 +67,7 @@ type OpenSourceConfigModel = BaseModel & {
   frpcVersion: number;
   multiuser: boolean;
 
+  // system: string; // json
   launchAtStartup: boolean;
   silentStartup: boolean;
   autoConnectOnStartup: boolean;

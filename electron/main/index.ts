@@ -10,7 +10,6 @@ import {
 } from "electron";
 import { release } from "node:os";
 import node_path, { join } from "node:path";
-import ConfigController from "../controller/ConfigController";
 import LaunchController from "../controller/LaunchController";
 import LogController from "../controller/LogController";
 import ProxyController from "../controller/ProxyController";
@@ -18,17 +17,21 @@ import SystemController from "../controller/SystemController";
 import VersionController from "../controller/VersionController";
 import BeanFactory from "../core/BeanFactory";
 import { ipcRouters, listeners } from "../core/IpcRouter";
-import Logger from "../core/Logger";
 import ProxyRepository from "../repository/ProxyRepository";
-import ServerRepository from "../repository/ServerRepository";
 import VersionRepository from "../repository/VersionRepository";
 import FrpcProcessService from "../service/FrpcProcessService";
 import GitHubService from "../service/GitHubService";
 import LogService from "../service/LogService";
 import ProxyService from "../service/ProxyService";
-import ServerService from "../service/ServerService";
+import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
 import SystemService from "../service/SystemService";
 import VersionService from "../service/VersionService";
+import knex from "knex";
+import PathUtils from "../utils/PathUtils";
+import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
+import ConfigController from "../controller/ConfigController";
+import log from "electron-log/main";
+import { LevelOption } from "electron-log";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -45,27 +48,55 @@ class FrpcDesktopApp {
   private _quitting = false;
 
   constructor() {
+    this.initializeLog();
+    this.initializeDatabase();
     this.initializeBeans();
     this.initializeListeners();
     this.initializeRouters();
     this.initializeElectronApp();
   }
 
+  async initializeLog() {
+    log.initialize();
+    log.transports.file.level = "info";
+    log.transports.console.level = "info";
+    log.transports.file.format =
+      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
+    log.transports.console.format =
+      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
+
+    log.scope("main").info("FrpcDesktopApp Version " + app.getVersion());
+    log.scope("main").info("Process argv: " + process.argv.join(" "));
+    log.scope("main").info("Process cwd: " + process.cwd());
+    log.scope("main").info("Process execPath: " + process.execPath);
+    log.scope("main").info("Process platform: " + process.platform);
+    log.scope("main").info("Process arch: " + process.arch);
+    log.scope("main").info("Process node version: " + process.versions.node);
+    log
+      .scope("main")
+      .info("Process electron version: " + process.versions.electron);
+
+    log.scope("main").info("Log initialized");
+  }
+
   async initializeWindow() {
     if (this._win) {
       return;
     }
-    const serverService: ServerService = BeanFactory.getBean("serverService");
-    Logger.setLevel(await serverService.getLoggerLevel());
+    const serverService: OpenSourceFrpcDesktopConfigService =
+      BeanFactory.getBean("openSourceFrpcDesktopConfigService");
+    // Logger.setLevel(await serverService.getLoggerLevel());
     if (await serverService.isAutoConnectOnStartup()) {
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");
-      frpcProcessService.startFrpcProcess().then(() => {
-        Logger.info(
-          `FrpcDesktopApp.initializeWindow`,
-          `AutoConnectOnStartup Completed.`
-        );
-      });
+      frpcProcessService
+        .startFrpcProcess()
+        .then(() => {
+          log.scope("main").info("Auto connect completed");
+        })
+        .catch(error => {
+          log.scope("main").error("Auto connect failed", error);
+        });
     }
 
     this._win = new BrowserWindow({
@@ -125,7 +156,7 @@ class FrpcDesktopApp {
       }
       return false;
     });
-    Logger.info(`FrpcDesktopApp.initializeWindow`, `Window initialized.`);
+    log.scope("main").info("Main Window initialized");
   }
 
   initializeTray() {
@@ -164,7 +195,7 @@ class FrpcDesktopApp {
     tray.on("double-click", () => {
       this._win.show();
     });
-    Logger.info(`FrpcDesktopApp.initializeTray`, `Tray initialized.`);
+    log.scope("main").info("Tray initialized.");
   }
 
   initializeElectronApp() {
@@ -288,81 +319,49 @@ class FrpcDesktopApp {
       frpcProcessService.stopFrpcProcess().finally(() => {});
     });
 
-    Logger.info(
-      `FrpcDesktopApp.initializeElectronApp`,
-      `ElectronApp initialized.`
-    );
+    log.scope("main").info(`ElectronApp initialized successfully.`);
   }
 
   initializeBeans() {
-    BeanFactory.setBean("serverRepository", new ServerRepository());
+    /**
+     * init repository
+     */
+    BeanFactory.setBean(
+      "openSourceConfigRepository",
+      new OpenSourceConfigRepository()
+    );
     BeanFactory.setBean("versionRepository", new VersionRepository());
     BeanFactory.setBean("proxyRepository", new ProxyRepository());
+
+    /**
+     * init service
+     */
     BeanFactory.setBean("systemService", new SystemService());
     BeanFactory.setBean(
-      "serverService",
-      new ServerService(
-        BeanFactory.getBean("serverRepository"),
-        BeanFactory.getBean("proxyRepository")
-      )
+      "openSourceFrpcDesktopConfigService",
+      new OpenSourceFrpcDesktopConfigService()
     );
     BeanFactory.setBean("gitHubService", new GitHubService());
-    BeanFactory.setBean(
-      "versionService",
-      new VersionService(
-        BeanFactory.getBean("versionRepository"),
-        BeanFactory.getBean("systemService"),
-        BeanFactory.getBean("gitHubService")
-      )
-    );
-    BeanFactory.setBean(
-      "logService",
-      new LogService(BeanFactory.getBean("systemService"))
-    );
+    BeanFactory.setBean("versionService", new VersionService());
+    BeanFactory.setBean("logService", new LogService());
     BeanFactory.setBean("frpcProcessService", new FrpcProcessService());
-    BeanFactory.setBean(
-      "proxyService",
-      new ProxyService(
-        BeanFactory.getBean("proxyRepository"),
-        BeanFactory.getBean("frpcProcessService")
-      )
-    );
-    BeanFactory.setBean(
-      "configController",
-      new ConfigController(
-        BeanFactory.getBean("serverService"),
-        BeanFactory.getBean("systemService"),
-        BeanFactory.getBean("frpcProcessService")
-      )
-    );
-    BeanFactory.setBean(
-      "versionController",
-      new VersionController(
-        BeanFactory.getBean("versionService"),
-        BeanFactory.getBean("versionRepository")
-      )
-    );
-    BeanFactory.setBean(
-      "logController",
-      new LogController(BeanFactory.getBean("logService"))
-    );
-    BeanFactory.setBean(
-      "launchController",
-      new LaunchController(BeanFactory.getBean("frpcProcessService"))
-    );
-    BeanFactory.setBean(
-      "proxyController",
-      new ProxyController(
-        BeanFactory.getBean("proxyService"),
-        BeanFactory.getBean("proxyRepository")
-      )
-    );
+    BeanFactory.setBean("proxyService", new ProxyService());
+
+    /**
+     * init controller
+     */
+    BeanFactory.setBean("configController", new ConfigController());
+    BeanFactory.setBean("versionController", new VersionController());
+    BeanFactory.setBean("logController", new LogController());
+    BeanFactory.setBean("launchController", new LaunchController());
+    BeanFactory.setBean("proxyController", new ProxyController());
     BeanFactory.setBean("systemController", new SystemController());
-    Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
+
+    log.scope("main").info("Beans initialized.");
   }
 
   /**
-   * initJob
+   * initListeners
    * @private
    */
   private initializeListeners() {
@@ -377,12 +376,12 @@ class FrpcDesktopApp {
       };
       bean[method].call(bean, listenerParam);
     });
-    Logger.info(`FrpcDesktopApp.initializeListeners`, `Listeners initialized.`);
+    log.scope("main").info("Listeners initialized.");
     // this._beans.get("logService").watchFrpcLog(this._win);
   }
 
   /**
-   * initRouters
+   * initializeRouters
    * @private
    */
   private initializeRouters() {
@@ -401,7 +400,7 @@ class FrpcDesktopApp {
           const [beanName, method] = router.controller.split(".");
           const bean = BeanFactory.getBean(beanName);
           bean[method].call(bean, req);
-          Logger.debug(
+          log.debug(
             `ipcRouter`,
             `path: ${router.path} + req: (channel: ${
               req.channel
@@ -412,7 +411,23 @@ class FrpcDesktopApp {
         });
       });
     });
-    Logger.info(`FrpcDesktopApp.initializeRouters`, `Routers initialized.`);
+    log.scope("main").info("IPC Routers initialized.");
+  }
+
+  /**
+   * initializeDatabase
+   * @private
+   */
+  private initializeDatabase() {
+    const db: knex.Knex = knex({
+      client: "sqlite",
+      useNullAsDefault: true,
+      connection: {
+        filename: PathUtils.getDatabaseFilename()
+      }
+    });
+    BeanFactory.setBean("db", db);
+    log.scope("main").info("Database initialized.");
   }
 }
 

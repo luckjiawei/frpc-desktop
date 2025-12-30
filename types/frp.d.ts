@@ -1,3 +1,6 @@
+/**
+ * FRP log configuration
+ */
 type LogConfig = {
   to: string;
   level: string;
@@ -5,11 +8,17 @@ type LogConfig = {
   disablePrintColor: boolean;
 };
 
+/**
+ * FRP authentication configuration
+ */
 type AuthConfig = {
   method: string;
   token: string;
 };
 
+/**
+ * FRP web server configuration
+ */
 type WebServerConfig = {
   addr: string;
   port: number;
@@ -18,6 +27,9 @@ type WebServerConfig = {
   pprofEnable: boolean;
 };
 
+/**
+ * FRP transport TLS configuration
+ */
 type TransportTlsConfig = {
   enable: boolean;
   certFile: string;
@@ -27,6 +39,9 @@ type TransportTlsConfig = {
   disableCustomTLSFirstByte: boolean;
 };
 
+/**
+ * FRP transport configuration
+ */
 type TransportConfig = {
   dialServerTimeout: number;
   dialServerKeepalive: number;
@@ -41,6 +56,9 @@ type TransportConfig = {
   heartbeatTimeout: number;
 };
 
+/**
+ * FRP common configuration
+ */
 interface FrpcCommonConfig {
   user: string;
   serverAddr: string;
@@ -54,12 +72,18 @@ interface FrpcCommonConfig {
   metadatas: Record<string, any>;
 }
 
+/**
+ * FRP proxy transport configuration
+ */
 interface FrpcProxyTransportConfig {
   useEncryption: boolean;
   useCompression: boolean;
   proxyProtocolVersion: string;
 }
 
+/**
+ * FRP proxy configuration
+ */
 interface FrpcProxyConfig {
   name: string;
   type: string;

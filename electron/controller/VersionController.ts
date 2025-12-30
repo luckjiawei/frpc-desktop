@@ -1,19 +1,21 @@
-import BaseController from "./BaseController";
+import BaseController from "../core/BaseController";
 import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
-import Logger from "../core/Logger";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
-class VersionController extends BaseController {
+export default class VersionController extends BaseController {
   private readonly _versionService: VersionService;
   private readonly _versionDao: VersionRepository;
 
-  constructor(versionService: VersionService, versionDao: VersionRepository) {
+  constructor() {
     super();
-    this._versionService = versionService;
-    this._versionDao = versionDao;
+    this._versionService =
+      BeanFactory.getBean<VersionService>("versionService");
+    this._versionDao =
+      BeanFactory.getBean<VersionRepository>("versionRepository");
   }
 
   getVersions(req: ControllerParam) {
@@ -23,7 +25,7 @@ class VersionController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch(err => {
-        Logger.error("VersionController.getVersions", err);
+        log.error("VersionController.getVersions", err);
         this._versionService.getFrpVersionByLocalJson().then(localData => {
           req.event.reply(req.channel, ResponseUtils.success(localData));
         });
@@ -32,12 +34,12 @@ class VersionController extends BaseController {
 
   getDownloadedVersions(req: ControllerParam) {
     this._versionDao
-      .findAll()
+      .selectAll()
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("VersionController.getDownloadedVersions", err);
+        log.error("VersionController.getDownloadedVersions", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -65,7 +67,7 @@ class VersionController extends BaseController {
         );
       })
       .catch((err: Error) => {
-        Logger.error("VersionController.downloadFrpVersion", err);
+        log.error("VersionController.downloadFrpVersion", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -77,7 +79,7 @@ class VersionController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("VersionController.deleteDownloadedVersion", err);
+        log.error("VersionController.deleteDownloadedVersion", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -113,13 +115,13 @@ class VersionController extends BaseController {
               );
             })
             .catch((err: Error) => {
-              Logger.error("VersionController.importLocalFrpcVersion", err);
+              log.error("VersionController.importLocalFrpcVersion", err);
               req.event.reply(req.channel, ResponseUtils.fail(err));
             });
         }
       })
       .catch(err => {
-        Logger.error("VersionController.importLocalFrpcVersion", err);
+        log.error("VersionController.importLocalFrpcVersion", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
 
@@ -137,5 +139,3 @@ class VersionController extends BaseController {
     // }
   }
 }
-
-export default VersionController;

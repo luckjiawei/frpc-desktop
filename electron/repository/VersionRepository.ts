@@ -1,34 +1,55 @@
-import BaseRepository from "./BaseRepository";
+import BaseRepository from "../core/BaseRepository";
 
-// @Component()
-class VersionRepository extends BaseRepository<FrpcVersion> {
+/**
+ * Repository for managing version information in the database
+ */
+export default class VersionRepository extends BaseRepository<VersionModel> {
   constructor() {
-    super("version");
+    super();
   }
-
-  findByGithubReleaseId(githubReleaseId: number): Promise<FrpcVersion> {
-    return new Promise<FrpcVersion>((resolve, reject) => {
-      this.db.findOne({ githubReleaseId: githubReleaseId }, (err, document) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(document);
-        }
+  /**
+   * Initialize the table schema
+   * @protected
+   */
+  protected initTableSchema() {
+    this.db.schema.hasTable("frpc_version").then(exist => {
+      if (exist) return;
+      return this.db.schema.createTable("frpc_version", table => {
+        table.bigIncrements("id", { primaryKey: true });
+        table.bigint("github_release_id");
+        table.bigint("github_asset_id");
+        table.string("github_created_at");
+        table.string("name");
+        table.string("asset_name");
+        table.bigint("version_download_count");
+        table.bigint("asset_download_count");
+        table.string("browser_download_url");
+        table.boolean("downloaded");
+        table.string("local_path");
+        table.string("size");
+        table.timestamps(true, true);
       });
     });
   }
 
-  exists(githubReleaseId: number): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      this.db.count({ githubReleaseId: githubReleaseId }, (err, count) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(count > 0);
-        }
-      });
-    });
+  /**
+   * Define the table name
+   * @protected
+   * @returns Table name string
+   */
+  protected tableName(): string {
+    return "frpc_versions";
+  }
+
+  /**
+   *
+   * @param githubReleaseId
+   * @returns Promise resolving to the version model or undefined
+   */
+  findByGithubReleaseId(githubReleaseId: number): Promise<VersionModel> {
+    return this.table()
+      .select("*")
+      .where("githubReleaseId", "=", githubReleaseId)
+      .first();
   }
 }
-
-export default VersionRepository;

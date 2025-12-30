@@ -36,7 +36,7 @@ defineComponent({
 
 const { t } = useI18n();
 
-const defaultFormData: OpenSourceFrpcDesktopServer = {
+const defaultFormData: OpenSourceFrpcDesktopConfiguration = {
   _id: "",
   multiuser: false,
   frpcVersion: null,
@@ -92,7 +92,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   },
   user: ""
 };
-const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
+const formData = ref<OpenSourceFrpcDesktopConfiguration>(defaultFormData);
 const loading = ref(1);
 const rules = reactive<FormRules>({
   frpcVersion: [

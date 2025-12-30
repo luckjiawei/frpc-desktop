@@ -1,32 +1,85 @@
 import ProxyRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
+import BeanFactory from "../core/BeanFactory";
 
-class ProxyService {
+export default class ProxyService {
   private readonly _proxyDao: ProxyRepository;
   private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor(
-    public proxyDao: ProxyRepository,
-    frpcProcessService: FrpcProcessService
-  ) {
-    this._proxyDao = proxyDao;
-    this._frpcProcessService = frpcProcessService;
+  constructor() {
+    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
+    this._frpcProcessService =
+      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
   }
 
-  async insertProxy(proxy: FrpcProxy) {
-    const proxy2 = await this._proxyDao.insert(proxy);
+  async insertProxy(proxy: FrpcDesktopProxy) {
+    const model: ProxyModel = {
+      id: null,
+      name: proxy.name,
+      type: proxy.type,
+      localIP: proxy.localIP,
+      localPort: proxy.localPort,
+      remotePort: proxy.remotePort,
+      customDomains: proxy.customDomains.join(","), // string array
+      locations: proxy.locations.join(","), // string array
+      hostHeaderRewrite: proxy.hostHeaderRewrite,
+      visitorsModel: proxy.visitorsModel,
+      serverName: proxy.serverName,
+      secretKey: proxy.secretKey,
+      bindAddr: proxy.bindAddr,
+      bindPort: proxy.bindPort,
+      subdomain: proxy.subdomain,
+      basicAuth: proxy.basicAuth,
+      httpUser: proxy.httpUser,
+      httpPassword: proxy.httpPassword,
+      fallbackTo: proxy.fallbackTo,
+      fallbackTimeoutMs: proxy.fallbackTimeoutMs,
+      https2http: proxy.https2http,
+      https2httpCaFile: proxy.https2httpCaFile,
+      https2httpKeyFile: proxy.https2httpKeyFile,
+      keepTunnelOpen: proxy.keepTunnelOpen,
+      transport: JSON.stringify(proxy.transport) // json
+    };
+    const proxy2 = await this._proxyDao.insert(model);
     await this._frpcProcessService.reloadFrpcProcess();
     return proxy2;
   }
 
-  async updateProxy(proxy: FrpcProxy) {
-    const proxy2 = await this._proxyDao.updateById(proxy._id, proxy);
+  async updateProxy(proxy: FrpcDesktopProxy) {
+    const model: ProxyModel = {
+      id: null,
+      name: proxy.name,
+      type: proxy.type,
+      localIP: proxy.localIP,
+      localPort: proxy.localPort,
+      remotePort: proxy.remotePort,
+      customDomains: proxy.customDomains.join(","), // string array
+      locations: proxy.locations.join(","), // string array
+      hostHeaderRewrite: proxy.hostHeaderRewrite,
+      visitorsModel: proxy.visitorsModel,
+      serverName: proxy.serverName,
+      secretKey: proxy.secretKey,
+      bindAddr: proxy.bindAddr,
+      bindPort: proxy.bindPort,
+      subdomain: proxy.subdomain,
+      basicAuth: proxy.basicAuth,
+      httpUser: proxy.httpUser,
+      httpPassword: proxy.httpPassword,
+      fallbackTo: proxy.fallbackTo,
+      fallbackTimeoutMs: proxy.fallbackTimeoutMs,
+      https2http: proxy.https2http,
+      https2httpCaFile: proxy.https2httpCaFile,
+      https2httpKeyFile: proxy.https2httpKeyFile,
+      keepTunnelOpen: proxy.keepTunnelOpen,
+      transport: JSON.stringify(proxy.transport) // json
+    };
+    const proxy2 = await this._proxyDao.updateById(model);
     await this._frpcProcessService.reloadFrpcProcess();
     return proxy2;
   }
 
-  async deleteProxy(proxyId: string) {
+  async deleteProxy(proxyId: number) {
     await this._proxyDao.deleteById(proxyId);
     await this._frpcProcessService.reloadFrpcProcess();
   }
@@ -139,4 +192,3 @@ class ProxyService {
   }
 }
 
-export default ProxyService;

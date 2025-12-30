@@ -1,17 +1,18 @@
-import BaseController from "./BaseController";
+import BaseController from "../core/BaseController";
 import ProxyService from "../service/ProxyService";
 import ResponseUtils from "../utils/ResponseUtils";
 import ProxyRepository from "../repository/ProxyRepository";
-import Logger from "../core/Logger";
+import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
-class ProxyController extends BaseController {
+export default class ProxyController extends BaseController {
   private readonly _proxyService: ProxyService;
   private readonly _proxyDao: ProxyRepository;
 
-  constructor(proxyService: ProxyService, proxyDao: ProxyRepository) {
+  constructor() {
     super();
-    this._proxyService = proxyService;
-    this._proxyDao = proxyDao;
+    this._proxyService = BeanFactory.getBean<ProxyService>("proxyService");
+    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
   }
 
   createProxy(req: ControllerParam) {
@@ -21,7 +22,7 @@ class ProxyController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.createProxy", err);
+        log.error("ProxyController.createProxy", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -33,19 +34,19 @@ class ProxyController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.modifyProxy", err);
+        log.error("ProxyController.modifyProxy", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 
   getAllProxies(req: ControllerParam) {
     this._proxyDao
-      .findAll()
+      .selectAll()
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.getAllProxies", err);
+        log.error("ProxyController.getAllProxies", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -57,7 +58,7 @@ class ProxyController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.deleteProxy", err);
+        log.error("ProxyController.deleteProxy", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -69,7 +70,7 @@ class ProxyController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.modifyProxyStatus", err);
+        log.error("ProxyController.modifyProxyStatus", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -81,10 +82,8 @@ class ProxyController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("ProxyController.getLocalPorts", err);
+        log.error("ProxyController.getLocalPorts", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }
-
-export default ProxyController;

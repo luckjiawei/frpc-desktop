@@ -7,8 +7,8 @@ import path from "path";
 import * as tar from "tar";
 import zlib from "zlib";
 import GlobalConstant from "../core/GlobalConstant";
-import Logger from "../core/Logger";
 import ResponseUtils from "../utils/ResponseUtils";
+import log from "electron-log/main";
 
 class SystemService {
   async openUrl(url: string) {
@@ -182,7 +182,7 @@ class SystemService {
         }
       };
 
-      Logger.debug("SystemService.getSystemUsage", JSON.stringify(result));
+      log.debug("SystemService.getSystemUsage", JSON.stringify(result));
 
       const win: BrowserWindow = BeanFactory.getBean("win");
       if (win && !win.isDestroyed()) {

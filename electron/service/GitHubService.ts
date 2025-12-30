@@ -1,4 +1,5 @@
 import { net } from "electron";
+import BaseService from "../core/BaseService";
 
 class GitHubService {
   constructor() {}

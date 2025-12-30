@@ -3,10 +3,10 @@ import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
-import Logger from "../core/Logger";
 import GitHubService from "../service/GitHubService";
+import log from "electron-log/main";
 
-class SystemController {
+export default class SystemController {
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
 
@@ -22,7 +22,7 @@ class SystemController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("SystemController.openUrl", err);
+        log.error("SystemController.openUrl", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -34,7 +34,7 @@ class SystemController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("SystemController.relaunchApp", err);
+        log.error("SystemController.relaunchApp", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -46,7 +46,7 @@ class SystemController {
         req.event.reply(req.channel, ResponseUtils.success());
       })
       .catch((err: Error) => {
-        Logger.error("SystemController.openAppData", err);
+        log.error("SystemController.openAppData", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -84,7 +84,7 @@ class SystemController {
         }
       })
       .catch((err: Error) => {
-        Logger.error("SystemController.selectLocalFile", err);
+        log.error("SystemController.selectLocalFile", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -102,10 +102,8 @@ class SystemController {
         );
       })
       .catch((err: Error) => {
-        Logger.error("SystemController.getFrpcDesktopGithubLastRelease", err);
+        log.error("SystemController.getFrpcDesktopGithubLastRelease", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }
-
-export default SystemController;

@@ -1,4 +1,4 @@
-import Logger from "./Logger";
+import log from "electron-log/main";
 
 class BeanFactory {
   private static _beans: Map<string, any> = new Map<string, any>();
@@ -16,8 +16,8 @@ class BeanFactory {
 
   public static setBean<T>(name: string, bean: T): void {
     this._beans.set(name, bean);
-    Logger.info(`${this.name}.${arguments[0]}`, `register bean ${name}`);
-    // Logger.info(`register bean ${name} ${bean}`);
+    log.scope("bean").info(`Bean [${name}] initialized successfully.`);
+    // log.info(`register bean ${name} ${bean}`);
   }
 
   public static getBean<T>(name: string): T {

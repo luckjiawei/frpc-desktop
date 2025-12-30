@@ -1,14 +1,15 @@
-import Logger from "../core/Logger";
 import LogService from "../service/LogService";
 import ResponseUtils from "../utils/ResponseUtils";
-import BaseController from "./BaseController";
+import BaseController from "../core/BaseController";
+import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
-class LogController extends BaseController {
+export default class LogController extends BaseController {
   private readonly _logService: LogService;
 
-  constructor(logService: LogService) {
+  constructor() {
     super();
-    this._logService = logService;
+    this._logService = BeanFactory.getBean<LogService>("logService");
   }
 
   getFrpLogContent(req: ControllerParam) {
@@ -18,7 +19,7 @@ class LogController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("LogController.getFrpLogContent", err);
+        log.error("LogController.getFrpLogContent", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -30,7 +31,7 @@ class LogController extends BaseController {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        Logger.error("LogController.getAppLogContent", err);
+        log.error("LogController.getAppLogContent", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -52,7 +53,7 @@ class LogController extends BaseController {
         }
       })
       .catch((err: Error) => {
-        Logger.error("LogController.openFrpcLogFile", err);
+        log.error("LogController.openFrpcLogFile", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -68,10 +69,10 @@ class LogController extends BaseController {
         }
       })
       .catch((err: Error) => {
-        Logger.error("LogController.openAppLogFile", err);
+        log.error("LogController.openAppLogFile", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
 }
 
-export default LogController;
+

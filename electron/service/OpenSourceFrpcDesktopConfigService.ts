@@ -4,70 +4,93 @@ import path from "path";
 import TOML from "smol-toml";
 import BeanFactory from "../core/BeanFactory";
 import GlobalConstant from "../core/GlobalConstant";
-import Logger from "../core/Logger";
 import ProxyRepository from "../repository/ProxyRepository";
-import ServerRepository from "../repository/ServerRepository";
 import PathUtils from "../utils/PathUtils";
-import BaseService from "./BaseService";
+import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
 
-class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
-  private readonly _serverDao: ServerRepository;
+class OpenSourceFrpcDesktopConfigService {
+  private readonly _openSourceConfigRepository: OpenSourceConfigRepository;
   private readonly _proxyDao: ProxyRepository;
-  // private readonly _systemService: SystemService;
-  private readonly _serverId: string = "1";
 
-  constructor(
-    serverDao: ServerRepository,
-    proxyDao: ProxyRepository
-    // systemService: SystemService
-  ) {
-    super();
-    this._serverDao = serverDao;
-    this._proxyDao = proxyDao;
-    // this._systemService = systemService;
+  private readonly _configId: number = 1;
+
+  constructor() {
+    this._openSourceConfigRepository =
+      BeanFactory.getBean<OpenSourceConfigRepository>(
+        "openSourceConfigRepoitory"
+      );
+    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
   }
 
   async saveServerConfig(
-    frpcServer: OpenSourceFrpcDesktopServer
-  ): Promise<OpenSourceFrpcDesktopServer> {
-    frpcServer._id = this._serverId;
-    const newConfig = await this._serverDao.updateById(
-      this._serverId,
-      frpcServer
-    );
+    frpcServer: OpenSourceFrpcDesktopConfiguration
+  ): Promise<OpenSourceFrpcDesktopConfiguration> {
+    const configModel: OpenSourceConfigModel = {
+      id: this._configId,
+      user: frpcServer.user,
+      serverAddr: frpcServer.serverAddr,
+      serverPort: frpcServer.serverPort,
+      loginFailExit: frpcServer.loginFailExit,
+      log: JSON.stringify(frpcServer.log), // json
+      auth: JSON.stringify(frpcServer.auth), // json
+      webServer: JSON.stringify(frpcServer.webServer), // json
+      transport: JSON.stringify(frpcServer.transport), // json
+      udpPacketSize: frpcServer.udpPacketSize,
+      metadatas: JSON.stringify(frpcServer.metadatas), // json
+
+      frpcVersion: frpcServer.frpcVersion,
+      multiuser: frpcServer.multiuser,
+
+      system: JSON.stringify(frpcServer.system) // json
+    };
+    const flag = await this.hasServerConfig();
+    if (await this.hasServerConfig()) {
+      await this._openSourceConfigRepository.updateById(configModel);
+    } else {
+      await this._openSourceConfigRepository.insert(configModel);
+    }
+
     try {
       app.setLoginItemSettings({
-        openAtLogin: newConfig.system.launchAtStartup || false, //win
-        openAsHidden: newConfig.system.launchAtStartup || false //macOs
+        openAtLogin: frpcServer.system.launchAtStartup || false, //win
+        openAsHidden: frpcServer.system.launchAtStartup || false //macOs
       });
     } catch (error) {
-      Logger.error("ServerService.saveServerConfig", error);
+      log.error("ServerService.saveServerConfig", error);
     }
-    Logger.setLevel(newConfig.log.level);
-    return newConfig;
+    Logger.setLevel(frpcServer.log.level);
+    return frpcServer;
   }
 
-  async getServerConfig(): Promise<OpenSourceFrpcDesktopServer> {
-    return await this._serverDao.findById(this._serverId);
+  async getServerConfig(): Promise<OpenSourceFrpcDesktopConfiguration> {
+    const r = await this._openSourceConfigRepository.selectById(this._configId);
+    if (r) {
+      const data: OpenSourceFrpcDesktopConfiguration = {
+        system: JSON.parse(r.system),
+        frpcVersion: r.frpcVersion,
+        multiuser: r.multiuser,
+        user: r.user,
+        serverAddr: r.serverAddr,
+        serverPort: r.serverPort,
+        loginFailExit: r.loginFailExit,
+        log: JSON.parse(r.log),
+        auth: JSON.parse(r.auth),
+        webServer: JSON.parse(r.webServer),
+        transport: JSON.parse(r.transport),
+        udpPacketSize: r.udpPacketSize,
+        metadatas: JSON.parse(r.metadatas)
+      };
+      return data;
+    } else {
+      return undefined;
+    }
   }
 
-  hasServerConfig(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      this._serverDao
-        .exists(this._serverId)
-        .then(async r => {
-          if (r) {
-            const config = await this.getServerConfig();
-            resolve(!!config && !!config.serverAddr);
-          } else {
-            resolve(false);
-          }
-        })
-        .catch(err => reject(err));
-    });
+  async hasServerConfig(): Promise<boolean> {
+    return await this._openSourceConfigRepository.exists(this._configId);
   }
 
-  private isRagePort(proxy: FrpcProxy) {
+  private isRagePort(proxy: FrpcDesktopProxy) {
     return (
       ["tcp", "udp"].indexOf(proxy.type) >= 0 &&
       (String(proxy.localPort).indexOf("-") !== -1 ||
@@ -75,18 +98,18 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     );
   }
 
-  private isVisitors(proxy: FrpcProxy) {
+  private isVisitors(proxy: FrpcDesktopProxy) {
     return (
       ["stcp", "sudp", "xtcp"].indexOf(proxy.type) >= 0 &&
       proxy.visitorsModel === "visitors"
     );
   }
 
-  private isEnableProxy(proxy: FrpcProxy) {
+  private isEnableProxy(proxy: FrpcDesktopProxy) {
     return proxy.status === 1;
   }
 
-  private isHttps2http(proxy: FrpcProxy) {
+  private isHttps2http(proxy: FrpcDesktopProxy) {
     return proxy.https2http;
   }
 
@@ -95,7 +118,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
       return;
     }
     const server = await this.getServerConfig();
-    const proxies = await this._proxyDao.findAll();
+    const proxies = await this._proxyDao.selectAll();
 
     const enabledRangePortProxies = proxies
       .filter(f => this.isEnableProxy(f))
@@ -212,7 +235,7 @@ remotePort = {{ $v.Second }}
         }
       });
 
-    const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
+    const { frpcVersion, id, system, multiuser, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
     frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
@@ -254,8 +277,8 @@ ${f}`;
         const tomlData = fs.readFileSync(filePath, "utf-8");
         const sourceConfig = TOML.parse(tomlData);
         // 默认配置
-        const config: OpenSourceFrpcDesktopServer = {
-          _id: "",
+        const config: OpenSourceFrpcDesktopConfiguration = {
+          id: null,
           multiuser: false,
           frpcVersion: null,
           loginFailExit: false,
@@ -535,7 +558,7 @@ ${f}`;
 
         if (sourceConfig && sourceConfig.proxies) {
           const proxies = (sourceConfig.proxies as any[]).map((proxy: any) => {
-            const proxy2: FrpcProxy = {
+            const proxy2: FrpcDesktopProxy = {
               _id: "",
               hostHeaderRewrite: "",
               locations: [""],
@@ -647,7 +670,7 @@ ${f}`;
         if (sourceConfig && sourceConfig.visitors) {
           const visitors = (sourceConfig.visitors as any[]).map(
             (visitor: any) => {
-              const visitor2: FrpcProxy = {
+              const visitor2: FrpcDesktopProxy = {
                 _id: "",
                 hostHeaderRewrite: "",
                 locations: [""],
@@ -762,7 +785,7 @@ ${f}`;
     if (serverConfig) {
       language = serverConfig.system.language;
     }
-    if (!language) {
+    if (!serverConfig || !language) {
       language = GlobalConstant.DEFAULT_LANGUAGE;
     }
     return language;
@@ -834,4 +857,4 @@ ${f}`;
   }
 }
 
-export default ServerService;
+export default OpenSourceFrpcDesktopConfigService;
