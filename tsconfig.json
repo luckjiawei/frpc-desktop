@@ -9,28 +9,17 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
-    "types": [
-      "node",
-      "vite/client",
-      "element-plus/global"
-    ],
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types/",
-      "./node_modules"
-    ]
+    "types": ["node", "vite/client", "element-plus/global", "reflect-metadata"],
+    "typeRoots": ["./types", "./node_modules/@types/", "./node_modules"],
+     "experimentalDecorators": true,
+  "emitDecoratorMetadata": true
   },
   "include": [
     "src/**/*.ts",
@@ -41,9 +30,6 @@
     "electron",
     "vite.config.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.js"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.js"],
+ 
 }

@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { dialog } from "electron";
 import fs from "fs";
 import moment from "moment";
@@ -9,18 +11,25 @@ import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "../core/BaseController";
 import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
 
+@injectable()
 export default class ConfigController extends BaseController {
   private readonly _serverService: OpenSourceFrpcDesktopConfigService;
   private readonly _systemService: SystemService;
   private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor() {
+  constructor(
+    @inject(TYPES.OpenSourceFrpcDesktopConfigService)
+    serverService: OpenSourceFrpcDesktopConfigService,
+    @inject(TYPES.SystemService) systemService: SystemService,
+    @inject(TYPES.FrpcProcessService) frpcProcessService: FrpcProcessService
+  ) {
     super();
-    this._serverService =
-      BeanFactory.getBean<OpenSourceFrpcDesktopConfigService>(
-        "openSourceFrpcDesktopConfigService"
-      );
+    this._serverService = serverService;
+    this._systemService = systemService;
+    this._frpcProcessService = frpcProcessService;
     this._systemService = BeanFactory.getBean<SystemService>("systemService");
     this._frpcProcessService =
       BeanFactory.getBean<FrpcProcessService>("frpcProcessService");

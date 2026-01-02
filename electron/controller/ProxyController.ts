@@ -1,18 +1,26 @@
+import "reflect-metadata";
+
 import BaseController from "../core/BaseController";
 import ProxyService from "../service/ProxyService";
 import ResponseUtils from "../utils/ResponseUtils";
 import ProxyRepository from "../repository/ProxyRepository";
 import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
 
+@injectable()
 export default class ProxyController extends BaseController {
   private readonly _proxyService: ProxyService;
   private readonly _proxyDao: ProxyRepository;
 
-  constructor() {
+  constructor(
+    @inject(TYPES.ProxyService) proxyService: ProxyService,
+    @inject(TYPES.ProxyRepository) proxyRepository: ProxyRepository
+  ) {
     super();
-    this._proxyService = BeanFactory.getBean<ProxyService>("proxyService");
-    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
+    this._proxyService = proxyService;
+    this._proxyDao = proxyRepository;
   }
 
   createProxy(req: ControllerParam) {

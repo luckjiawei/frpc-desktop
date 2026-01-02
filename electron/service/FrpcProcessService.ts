@@ -1,10 +1,10 @@
+import "reflect-metadata";
 import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
 import GlobalConstant from "../core/GlobalConstant";
-import Logger from "../core/Logger";
 import VersionRepository from "../repository/VersionRepository";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
@@ -12,7 +12,9 @@ import ResponseUtils from "../utils/ResponseUtils";
 import OpenSourceFrpcDesktopConfigService from "./OpenSourceFrpcDesktopConfigService";
 import SystemService from "./SystemService";
 import log from "electron-log/main";
+import { injectable } from "inversify";
 
+@injectable()
 class FrpcProcessService {
   private readonly _openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService;
   private readonly _systemService: SystemService;

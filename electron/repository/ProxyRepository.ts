@@ -21,9 +21,7 @@ export default class ProxyRepository extends BaseRepository<ProxyModel> {
    * @protected
    */
   protected initTableSchema() {
-    this.db.schema.hasTable(this.tableName()).then(exist => {
-      if (exist) return;
-      return this.db.schema.createTable(this.tableName(), table => {
+    this.db.schema.createTable(this.tableName(), table => {
         table.bigIncrements("id", { primaryKey: true });
         table.string("name");
         table.string("type");
@@ -51,7 +49,6 @@ export default class ProxyRepository extends BaseRepository<ProxyModel> {
         table.json("transport");
         table.timestamps(true, true);
       });
-    });
   }
 
   /**

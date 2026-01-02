@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
@@ -12,17 +13,23 @@ import SecureUtils from "../utils/SecureUtils";
 import GitHubService from "./GitHubService";
 import SystemService from "./SystemService";
 import BeanFactory from "../core/BeanFactory";
+import VersionConverter from "electron/converter/VersionConverter";
+import { injectable } from "inversify";
 
-class VersionService {
+@injectable()
+export default class VersionService {
   private readonly _versionDao: VersionRepository;
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
+  private readonly _versionConverter: VersionConverter;
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<VersionModel> = [];
 
   constructor() {
     this._versionDao =
       BeanFactory.getBean<VersionRepository>("versionRepository");
+    this._versionConverter =
+      BeanFactory.getBean<VersionConverter>("versionConverter");
     this._systemService = BeanFactory.getBean<SystemService>("systemService");
     this._gitHubService = BeanFactory.getBean<GitHubService>("gitHubService");
 
@@ -240,5 +247,3 @@ class VersionService {
     return await this._versionDao.insert(version);
   }
 }
-
-export default VersionService;

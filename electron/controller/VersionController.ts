@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import BaseController from "../core/BaseController";
 import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
@@ -5,17 +7,21 @@ import VersionRepository from "../repository/VersionRepository";
 import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
 
+@injectable()
 export default class VersionController extends BaseController {
   private readonly _versionService: VersionService;
   private readonly _versionDao: VersionRepository;
 
-  constructor() {
+  constructor(
+    @inject(TYPES.VersionService) versionService: VersionService,
+    @inject(TYPES.VersionRepository) versionDao: VersionRepository
+  ) {
     super();
-    this._versionService =
-      BeanFactory.getBean<VersionService>("versionService");
-    this._versionDao =
-      BeanFactory.getBean<VersionRepository>("versionRepository");
+    this._versionService = versionService;
+    this._versionDao = versionDao;
   }
 
   getVersions(req: ControllerParam) {

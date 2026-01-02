@@ -1,6 +1,8 @@
+import "reflect-metadata";
 import { net } from "electron";
-import BaseService from "../core/BaseService";
+import { injectable } from "inversify";
 
+@injectable()
 class GitHubService {
   constructor() {}
 

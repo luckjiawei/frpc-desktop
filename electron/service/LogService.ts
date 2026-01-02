@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { BrowserWindow } from "electron";
 import fs from "fs";
 import BeanFactory from "../core/BeanFactory";

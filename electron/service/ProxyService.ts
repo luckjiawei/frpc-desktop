@@ -1,89 +1,65 @@
+import "reflect-metadata";
 import ProxyRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
 import BeanFactory from "../core/BeanFactory";
+import ProxyConverter from "electron/converter/ProxyConverter";
+import { injectable } from "inversify";
 
+@injectable()
 export default class ProxyService {
   private readonly _proxyDao: ProxyRepository;
   private readonly _frpcProcessService: FrpcProcessService;
+  private readonly _proxyConverter: ProxyConverter;
 
   constructor() {
     this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
     this._frpcProcessService =
       BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
+    this._proxyConverter = BeanFactory.getBean<ProxyConverter>("proxyConverter");
   }
 
+  /**
+   * Insert a new proxy configuration
+   * @param proxy The proxy configuration to insert
+   * @returns The inserted proxy configuration
+   */
   async insertProxy(proxy: FrpcDesktopProxy) {
-    const model: ProxyModel = {
-      id: null,
-      name: proxy.name,
-      type: proxy.type,
-      localIP: proxy.localIP,
-      localPort: proxy.localPort,
-      remotePort: proxy.remotePort,
-      customDomains: proxy.customDomains.join(","), // string array
-      locations: proxy.locations.join(","), // string array
-      hostHeaderRewrite: proxy.hostHeaderRewrite,
-      visitorsModel: proxy.visitorsModel,
-      serverName: proxy.serverName,
-      secretKey: proxy.secretKey,
-      bindAddr: proxy.bindAddr,
-      bindPort: proxy.bindPort,
-      subdomain: proxy.subdomain,
-      basicAuth: proxy.basicAuth,
-      httpUser: proxy.httpUser,
-      httpPassword: proxy.httpPassword,
-      fallbackTo: proxy.fallbackTo,
-      fallbackTimeoutMs: proxy.fallbackTimeoutMs,
-      https2http: proxy.https2http,
-      https2httpCaFile: proxy.https2httpCaFile,
-      https2httpKeyFile: proxy.https2httpKeyFile,
-      keepTunnelOpen: proxy.keepTunnelOpen,
-      transport: JSON.stringify(proxy.transport) // json
-    };
+    // insert proxy
+    const model: ProxyModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.insert(model);
+    // reload
     await this._frpcProcessService.reloadFrpcProcess();
     return proxy2;
   }
 
+  /**
+   * Update an existing proxy configuration
+   * @param proxy The proxy configuration to update
+   * @returns The updated proxy configuration
+   */
   async updateProxy(proxy: FrpcDesktopProxy) {
-    const model: ProxyModel = {
-      id: null,
-      name: proxy.name,
-      type: proxy.type,
-      localIP: proxy.localIP,
-      localPort: proxy.localPort,
-      remotePort: proxy.remotePort,
-      customDomains: proxy.customDomains.join(","), // string array
-      locations: proxy.locations.join(","), // string array
-      hostHeaderRewrite: proxy.hostHeaderRewrite,
-      visitorsModel: proxy.visitorsModel,
-      serverName: proxy.serverName,
-      secretKey: proxy.secretKey,
-      bindAddr: proxy.bindAddr,
-      bindPort: proxy.bindPort,
-      subdomain: proxy.subdomain,
-      basicAuth: proxy.basicAuth,
-      httpUser: proxy.httpUser,
-      httpPassword: proxy.httpPassword,
-      fallbackTo: proxy.fallbackTo,
-      fallbackTimeoutMs: proxy.fallbackTimeoutMs,
-      https2http: proxy.https2http,
-      https2httpCaFile: proxy.https2httpCaFile,
-      https2httpKeyFile: proxy.https2httpKeyFile,
-      keepTunnelOpen: proxy.keepTunnelOpen,
-      transport: JSON.stringify(proxy.transport) // json
-    };
+    const model: ProxyModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.updateById(model);
+    // reload
     await this._frpcProcessService.reloadFrpcProcess();
     return proxy2;
   }
 
+  /**
+   * Delete a proxy configuration by ID
+   * @param proxyId The ID of the proxy configuration to delete
+   */
   async deleteProxy(proxyId: number) {
     await this._proxyDao.deleteById(proxyId);
+    // reload
     await this._frpcProcessService.reloadFrpcProcess();
   }
 
+  /**
+   * Get all local ports that are currently in use
+   * @returns Array of local ports
+   */
   async getLocalPorts(): Promise<Array<LocalPort>> {
     const command =
       process.platform === "win32"
@@ -170,24 +146,6 @@ export default class ProxyService {
 
         resolve(ports);
       });
-      // exec(command, (error, stdout, stderr) => {
-      //   if (error) {
-      //     logError(LogModule.APP, `getLocalPorts - error: ${error.message}`);
-      //     return;
-      //   }
-      //   if (stderr) {
-      //     logWarn(LogModule.APP, `getLocalPorts - stderr: ${stderr}`);
-      //     return;
-      //   }
-      //
-      //   logDebug(LogModule.APP, `Command output: ${stdout}`);
-      //   let ports = [];
-
-      //
-      //   event.reply("local.getLocalPorts.hook", {
-      //     data: ports
-      //   });
-      // });
     });
   }
 }

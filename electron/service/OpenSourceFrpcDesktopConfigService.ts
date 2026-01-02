@@ -1,95 +1,95 @@
+import "reflect-metadata";
 import { app, BrowserWindow, dialog } from "electron";
 import fs from "fs";
 import path from "path";
-import TOML from "smol-toml";
+import TOML, { TomlValue } from "smol-toml";
 import BeanFactory from "../core/BeanFactory";
 import GlobalConstant from "../core/GlobalConstant";
 import ProxyRepository from "../repository/ProxyRepository";
 import PathUtils from "../utils/PathUtils";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
+import OpenSourceConfigConverter from "electron/converter/OpenSourceConfigConverter";
+import log from "electron-log/main";
+import { LevelOption } from "electron-log";
+import { injectable } from "inversify";
 
-class OpenSourceFrpcDesktopConfigService {
+@injectable()
+export default class OpenSourceFrpcDesktopConfigService {
   private readonly _openSourceConfigRepository: OpenSourceConfigRepository;
   private readonly _proxyDao: ProxyRepository;
+  private readonly _openSourceConfigConverter: OpenSourceConfigConverter;
 
   private readonly _configId: number = 1;
 
   constructor() {
     this._openSourceConfigRepository =
       BeanFactory.getBean<OpenSourceConfigRepository>(
-        "openSourceConfigRepoitory"
+        "openSourceConfigRepository"
       );
     this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
+    this._openSourceConfigConverter =
+      BeanFactory.getBean<OpenSourceConfigConverter>(
+        "openSourceConfigConverter"
+      );
   }
 
   async saveServerConfig(
-    frpcServer: OpenSourceFrpcDesktopConfiguration
+    config: OpenSourceFrpcDesktopConfiguration
   ): Promise<OpenSourceFrpcDesktopConfiguration> {
-    const configModel: OpenSourceConfigModel = {
-      id: this._configId,
-      user: frpcServer.user,
-      serverAddr: frpcServer.serverAddr,
-      serverPort: frpcServer.serverPort,
-      loginFailExit: frpcServer.loginFailExit,
-      log: JSON.stringify(frpcServer.log), // json
-      auth: JSON.stringify(frpcServer.auth), // json
-      webServer: JSON.stringify(frpcServer.webServer), // json
-      transport: JSON.stringify(frpcServer.transport), // json
-      udpPacketSize: frpcServer.udpPacketSize,
-      metadatas: JSON.stringify(frpcServer.metadatas), // json
-
-      frpcVersion: frpcServer.frpcVersion,
-      multiuser: frpcServer.multiuser,
-
-      system: JSON.stringify(frpcServer.system) // json
-    };
-    const flag = await this.hasServerConfig();
+    // save config
+    const model: OpenSourceConfigModel =
+      this._openSourceConfigConverter.openSourceConfig2Model(config);
     if (await this.hasServerConfig()) {
-      await this._openSourceConfigRepository.updateById(configModel);
+      await this._openSourceConfigRepository.updateById(model);
     } else {
-      await this._openSourceConfigRepository.insert(configModel);
+      await this._openSourceConfigRepository.insert(model);
     }
-
+    // change log level
+    log.transports.file.level = config.log.level as LevelOption;
+    log.transports.console.level = config.log.level as LevelOption;
+    // auto at login
     try {
       app.setLoginItemSettings({
-        openAtLogin: frpcServer.system.launchAtStartup || false, //win
-        openAsHidden: frpcServer.system.launchAtStartup || false //macOs
+        openAtLogin: config.system.launchAtStartup || false, //win
+        openAsHidden: config.system.launchAtStartup || false //macOs
       });
     } catch (error) {
-      log.error("ServerService.saveServerConfig", error);
+      log
+        .scope("service")
+        .error(
+          "[OpenSourceFrpcDesktopConfigService.saveServerConfig] set auto login failed",
+          error
+        );
     }
-    Logger.setLevel(frpcServer.log.level);
-    return frpcServer;
+    return config;
   }
 
+  /**
+   * Get the server configuration.
+   * @returns {Promise<OpenSourceFrpcDesktopConfiguration>} The server configuration.
+   */
   async getServerConfig(): Promise<OpenSourceFrpcDesktopConfiguration> {
     const r = await this._openSourceConfigRepository.selectById(this._configId);
     if (r) {
-      const data: OpenSourceFrpcDesktopConfiguration = {
-        system: JSON.parse(r.system),
-        frpcVersion: r.frpcVersion,
-        multiuser: r.multiuser,
-        user: r.user,
-        serverAddr: r.serverAddr,
-        serverPort: r.serverPort,
-        loginFailExit: r.loginFailExit,
-        log: JSON.parse(r.log),
-        auth: JSON.parse(r.auth),
-        webServer: JSON.parse(r.webServer),
-        transport: JSON.parse(r.transport),
-        udpPacketSize: r.udpPacketSize,
-        metadatas: JSON.parse(r.metadatas)
-      };
-      return data;
+      return this._openSourceConfigConverter.model2OpenSourceConfig(r);
     } else {
       return undefined;
     }
   }
 
+  /**
+   * Get the server configuration.
+   * @returns {Promise<OpenSourceFrpcDesktopConfiguration>} The server configuration.
+   */
   async hasServerConfig(): Promise<boolean> {
     return await this._openSourceConfigRepository.exists(this._configId);
   }
 
+  /**
+   * Check if the proxy uses a range of ports.
+   * @param proxy The proxy to check.
+   * @returns True if the proxy uses a range of ports, false otherwise.
+   */
   private isRagePort(proxy: FrpcDesktopProxy) {
     return (
       ["tcp", "udp"].indexOf(proxy.type) >= 0 &&
@@ -98,6 +98,11 @@ class OpenSourceFrpcDesktopConfigService {
     );
   }
 
+  /**
+   *
+   * @param proxy
+   * @returns
+   */
   private isVisitors(proxy: FrpcDesktopProxy) {
     return (
       ["stcp", "sudp", "xtcp"].indexOf(proxy.type) >= 0 &&
@@ -105,14 +110,29 @@ class OpenSourceFrpcDesktopConfigService {
     );
   }
 
+  /**
+   * Check if the proxy is enabled.
+   * @param proxy The proxy to check.
+   * @returns True if the proxy is enabled, false otherwise.
+   */
   private isEnableProxy(proxy: FrpcDesktopProxy) {
     return proxy.status === 1;
   }
 
+  /**
+   * Check if the proxy uses HTTPS to HTTP conversion.
+   * @param proxy The proxy to check.
+   * @returns True if the proxy uses HTTPS to HTTP conversion, false otherwise.
+   */
   private isHttps2http(proxy: FrpcDesktopProxy) {
     return proxy.https2http;
   }
 
+  /**
+   * Generate the TOML configuration file.
+   * @param outputPath The path to the output file.
+   * @returns A promise that resolves when the file is written.
+   */
   async genTomlConfig(outputPath: string) {
     if (!outputPath) {
       return;
@@ -557,113 +577,115 @@ ${f}`;
         await this.saveServerConfig(config);
 
         if (sourceConfig && sourceConfig.proxies) {
-          const proxies = (sourceConfig.proxies as any[]).map((proxy: any) => {
-            const proxy2: FrpcDesktopProxy = {
-              _id: "",
-              hostHeaderRewrite: "",
-              locations: [""],
-              name: "",
-              type: "http",
-              localIP: "",
-              localPort: "8080",
-              remotePort: "8080",
-              customDomains: [""],
-              visitorsModel: "visitors",
-              serverName: "",
-              secretKey: "",
-              bindAddr: "",
-              bindPort: null,
-              subdomain: "",
-              basicAuth: false,
-              httpUser: "",
-              httpPassword: "",
-              fallbackTo: "",
-              fallbackTimeoutMs: 500,
-              https2http: false,
-              https2httpCaFile: "",
-              https2httpKeyFile: "",
-              keepTunnelOpen: false,
-              status: 1,
-              transport: {
-                useEncryption: false,
-                useCompression: false,
-                proxyProtocolVersion: ""
-              }
-            };
+          const proxies = (sourceConfig.proxies as any[]).map(
+            (proxy: TomlValue) => {
+              const proxy2: FrpcDesktopProxy = {
+                _id: "",
+                hostHeaderRewrite: "",
+                locations: [""],
+                name: "",
+                type: "http",
+                localIP: "",
+                localPort: "8080",
+                remotePort: "8080",
+                customDomains: [""],
+                visitorsModel: "visitors",
+                serverName: "",
+                secretKey: "",
+                bindAddr: "",
+                bindPort: null,
+                subdomain: "",
+                basicAuth: false,
+                httpUser: "",
+                httpPassword: "",
+                fallbackTo: "",
+                fallbackTimeoutMs: 500,
+                https2http: false,
+                https2httpCaFile: "",
+                https2httpKeyFile: "",
+                keepTunnelOpen: false,
+                status: 1,
+                transport: {
+                  useEncryption: false,
+                  useCompression: false,
+                  proxyProtocolVersion: ""
+                }
+              };
 
-            if (proxy.name !== undefined) {
-              proxy2.name = proxy.name as string;
-            }
-            if (proxy.type !== undefined) {
-              proxy2.type = proxy.type as string;
-            }
-            if (proxy.localIP !== undefined) {
-              proxy2.localIP = proxy.localIP as string;
-            }
-            if (proxy.localPort !== undefined) {
-              proxy2.localPort = proxy.localPort.toString();
-            }
-            if (proxy.remotePort !== undefined) {
-              proxy2.remotePort = proxy.remotePort.toString();
-            }
-            if (proxy.customDomains !== undefined) {
-              proxy2.customDomains = proxy.customDomains as string[];
-            }
-            if (proxy.subdomain !== undefined) {
-              proxy2.subdomain = proxy.subdomain as string;
-            }
-            if (proxy.locations !== undefined) {
-              proxy2.locations = proxy.locations as string[];
-            }
-            if (proxy.hostHeaderRewrite !== undefined) {
-              proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
-            }
-            if (proxy.httpUser !== undefined) {
-              proxy2.httpUser = proxy.httpUser as string;
-            }
-            if (proxy.httpPassword !== undefined) {
-              proxy2.httpPassword = proxy.httpPassword as string;
-            }
-            if (proxy.serverName !== undefined) {
-              proxy2.serverName = proxy.serverName as string;
-            }
-            if (proxy.secretKey !== undefined) {
-              proxy2.secretKey = proxy.secretKey as string;
-            }
-            if (proxy.bindAddr !== undefined) {
-              proxy2.bindAddr = proxy.bindAddr as string;
-            }
-            if (proxy.bindPort !== undefined) {
-              proxy2.bindPort = proxy.bindPort as number;
-            }
-            if (proxy.fallbackTo !== undefined) {
-              proxy2.fallbackTo = proxy.fallbackTo as string;
-            }
-            if (proxy.fallbackTimeoutMs !== undefined) {
-              proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
-            }
-            if (proxy.keepTunnelOpen !== undefined) {
-              proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
-            }
+              if (proxy.name !== undefined) {
+                proxy2.name = proxy.name as string;
+              }
+              if (proxy.type !== undefined) {
+                proxy2.type = proxy.type as string;
+              }
+              if (proxy.localIP !== undefined) {
+                proxy2.localIP = proxy.localIP as string;
+              }
+              if (proxy.localPort !== undefined) {
+                proxy2.localPort = proxy.localPort.toString();
+              }
+              if (proxy.remotePort !== undefined) {
+                proxy2.remotePort = proxy.remotePort.toString();
+              }
+              if (proxy.customDomains !== undefined) {
+                proxy2.customDomains = proxy.customDomains as string[];
+              }
+              if (proxy.subdomain !== undefined) {
+                proxy2.subdomain = proxy.subdomain as string;
+              }
+              if (proxy.locations !== undefined) {
+                proxy2.locations = proxy.locations as string[];
+              }
+              if (proxy.hostHeaderRewrite !== undefined) {
+                proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
+              }
+              if (proxy.httpUser !== undefined) {
+                proxy2.httpUser = proxy.httpUser as string;
+              }
+              if (proxy.httpPassword !== undefined) {
+                proxy2.httpPassword = proxy.httpPassword as string;
+              }
+              if (proxy.serverName !== undefined) {
+                proxy2.serverName = proxy.serverName as string;
+              }
+              if (proxy.secretKey !== undefined) {
+                proxy2.secretKey = proxy.secretKey as string;
+              }
+              if (proxy.bindAddr !== undefined) {
+                proxy2.bindAddr = proxy.bindAddr as string;
+              }
+              if (proxy.bindPort !== undefined) {
+                proxy2.bindPort = proxy.bindPort as number;
+              }
+              if (proxy.fallbackTo !== undefined) {
+                proxy2.fallbackTo = proxy.fallbackTo as string;
+              }
+              if (proxy.fallbackTimeoutMs !== undefined) {
+                proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
+              }
+              if (proxy.keepTunnelOpen !== undefined) {
+                proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
+              }
 
-            // 处理 transport 配置
-            if (proxy.transport) {
-              if (proxy.transport.useEncryption !== undefined) {
-                proxy2.transport.useEncryption = proxy.transport
-                  .useEncryption as boolean;
+              // 处理 transport 配置
+              if (proxy.transport) {
+                if (proxy.transport.useEncryption !== undefined) {
+                  proxy2.transport.useEncryption = proxy.transport
+                    .useEncryption as boolean;
+                }
+                if (proxy.transport.useCompression !== undefined) {
+                  proxy2.transport.useCompression = proxy.transport
+                    .useCompression as boolean;
+                }
+                if (proxy.transport.proxyProtocolVersion !== undefined) {
+                  proxy2.transport.proxyProtocolVersion = proxy.transport
+                    .proxyProtocolVersion as string;
+                }
               }
-              if (proxy.transport.useCompression !== undefined) {
-                proxy2.transport.useCompression = proxy.transport
-                  .useCompression as boolean;
-              }
-              if (proxy.transport.proxyProtocolVersion !== undefined) {
-                proxy2.transport.proxyProtocolVersion = proxy.transport
-                  .proxyProtocolVersion as string;
-              }
-            }
 
-            return proxy2;
-          });
+              return proxy2;
+            }
+          );
           await this._proxyDao.insertMany(proxies);
         }
 
@@ -752,7 +774,11 @@ ${f}`;
     }
   }
 
-  async isSilentStart() {
+  /**
+   * Check if silent startup is enabled
+   * @returns True if silent startup is enabled, false otherwise
+   */
+  async isSilentStart(): Promise<boolean> {
     const serverConfig = await this.getServerConfig();
     if (serverConfig) {
       return serverConfig.system.silentStartup;
@@ -761,7 +787,11 @@ ${f}`;
     }
   }
 
-  async isAutoConnectOnStartup() {
+  /**
+   * Check if auto-connect on startup is enabled
+   * @returns True if auto-connect on startup is enabled, false otherwise
+   */
+  async isAutoConnectOnStartup(): Promise<boolean> {
     const serverConfig = await this.getServerConfig();
     if (serverConfig) {
       return serverConfig.system.autoConnectOnStartup;
@@ -770,7 +800,11 @@ ${f}`;
     }
   }
 
-  async getLoggerLevel() {
+  /**
+   * Get the current logger level
+   * @returns The current logger level
+   */
+  async getLoggerLevel(): Promise<string> {
     const serverConfig = await this.getServerConfig();
     if (serverConfig) {
       return serverConfig.log.level;
@@ -779,7 +813,11 @@ ${f}`;
     }
   }
 
-  async getLanguage() {
+  /**
+   * Get the current language setting
+   * @returns The current language code
+   */
+  async getLanguage(): Promise<string> {
     const serverConfig = await this.getServerConfig();
     let language = undefined;
     if (serverConfig) {
@@ -791,70 +829,14 @@ ${f}`;
     return language;
   }
 
-  async saveLanguage(language: string) {
-    let serverConfig = await this.getServerConfig();
-    if (!serverConfig) {
-      serverConfig = {
-        _id: "",
-        multiuser: false,
-        frpcVersion: null,
-        loginFailExit: false,
-        udpPacketSize: 1500,
-        serverAddr: "",
-        serverPort: 7000,
-        auth: {
-          method: "",
-          token: ""
-        },
-        log: {
-          to: "",
-          level: "info",
-          maxDays: 3,
-          disablePrintColor: false
-        },
-        transport: {
-          dialServerTimeout: 10,
-          dialServerKeepalive: 7200,
-          poolCount: 0,
-          tcpMux: true,
-          tcpMuxKeepaliveInterval: 30,
-          protocol: "tcp",
-          connectServerLocalIP: "",
-          proxyURL: "",
-          tls: {
-            enable: true,
-            certFile: "",
-            keyFile: "",
-            trustedCaFile: "",
-            serverName: "",
-            disableCustomTLSFirstByte: true
-          },
-          heartbeatInterval: 30,
-          heartbeatTimeout: 90
-        },
-        metadatas: {
-          token: ""
-        },
-        webServer: {
-          addr: "127.0.0.1",
-          port: 57400,
-          user: "",
-          password: "",
-          pprofEnable: false
-        },
-        system: {
-          launchAtStartup: false,
-          silentStartup: false,
-          autoConnectOnStartup: false,
-          language: language
-        },
-        user: ""
-      };
-    } else {
-      serverConfig.system.language = language;
-    }
-    await this.saveServerConfig(serverConfig);
+  /**
+   * Save the language setting
+   * @param language The language to save
+   */
+  async saveLanguage(language: string): Promise<void> {
+    await this._openSourceConfigRepository.updateLanguageById(
+      this._configId,
+      language
+    );
   }
 }
-
-export default OpenSourceFrpcDesktopConfigService;

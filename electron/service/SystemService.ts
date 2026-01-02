@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import admZip from "adm-zip";
 import { app, BrowserWindow, net, shell } from "electron";
 import BeanFactory from "../core/BeanFactory";
@@ -10,7 +11,8 @@ import GlobalConstant from "../core/GlobalConstant";
 import ResponseUtils from "../utils/ResponseUtils";
 import log from "electron-log/main";
 
-class SystemService {
+
+export default class SystemService {
   async openUrl(url: string) {
     if (url) {
       await shell.openExternal(url);
@@ -194,5 +196,3 @@ class SystemService {
     }, 1000);
   }
 }
-
-export default SystemService;

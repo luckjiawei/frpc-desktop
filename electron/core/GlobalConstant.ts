@@ -1,4 +1,4 @@
-class GlobalConstant {
+export default class GlobalConstant {
   public static ZIP_EXT = ".zip";
   public static TOML_EXT = ".toml";
   public static GZ_EXT = ".gz";
@@ -22,4 +22,3 @@ class GlobalConstant {
   public static FRPC_PROCESS_STATUS_CHECK_INTERVAL = 1;
 }
 
-export default GlobalConstant;

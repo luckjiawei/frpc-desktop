@@ -1,15 +1,19 @@
+import "reflect-metadata";
+
 import LogService from "../service/LogService";
 import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "../core/BaseController";
-import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
 
+@injectable()
 export default class LogController extends BaseController {
   private readonly _logService: LogService;
 
-  constructor() {
+  constructor(@inject(TYPES.LogService) logService: LogService) {
     super();
-    this._logService = BeanFactory.getBean<LogService>("logService");
+    this._logService = logService;
   }
 
   getFrpLogContent(req: ControllerParam) {
@@ -74,5 +78,3 @@ export default class LogController extends BaseController {
       });
   }
 }
-
-

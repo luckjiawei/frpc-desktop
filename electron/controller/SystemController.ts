@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import SystemService from "../service/SystemService";
 import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
@@ -5,14 +7,19 @@ import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import GitHubService from "../service/GitHubService";
 import log from "electron-log/main";
-
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
+@injectable()
 export default class SystemController {
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
 
-  constructor() {
-    this._systemService = BeanFactory.getBean("systemService");
-    this._gitHubService = BeanFactory.getBean("gitHubService");
+  constructor(
+    @inject(TYPES.SystemService) systemService: SystemService,
+    @inject(TYPES.GitHubService) gitHubService: GitHubService
+  ) {
+    this._systemService = systemService;
+    this._gitHubService = gitHubService;
   }
 
   openUrl(req: ControllerParam) {

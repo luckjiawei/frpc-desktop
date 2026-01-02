@@ -1,4 +1,4 @@
-type FrpcDesktopProxy = FrpcProxyConfig & {};
+
 
 interface FrpcDesktopSystemConfiguration {
   launchAtStartup: boolean;
@@ -16,6 +16,7 @@ type FrpcDesktopServer = FrpcCommonConfig & {
 type FrpcVersion = VersionModel & {};
 
 type OpenSourceFrpcDesktopConfiguration = FrpcDesktopServer & {
+  id: number;
   system: FrpcDesktopSystemConfiguration;
 };
 
@@ -23,3 +24,5 @@ type FrpcDesktopProxy = FrpcProxyConfig & {
   id: number;
   status: number; // 0: disable 1: enable
 };
+
+type FrpcDesktopProxy = FrpcProxyConfig & {};

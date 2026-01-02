@@ -1,12 +1,24 @@
 import knex from "knex";
 import BeanFactory from "../core/BeanFactory";
+import log from "electron-log/main";
 
 export default abstract class BaseRepository<T extends BaseModel> {
   protected readonly db: knex.Knex;
 
   protected constructor() {
     this.db = BeanFactory.getBean<knex.Knex>("db");
-    this.initTableSchema();
+    this.checkTableSchema();
+  }
+
+  protected checkTableSchema(): void {
+    this.db.schema.hasTable(this.tableName()).then(exist => {
+      log
+        .scope("repository")
+        .info(`Checking if table "${this.tableName()}" exists.`);
+      if (exist) return;
+      this.initTableSchema();
+      log.scope("repository").info(`Table "${this.tableName()}" created successfully.`);
+    });
   }
 
   /**
@@ -114,4 +126,3 @@ export default abstract class BaseRepository<T extends BaseModel> {
     });
   }
 }
-

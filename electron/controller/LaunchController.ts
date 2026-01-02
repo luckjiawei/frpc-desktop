@@ -3,14 +3,19 @@ import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "../core/BaseController";
 import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
+import "reflect-metadata";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../main";
 
+@injectable()
 export default class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;
 
-  constructor() {
+  constructor(
+    @inject(TYPES.FrpcProcessService) frpcProcessService: FrpcProcessService
+  ) {
     super();
-    this._frpcProcessService =
-      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
+    this._frpcProcessService = frpcProcessService;
   }
 
   launch(req: ControllerParam) {
