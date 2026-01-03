@@ -1,36 +1,42 @@
 import "reflect-metadata";
+
 import { app, BrowserWindow, dialog } from "electron";
 import fs from "fs";
 import path from "path";
 import TOML, { TomlValue } from "smol-toml";
-import BeanFactory from "../core/BeanFactory";
-import GlobalConstant from "../core/GlobalConstant";
+import GlobalConstant from "../core/constant";
 import ProxyRepository from "../repository/ProxyRepository";
 import PathUtils from "../utils/PathUtils";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
-import OpenSourceConfigConverter from "electron/converter/OpenSourceConfigConverter";
+import OpenSourceConfigConverter from "../converter/OpenSourceConfigConverter";
 import log from "electron-log/main";
 import { LevelOption } from "electron-log";
-import { injectable } from "inversify";
+import { inject, injectable, Container } from "inversify";
+import { TYPES } from "../di";
 
 @injectable()
 export default class OpenSourceFrpcDesktopConfigService {
   private readonly _openSourceConfigRepository: OpenSourceConfigRepository;
-  private readonly _proxyDao: ProxyRepository;
+  private readonly _proxyRepository: ProxyRepository;
   private readonly _openSourceConfigConverter: OpenSourceConfigConverter;
+  private readonly _container: Container;
 
   private readonly _configId: number = 1;
 
-  constructor() {
-    this._openSourceConfigRepository =
-      BeanFactory.getBean<OpenSourceConfigRepository>(
-        "openSourceConfigRepository"
-      );
-    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
-    this._openSourceConfigConverter =
-      BeanFactory.getBean<OpenSourceConfigConverter>(
-        "openSourceConfigConverter"
-      );
+  constructor(
+    @inject(TYPES.OpenSourceConfigRepository)
+    openSourceConfigRepository: OpenSourceConfigRepository,
+    @inject(TYPES.OpenSourceConfigConverter)
+    openSourceConfigConverter: OpenSourceConfigConverter,
+    @inject(TYPES.ProxyRepository)
+    proxyRepository: ProxyRepository,
+    @inject(TYPES.Container)
+    container: Container
+  ) {
+    this._openSourceConfigRepository = openSourceConfigRepository;
+    this._proxyRepository = proxyRepository;
+    this._openSourceConfigConverter = openSourceConfigConverter;
+    this._container = container;
   }
 
   async saveServerConfig(
@@ -138,7 +144,7 @@ export default class OpenSourceFrpcDesktopConfigService {
       return;
     }
     const server = await this.getServerConfig();
-    const proxies = await this._proxyDao.selectAll();
+    const proxies = await this._proxyRepository.selectAll();
 
     const enabledRangePortProxies = proxies
       .filter(f => this.isEnableProxy(f))
@@ -186,13 +192,13 @@ remotePort = {{ $v.Second }}
               ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.https2http
                 ? {
-                    plugin: {
-                      type: "https2http",
-                      localAddr: `${proxy.localIP}:${proxy.localPort}`,
-                      crtPath: proxy.https2httpCaFile,
-                      keyPath: proxy.https2httpKeyFile
-                    }
+                  plugin: {
+                    type: "https2http",
+                    localAddr: `${proxy.localIP}:${proxy.localPort}`,
+                    crtPath: proxy.https2httpCaFile,
+                    keyPath: proxy.https2httpKeyFile
                   }
+                }
                 : {})
             };
           } else {
@@ -280,7 +286,7 @@ ${f}`;
   }
 
   async importTomlConfig() {
-    const win: BrowserWindow = BeanFactory.getBean("win");
+    const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
     const result = await dialog.showOpenDialog(win, {
       properties: ["openFile"],
       filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]

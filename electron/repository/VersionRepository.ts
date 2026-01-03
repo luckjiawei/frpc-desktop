@@ -1,18 +1,22 @@
+import "reflect-metadata"
 import BaseRepository from "../core/BaseRepository";
-
+import { inject, injectable } from "inversify";
+import { TYPES } from "../di";
+import knex from "knex";
 /**
  * Repository for managing version information in the database
  */
+@injectable()
 export default class VersionRepository extends BaseRepository<VersionModel> {
-  constructor() {
-    super();
+  constructor(@inject(TYPES.Knex) knex: knex.Knex) {
+    super(knex);
   }
   /**
    * Initialize the table schema
    * @protected
    */
-  protected initTableSchema() {
-    this.db.schema.createTable(this.tableName(), table => {
+  protected async initTableSchema() {
+    await this.knex.schema.createTable(this.tableName(), table => {
       table.bigIncrements("id", { primaryKey: true });
       table.bigint("github_release_id");
       table.bigint("github_asset_id");

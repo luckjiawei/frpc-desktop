@@ -5,7 +5,7 @@ import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "../core/BaseController";
 import log from "electron-log/main";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../main";
+import { TYPES } from "../di";
 
 @injectable()
 export default class LogController extends BaseController {

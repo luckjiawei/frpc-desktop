@@ -2,9 +2,9 @@ import "reflect-metadata";
 import ProxyRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
-import BeanFactory from "../core/BeanFactory";
 import ProxyConverter from "electron/converter/ProxyConverter";
-import { injectable } from "inversify";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../di";
 
 @injectable()
 export default class ProxyService {
@@ -12,11 +12,14 @@ export default class ProxyService {
   private readonly _frpcProcessService: FrpcProcessService;
   private readonly _proxyConverter: ProxyConverter;
 
-  constructor() {
-    this._proxyDao = BeanFactory.getBean<ProxyRepository>("proxyRepository");
-    this._frpcProcessService =
-      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
-    this._proxyConverter = BeanFactory.getBean<ProxyConverter>("proxyConverter");
+  constructor(
+    @inject(TYPES.ProxyRepository) proxyDao: ProxyRepository,
+    @inject(TYPES.FrpcProcessService) frpcProcessService: FrpcProcessService,
+    @inject(TYPES.ProxyConverter) proxyConverter: ProxyConverter
+  ) {
+    this._proxyDao = proxyDao;
+    this._frpcProcessService = frpcProcessService;
+    this._proxyConverter = proxyConverter;
   }
 
   /**

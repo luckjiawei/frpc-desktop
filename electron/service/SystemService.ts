@@ -1,18 +1,24 @@
 import "reflect-metadata";
 import admZip from "adm-zip";
 import { app, BrowserWindow, net, shell } from "electron";
-import BeanFactory from "../core/BeanFactory";
 
 import fs from "fs";
 import path from "path";
 import * as tar from "tar";
 import zlib from "zlib";
-import GlobalConstant from "../core/GlobalConstant";
+import GlobalConstant from "../core/constant";
 import ResponseUtils from "../utils/ResponseUtils";
 import log from "electron-log/main";
+import { inject, injectable, Container } from "inversify";
+import { TYPES } from "../di";
 
-
+@injectable()
 export default class SystemService {
+  private readonly _container: Container;
+
+  constructor(@inject(TYPES.Container) container: Container) {
+    this._container = container;
+  }
   async openUrl(url: string) {
     if (url) {
       await shell.openExternal(url);
@@ -140,59 +146,49 @@ export default class SystemService {
     });
   }
 
-  getSystemUsage(listenerParam: ListenerParam) {
+  getSystemUsage() {
     const process = require("process");
     const os = require("os");
     // const { event, channel } = listenerParam;
     let lastCpuUsage = process.cpuUsage();
     let lastTime = Date.now();
 
-    setInterval(() => {
-      // 获取内存使用情况
-      const memoryUsage = process.memoryUsage();
-      // const totalMemory = os.totalmem();
-      const usedMemory = memoryUsage.rss; // 实际物理内存使用量
-      // const memoryPercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
+    // 获取内存使用情况
+    const memoryUsage = process.memoryUsage();
+    // const totalMemory = os.totalmem();
+    const usedMemory = memoryUsage.rss; // 实际物理内存使用量
+    // const memoryPercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
 
-      // 获取当前 Electron 进程的 CPU 使用情况
-      const currentTime = Date.now();
-      const currentCpuUsage = process.cpuUsage();
+    // 获取当前 Electron 进程的 CPU 使用情况
+    const currentTime = Date.now();
+    const currentCpuUsage = process.cpuUsage();
 
-      // 计算时间差（毫秒转微秒）
-      const timeDiff = (currentTime - lastTime) * 1000;
+    // 计算时间差（毫秒转微秒）
+    const timeDiff = (currentTime - lastTime) * 1000;
 
-      // 计算CPU使用时间差（微秒）
-      const userCPUTimeDiff = currentCpuUsage.user - lastCpuUsage.user;
-      const systemCPUTimeDiff = currentCpuUsage.system - lastCpuUsage.system;
-      const totalCPUTimeDiff = userCPUTimeDiff + systemCPUTimeDiff;
+    // 计算CPU使用时间差（微秒）
+    const userCPUTimeDiff = currentCpuUsage.user - lastCpuUsage.user;
+    const systemCPUTimeDiff = currentCpuUsage.system - lastCpuUsage.system;
+    const totalCPUTimeDiff = userCPUTimeDiff + systemCPUTimeDiff;
 
-      // 计算当前Electron进程的CPU使用率百分比
-      const cpuPercentage =
-        timeDiff > 0
-          ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2)
-          : "0.00";
+    // 计算当前Electron进程的CPU使用率百分比
+    const cpuPercentage =
+      timeDiff > 0
+        ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2)
+        : "0.00";
 
-      // 更新上次的值
-      lastCpuUsage = currentCpuUsage;
-      lastTime = currentTime;
+    // 更新上次的值
+    lastCpuUsage = currentCpuUsage;
+    lastTime = currentTime;
 
-      const result = {
-        cpu: parseFloat(cpuPercentage),
-        memory: {
-          used: Math.round(usedMemory / 1024 / 1024) // MB
-          // percentage: parseFloat(memoryPercentage)
-        }
-      };
-
-      log.debug("SystemService.getSystemUsage", JSON.stringify(result));
-
-      const win: BrowserWindow = BeanFactory.getBean("win");
-      if (win && !win.isDestroyed()) {
-        win.webContents.send(
-          listenerParam.channel,
-          ResponseUtils.success(result)
-        );
+    const result = {
+      cpu: parseFloat(cpuPercentage),
+      memory: {
+        used: Math.round(usedMemory / 1024 / 1024) // MB
+        // percentage: parseFloat(memoryPercentage)
       }
-    }, 1000);
+    };
+
+    return result;
   }
 }

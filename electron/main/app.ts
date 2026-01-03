@@ -2,9 +2,8 @@ import "reflect-metadata";
 
 import { injectable, inject, Container } from "inversify";
 import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
-import { TYPES } from ".";
+import { TYPES } from "../di";
 import log from "electron-log/main";
-import knex from "knex";
 import PathUtils from "../utils/PathUtils";
 import FrpcProcessService from "../service/FrpcProcessService";
 import node_path, { join } from "node:path";
@@ -35,13 +34,16 @@ export class FrpcDesktopApp {
   private readonly _preload = join(__dirname, "../preload/index.js");
   private readonly _url = process.env.VITE_DEV_SERVER_URL;
   private readonly _indexHtml = join(process.env.DIST, "index.html");
+  private readonly _container: Container;
 
   constructor(
     @inject(TYPES.OpenSourceFrpcDesktopConfigService)
     openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService,
     @inject(TYPES.FrpcProcessService)
-    frpcProcessService: FrpcProcessService
+    frpcProcessService: FrpcProcessService,
+    @inject(TYPES.Container) container: Container
   ) {
+    this._container = container;
     this._openSourceFrpcDesktopConfigService =
       openSourceFrpcDesktopConfigService;
     this._frpcProcessService = frpcProcessService;
@@ -54,8 +56,6 @@ export class FrpcDesktopApp {
   }
 
   public run(): void {
-    this.initializeLog();
-    this.initializeDatabase();
     this.initializeElectronApp();
 
     log.scope("main").info("FrpcDesktopApp Version " + app.getVersion());
@@ -68,46 +68,6 @@ export class FrpcDesktopApp {
     log
       .scope("main")
       .info("Process electron version: " + process.versions.electron);
-  }
-
-  /**
-   *
-   */
-  private initializeLog(): void {
-    log.initialize();
-    log.transports.file.level = "info";
-    log.transports.console.level = "info";
-    log.transports.file.format =
-      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
-    log.transports.console.format =
-      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
-
-    log.scope("main").info("Log initialized");
-  }
-
-  /**
-   *
-   */
-  private initializeDatabase(): void {
-    const db: knex.Knex = knex({
-      client: "sqlite",
-      useNullAsDefault: true,
-      connection: {
-        filename: PathUtils.getDatabaseFilename()
-      },
-      log: {
-        debug(message) {
-          log.scope("orm").debug(message);
-        },
-        warn(message) {
-          log.scope("orm").warn(message);
-        },
-        error(message) {
-          log.scope("orm").error(message);
-        }
-      }
-    });
-    log.scope("db").info("Database initialized.");
   }
 
   /**
@@ -151,13 +111,14 @@ export class FrpcDesktopApp {
       },
       show: !(await this._openSourceFrpcDesktopConfigService.isSilentStart())
     });
+    this._container.bind(TYPES.BrowserWindow).toConstantValue(this._win);
     if (process.env.VITE_DEV_SERVER_URL) {
       // electron-vite-vue#298
-      this._win.loadURL(this._url).then(() => {});
+      this._win.loadURL(this._url).then(() => { });
       // Open devTool if the app is not packaged
       this._win.webContents.openDevTools();
     } else {
-      this._win.loadFile(this._indexHtml).then(() => {});
+      this._win.loadFile(this._indexHtml).then(() => { });
     }
 
     this._win.webContents.on("did-finish-load", () => {
@@ -202,7 +163,7 @@ export class FrpcDesktopApp {
         click: function () {
           that._win.show();
           if (process.platform === "darwin") {
-            app.dock.show().then(() => {});
+            app.dock.show().then(() => { });
           }
         }
       },
@@ -243,7 +204,7 @@ export class FrpcDesktopApp {
       process.exit(0);
     }
     app.whenReady().then(() => {
-      this.initializeWindow().then(() => {});
+      this.initializeWindow().then(() => { });
       this.initializeTray();
     });
 
@@ -276,7 +237,7 @@ export class FrpcDesktopApp {
     app.on("before-quit", () => {
       // todo stop frpc process
       this._quitting = true;
-      this._frpcProcessService.stopFrpcProcess().finally(() => {});
+      this._frpcProcessService.stopFrpcProcess().finally(() => { });
     });
 
     log.scope("main").info(`ElectronApp initialized successfully.`);

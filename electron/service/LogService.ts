@@ -1,18 +1,25 @@
 import "reflect-metadata";
 import { BrowserWindow } from "electron";
 import fs from "fs";
-import BeanFactory from "../core/BeanFactory";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import SystemService from "./SystemService";
+import { injectable, inject, Container } from "inversify";
+import { TYPES } from "../di";
 
+@injectable()
 class LogService {
   private readonly _systemService: SystemService;
   private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
   private readonly _appPath: string = PathUtils.getAppLogFilePath();
+  private readonly _container: Container;
 
-  constructor() {
-    this._systemService = BeanFactory.getBean<SystemService>("systemService");
+  constructor(
+    @inject(TYPES.SystemService) systemService: SystemService,
+    @inject(TYPES.Container) container: Container
+  ) {
+    this._systemService = systemService;
+    this._container = container;
   }
 
   async getFrpLogContent() {
@@ -64,7 +71,7 @@ class LogService {
 
     this._watcher = fs.watch(this._logPath, (eventType, filename) => {
       if (eventType === "change") {
-        const win: BrowserWindow = BeanFactory.getBean("win");
+        const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
         if (win && !win.isDestroyed()) {
           win.webContents.send(
             listenerParam.channel,

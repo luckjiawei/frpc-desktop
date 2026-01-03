@@ -1,22 +1,24 @@
+import "reflect-metadata"
 import knex from "knex";
-import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
 
 export default abstract class BaseRepository<T extends BaseModel> {
-  protected readonly db: knex.Knex;
+  protected readonly knex: knex.Knex;
 
-  protected constructor() {
-    this.db = BeanFactory.getBean<knex.Knex>("db");
+  protected constructor(
+    knex: knex.Knex
+  ) {
+    this.knex = knex;
     this.checkTableSchema();
   }
 
   protected checkTableSchema(): void {
-    this.db.schema.hasTable(this.tableName()).then(exist => {
+    this.knex.schema.hasTable(this.tableName()).then(async exist => {
       log
         .scope("repository")
-        .info(`Checking if table "${this.tableName()}" exists.`);
+        .debug(`Checking if table "${this.tableName()}" exists.`);
       if (exist) return;
-      this.initTableSchema();
+      await this.initTableSchema();
       log.scope("repository").info(`Table "${this.tableName()}" created successfully.`);
     });
   }
@@ -25,7 +27,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * Initialize the table schema
    * @protected
    */
-  protected abstract initTableSchema(): void;
+  protected abstract initTableSchema(): Promise<void>;
 
   /**
    * Define the table name
@@ -46,7 +48,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Database table query builder
    */
   public table() {
-    return this.db.table(this.tableName());
+    return this.knex.table(this.tableName());
   }
 
   /**

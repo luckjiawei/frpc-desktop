@@ -5,23 +5,25 @@ import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
 import { BrowserWindow, dialog } from "electron";
-import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
-import { injectable, inject } from "inversify";
-import { TYPES } from "../main";
+import { injectable, inject, Container } from "inversify";
+import { TYPES } from "../di";
 
 @injectable()
 export default class VersionController extends BaseController {
   private readonly _versionService: VersionService;
   private readonly _versionDao: VersionRepository;
+  private readonly _container: Container;
 
   constructor(
     @inject(TYPES.VersionService) versionService: VersionService,
-    @inject(TYPES.VersionRepository) versionDao: VersionRepository
+    @inject(TYPES.VersionRepository) versionDao: VersionRepository,
+    @inject(TYPES.Container) container: Container
   ) {
     super();
     this._versionService = versionService;
     this._versionDao = versionDao;
+    this._container = container;
   }
 
   getVersions(req: ControllerParam) {
@@ -91,7 +93,7 @@ export default class VersionController extends BaseController {
   }
 
   importLocalFrpcVersion(req: ControllerParam) {
-    const win: BrowserWindow = BeanFactory.getBean("win");
+    const win: BrowserWindow = this._container.get("win");
     dialog
       .showOpenDialog(win, {
         properties: ["openFile"],

@@ -12,6 +12,8 @@ import i18n from "./lang";
 import router from "./router";
 import { useSystemUsageStore } from "./store/systemUsage";
 import "./styles/index.scss";
+import { send } from "./utils/ipcUtils"
+import { ipcRenderer } from "electron";
 
 const pinia = createPinia();
 
@@ -27,17 +29,21 @@ app
   .mount("#app")
   .$nextTick(() => {
     const frpcDesktopStore = useFrpcDesktopStore();
-    frpcDesktopStore.onListenerFrpcProcessRunning();
-    frpcDesktopStore.onListenerDownloadedVersion();
-    frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
-    frpcDesktopStore.refreshDownloadedVersion();
-    frpcDesktopStore.checkNewVersion(false);
-    frpcDesktopStore.onListenerFrpcDesktopLanguage();
-    frpcDesktopStore.getLanguage();
+    // frpcDesktopStore.onListenerFrpcProcessRunning();
+    // frpcDesktopStore.onListenerDownloadedVersion();
+    // frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
+    // frpcDesktopStore.refreshDownloadedVersion();
+    // frpcDesktopStore.checkNewVersion(false);
+    // frpcDesktopStore.onListenerFrpcDesktopLanguage();
+    // frpcDesktopStore.getLanguage();
 
     const systemUsageStore = useSystemUsageStore();
-    systemUsageStore.onListenerSystemUsage();
+    // systemUsageStore.onListenerSystemUsage();
 
+    // send("test/test1");
+
+    ipcRenderer.send("test/test1", {});
+    console.log('send test1')
     postMessage({ payload: "removeLoading" }, "*");
   })
-  .then(r => {});
+  .then(r => { });

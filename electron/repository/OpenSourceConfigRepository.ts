@@ -1,13 +1,17 @@
+import "reflect-metadata"
 import BaseRepository from "../core/BaseRepository";
-
+import { inject } from "inversify";
+import { TYPES } from "../di";
+import knex from "knex";
+import log from "electron-log/main";
 /**
  * Repository for managing open source configuration in the database
  */
-export default class OpenSourceConfigRepository extends BaseRepository<OpenSourceConfigModel> {
-  constructor() {
-    super();
-  }
 
+export default class OpenSourceConfigRepository extends BaseRepository<OpenSourceConfigModel> {
+  constructor(@inject(TYPES.Knex) knex: knex.Knex) {
+    super(knex);
+  }
   /**
    * Get the table name
    * @returns Table name string
@@ -20,34 +24,38 @@ export default class OpenSourceConfigRepository extends BaseRepository<OpenSourc
    * Initialize the table schema
    * @protected
    */
-  protected initTableSchema() {
-    this.db.schema.createTable(this.tableName(), table => {
-      table.bigIncrements("id", { primaryKey: true });
-      /**
-       * frp configuration
-       */
-      table.bigint("frpc_version");
-      table.boolean("multiuser");
-      table.string("user");
-      table.string("server_addr");
-      table.string("server_port");
-      table.string("login_fail_exit");
-      table.json("log");
-      table.json("auth");
-      table.json("web_server");
-      table.json("transport");
-      table.bigint("udp_packet_size");
-      table.json("metadatas");
+  protected async initTableSchema() {
+    try {
+      await this.knex.schema.createTable(this.tableName(), table => {
+        table.bigIncrements("id", { primaryKey: true });
+        /**
+         * frp configuration
+         */
+        table.bigint("frpc_version");
+        table.boolean("multiuser");
+        table.string("user");
+        table.string("server_addr");
+        table.string("server_port");
+        table.string("login_fail_exit");
+        table.json("log");
+        table.json("auth");
+        table.json("web_server");
+        table.json("transport");
+        table.bigint("udp_packet_size");
+        table.json("metadatas");
 
-      /**
-       * frpc desktop configuration
-       */
-      table.boolean("launch_at_startup");
-      table.boolean("silent_startup");
-      table.boolean("auto_connect_on_startup");
-      table.string("language");
-      table.timestamps(true, true);
-    });
+        /**
+         * frpc desktop configuration
+         */
+        table.boolean("launch_at_startup");
+        table.boolean("silent_startup");
+        table.boolean("auto_connect_on_startup");
+        table.string("language");
+        table.timestamps(true, true);
+      });
+    } catch (e) {
+      log.scope("repository").error("Failed to create table", e);
+    }
   }
 
   /**

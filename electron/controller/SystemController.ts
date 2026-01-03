@@ -4,22 +4,24 @@ import SystemService from "../service/SystemService";
 import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
-import BeanFactory from "../core/BeanFactory";
 import GitHubService from "../service/GitHubService";
 import log from "electron-log/main";
-import { injectable, inject } from "inversify";
-import { TYPES } from "../main";
+import { injectable, inject, Container } from "inversify";
+import { TYPES } from "../di";
 @injectable()
 export default class SystemController {
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
+  private readonly _container: Container;
 
   constructor(
     @inject(TYPES.SystemService) systemService: SystemService,
-    @inject(TYPES.GitHubService) gitHubService: GitHubService
+    @inject(TYPES.GitHubService) gitHubService: GitHubService,
+    @inject(TYPES.Container) container: Container
   ) {
     this._systemService = systemService;
     this._gitHubService = gitHubService;
+    this._container = container;
   }
 
   openUrl(req: ControllerParam) {
@@ -64,7 +66,7 @@ export default class SystemController {
       return;
       // req.event.reply(req.channel, ResponseUtils.fail("可选择扩展名不能为空"));
     }
-    const win: BrowserWindow = BeanFactory.getBean("win");
+    const win: BrowserWindow = this._container.get("win");
     dialog
       .showOpenDialog(win, {
         properties: ["openFile"],

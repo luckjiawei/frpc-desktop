@@ -3,7 +3,7 @@ import { BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
-import GlobalConstant from "../core/GlobalConstant";
+import GlobalConstant from "../core/constant";
 import frpReleasesJson from "../json/frp-releases.json";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/VersionRepository";
@@ -12,9 +12,9 @@ import PathUtils from "../utils/PathUtils";
 import SecureUtils from "../utils/SecureUtils";
 import GitHubService from "./GitHubService";
 import SystemService from "./SystemService";
-import BeanFactory from "../core/BeanFactory";
 import VersionConverter from "electron/converter/VersionConverter";
-import { injectable } from "inversify";
+import { injectable, inject } from "inversify";
+import { TYPES } from "../di";
 
 @injectable()
 export default class VersionService {
@@ -25,13 +25,16 @@ export default class VersionService {
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<VersionModel> = [];
 
-  constructor() {
-    this._versionDao =
-      BeanFactory.getBean<VersionRepository>("versionRepository");
-    this._versionConverter =
-      BeanFactory.getBean<VersionConverter>("versionConverter");
-    this._systemService = BeanFactory.getBean<SystemService>("systemService");
-    this._gitHubService = BeanFactory.getBean<GitHubService>("gitHubService");
+  constructor(
+    @inject(TYPES.VersionRepository) versionDao: VersionRepository,
+    @inject(TYPES.VersionConverter) versionConverter: VersionConverter,
+    @inject(TYPES.SystemService) systemService: SystemService,
+    @inject(TYPES.GitHubService) gitHubService: GitHubService
+  ) {
+    this._versionDao = versionDao;
+    this._versionConverter = versionConverter;
+    this._systemService = systemService;
+    this._gitHubService = gitHubService;
 
     const nodeVersion = `${process.platform}_${process.arch}`;
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
@@ -114,7 +117,7 @@ export default class VersionService {
     return this.githubRelease2VersionModel(frpReleasesJson);
   }
 
-  getFrpVersion() {}
+  getFrpVersion() { }
 
   private findCurrentArchitectureAsset(assets: Array<GithubAsset>) {
     return assets.find((af: GithubAsset) => {

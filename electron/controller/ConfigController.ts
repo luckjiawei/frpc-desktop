@@ -9,10 +9,9 @@ import SystemService from "../service/SystemService";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "../core/BaseController";
-import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../main";
+import { TYPES } from "../di";
 
 @injectable()
 export default class ConfigController extends BaseController {
@@ -30,9 +29,6 @@ export default class ConfigController extends BaseController {
     this._serverService = serverService;
     this._systemService = systemService;
     this._frpcProcessService = frpcProcessService;
-    this._systemService = BeanFactory.getBean<SystemService>("systemService");
-    this._frpcProcessService =
-      BeanFactory.getBean<FrpcProcessService>("frpcProcessService");
   }
 
   saveConfig(req: ControllerParam) {

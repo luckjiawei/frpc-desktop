@@ -2,9 +2,8 @@ import "reflect-metadata";
 import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
-import BeanFactory from "../core/BeanFactory";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
-import GlobalConstant from "../core/GlobalConstant";
+import GlobalConstant from "../core/constant";
 import VersionRepository from "../repository/VersionRepository";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
@@ -12,24 +11,30 @@ import ResponseUtils from "../utils/ResponseUtils";
 import OpenSourceFrpcDesktopConfigService from "./OpenSourceFrpcDesktopConfigService";
 import SystemService from "./SystemService";
 import log from "electron-log/main";
-import { injectable } from "inversify";
+import { injectable, inject, Container } from "inversify";
+import { TYPES } from "../di";
 
 @injectable()
 class FrpcProcessService {
   private readonly _openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService;
   private readonly _systemService: SystemService;
   private readonly _versionRepository: VersionRepository;
+  private readonly _container: Container;
   private _frpcProcess: any;
   private _frpcProcessListener: any;
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
 
-  constructor() {
-    this._openSourceFrpcDesktopConfigService = BeanFactory.getBean(
-      "openSourceFrpcDesktopConfigService"
-    );
-    this._systemService = BeanFactory.getBean("systemService");
-    this._versionRepository = BeanFactory.getBean("versionRepository");
+  constructor(
+    @inject(TYPES.OpenSourceFrpcDesktopConfigService) openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService,
+    @inject(TYPES.SystemService) systemService: SystemService,
+    @inject(TYPES.VersionRepository) versionRepository: VersionRepository,
+    @inject(TYPES.Container) container: Container
+  ) {
+    this._openSourceFrpcDesktopConfigService = openSourceFrpcDesktopConfigService;
+    this._systemService = systemService;
+    this._versionRepository = versionRepository;
+    this._container = container;
   }
 
   isRunning(): boolean {
@@ -266,7 +271,7 @@ class FrpcProcessService {
         // );
         // clearInterval(this._frpcProcessListener);
       }
-      const win: BrowserWindow = BeanFactory.getBean("win");
+      const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
       if (win && !win.isDestroyed()) {
         win.webContents.send(
           listenerParam.channel,

@@ -1,5 +1,14 @@
 import "reflect-metadata";
 
+import { app } from "electron";
+import { join } from "node:path";
+
+import { TYPES } from "../di"
+process.env.DIST = join(__dirname, "../../dist");
+process.env.VITE_PUBLIC = app.isPackaged
+  ? process.env.DIST
+  : join(process.env.DIST, "../public");
+
 import { Container } from "inversify";
 import { FrpcDesktopApp } from "./app";
 import ConfigController from "../controller/ConfigController";
@@ -22,39 +31,11 @@ import ProxyService from "../service/ProxyService";
 import SystemService from "../service/SystemService";
 import VersionService from "../service/VersionService";
 
-const TYPES = {
-  /**
-   * converter
-   */
-  OpenSourceConfigConverter: Symbol.for("OpenSourceConfigConverter"),
-  ProxyConverter: Symbol.for("ProxyConverter"),
-  VersionConverter: Symbol.for("VersionConverter"),
-  /** repository */
-  OpenSourceConfigRepository: Symbol.for("OpenSourceConfigRepository"),
-  VersionRepository: Symbol.for("VersionRepository"),
-  ProxyRepository: Symbol.for("ProxyRepository"),
-  /** service */
-  SystemService: Symbol.for("SystemService"),
-  OpenSourceFrpcDesktopConfigService: Symbol.for(
-    "OpenSourceFrpcDesktopConfigService"
-  ),
-  GitHubService: Symbol.for("GitHubService"),
-  VersionService: Symbol.for("VersionService"),
-  LogService: Symbol.for("LogService"),
-  FrpcProcessService: Symbol.for("FrpcProcessService"),
-  ProxyService: Symbol.for("ProxyService"),
 
-  /**
-   * controller
-   */
-  SystemController: Symbol.for("SystemController"),
-  VersionController: Symbol.for("VersionController"),
-  LogController: Symbol.for("LogController"),
-  LaunchController: Symbol.for("LaunchController"),
-  ProxyController: Symbol.for("ProxyController"),
-  FrpcDesktopApp: Symbol.for("FrpcDesktopApp"),
-  ConfigController: Symbol.for("ConfigController")
-};
+import knex from "knex";
+import log from "electron-log/main";
+import PathUtils from "../utils/PathUtils";
+import TestController from "../controller/TestController";
 
 /**
  * Main application runner class
@@ -67,8 +48,12 @@ class FrpcDesktopRunner {
     this._container = new Container();
   }
 
-  public run(): void {
+  private initializeContainer(): void {
     // core
+    this._container
+      .bind<Container>(TYPES.Container)
+      .toConstantValue(this._container);
+
     this._container
       .bind<FrpcDesktopApp>(TYPES.FrpcDesktopApp)
       .to(FrpcDesktopApp);
@@ -125,11 +110,62 @@ class FrpcDesktopRunner {
     this._container
       .bind<VersionController>(TYPES.VersionController)
       .to(VersionController);
+    this._container.bind<TestController>(TYPES.TestController).to(TestController);
+  }
 
-    this._container.get<FrpcDesktopApp>(TYPES.FrpcDesktopApp);
+  public run(): void {
+    this.initializeLog();
+    this.initializeDatabase();
+    this.initializeContainer();
+    this.initializeController();
+    const app = this._container.get<FrpcDesktopApp>(TYPES.FrpcDesktopApp);
+    app.run();
+  }
+
+  private initializeLog(): void {
+    log.initialize();
+    log.transports.file.level = "info";
+    log.transports.console.level = "info";
+    log.transports.file.format =
+      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
+    log.transports.console.format =
+      "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}";
+
+    log.scope("main").info("Log initialized");
+  }
+
+  private initializeDatabase(): void {
+    const db: knex.Knex = knex({
+      client: "sqlite",
+      useNullAsDefault: true,
+      connection: {
+        filename: PathUtils.getDatabaseFilename()
+      },
+      log: {
+        debug(message) {
+          log.scope("knex").debug(message);
+        },
+        warn(message) {
+          log.scope("knex").warn(message);
+        },
+        error(message) {
+          log.scope("knex").error(message);
+        }
+      }
+    });
+    this._container.bind<knex.Knex>(TYPES.Knex).toConstantValue(db);
+    log.scope("knex").info("Database initialized.");
+  }
+
+  private initializeController() {
+    this._container.get<ConfigController>(TYPES.ConfigController);
+    this._container.get<LaunchController>(TYPES.LaunchController);
+    this._container.get<LogController>(TYPES.LogController);
+    this._container.get<ProxyController>(TYPES.ProxyController);
+    this._container.get<SystemController>(TYPES.SystemController);
+    this._container.get<VersionController>(TYPES.VersionController);
+    this._container.get<TestController>(TYPES.TestController);
   }
 }
-
 new FrpcDesktopRunner().run();
 
-export { TYPES };

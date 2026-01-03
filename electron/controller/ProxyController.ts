@@ -4,10 +4,9 @@ import BaseController from "../core/BaseController";
 import ProxyService from "../service/ProxyService";
 import ResponseUtils from "../utils/ResponseUtils";
 import ProxyRepository from "../repository/ProxyRepository";
-import BeanFactory from "../core/BeanFactory";
 import log from "electron-log/main";
 import { injectable, inject } from "inversify";
-import { TYPES } from "../main";
+import { TYPES } from "../di";
 
 @injectable()
 export default class ProxyController extends BaseController {
