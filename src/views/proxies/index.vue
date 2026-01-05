@@ -15,7 +15,6 @@ import {
   ref
 } from "vue";
 import { useI18n } from "vue-i18n";
-import commonIps from "./commonIp.json";
 
 defineComponent({
   name: "Proxies"

@@ -34,26 +34,19 @@ export default class ConfigController extends BaseController {
   }
 
   @IpcRoute(IPCChannels.CONFIG_SAVE_CONFIG)
-  saveConfig(r) {
-    this._serverService
-      .saveServerConfig(req.args)
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("ConfigController.saveConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async saveConfig(event: any, args: any) {
+    return await this._serverService
+      .saveServerConfig(args);
   }
 
   @IpcRoute(IPCChannels.CONFIG_GET_SERVER_CONFIG)
-  async getServerConfig(event: any, args: any) {
+  public async getServerConfig(event: any, args: any) {
     return await this._serverService
       .getServerConfig();
   }
 
   @IpcRoute(IPCChannels.CONFIG_OPEN_APP_DATA)
-  openAppData() {
+  public openAppData(event: any, args: any) {
     this._systemService
       .openLocalPath(PathUtils.getAppData());
   }
