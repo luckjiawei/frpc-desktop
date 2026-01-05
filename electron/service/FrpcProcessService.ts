@@ -38,7 +38,7 @@ class FrpcProcessService {
     this._container = container;
   }
 
- public isRunning(): boolean {
+  public isRunning(): boolean {
     if (!this._frpcProcess) {
       // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
       try {
@@ -103,6 +103,7 @@ class FrpcProcessService {
       return;
     }
     if (!(await this._openSourceFrpcDesktopConfigService.hasServerConfig())) {
+      log.scope("frpc").warn(`startFrpcProcess failed: no server config.`);
       throw new BusinessError(ResponseCode.NOT_CONFIG);
     }
     const config =
@@ -112,6 +113,9 @@ class FrpcProcessService {
       config.frpcVersion
     );
     if (!version) {
+      log.scope("frpc").warn(
+        `startFrpcProcess failed: version ${config.frpcVersion} not found.`
+      );
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
 
@@ -122,9 +126,8 @@ class FrpcProcessService {
         "127.0.0.1"
       );
       if (isPortInUse) {
-        log.warn(
-          `FrpcProcessService.startFrpcProcess`,
-          `Web Server Port ${config.webServer.port} is already in use`
+        log.scope("frpc").warn(
+          `startFrpcProcess failed: Web Server Port ${config.webServer.port} is already in use.`
         );
         throw new BusinessError(ResponseCode.WEB_SERVER_PORT_IN_USE);
       }
@@ -138,9 +141,8 @@ class FrpcProcessService {
     } else {
       command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
     }
-    log.debug(
-      `FrpcProcessService.startFrpcProcess`,
-      `version: ${version} cwd: ${version?.local_path} command: ${command}`
+    log.scope("frpc").info(
+      `startFrpcProcess: version ${config.frpcVersion} cwd: ${version.local_path} command: ${command}`
     );
 
     this._frpcProcess = spawn(command, {
@@ -148,25 +150,18 @@ class FrpcProcessService {
       shell: true
     });
     this._frpcLastStartTime = Date.now();
-    // log.debug(
-    //   `FrpcProcessService.startFrpcProcess`,
-    //   `start frpc cwd: ${version.localPath} command: ${command}`
-    // );
     this._frpcProcess.stdout.on("data", data => {
-      log.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);
+      log.scope("frpc").info(`stdout: ${data}`);
     });
 
     this._frpcProcess.stderr.on("data", data => {
-      log.debug(`FrpcProcessService.startFrpcProcess`, `stderr: ${data}`);
+      log.scope("frpc").info(`stderr: ${data}`);
     });
   }
 
   async stopFrpcProcess() {
     if (this._frpcProcess && this.isRunning()) {
-      log.debug(
-        `FrpcProcessService.stopFrpcProcess`,
-        `pid: ${this._frpcProcess.pid}`
-      );
+      log.scope("frpc").info(`stopFrpcProcess: pid: ${this._frpcProcess.pid}`);
       treeKill(this._frpcProcess.pid, (error: Error) => {
         if (error) {
           throw error;

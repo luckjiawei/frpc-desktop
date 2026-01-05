@@ -591,7 +591,9 @@ const handleOpenDataFolder = useDebounceFn(() => {
 }, 300);
 
 const handleSystemLanguageChange = e => {
-  send(IPCChannels.CONFIG_SAVE_LANGUAGE, e);
+  send(IPCChannels.CONFIG_SAVE_LANGUAGE, {
+    language: e
+  });
 };
 
 onUnmounted(() => {
