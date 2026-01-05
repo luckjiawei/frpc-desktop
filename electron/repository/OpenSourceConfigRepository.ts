@@ -65,7 +65,10 @@ export default class OpenSourceConfigRepository extends BaseRepository<OpenSourc
    * @returns Number of affected rows
    */
   public updateLanguageById(id: number, language: string): Promise<number> {
-    if (id === undefined || id === null) return Promise.resolve(0);
-    return this.table().update({ language }).where("id", "=", id);
+    if (!id || !language) return Promise.resolve(0);
+    return this.table().where("id", id).update({
+      language,
+      updated_at: this.knex.fn.now()
+    });
   }
 }

@@ -38,7 +38,7 @@ class FrpcProcessService {
     this._container = container;
   }
 
-  isRunning(): boolean {
+ public isRunning(): boolean {
     if (!this._frpcProcess) {
       // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
       try {
@@ -94,7 +94,7 @@ class FrpcProcessService {
     }
   }
 
-  async getLastStartTime(): Promise<number> {
+  public async getLastStartTime(): Promise<number> {
     return this._frpcLastStartTime;
   }
 
@@ -140,11 +140,11 @@ class FrpcProcessService {
     }
     log.debug(
       `FrpcProcessService.startFrpcProcess`,
-      `version: ${version} cwd: ${version?.localPath} command: ${command}`
+      `version: ${version} cwd: ${version?.local_path} command: ${command}`
     );
 
     this._frpcProcess = spawn(command, {
-      cwd: version.localPath,
+      cwd: version.local_path,
       shell: true
     });
     this._frpcLastStartTime = Date.now();
@@ -203,10 +203,10 @@ class FrpcProcessService {
     exec(
       command,
       {
-        cwd: version.localPath
+        cwd: version.local_path
       },
       // {
-      //   cwd: version.localPath,
+      //   cwd: version.local_path,
       //   shell: true
       // },
       (error, stdout, stderr) => {

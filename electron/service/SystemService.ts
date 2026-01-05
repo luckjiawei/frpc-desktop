@@ -16,10 +16,18 @@ import { TYPES } from "../di";
 export default class SystemService {
   private readonly _container: Container;
 
+  // CPU 监控相关的状态变量
+  private lastCpuUsage: NodeJS.CpuUsage;
+  private lastTime: number;
+
   constructor(@inject(TYPES.Container) container: Container) {
     this._container = container;
+    // 初始化 CPU 监控状态
+    this.lastCpuUsage = process.cpuUsage();
+    this.lastTime = Date.now();
   }
-  async openUrl(url: string) {
+
+  public async openUrl(url: string) {
     if (url) {
       await shell.openExternal(url);
     }
@@ -146,29 +154,23 @@ export default class SystemService {
     });
   }
 
-  getSystemUsage() {
-    const process = require("process");
+  public getSystemUsage() {
     const os = require("os");
-    // const { event, channel } = listenerParam;
-    let lastCpuUsage = process.cpuUsage();
-    let lastTime = Date.now();
 
     // 获取内存使用情况
     const memoryUsage = process.memoryUsage();
-    // const totalMemory = os.totalmem();
     const usedMemory = memoryUsage.rss; // 实际物理内存使用量
-    // const memoryPercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
 
     // 获取当前 Electron 进程的 CPU 使用情况
     const currentTime = Date.now();
     const currentCpuUsage = process.cpuUsage();
 
     // 计算时间差（毫秒转微秒）
-    const timeDiff = (currentTime - lastTime) * 1000;
+    const timeDiff = (currentTime - this.lastTime) * 1000;
 
     // 计算CPU使用时间差（微秒）
-    const userCPUTimeDiff = currentCpuUsage.user - lastCpuUsage.user;
-    const systemCPUTimeDiff = currentCpuUsage.system - lastCpuUsage.system;
+    const userCPUTimeDiff = currentCpuUsage.user - this.lastCpuUsage.user;
+    const systemCPUTimeDiff = currentCpuUsage.system - this.lastCpuUsage.system;
     const totalCPUTimeDiff = userCPUTimeDiff + systemCPUTimeDiff;
 
     // 计算当前Electron进程的CPU使用率百分比
@@ -177,15 +179,14 @@ export default class SystemService {
         ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2)
         : "0.00";
 
-    // 更新上次的值
-    lastCpuUsage = currentCpuUsage;
-    lastTime = currentTime;
+    // 更新上次的值（保存到实例变量）
+    this.lastCpuUsage = currentCpuUsage;
+    this.lastTime = currentTime;
 
     const result = {
       cpu: parseFloat(cpuPercentage),
       memory: {
         used: Math.round(usedMemory / 1024 / 1024) // MB
-        // percentage: parseFloat(memoryPercentage)
       }
     };
 

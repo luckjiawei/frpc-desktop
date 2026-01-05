@@ -27,46 +27,30 @@ export default class LaunchController extends BaseController {
    * launch frpc process
    */
   @IpcRoute(IPCChannels.LAUNCH)
-  launch() {
-    this._frpcProcessService
-      .startFrpcProcess()
-      .then(r => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("LaunchController.launch", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async launch(event: any) {
+    return await this._frpcProcessService.startFrpcProcess();
   }
 
   /**
    * terminate frpc process
    */
   @IpcRoute(IPCChannels.TERMINATE)
-  terminate() {
-    this._frpcProcessService
-      .stopFrpcProcess()
-      .then(r => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch(err => {
-        log.error("LaunchController.terminate", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async terminate(event: any) {
+    return await this._frpcProcessService.stopFrpcProcess();
   }
-
-  // /**
-  //  * get frpc process status
-  //  */
-  // @IpcRoute(IPCChannels.GET_STATUS)
-  // getStatus() {
-  //   const running = this._frpcProcessService.isRunning();
-  //   req.event.reply(
-  //     req.channel,
-  //     ResponseUtils.success({
-  //       running: running,
-  //       lastStartTime: this._frpcProcessService.frpcLastStartTime
-  //     })
-  //   );
-  // }
 }
+
+// /**
+//  * get frpc process status
+//  */
+// @IpcRoute(IPCChannels.GET_STATUS)
+// getStatus() {
+//   const running = this._frpcProcessService.isRunning();
+//   req.event.reply(
+//     req.channel,
+//     ResponseUtils.success({
+//       running: running,
+//       lastStartTime: this._frpcProcessService.frpcLastStartTime
+//     })
+//   );
+// }

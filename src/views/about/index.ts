@@ -3,7 +3,7 @@ import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { send } from "@/utils/ipcUtils";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { IPCChannels } from "../../../electron/core/constant";
 import pkg from "../../../package.json";
 
 export const useAbout = () => {
@@ -32,7 +32,8 @@ export const useAbout = () => {
    * 打开github issues
    */
   const handleOpenGitHubIssues = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    console.log("open github issues")
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://github.com/luckjiawei/frpc-desktop/issues"
     });
   };
@@ -41,13 +42,13 @@ export const useAbout = () => {
    * 打开github主页
    */
   const handleOpenGitHub = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://github.com/luckjiawei/frpc-desktop"
     });
   };
 
   const handleOpenGitCode = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://gitcode.com/luckjiawei/frpc-desktop"
     });
   };
@@ -56,7 +57,7 @@ export const useAbout = () => {
    * 打开捐赠界面
    */
   const handleOpenDonate = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://jwinks.com/donate"
     });
   };
@@ -65,7 +66,7 @@ export const useAbout = () => {
    * 打开文档
    */
   const handleOpenDoc = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://jwinks.com/p/frp"
     });
   };
@@ -78,7 +79,7 @@ export const useAbout = () => {
   };
 
   const handleOpenNewVersion = () => {
-    send(ipcRouters.SYSTEM.openUrl, {
+    send(IPCChannels.SYSTEM_OPEN_URL, {
       url: frpcDesktopStore.frpcDesktopLastRelease["html_url"]
     });
   };

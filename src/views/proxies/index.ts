@@ -1,9 +1,12 @@
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import { ref, computed, onMounted, reactive, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { IPCChannels } from "../../../electron/core/constant";
+import _ from "lodash";
+import path from "path";
+import commonIps from "./commonIp.json";
 const defaultForm: FrpcDesktopProxy = {
     id: null,
     hostHeaderRewrite: "",
@@ -335,9 +338,9 @@ export function useProxies() {
                 loading.value.form = 1;
                 const data = _.cloneDeep(editForm.value);
                 if (data._id) {
-                    send(ipcRouters.PROXY.modifyProxy, data);
+                    send(IPCChannels.PROXY_MODIFY_PROXY, data);
                 } else {
-                    send(ipcRouters.PROXY.createProxy, data);
+                    send(IPCChannels.PROXY_CREATE_PROXY, data);
                 }
             }
         });
@@ -360,15 +363,15 @@ export function useProxies() {
     };
 
     const handleLoadProxies = () => {
-        send(ipcRouters.PROXY.getAllProxies);
+        send(IPCChannels.PROXY_GET_ALL_PROXIES);
     };
 
     const handleLoadFrpcConfig = () => {
-        send(ipcRouters.SERVER.getServerConfig);
+        send(IPCChannels.CONFIG_GET_SERVER_CONFIG);
     };
 
     const handleDeleteProxy = (proxy: FrpcDesktopProxy) => {
-        send(ipcRouters.PROXY.deleteProxy, proxy.id);
+        send(IPCChannels.PROXY_DELETE_PROXY, proxy.id);
         // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
     };
 
@@ -395,7 +398,7 @@ export function useProxies() {
     };
 
     const handleReversalUpdate = (proxy: FrpcDesktopProxy) => {
-        send(ipcRouters.PROXY.modifyProxyStatus, {
+        send(IPCChannels.PROXY_MODIFY_PROXY_STATUS, {
             id: proxy._id,
             status: proxy.status === 1 ? 0 : 1
         });
@@ -404,7 +407,7 @@ export function useProxies() {
     const handleLoadLocalPorts = () => {
         loading.value.localPorts = 1;
         // ipcRenderer.send("local.getLocalPorts");
-        send(ipcRouters.PROXY.getLocalPorts);
+        send(IPCChannels.PROXY_GET_LOCAL_PORTS);
     };
 
     const handleSelectLocalPort = useDebounceFn((port: number) => {
@@ -523,7 +526,7 @@ export function useProxies() {
 
     const handleSelectFile = (type: number, ext: string[]) => {
         currSelectLocalFileType.value = type;
-        send(ipcRouters.SYSTEM.selectLocalFile, {
+        send(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, {
             name: "",
             extensions: ext
         });
@@ -638,6 +641,48 @@ export function useProxies() {
     });
 
     return {
-        t
+        t,
+        _,
+        proxys,
+        loading,
+        edit,
+        editForm,
+        editFormRules,
+        editFormRef,
+        proxyTypes,
+        visitorsModels,
+        localPorts,
+        listPortsVisible,
+        frpcConfig,
+        hasPlugin,
+        defaultForm,
+        isTcp,
+        isUdp,
+        isHttp,
+        isHttps,
+        isStcp,
+        isSudp,
+        isXtcp,
+        isStcpvisitorsProvider,
+        isStcpVisitors,
+        handleSubmit,
+        handleAddDomain,
+        handleDeleteDomain,
+        handleAddLocation,
+        handleDeleteLocation,
+        handleOpenInsert,
+        handleOpenUpdate,
+        handleDeleteProxy,
+        handleResetForm,
+        handleReversalUpdate,
+        handleLoadLocalPorts,
+        handleSelectLocalPort,
+        handleCloseLocalPortDialog,
+        handleOpenLocalPortDialog,
+        handleSelectFile,
+        handleProxyTypeChange,
+        handleCopyString,
+        handleRandomProxyName,
+        handleIpFetchSuggestions
     };
 }

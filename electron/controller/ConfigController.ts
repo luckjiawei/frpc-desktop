@@ -169,15 +169,7 @@ export default class ConfigController extends BaseController {
   }
 
   @IpcRoute(IPCChannels.CONFIG_SAVE_LANGUAGE)
-  saveLanguage() {
-    this._serverService
-      .saveLanguage(req.args)
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("ConfigController.saveLanguage", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async saveLanguage(event: any, args: { language: string }) {
+    await this._serverService.saveLanguage(args.language);
   }
 }

@@ -21,18 +21,14 @@ import BusinessError from "../core/error";
 export default class VersionService {
   @inject(TYPES.VersionRepository)
   private readonly _versionDao: VersionRepository;
-
   @inject(TYPES.VersionConverter)
   private readonly _versionConverter: VersionConverter;
-
   @inject(TYPES.SystemService)
   private readonly _systemService: SystemService;
-
   @inject(TYPES.GitHubService)
   private readonly _gitHubService: GitHubService;
-
   private readonly _currFrpArch: Array<string>;
-  private _versions: Array<VersionModel> = [];
+  private _versions: Array<FrpcDesktopVersion> = [];
 
   constructor(
   ) {
@@ -40,18 +36,23 @@ export default class VersionService {
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
 
+  /**
+   * download
+   * @param githubReleaseId
+   * @param onProgress
+   */
   async downloadFrpVersion(githubReleaseId: number, onProgress: Function) {
     return new Promise(async (resolve, reject) => {
       const version = this._versions.find(
-        f => f.github_asset_id === githubReleaseId
+        f => f.githubReleaseId === githubReleaseId
       );
       if (!version) {
         reject(new Error("version not found"));
       }
-      const url = version.browser_download_url;
+      const url = version.browserDownloadUrl;
       const downloadedFilePath = path.join(
         PathUtils.getDownloadStoragePath(),
-        `${version.asset_name}`
+        `${version.assetName}`
       );
 
       const versionFilePath = path.join(
@@ -68,7 +69,7 @@ export default class VersionService {
 
       // const targetPath = path.resolve();
       download(BrowserWindow.getFocusedWindow(), url, {
-        filename: `${version.asset_name}`,
+        filename: `${version.assetName}`,
         directory: PathUtils.getDownloadStoragePath(),
         onProgress: progress => {
           onProgress(progress);
@@ -99,19 +100,19 @@ export default class VersionService {
     }
   }
 
-  async getFrpVersionsByGitHub(): Promise<Array<VersionModel>> {
+  async getFrpVersionsByGitHub(): Promise<Array<FrpcDesktopVersion>> {
     const gvs = await this._gitHubService
       .getGithubRepoAllReleases("fatedier/frp");
 
-    const versions: Array<VersionModel> =
-      await this.githubRelease2VersionModel(gvs);
+    const versions: Array<FrpcDesktopVersion> =
+      await this.githubRelease2FrpcDesktopVersion(gvs);
     this._versions = versions;
     return versions;
 
   }
 
-  async getFrpVersionByLocalJson(): Promise<Array<VersionModel>> {
-    return this.githubRelease2VersionModel(frpReleasesJson);
+  async getFrpVersionByLocalJson(): Promise<Array<FrpcDesktopVersion>> {
+    return this.githubRelease2FrpcDesktopVersion(frpReleasesJson);
   }
 
   private findCurrentArchitectureAsset(assets: Array<GithubAsset>) {
@@ -120,9 +121,9 @@ export default class VersionService {
     });
   }
 
-  private async githubRelease2VersionModel(
+  private async githubRelease2FrpcDesktopVersion(
     releases: Array<GithubRelease>
-  ): Promise<Array<VersionModel>> {
+  ): Promise<Array<FrpcDesktopVersion>> {
     const allVersions = await this._versionDao.selectAll();
     return releases
       .filter(release => {
@@ -140,18 +141,18 @@ export default class VersionService {
         );
 
         const currVersion = allVersions.find(ff => ff.github_release_id === m.id);
-        const v: VersionModel = {
+        const v: FrpcDesktopVersion = {
           id: null,
-          github_asset_id: asset.id,
-          github_release_id: m.id,
-          github_created_at: asset.created_at,
+          githubAssetId: asset.id,
+          githubReleaseId: m.id,
+          githubCreatedAt: asset.created_at,
           name: m.name,
-          asset_name: asset.name,
-          version_download_count: download_count,
-          asset_download_count: asset.download_count,
-          browser_download_url: asset.browser_download_url,
+          assetName: asset.name,
+          versionDownloadCount: download_count,
+          assetDownloadCount: asset.download_count,
+          browserDownloadUrl: asset.browser_download_url,
           downloaded: this.versionModelExists(currVersion),
-          local_path: currVersion && currVersion.localPath,
+          localPath: currVersion && currVersion.local_path,
           size: FileUtils.formatBytes(asset.size)
         };
         return v;
@@ -172,7 +173,7 @@ export default class VersionService {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
         const existsVersion = await this._versionDao.findByGithubReleaseId(
-          version.github_release_id
+          version.githubReleaseId
         );
         if (existsVersion) {
           throw new BusinessError(ResponseCode.VERSION_EXISTS);
@@ -187,16 +188,16 @@ export default class VersionService {
   }
 
   getFrpVersionByAssetName(assetName: string) {
-    return this._versions.find(f => f.asset_name === assetName);
+    return this._versions.find(f => f.assetName === assetName);
   }
 
-  async decompressFrp(version: VersionModel, compressedPath: string) {
+  async decompressFrp(version: FrpcDesktopVersion, compressedPath: string) {
     const versionFilePath = path.join(
       PathUtils.getVersionStoragePath(),
       SecureUtils.calculateMD5(version.name)
     );
-    const ext = path.extname(version.asset_name);
-    const fileName = path.basename(version.asset_name, ext);
+    const ext = path.extname(version.assetName);
+    const fileName = path.basename(version.assetName, ext);
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
       const frpTempPath = path.join(versionFilePath, fileName);
@@ -207,7 +208,7 @@ export default class VersionService {
       fs.rmSync(frpTempPath, { recursive: true, force: true });
     } else if (
       ext === GlobalConstant.GZ_EXT &&
-      version.asset_name.includes(GlobalConstant.TAR_GZ_EXT)
+      version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
     ) {
       this._systemService.decompressTarGzFile(
         compressedPath,
@@ -226,7 +227,7 @@ export default class VersionService {
           // todo has bug.
           const downloadedFile = path.join(
             PathUtils.getDownloadStoragePath(),
-            version.asset_name
+            version.assetName
           );
           if (fs.existsSync(downloadedFile)) {
             fs.rmSync(downloadedFile, { recursive: true, force: true });
@@ -236,12 +237,14 @@ export default class VersionService {
     }
 
     // todo 2025-02-23 delete downloaded file.
-    version.local_path = versionFilePath;
+    version.localPath = versionFilePath;
     version.downloaded = true;
-    return await this._versionDao.insert(version);
+    return await this._versionDao.insert(this._versionConverter.frpcDesktopVersion2Model(version));
   }
 
   public async getDownloadedVersions() {
-    return await this._versionDao.selectAll();
+    return (await this._versionDao.selectAll()).map(m => this._versionConverter
+      .model2FrpcDesktopVersion(m)
+    );
   }
 }

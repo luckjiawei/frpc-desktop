@@ -1,5 +1,5 @@
 import { onEvent } from "@/utils/ipcUtils";
-import { ResponseCode } from "../../electron/core/constant";
+import { EventChannels, IPCChannels, ResponseCode } from "../../electron/core/constant";
 import { defineStore } from "pinia";
 
 
@@ -17,7 +17,7 @@ export const useSystemUsageStore = defineStore("systemUsage", {
   },
   actions: {
     onListenerSystemUsage() {
-      onEvent("systemUsage", r => {
+      onEvent(EventChannels.SYSTEM_MONITOR, r => {
         const { code, data } = r;
         if (code === ResponseCode.SUCCESS.code) {
           this.cpu = data.cpu;

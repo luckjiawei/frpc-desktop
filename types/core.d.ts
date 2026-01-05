@@ -9,11 +9,6 @@ interface ApiResponse<T> {
   message: string;
 }
 
-interface ControllerParam {
-  channel: string;
-  event: Electron.IpcMainEvent;
-  args: any;
-}
 
 interface ListenerParam {
   // win: BrowserWindow;
@@ -40,11 +35,3 @@ enum IpcRouterKeys {
   SYSTEM = "SYSTEM",
 }
 
-type IpcRouters = Record<
-  IpcRouterKeys,
-  {
-    [method: string]: IpcRouter;
-  }
->;
-
-type Listeners = Record<string, Listener>;

@@ -32,64 +32,78 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     },
 
     onListenerDownloadedVersion() {
-      on(EventChannels.VERSIONS_GET_VERSIONS, data => {
+      on(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS, data => {
         this.versions = data;
       });
     },
+
+    onListenerFrpcDesktopGithubLastRelease() {
+      on(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE, data => {
+        const { manual, version } = data;
+        this.lastRelease = version;
+
+        if (!version) {
+          if (manual) {
+            ElMessage({
+              message: i18n.global.t("about.message.checkVersionFailed"),
+              type: "warning"
+            });
+          }
+          return;
+        }
+
+        // Check if this is the latest version
+        const tagName = version["tag_name"];
+        if (!tagName) {
+          return;
+        }
+
+        const lastVersion = tagName.replace("v", "").toString();
+        const currVersion = pkg.version;
+        const isLastVersion = currVersion >= lastVersion;
+
+        if (!isLastVersion && manual) {
+          // Show update notification
+          let content = version.body || "";
+          content = content.replaceAll("\n", "<br/>");
+          ElMessageBox.alert(
+            content,
+            `🎉 ${i18n.global.t("about.message.newVersionFound")} ${version.name}`,
+            {
+              showCancelButton: true,
+              cancelButtonText: i18n.global.t("common.close"),
+              dangerouslyUseHTMLString: true,
+              confirmButtonText: i18n.global.t("about.button.download")
+            }
+          ).then(() => {
+            send(IPCChannels.SYSTEM_OPEN_URL, {
+              url: version["html_url"]
+            });
+          }).catch(() => {
+            // User cancelled
+          });
+        } else if (isLastVersion && manual) {
+          ElMessage({
+            message: i18n.global.t("about.message.alreadyLatest"),
+            type: "success"
+          });
+        }
+      });
+    },
+
+    refreshDownloadedVersion() {
+      send(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS);
+    },
+
     refreshRunning() {
       send(EventChannels.FRPC_PROCESS_STATUS);
     },
-    // refreshDownloadedVersion() {
-    //   send(ipcRouters.VERSION.getDownloadedVersions);
-    // },
-    // onListenerFrpcDesktopGithubLastRelease(sd?: false) {
-    //   on(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, data => {
-    //     const { manual, version } = data;
-    //     this.lastRelease = version;
-    //     // tagName相对固定
-    //     const tagName = this.lastRelease["tag_name"];
-    //     let lastReleaseVersion = true;
-    //     if (!tagName) {
-    //       // new
-    //       lastReleaseVersion = false;
-    //     }
-    //     // 最后版本号
-    //     const lastVersion = tagName.replace("v", "").toString();
-    //     const currVersion = pkg.version;
-    //     lastReleaseVersion = currVersion >= lastVersion;
-    //     // return false;
-    //     if (!lastReleaseVersion) {
-    //       let content = this.lastRelease.body;
-    //       content = content.replaceAll("\n", "<br/>");
-    //       ElMessageBox.alert(
-    //         content,
-    //         `🎉 发现新版本 ${this.lastRelease.name}`,
-    //         {
-    //           showCancelButton: true,
-    //           cancelButtonText: "关闭",
-    //           dangerouslyUseHTMLString: true,
-    //           confirmButtonText: "去下载"
-    //         }
-    //       ).then(() => {
-    //         send(ipcRouters.SYSTEM.openUrl, {
-    //           url: this.lastRelease["html_url"]
-    //         });
-    //       });
-    //     } else {
-    //       if (manual) {
-    //         ElMessage({
-    //           message: "当前已是最新版本",
-    //           type: "success"
-    //         });
-    //       }
-    //     }
-    //   });
-    // },
-    // checkNewVersion(manual: boolean) {
-    //   send(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, {
-    //     manual: manual
-    //   });
-    // },
+
+    checkNewVersion(manual: boolean) {
+      send(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE, {
+        manual: manual
+      });
+    },
     onListenerFrpcDesktopLanguage() {
       on(IPCChannels.CONFIG_GET_LANGUAGE, data => {
         this.language = data;

@@ -39,7 +39,7 @@ export default class VersionRepository extends BaseRepository<VersionModel> {
    * @returns Table name string
    */
   protected tableName(): string {
-    return "frpc_version";
+    return "frpc_versions";
   }
 
   /**
@@ -48,6 +48,9 @@ export default class VersionRepository extends BaseRepository<VersionModel> {
    * @returns Promise resolving to the version model or undefined
    */
   async findByGithubReleaseId(githubReleaseId: number): Promise<VersionModel> {
+    if (!githubReleaseId) {
+      return Promise.resolve(undefined);
+    }
     return await this.table()
       .select("*")
       .where("github_release_id", "=", githubReleaseId)

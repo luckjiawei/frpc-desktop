@@ -5,64 +5,43 @@ import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
 import GitHubService from "../service/GitHubService";
-import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";
 import { IPCChannels } from "../core/constant";
+import BaseController from "../core/controller";
+
 @injectable()
-export default class SystemController {
+export default class SystemController extends BaseController {
+  @inject(TYPES.SystemService)
   private readonly _systemService: SystemService;
+  @inject(TYPES.GitHubService)
   private readonly _gitHubService: GitHubService;
+  @inject(TYPES.Container)
   private readonly _container: Container;
 
-  constructor(
-    @inject(TYPES.SystemService) systemService: SystemService,
-    @inject(TYPES.GitHubService) gitHubService: GitHubService,
-    @inject(TYPES.Container) container: Container
-  ) {
-    this._systemService = systemService;
-    this._gitHubService = gitHubService;
-    this._container = container;
-  }
 
   @IpcRoute(IPCChannels.SYSTEM_OPEN_URL)
-  openUrl() {
-    this._systemService
-      .openUrl(req.args.url)
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("SystemController.openUrl", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async openUrl(event: any, args: { url: string }) {
+    return await this._systemService.openUrl(args.url);
   }
 
   @IpcRoute(IPCChannels.SYSTEM_RELAUNCH_APP)
-  async relaunchApp(event: any, args: any) {
+  public async relaunchApp(event: any) {
     return await this._systemService.relaunch();
   }
 
   @IpcRoute(IPCChannels.SYSTEM_OPEN_APP_DATA)
-  openAppData() {
-    this._systemService
-      .openLocalPath(PathUtils.getAppData())
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("SystemController.openAppData", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async openAppData(event: any) {
+    return await this._systemService.openLocalPath(PathUtils.getAppData());
   }
 
-  @IpcRoute(IPCChannels.SYSTEM_SELECT_LOCAL_FILE)
-  selectLocalFile() {
-    const { name, extensions } = req.args;
+  @IpcRoute(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, "on", { manualReply: true })
+  public async selectLocalFile(
+    event: any, args: { name: string; extensions: string[] }) {
+    const { name, extensions } = args;
     if (!extensions || extensions.length === 0) {
       return;
-      // req.event.reply(req.channel, ResponseUtils.fail("可选择扩展名不能为空"));
     }
     const win: BrowserWindow = this._container.get("win");
     dialog
@@ -72,17 +51,16 @@ export default class SystemController {
       })
       .then(result => {
         if (result.canceled) {
-          // todo canceled
-          req.event.reply(
-            req.channel,
+          event.reply(
+            IPCChannels.SYSTEM_SELECT_LOCAL_FILE,
             ResponseUtils.success({
               canceled: true,
               path: ""
             })
           );
         } else {
-          req.event.reply(
-            req.channel,
+          event.reply(
+            IPCChannels.SYSTEM_SELECT_LOCAL_FILE,
             ResponseUtils.success({
               canceled: false,
               path: result.filePaths[0]
@@ -91,27 +69,15 @@ export default class SystemController {
         }
       })
       .catch((err: Error) => {
-        log.error("SystemController.selectLocalFile", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(
+          IPCChannels.SYSTEM_SELECT_LOCAL_FILE,
+          ResponseUtils.fail(err)
+        );
       });
   }
 
   @IpcRoute(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE)
-  getFrpcDesktopGithubLastRelease() {
-    this._gitHubService
-      .getGithubLastRelease("luckjiawei/frpc-desktop")
-      .then((data: any) => {
-        req.event.reply(
-          req.channel,
-          ResponseUtils.success({
-            manual: req.args.manual,
-            version: data
-          })
-        );
-      })
-      .catch((err: Error) => {
-        log.error("SystemController.getFrpcDesktopGithubLastRelease", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  public async getFrpcDesktopGithubLastRelease(event: any) {
+    return await this._gitHubService.getGithubLastRelease("luckjiawei/frpc-desktop");
   }
 }

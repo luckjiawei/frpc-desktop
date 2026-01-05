@@ -15,6 +15,13 @@ import "./styles/index.scss";
 import { send } from "./utils/ipcUtils"
 import { ipcRenderer } from "electron";
 
+// 开发环境下启用 IPC 监听器调试
+if (import.meta.env.DEV) {
+  import("./utils/ipcDebug").then(({ startMonitoring }) => {
+    startMonitoring(10000); // 每 10 秒检查一次
+  });
+}
+
 const pinia = createPinia();
 
 const app = createApp(App);
@@ -31,9 +38,9 @@ app
     const frpcDesktopStore = useFrpcDesktopStore();
     frpcDesktopStore.onListenerFrpcProcessRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
-    // frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
-    // frpcDesktopStore.refreshDownloadedVersion();
-    // frpcDesktopStore.checkNewVersion(false);
+    frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
+    frpcDesktopStore.refreshDownloadedVersion();
+    frpcDesktopStore.checkNewVersion(false);
     frpcDesktopStore.onListenerFrpcDesktopLanguage();
     frpcDesktopStore.getLanguage();
 

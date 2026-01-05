@@ -1,186 +1,23 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-
-import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useClipboard, useDebounceFn } from "@vueuse/core";
-import { IPCChannels, ResponseCode } from "../../../electron/core/constant";
-import { ElMessage, ElMessageBox } from "element-plus";
-import moment from "moment";
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
-import { useI18n } from "vue-i18n";
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import { defineComponent } from "vue";
+import { useVersions } from "./index";
 
 defineComponent({
   name: "Versions"
 });
 
-const { t } = useI18n();
-
-const versions = ref<Array<FrpcVersion>>([]);
-const loading = ref(1);
-const downloadPercentage = ref(0);
-const downloading = ref<Map<number, number>>(new Map<number, number>());
-const currMirror = ref("github");
-const mirrors = ref<Array<GitHubMirror>>([
-  {
-    id: "github",
-    name: "github"
-  }
-]);
-const frpcDesktopStore = useFrpcDesktopStore();
-
-/**
- * 获取版本
- */
-const handleLoadAllVersions = () => {
-  send(IPCChannels.VERSION_GET_VERSIONS, {});
-};
-
-/**
- * download
- * @param version
- */
-const handleDownload = useDebounceFn((version: FrpcVersion) => {
-  send(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, {
-    github_asset_id: version.github_asset_id
-  });
-  downloading.value.set(version.github_asset_id, 0);
-}, 300);
-
-/**
- * copy download link
- * @param version
- */
-const handleCopyDownloadLink = useDebounceFn((version: FrpcVersion) => {
-  const { copy, copied } = useClipboard();
-  copy(version.browser_download_url);
-  ElMessage({
-    type: "success",
-    message: t("download.message.copyDownloadLinkSuccess")
-  });
-}, 300);
-
-/**
- * 删除下载
- * @param version
- */
-const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
-  ElMessageBox.alert(
-    t("download.alert.deleteConfirm.message", { name: version.name }),
-    t("download.alert.deleteConfirm.title"),
-    {
-      showCancelButton: true,
-      cancelButtonText: t("download.alert.deleteConfirm.cancel"),
-      dangerouslyUseHTMLString: true,
-      confirmButtonText: t("download.alert.deleteConfirm.confirm")
-    }
-  ).then(() => {
-    send(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, {
-      githubReleaseId: version.github_release_id
-    });
-  });
-}, 300);
-
-const handleMirrorChange = () => {
-  handleLoadAllVersions();
-};
-
-onMounted(() => {
-  handleLoadAllVersions();
-
-  on(IPCChannels.VERSION_GET_VERSIONS, data => {
-    versions.value = data.map(m => {
-      m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
-      return m as FrpcVersion;
-    }) as Array<FrpcVersion>;
-    loading.value--;
-  });
-
-  on(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, data => {
-    const { githubReleaseId, completed, percent } = data;
-    if (completed) {
-      downloading.value.delete(githubReleaseId);
-      const version: FrpcVersion | undefined = versions.value.find(
-        f => f.github_asset_id === githubReleaseId
-      );
-      if (version) {
-        version.downloaded = true;
-      }
-    } else {
-      downloading.value.set(
-        githubReleaseId,
-        Number(Number(percent * 100).toFixed(2))
-      );
-    }
-    // frpcDesktopStore.refreshDownloadedVersion();
-  });
-
-  on(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, () => {
-    loading.value++;
-    ElMessage({
-      type: "success",
-      message: t("download.message.deleteSuccess")
-    });
-    handleLoadAllVersions();
-    frpcDesktopStore.refreshDownloadedVersion();
-  });
-
-  on(
-    IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
-    data => {
-      const { canceled } = data;
-      if (!canceled) {
-        loading.value++;
-        ElMessage({
-          type: "success",
-          message: t("download.message.importSuccess")
-        });
-        handleLoadAllVersions();
-        frpcDesktopStore.refreshDownloadedVersion();
-      }
-    },
-    (bizCode: string, message: string) => {
-      if (bizCode === "B1002") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.versionExists"),
-          t("download.alert.importFailed.title")
-        );
-      }
-      if (bizCode === "B1003") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.architectureNotMatch"),
-          t("download.alert.importFailed.title")
-        );
-      }
-      if (bizCode === "B1004") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.unrecognizedFile"),
-          t("download.alert.importFailed.title")
-        );
-      }
-    }
-  );
-});
-
-const handleImportFrp = () => {
-  ElMessageBox.alert(
-    '仅支持导入版本 > <span class="font-bold text-primary">v0.52.0</span> <= <span class="font-bold text-primary">v0.64.0</span><div class="font-bold text-primary">导入文件不要解压！！！',
-    "导入提示",
-    {
-      confirmButtonText: "知道了",
-      dangerouslyUseHTMLString: true
-    }
-  ).then(() => {
-    send(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION);
-  });
-};
-
-onUnmounted(() => {
-  removeRouterListeners(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION);
-  removeRouterListeners(IPCChannels.VERSION_DOWNLOAD_VERSION);
-  removeRouterListeners(IPCChannels.VERSION_GET_VERSIONS);
-  removeRouterListeners(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION);
-});
+const {
+  t,
+  versions,
+  loading,
+  downloading,
+  handleDownload,
+  handleCopyDownloadLink,
+  handleDeleteVersion,
+  handleImportFrp
+} = useVersions();
 </script>
 <template>
   <div class="main">
@@ -200,7 +37,7 @@ onUnmounted(() => {
           <el-row :gutter="15">
             <el-col
               v-for="version in versions"
-              :key="version.github_asset_id"
+              :key="version.githubAssetId"
               :lg="6"
               :md="8"
               :sm="12"
@@ -225,13 +62,13 @@ onUnmounted(() => {
                       t("download.version.downloadCount")
                     }}</span>
                     <span class="font-bold text-primary">{{
-                      version.version_download_count
+                      version.versionDownloadCount
                     }}</span>
                   </div>
                   <div class="text-[12px]">
                     {{ t("download.version.publishTime")
                     }}<span class="font-bold text-primary">{{
-                      version.github_created_at
+                      version.githubCreatedAt
                     }}</span>
                   </div>
                 </div>
@@ -258,11 +95,11 @@ onUnmounted(() => {
 
                   <template v-else>
                     <div
-                      v-if="downloading.has(version.github_release_id)"
+                      v-if="downloading.has(version.githubReleaseId)"
                       class="w-32"
                     >
                       <el-progress
-                        :percentage="downloading.get(version.github_release_id)"
+                        :percentage="downloading.get(version.githubReleaseId)"
                         :text-inside="false"
                       />
                     </div>

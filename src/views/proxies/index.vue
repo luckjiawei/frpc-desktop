@@ -1,24 +1,59 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useClipboard, useDebounceFn } from "@vueuse/core";
-import { ElMessage, FormInstance, FormRules } from "element-plus";
-import _ from "lodash";
-import path from "path";
-import {
-  computed,
-  defineComponent,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref
-} from "vue";
+import { defineComponent } from "vue";
+import { useProxies } from "./index";
 import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 defineComponent({
   name: "Proxies"
 });
+
+const {
+  _,
+  proxys,
+  loading,
+  edit,
+  editForm,
+  editFormRules,
+  editFormRef,
+  proxyTypes,
+  visitorsModels,
+  localPorts,
+  listPortsVisible,
+  frpcConfig,
+  hasPlugin,
+  defaultForm,
+  isTcp,
+  isUdp,
+  isHttp,
+  isHttps,
+  isStcp,
+  isSudp,
+  isXtcp,
+  isStcpvisitorsProvider,
+  isStcpVisitors,
+  handleSubmit,
+  handleAddDomain,
+  handleDeleteDomain,
+  handleAddLocation,
+  handleDeleteLocation,
+  handleOpenInsert,
+  handleOpenUpdate,
+  handleDeleteProxy,
+  handleResetForm,
+  handleReversalUpdate,
+  handleLoadLocalPorts,
+  handleSelectLocalPort,
+  handleCloseLocalPortDialog,
+  handleOpenLocalPortDialog,
+  handleSelectFile,
+  handleProxyTypeChange,
+  handleCopyString,
+  handleRandomProxyName,
+  handleIpFetchSuggestions
+} = useProxies();
 </script>
 <template>
   <!--  <coming-soon />-->

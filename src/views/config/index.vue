@@ -327,7 +327,7 @@ const handleSubmit = useDebounceFn(() => {
     if (valid) {
       loading.value = 1;
       const data = _.cloneDeep(formData.value);
-      send(ipcRouters.SERVER.saveConfig, data);
+      send(IPCChannels.CONFIG_SAVE_CONFIG, data);
     }
   });
 }, 300);
@@ -564,12 +564,12 @@ const handleShowExportDialog = () => {
 };
 
 const handleExportConfig = useDebounceFn(() => {
-  send(ipcRouters.SERVER.exportConfig);
+  send(IPCChannels.CONFIG_EXPORT_CONFIG);
   // visibles.exportConfig = false;
 }, 300);
 
 const handleImportConfig = () => {
-  send(ipcRouters.SERVER.importTomlConfig);
+  send(IPCChannels.CONFIG_IMPORT_TOML_CONFIG);
 };
 
 const handleResetConfig = () => {
@@ -582,27 +582,27 @@ const handleResetConfig = () => {
       confirmButtonText: t("config.alert.resetConfig.confirm")
     }
   ).then(() => {
-    send(ipcRouters.SERVER.resetAllConfig);
+    send(IPCChannels.CONFIG_RESET_ALL_CONFIG);
   });
 };
 
 const handleOpenDataFolder = useDebounceFn(() => {
-  send(ipcRouters.SYSTEM.openAppData);
+  send(IPCChannels.SYSTEM_OPEN_APP_DATA);
 }, 300);
 
 const handleSystemLanguageChange = e => {
-  send(ipcRouters.SERVER.saveLanguage, e);
+  send(IPCChannels.CONFIG_SAVE_LANGUAGE, e);
 };
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.SERVER.saveConfig);
-  removeRouterListeners(ipcRouters.SERVER.getServerConfig);
-  removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
-  removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
-  removeRouterListeners(ipcRouters.SERVER.exportConfig);
-  removeRouterListeners(ipcRouters.SYSTEM.openAppData);
-  removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
-  removeRouterListeners(ipcRouters.SYSTEM.relaunchApp);
+  removeRouterListeners(IPCChannels.CONFIG_SAVE_CONFIG);
+  removeRouterListeners(IPCChannels.CONFIG_GET_SERVER_CONFIG);
+  removeRouterListeners(IPCChannels.CONFIG_RESET_ALL_CONFIG);
+  removeRouterListeners(IPCChannels.CONFIG_IMPORT_TOML_CONFIG);
+  removeRouterListeners(IPCChannels.CONFIG_EXPORT_CONFIG);
+  removeRouterListeners(IPCChannels.SYSTEM_OPEN_APP_DATA);
+  removeRouterListeners(IPCChannels.SYSTEM_SELECT_LOCAL_FILE);
+  removeRouterListeners(IPCChannels.SYSTEM_RELAUNCH_APP);
 });
 </script>
 <template>
@@ -667,7 +667,7 @@ onUnmounted(() => {
                   <el-link
                     class="ml-2"
                     type="primary"
-                    @click="$router.replace({ name: 'Download' })"
+                    @click="$router.replace({ name: 'Versions' })"
                   >
                     <IconifyIconOffline class="mr-1" icon="download" />
                     {{ t("config.button.goToDownload") }}

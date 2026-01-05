@@ -14,10 +14,5 @@ export default class VersionsEvent extends BaseEvent {
     @inject(TYPES.VersionService)
     private readonly _versionService: VersionService;
 
-    @Event(EventChannels.VERSIONS_GET_VERSIONS)
-    public async getVersions() {
-        const versions = await this._versionService.getDownloadedVersions();
-        this.send(EventChannels.VERSIONS_GET_VERSIONS, versions);
-    }
 
 }
