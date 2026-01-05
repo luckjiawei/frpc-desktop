@@ -35,7 +35,6 @@ import VersionService from "../service/VersionService";
 import knex from "knex";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
-import TestController from "../controller/TestController";
 import MonitorEvent from "../event/monitor";
 
 /**
@@ -108,7 +107,6 @@ class FrpcDesktopRunner {
     this._container
       .bind<VersionController>(TYPES.VersionController)
       .to(VersionController);
-    this._container.bind<TestController>(TYPES.TestController).to(TestController);
     // event
     this._container.bind<MonitorEvent>(TYPES.SystemEvent).to(MonitorEvent);
   }
@@ -170,7 +168,6 @@ class FrpcDesktopRunner {
     this._container.get<ProxyController>(TYPES.ProxyController);
     this._container.get<SystemController>(TYPES.SystemController);
     this._container.get<VersionController>(TYPES.VersionController);
-    this._container.get<TestController>(TYPES.TestController);
   }
 
   /**

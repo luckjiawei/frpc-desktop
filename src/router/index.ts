@@ -20,14 +20,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/launch/index.vue")
       },
       {
-        path: "/proxy",
-        name: "Proxy",
+        path: "/proxies",
+        name: "Proxies",
         meta: {
           title: "router.proxy.title",
           icon: "cloud",
           keepAlive: false
         },
-        component: () => import("@/views/proxy/index.vue")
+        component: () => import("@/views/proxies/index.vue")
       },
       {
         path: "/versions",

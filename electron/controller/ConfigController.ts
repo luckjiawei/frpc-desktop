@@ -55,14 +55,7 @@ export default class ConfigController extends BaseController {
   @IpcRoute(IPCChannels.CONFIG_OPEN_APP_DATA)
   openAppData() {
     this._systemService
-      .openLocalPath(PathUtils.getAppData())
-      .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
-      })
-      .catch((err: Error) => {
-        log.error("ConfigController.openAppData", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+      .openLocalPath(PathUtils.getAppData());
   }
 
   @IpcRoute(IPCChannels.CONFIG_RESET_ALL_CONFIG)

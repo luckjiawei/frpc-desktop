@@ -1,13 +1,9 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useDebounceFn } from "@vueuse/core";
-import { ElMessage } from "element-plus";
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { defineComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
 import LogView from "./LogView.vue";
-import { LogLevel, LogRecord } from "./log";
+import { useLogger } from ".";
 
 defineComponent({
   name: "Logger"
@@ -15,149 +11,17 @@ defineComponent({
 
 const { t } = useI18n();
 
-const refreshStatus = ref(false);
-const logLoading = ref(true);
-const autoRefresh = ref(false);
-const autoRefreshTimer = ref(null);
-const autoRefreshTime = ref(10);
-const activeTabName = ref("app_log");
-const logRecords = ref<Array<LogRecord>>([]);
-
-const openLocalLog = useDebounceFn(() => {
-  if (activeTabName.value === "app_log") {
-    send(ipcRouters.LOG.openAppLogFile);
-  } else {
-    send(ipcRouters.LOG.openFrpcLogFile);
-  }
-}, 1000);
-
-const refreshLog = useDebounceFn(() => {
-  // ElMessage({
-  //   type: "warning",
-  //   icon: "<IconifyIconOffline icon=\"file-open-rounded\" />",
-  //   message: "正在刷新日志..."
-  // });
-  refreshStatus.value = true;
-  logLoading.value = true;
-  logRecords.value = [];
-  if (activeTabName.value === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
-}, 300);
-
-const handleAutoRefreshChange = () => {
-  if (autoRefresh.value) {
-    if (autoRefreshTimer.value) {
-      clearInterval(autoRefreshTimer.value);
-    }
-    autoRefreshTimer.value = setInterval(() => {
-      autoRefreshTime.value--;
-      if (autoRefreshTime.value <= 0) {
-        autoRefreshTime.value = 10;
-        refreshLog();
-      }
-    }, 1000);
-  } else {
-    clearInterval(autoRefreshTimer.value);
-    autoRefreshTime.value = 10;
-  }
-};
-
-const handleTabChange = (tab: string) => {
-  activeTabName.value = tab;
-  logRecords.value = [];
-  if (tab === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
-};
-
-onMounted(() => {
-  on(ipcRouters.LOG.getFrpLogContent, data => {
-    if (data) {
-      logRecords.value = data.split("\n").map(line => {
-        if (line.indexOf("[E]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
-        } else if (line.indexOf("[I]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        } else if (line.indexOf("[D]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-        } else if (line.indexOf("[W]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
-        } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        }
-      });
-
-      logRecords.value = logRecords.value.reverse();
-    }
-
-    logLoading.value = false;
-    if (refreshStatus.value) {
-      // 刷新逻辑
-      ElMessage({
-        type: "success",
-        message: t("logger.message.refreshSuccess")
-      });
-      refreshStatus.value = false;
-    }
-  });
-
-  on(ipcRouters.LOG.getAppLogContent, data => {
-    if (data) {
-      logRecords.value = data.split("\n").map(line => {
-        if (line.indexOf("[error]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
-        } else if (line.indexOf("[info]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        } else if (line.indexOf("[debug]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-        } else if (line.indexOf("[warn]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
-        } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        }
-      });
-      logRecords.value = logRecords.value.reverse();
-    }
-
-    logLoading.value = false;
-    if (refreshStatus.value) {
-      // 刷新逻辑
-      ElMessage({
-        type: "success",
-        message: t("logger.message.refreshSuccess")
-      });
-      refreshStatus.value = false;
-    }
-  });
-
-  on(ipcRouters.LOG.openFrpcLogFile, () => {
-    ElMessage({
-      type: "success",
-      message: t("logger.message.openSuccess")
-    });
-  });
-
-  // send(ipcRouters.LOG.getFrpLogContent);
-  send(ipcRouters.LOG.getAppLogContent);
-});
-
-onUnmounted(() => {
-  removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
-  removeRouterListeners(ipcRouters.LOG.getAppLogContent);
-  removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
-  // removeRouterListeners2(listeners.watchFrpcLog);
-  clearInterval(autoRefreshTimer.value);
-  autoRefreshTime.value = 10;
-});
-
-// onDeactivated(() => {
-//   console.log("onDeactivated");
-// });
+const {
+  logRecords,
+  logLoading,
+  autoRefresh,
+  autoRefreshTime,
+  activeTabName,
+  refreshLog,
+  openLocalLog,
+  handleAutoRefreshChange,
+  handleTabChange
+} = useLogger();
 </script>
 <template>
   <div class="main">

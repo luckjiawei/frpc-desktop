@@ -1,6 +1,5 @@
 
 import "reflect-metadata";
-import TestController from "./controller/TestController";
 
 export const TYPES = {
     /**
@@ -40,7 +39,6 @@ export const TYPES = {
     ProxyController: Symbol.for("ProxyController"),
     FrpcDesktopApp: Symbol.for("FrpcDesktopApp"),
     ConfigController: Symbol.for("ConfigController"),
-    TestController: Symbol.for("TestController"),
     /**
      * event
      */

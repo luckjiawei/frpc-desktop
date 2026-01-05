@@ -36,9 +36,9 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         this.versions = data;
       });
     },
-    // refreshRunning() {
-    //   send(EventChannels.FRPC_PROCESS_STATUS);
-    // },
+    refreshRunning() {
+      send(EventChannels.FRPC_PROCESS_STATUS);
+    },
     // refreshDownloadedVersion() {
     //   send(ipcRouters.VERSION.getDownloadedVersions);
     // },
