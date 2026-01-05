@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import * as tar from "tar";
 import zlib from "zlib";
-import GlobalConstant from "../core/constant";
+import { GlobalConstant } from "../core/constant";
 import ResponseUtils from "../utils/ResponseUtils";
 import log from "electron-log/main";
 import { inject, injectable, Container } from "inversify";

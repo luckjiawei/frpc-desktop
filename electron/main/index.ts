@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { app } from "electron";
+import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
 
 import { TYPES } from "../di"
@@ -36,6 +36,7 @@ import knex from "knex";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
 import TestController from "../controller/TestController";
+import MonitorEvent from "../event/monitor";
 
 /**
  * Main application runner class
@@ -53,10 +54,7 @@ class FrpcDesktopRunner {
     this._container
       .bind<Container>(TYPES.Container)
       .toConstantValue(this._container);
-
-    this._container
-      .bind<FrpcDesktopApp>(TYPES.FrpcDesktopApp)
-      .to(FrpcDesktopApp);
+    this._container.bind<FrpcDesktopApp>(TYPES.FrpcDesktopApp).to(FrpcDesktopApp);
     // converter
     this._container
       .bind<OpenSourceConfigConverter>(TYPES.OpenSourceConfigConverter)
@@ -111,6 +109,8 @@ class FrpcDesktopRunner {
       .bind<VersionController>(TYPES.VersionController)
       .to(VersionController);
     this._container.bind<TestController>(TYPES.TestController).to(TestController);
+    // event
+    this._container.bind<MonitorEvent>(TYPES.SystemEvent).to(MonitorEvent);
   }
 
   public run(): void {
@@ -119,7 +119,10 @@ class FrpcDesktopRunner {
     this.initializeContainer();
     this.initializeController();
     const app = this._container.get<FrpcDesktopApp>(TYPES.FrpcDesktopApp);
-    app.run();
+
+    app.run(() => {
+      this.initializeEvent();
+    });
   }
 
   private initializeLog(): void {
@@ -157,6 +160,9 @@ class FrpcDesktopRunner {
     log.scope("knex").info("Database initialized.");
   }
 
+  /**
+   * Initialize controller
+   */
   private initializeController() {
     this._container.get<ConfigController>(TYPES.ConfigController);
     this._container.get<LaunchController>(TYPES.LaunchController);
@@ -165,6 +171,13 @@ class FrpcDesktopRunner {
     this._container.get<SystemController>(TYPES.SystemController);
     this._container.get<VersionController>(TYPES.VersionController);
     this._container.get<TestController>(TYPES.TestController);
+  }
+
+  /**
+   * Initialize event
+   */
+  private initializeEvent() {
+    this._container.get<MonitorEvent>(TYPES.SystemEvent);
   }
 }
 new FrpcDesktopRunner().run();

@@ -57,7 +57,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to the insert result
    */
   async insert(t: T) {
-    return this.table().insert(t);
+    return await this.table().insert(t);
   }
 
   /**
@@ -66,7 +66,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to the insert result
    */
   async insertMany(t: Array<T>) {
-    return this.table().insert(t);
+    return await this.table().insert(t);
   }
 
   /**
@@ -74,7 +74,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to all records
    */
   async selectAll() {
-    return this.table().select("*");
+    return await this.table().select("*");
   }
 
   /**
@@ -83,7 +83,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to the found record or null
    */
   async selectById(id: number): Promise<T> {
-    return this.table().select("*").where("id", "=", id).first();
+    return await this.table().select("*").where("id", "=", id).first();
   }
 
   /**
@@ -92,7 +92,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to the delete result
    */
   async deleteById(id: number) {
-    return this.table().where("id", "=", id).delete();
+    return await this.table().where("id", "=", id).delete();
   }
 
   /**
@@ -104,7 +104,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
     if (!(t && t.id)) {
       return;
     }
-    return this.table().where("id", "=", t.id).update(t);
+    return await this.table().where("id", "=", t.id).update(t);
   }
 
   /**
@@ -113,18 +113,10 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to true if the record exists, false otherwise
    */
   async exists(id: number): Promise<boolean> {
-    // return this.table().select().where("id", "=", id).first() !== undefined;
-    return new Promise((fn1, fn2) => {
-      this.table()
-        .select()
-        .where("id", "=", id)
-        .first()
-        .then(r => {
-          fn1(r !== undefined);
-        })
-        .catch(e => {
-          fn2(e);
-        });
-    });
+    const r = await this.table()
+      .select()
+      .where("id", "=", id)
+      .first()
+    return r !== undefined;
   }
 }

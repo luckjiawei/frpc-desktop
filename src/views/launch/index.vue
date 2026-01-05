@@ -7,8 +7,9 @@ import { useDebounceFn } from "@vueuse/core";
 import { ElMessageBox } from "element-plus";
 import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { IPCChannels } from "../../../electron/core/constant";
 defineComponent({
-  name: "Home"
+  name: "Launch"
 });
 
 const frpcDesktopStore = useFrpcDesktopStore();
@@ -16,11 +17,11 @@ const loading = ref(false);
 const { t } = useI18n();
 
 const handleStartFrpc = () => {
-  send(ipcRouters.LAUNCH.launch);
+  send(IPCChannels.LAUNCH, {});
 };
 
 const handleStopFrpc = () => {
-  send(ipcRouters.LAUNCH.terminate);
+  send(IPCChannels.LAUNCH, {});
 };
 
 const handleButtonClick = useDebounceFn(() => {
@@ -54,7 +55,7 @@ const uptime = computed(() => {
 
 onMounted(() => {
   on(
-    ipcRouters.LAUNCH.launch,
+    IPCChannels.LAUNCH,
     () => {
       frpcDesktopStore.refreshRunning();
       loading.value = false;
@@ -101,15 +102,15 @@ onMounted(() => {
     }
   );
 
-  on(ipcRouters.LAUNCH.terminate, () => {
+  on(IPCChannels.TERMINATE, () => {
     frpcDesktopStore.refreshRunning();
     loading.value = false;
   });
 });
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.LAUNCH.launch);
-  removeRouterListeners(ipcRouters.LAUNCH.terminate);
+  removeRouterListeners(IPCChannels.LAUNCH);
+  removeRouterListeners(IPCChannels.TERMINATE);
 });
 </script>
 

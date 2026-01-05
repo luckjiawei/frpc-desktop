@@ -2,8 +2,7 @@ import "reflect-metadata";
 import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
-import { BusinessError, ResponseCode } from "../core/BusinessError";
-import GlobalConstant from "../core/constant";
+import { ResponseCode } from "../core/constant";
 import VersionRepository from "../repository/VersionRepository";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
@@ -13,6 +12,8 @@ import SystemService from "./SystemService";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
+import BusinessError from "../core/error";
+import { GlobalConstant } from "../core/constant";
 
 @injectable()
 class FrpcProcessService {
@@ -93,7 +94,7 @@ class FrpcProcessService {
     }
   }
 
-  get frpcLastStartTime(): number {
+  async getLastStartTime(): Promise<number> {
     return this._frpcLastStartTime;
   }
 

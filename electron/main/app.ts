@@ -55,8 +55,8 @@ export class FrpcDesktopApp {
     // this.initializeElectronApp();
   }
 
-  public run(): void {
-    this.initializeElectronApp();
+  public run(windowReadyCallback: () => void): void {
+    this.initializeElectronApp(windowReadyCallback);
 
     log.scope("main").info("FrpcDesktopApp Version " + app.getVersion());
     log.scope("main").info("Process argv: " + process.argv.join(" "));
@@ -192,7 +192,7 @@ export class FrpcDesktopApp {
     log.scope("main").info("Tray initialized.");
   }
 
-  initializeElectronApp() {
+  async initializeElectronApp(windowReadyCallback: () => void) {
     // Disable GPU Acceleration for Windows 7
     if (release().startsWith("6.1")) app.disableHardwareAcceleration();
 
@@ -204,8 +204,11 @@ export class FrpcDesktopApp {
       process.exit(0);
     }
     app.whenReady().then(() => {
-      this.initializeWindow().then(() => { });
+      this.initializeWindow().then(() => {
+        windowReadyCallback();
+      });
       this.initializeTray();
+
     });
 
     app.on("window-all-closed", () => {
@@ -230,7 +233,9 @@ export class FrpcDesktopApp {
       if (allWindows.length) {
         allWindows[0].focus();
       } else {
-        this.initializeWindow();
+        this.initializeWindow().then(() => {
+          windowReadyCallback();
+        });
       }
     });
 

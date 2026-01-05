@@ -36,7 +36,7 @@ type ProxyModel = BaseModel & {
  * frps version model
  */
 type VersionModel = BaseModel & {
-  github_Release_Id: number;
+  github_release_id: number;
   github_asset_id: number;
   github_created_at: string;
   name: string;

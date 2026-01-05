@@ -1,6 +1,6 @@
-import BaseConverter from "../core/BaseConverter"
+import BaseConverter from "../core/converter"
 
-export default class ProxyConverter extends BaseConverter{
+export default class ProxyConverter extends BaseConverter {
 
     public model2FrpcDesktopProxy(model: ProxyModel): FrpcDesktopProxy {
         return null;

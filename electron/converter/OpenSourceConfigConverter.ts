@@ -1,4 +1,4 @@
-import BaseConverter from "../core/BaseConverter";
+import BaseConverter from "../core/converter";
 import { TomlValue } from "smol-toml";
 
 export default class OpenSourceConfigConverter extends BaseConverter {
@@ -45,7 +45,7 @@ export default class OpenSourceConfigConverter extends BaseConverter {
       loginFailExit: m.login_fail_exit,
       log: super.deserialization(m.log),
       auth: super.deserialization(m.auth),
-      webServer: super.deserialization(m.web_server),
+      webServer: m.web_server ? super.deserialization(m.web_server) : null,
       transport: super.deserialization(m.transport),
       udpPacketSize: m.udp_packet_size,
       metadatas: super.deserialization(m.metadatas),

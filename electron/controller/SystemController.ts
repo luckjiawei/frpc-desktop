@@ -8,6 +8,8 @@ import GitHubService from "../service/GitHubService";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
+import { IpcRoute } from "../core/decorators";
+import { IPCChannels } from "../core/constant";
 @injectable()
 export default class SystemController {
   private readonly _systemService: SystemService;
@@ -24,7 +26,8 @@ export default class SystemController {
     this._container = container;
   }
 
-  openUrl(req: ControllerParam) {
+  @IpcRoute(IPCChannels.SYSTEM_OPEN_URL)
+  openUrl() {
     this._systemService
       .openUrl(req.args.url)
       .then(() => {
@@ -36,19 +39,13 @@ export default class SystemController {
       });
   }
 
-  relaunchApp(req: ControllerParam) {
-    this._systemService
-      .relaunch()
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        log.error("SystemController.relaunchApp", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  @IpcRoute(IPCChannels.SYSTEM_RELAUNCH_APP)
+  async relaunchApp(event: any, args: any) {
+    return await this._systemService.relaunch();
   }
 
-  openAppData(req: ControllerParam) {
+  @IpcRoute(IPCChannels.SYSTEM_OPEN_APP_DATA)
+  openAppData() {
     this._systemService
       .openLocalPath(PathUtils.getAppData())
       .then(() => {
@@ -60,7 +57,8 @@ export default class SystemController {
       });
   }
 
-  selectLocalFile(req: ControllerParam) {
+  @IpcRoute(IPCChannels.SYSTEM_SELECT_LOCAL_FILE)
+  selectLocalFile() {
     const { name, extensions } = req.args;
     if (!extensions || extensions.length === 0) {
       return;
@@ -98,7 +96,8 @@ export default class SystemController {
       });
   }
 
-  getFrpcDesktopGithubLastRelease(req: ControllerParam) {
+  @IpcRoute(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE)
+  getFrpcDesktopGithubLastRelease() {
     this._gitHubService
       .getGithubLastRelease("luckjiawei/frpc-desktop")
       .then((data: any) => {

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import BaseController from "../core/BaseController";
+import BaseController from "../core/controller";
 import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/VersionRepository";
@@ -8,91 +8,92 @@ import { BrowserWindow, dialog } from "electron";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
+import { IpcRoute } from "../core/decorators";
+import { IPCChannels, ResponseCode } from "../core/constant";
+import BusinessError from "electron/core/error";
 
 @injectable()
 export default class VersionController extends BaseController {
+  @inject(TYPES.VersionService)
   private readonly _versionService: VersionService;
+  @inject(TYPES.VersionRepository)
   private readonly _versionDao: VersionRepository;
+  @inject(TYPES.Container)
   private readonly _container: Container;
 
-  constructor(
-    @inject(TYPES.VersionService) versionService: VersionService,
-    @inject(TYPES.VersionRepository) versionDao: VersionRepository,
-    @inject(TYPES.Container) container: Container
-  ) {
-    super();
-    this._versionService = versionService;
-    this._versionDao = versionDao;
-    this._container = container;
+  /**
+   * get frp versions from github
+   * @param event 
+   * @returns 
+   */
+  @IpcRoute(IPCChannels.VERSION_GET_VERSIONS)
+  async getVersions() {
+    const result = await this._versionService.getFrpVersionsByGitHub();
+    return result;
   }
 
-  getVersions(req: ControllerParam) {
-    this._versionService
-      .getFrpVersionsByGitHub()
-      .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
-      })
-      .catch(err => {
-        log.error("VersionController.getVersions", err);
-        this._versionService.getFrpVersionByLocalJson().then(localData => {
-          req.event.reply(req.channel, ResponseUtils.success(localData));
-        });
-      });
-  }
-
-  getDownloadedVersions(req: ControllerParam) {
+  @IpcRoute(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS)
+  getDownloadedVersions(event: any) {
     this._versionDao
       .selectAll()
       .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
+        event.reply(event.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
         log.error("VersionController.getDownloadedVersions", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(event.channel, ResponseUtils.fail(err));
       });
   }
 
-  downloadFrpVersion(req: ControllerParam) {
+  /**
+   * download frp version from github
+   * @param event 
+   * @param args 
+   */
+  @IpcRoute(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, "on", { manualReply: true })
+  downloadFrpVersion(event: any, args: any) {
     this._versionService
-      .downloadFrpVersion(req.args.githubReleaseId, progress => {
-        req.event.reply(
-          req.channel,
+      .downloadFrpVersion(args.github_asset_id, progress => {
+        // send progress to renderer process
+        event.reply(
+          IPCChannels.VERSION_DOWNLOAD_FRP_VERSION,
           ResponseUtils.success({
             percent: progress.percent,
-            githubReleaseId: req.args.githubReleaseId,
+            githubReleaseId: args.github_asset_id,
             completed: progress.percent >= 1
           })
         );
       })
       .then(r => {
-        req.event.reply(
-          req.channel,
+        event.reply(
+          IPCChannels.VERSION_DOWNLOAD_FRP_VERSION,
           ResponseUtils.success({
             percent: 1,
-            githubReleaseId: req.args.githubReleaseId,
+            githubReleaseId: args.github_asset_id,
             completed: true
           })
         );
       })
       .catch((err: Error) => {
-        log.error("VersionController.downloadFrpVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, ResponseUtils.fail(err));
       });
   }
 
-  deleteDownloadedVersion(req: ControllerParam) {
+  @IpcRoute(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION)
+  deleteDownloadedVersion(event: any, args: any) {
     this._versionService
-      .deleteFrpVersion(req.args.githubReleaseId)
+      .deleteFrpVersion(args.githubReleaseId)
       .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
+        event.reply(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, ResponseUtils.success());
       })
       .catch((err: Error) => {
         log.error("VersionController.deleteDownloadedVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, ResponseUtils.fail(err));
       });
   }
 
-  importLocalFrpcVersion(req: ControllerParam) {
+  @IpcRoute(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION)
+  importLocalFrpcVersion() {
     const win: BrowserWindow = this._container.get("win");
     dialog
       .showOpenDialog(win, {

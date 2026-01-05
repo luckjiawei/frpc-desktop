@@ -1,5 +1,5 @@
 import "reflect-metadata"
-import BaseRepository from "../core/BaseRepository";
+import BaseRepository from "../core/repository";
 import { inject, injectable } from "inversify";
 import { TYPES } from "../di";
 import knex from "knex";
@@ -47,10 +47,10 @@ export default class VersionRepository extends BaseRepository<VersionModel> {
    * @param githubReleaseId
    * @returns Promise resolving to the version model or undefined
    */
-  findByGithubReleaseId(githubReleaseId: number): Promise<VersionModel> {
-    return this.table()
+  async findByGithubReleaseId(githubReleaseId: number): Promise<VersionModel> {
+    return await this.table()
       .select("*")
-      .where("githubReleaseId", "=", githubReleaseId)
+      .where("github_release_id", "=", githubReleaseId)
       .first();
   }
 }
