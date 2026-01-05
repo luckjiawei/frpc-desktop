@@ -81,6 +81,7 @@ export const onEvent = (
   listener: (data: any) => void
 ) => {
   const wrappedListener = (event: Electron.IpcRendererEvent, args: ApiResponse<any>) => {
+    console.log(`evemt => ${channel} , args => `, args);
     listener(args);
   };
 

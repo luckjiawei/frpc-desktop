@@ -10,17 +10,16 @@ import { EventChannels } from "../core/constant";
 @injectable()
 export default class MonitorEvent extends BaseEvent {
 
-    private readonly systemService: SystemService;
-    private readonly window: BrowserWindow;
+    @inject(TYPES.SystemService)
+    private readonly _systemService: SystemService;
 
-    constructor(@inject(TYPES.SystemService) systemService: SystemService, @inject(TYPES.BrowserWindow) window: BrowserWindow) {
+    constructor(@inject(TYPES.BrowserWindow) window: BrowserWindow) {
         super(window);
-        this.systemService = systemService;
     }
 
     @Event(EventChannels.SYSTEM_MONITOR, 1000)
     public systemUsage() {
-        return this.systemService.getSystemUsage();
+        return this._systemService.getSystemUsage();
     }
 
 }

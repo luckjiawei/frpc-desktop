@@ -3,7 +3,7 @@ import { on, onEvent, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
 import pkg from "../../package.json";
-import { EventChannels, IPCChannels } from "../../electron/core/constant";
+import { EventChannels, IPCChannels, ResponseCode } from "../../electron/core/constant";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   state: () => ({
@@ -22,12 +22,16 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   },
   actions: {
     onListenerFrpcProcessRunning() {
-      onEvent(EventChannels.FRPC_PROCESS_STATUS, data => {
-        const { running, lastStartTime } = data;
-        this.running = running;
-        if (running) {
-          this.uptime = new Date().getTime() - lastStartTime;
+      onEvent(EventChannels.FRPC_PROCESS_STATUS, r => {
+        const { code, data } = r;
+        if (code === ResponseCode.SUCCESS.code) {
+          const { running, lastStartTime } = data;
+          this.running = running;
+          if (running) {
+            this.uptime = new Date().getTime() - lastStartTime;
+          }
         }
+
       });
     },
 

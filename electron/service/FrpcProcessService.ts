@@ -22,7 +22,6 @@ class FrpcProcessService {
   private readonly _versionRepository: VersionRepository;
   private readonly _container: Container;
   private _frpcProcess: any;
-  private _frpcProcessListener: any;
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
 
@@ -94,7 +93,7 @@ class FrpcProcessService {
     }
   }
 
-  public async getLastStartTime(): Promise<number> {
+  public getLastStartTime(): number {
     return this._frpcLastStartTime;
   }
 
@@ -160,7 +159,7 @@ class FrpcProcessService {
   }
 
   async stopFrpcProcess() {
-    if (this._frpcProcess && this.isRunning()) {
+    if (this.isRunning()) {
       log.scope("frpc").info(`stopFrpcProcess: pid: ${this._frpcProcess.pid}`);
       treeKill(this._frpcProcess.pid, (error: Error) => {
         if (error) {

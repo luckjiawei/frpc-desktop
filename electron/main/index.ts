@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { app, BrowserWindow } from "electron";
+import { app } from "electron";
 import { join } from "node:path";
 
 import { TYPES } from "../di"
@@ -36,6 +36,7 @@ import knex from "knex";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
 import MonitorEvent from "../event/monitor";
+import FrpcProcessEvent from "../event/frpc-process";
 
 /**
  * Main application runner class
@@ -109,6 +110,7 @@ class FrpcDesktopRunner {
       .to(VersionController);
     // event
     this._container.bind<MonitorEvent>(TYPES.SystemEvent).to(MonitorEvent);
+    this._container.bind<FrpcProcessEvent>(TYPES.FrpcProcessEvent).to(FrpcProcessEvent);
   }
 
   public run(): void {
@@ -175,6 +177,7 @@ class FrpcDesktopRunner {
    */
   private initializeEvent() {
     this._container.get<MonitorEvent>(TYPES.SystemEvent);
+    this._container.get<FrpcProcessEvent>(TYPES.FrpcProcessEvent);
   }
 }
 new FrpcDesktopRunner().run();

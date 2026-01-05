@@ -17,7 +17,7 @@ export function useLaunch() {
     };
 
     const handleStopFrpc = () => {
-        send(IPCChannels.LAUNCH, {});
+        send(IPCChannels.TERMINATE, {});
     };
 
     const handleButtonClick = useDebounceFn(() => {

@@ -35,7 +35,7 @@ export default class OpenSourceConfigRepository extends BaseRepository<OpenSourc
         table.boolean("multiuser");
         table.string("user");
         table.string("server_addr");
-        table.string("server_port");
+        table.integer("server_port");
         table.string("login_fail_exit");
         table.json("log");
         table.json("auth");

@@ -42,5 +42,6 @@ export const TYPES = {
     /**
      * event
      */
-    SystemEvent: Symbol.for("SystemEvent")
+    SystemEvent: Symbol.for("SystemEvent"),
+    FrpcProcessEvent: Symbol.for("FrpcProcessEvent")
 };
