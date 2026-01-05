@@ -2,11 +2,16 @@ import "reflect-metadata";
 
 import LogService from "../service/LogService";
 import ResponseUtils from "../utils/ResponseUtils";
-import BaseController from "../core/BaseController";
+import BaseController from "../core/controller";
 import log from "electron-log/main";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
+import { IpcRoute } from "../core/decorators";
+import { IPCChannels } from "../core/constant";
 
+/**
+ * log controller
+ */
 @injectable()
 export default class LogController extends BaseController {
   private readonly _logService: LogService;
@@ -16,7 +21,11 @@ export default class LogController extends BaseController {
     this._logService = logService;
   }
 
-  getFrpLogContent(req: ControllerParam) {
+  /**
+   * get frpc log content
+   */
+  @IpcRoute(IPCChannels.LOG_GET_FRP_LOG_CONTENT)
+  getFrpLogContent() {
     this._logService
       .getFrpLogContent()
       .then(data => {
@@ -28,7 +37,11 @@ export default class LogController extends BaseController {
       });
   }
 
-  getAppLogContent(req: ControllerParam) {
+  /**
+   * get app log content
+   */
+  @IpcRoute(IPCChannels.LOG_GET_APP_LOG_CONTENT)
+  getAppLogContent() {
     this._logService
       .getAppLogContent()
       .then(data => {
@@ -46,7 +59,11 @@ export default class LogController extends BaseController {
   //   });
   // }
 
-  openFrpcLogFile(req: ControllerParam) {
+  /**
+   * open frpc log file
+   */
+  @IpcRoute(IPCChannels.LOG_OPEN_FRPC_LOG_FILE)
+  openFrpcLogFile() {
     this._logService
       .openFrpcLogFile()
       .then(data => {
@@ -62,7 +79,11 @@ export default class LogController extends BaseController {
       });
   }
 
-  openAppLogFile(req: ControllerParam) {
+  /**
+   * open app log file
+   */
+  @IpcRoute(IPCChannels.LOG_OPEN_APP_LOG_FILE)
+  openAppLogFile() {
     this._logService
       .openAppLogFile()
       .then(data => {

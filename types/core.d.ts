@@ -1,11 +1,15 @@
+interface IResponseCode {
+  code: string;
+  message: string;
+}
+
 interface ApiResponse<T> {
-  bizCode: string;
+  code: string;
   data: T;
   message: string;
 }
 
 interface ControllerParam {
-  // win: BrowserWindow;
   channel: string;
   event: Electron.IpcMainEvent;
   args: any;

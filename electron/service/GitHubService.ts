@@ -1,23 +1,22 @@
 import "reflect-metadata";
 import { net } from "electron";
 import { injectable } from "inversify";
+import log from "electron-log/main";
+import BusinessError from "../core/error";
+import { ResponseCode } from "../core/constant";
 
 @injectable()
 class GitHubService {
-  constructor() {}
+  constructor() { }
 
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`
+        url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`,
       });
 
       request.on("response", response => {
-        // logInfo(
-        //   LogModule.GITHUB,
-        //   `Received response with status code: ${response.statusCode}`
-        // );
         let responseData: Buffer = Buffer.alloc(0);
 
         response.on("data", (data: Buffer) => {
@@ -31,17 +30,25 @@ class GitHubService {
                 resolve(data);
               })
               .catch(err => reject(err));
-            // logInfo(
-            //   LogModule.GITHUB,
-            //   "Successfully retrieved GitHub release data."
-            // );
-          } else {
-            // logWarn(
-            //   LogModule.GITHUB,
-            //   "Failed to retrieve data, using local JSON instead. Status code: " +
-            //     response.statusCode
-            // );
+          } else if (response.statusCode === 403) {
+            log.scope("github").error(`Failed to retrieve GitHub releases. Status code: ${response.statusCode}`);
+            reject(
+              new BusinessError(
+                ResponseCode.GITHUB_UNAUTHORIZED
+              )
+            );
           }
+          else {
+            log.scope("github").error(`Failed to retrieve GitHub releases. Status code: ${response.statusCode}`);
+            reject(
+              new BusinessError(
+                ResponseCode.GITHUB_NETWORK_ERROR
+              )
+            );
+          }
+        });
+        response.on("error", (error) => {
+          reject(error);
         });
       });
 
@@ -66,9 +73,24 @@ class GitHubService {
         });
         response.on("end", () => {
           if (response.statusCode === 200) {
-            const release: GithubRelease = JSON.parse(responseData.toString());
-            resolve(release);
+            try {
+              const release: GithubRelease = JSON.parse(
+                responseData.toString()
+              );
+              resolve(release);
+            } catch (error) {
+              reject(error);
+            }
+          } else {
+            reject(
+              new Error(
+                `Failed to get GitHub release. Status code: ${response.statusCode}`
+              )
+            );
           }
+        });
+        response.on("error", (error) => {
+          reject(error);
         });
       });
 

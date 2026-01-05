@@ -1,27 +1,21 @@
-import { BusinessError, ResponseCode } from "../core/BusinessError";
+
+import log from "electron-log/main";
+import { ResponseCode } from "../core/constant";
+import BusinessError from "../core/error";
 
 class ResponseUtils {
   public static success<T>(data?: any, message?: string) {
-    const [bizCode, message2] = ResponseCode.SUCCESS.split(";");
+    const { code, message: message2 } = ResponseCode.SUCCESS;
     const resp: ApiResponse<T> = {
-      bizCode: bizCode,
+      code: code,
       data: data,
       message: message || message2
     };
     return resp;
   }
 
-  // public static fail(bizCode?: string, message?: string) {
-  //   const resp: ApiResponse<any> = {
-  //     success: false,
-  //     bizCode: bizCode,
-  //     data: null,
-  //     message: message || "internal error."
-  //   };
-  //   return resp;
-  // }
-
   public static fail(err: Error) {
+     log.scope("ipc").error("IPC Error.", err);
     if (!(err instanceof BusinessError)) {
       err = new BusinessError(ResponseCode.INTERNAL_ERROR);
     }
@@ -29,10 +23,11 @@ class ResponseUtils {
     const message = (err as BusinessError).message;
 
     const resp: ApiResponse<any> = {
-      bizCode: bizCode,
+      code: bizCode,
       data: null,
       message: message
     };
+   
     return resp;
   }
 }

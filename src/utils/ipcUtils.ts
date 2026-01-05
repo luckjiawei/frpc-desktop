@@ -1,8 +1,9 @@
 import { ipcRenderer } from "electron";
 import { ElMessage } from "element-plus";
+import { ResponseCode } from "../../electron/core/constant";
 
-export const send = (router: IpcRouter, params?: any) => {
-  ipcRenderer.send(router.path, params);
+export const send = (channel: string, params?: any) => {
+  ipcRenderer.send(channel, params);
 };
 
 // export const invoke = (router: IpcRouter, params?: any) => {
@@ -22,17 +23,18 @@ export const send = (router: IpcRouter, params?: any) => {
 // };
 
 export const on = (
-  router: IpcRouter,
-  listerHandler: (data: any) => void,
-  errHandler?: (bizCode: string, message: string) => void
+  channel: string,
+  onSuccess: (data: any) => void,
+  onFail?: (bizCode: string, message: string) => void
 ) => {
-  ipcRenderer.on(`${router.path}:hook`, (event, args: ApiResponse<any>) => {
-    const { bizCode, data, message } = args;
-    if (bizCode === "A1000") {
-      listerHandler(data);
+  ipcRenderer.on(channel, (event, args: ApiResponse<any>) => {
+    const { code, data, message } = args;
+    console.log(`response => ${channel} , args => `, args);
+    if (code === ResponseCode.SUCCESS.code) {
+      onSuccess(data);
     } else {
-      if (errHandler) {
-        errHandler(bizCode, message);
+      if (onFail) {
+        onFail(code, message);
       } else {
         // ElMessageBox.alert(message,"出错了");
         ElMessage({
@@ -45,27 +47,24 @@ export const on = (
   });
 };
 
-export const onListener = (
-  listener: Listener,
-  listerHandler: (data: any) => void
+export const onEvent = (
+  channel: string,
+  listener: (data: any) => void
 ) => {
-  // return new Promise((resolve, reject) => {
-  ipcRenderer.on(`${listener.channel}`, (event, args: ApiResponse<any>) => {
-    const { bizCode, data, message } = args;
-    if (bizCode === "A1000") {
-      listerHandler(data);
-    }
+  ipcRenderer.on(`${channel}`, (event, args: ApiResponse<any>) => {
+    listener(args);
   });
-  // });
 };
 
-export const removeRouterListeners = (router: IpcRouter) => {
-  ipcRenderer.removeAllListeners(`${router.path}:hook`);
+
+
+export const removeRouterListeners = (channel: string) => {
+  ipcRenderer.removeAllListeners(`${channel}`);
 };
 
-export const removeRouterListeners2 = (listen: Listener) => {
-  ipcRenderer.removeAllListeners(`${listen.channel}`);
-};
+// export const removeRouterListeners2 = (listen: Listener) => {
+//   ipcRenderer.removeAllListeners(`${listen.channel}`);
+// };
 // export const removeAllListeners = (listen: Listener) => {
 //   ipcRenderer.removeAllListeners(`${listen.channel}:hook`);
 // };

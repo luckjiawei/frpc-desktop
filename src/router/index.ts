@@ -7,17 +7,17 @@ const routes: RouteRecordRaw[] = [
     path: "/",
     name: "Index",
     component: Layout,
-    redirect: "/home",
+    redirect: "/launch",
     children: [
       {
-        path: "/home",
-        name: "Home",
+        path: "/launch",
+        name: "Launch",
         meta: {
           title: "router.home.title",
           icon: "rocket-launch-rounded",
           keepAlive: false
         },
-        component: () => import("@/views/home/index.vue")
+        component: () => import("@/views/launch/index.vue")
       },
       {
         path: "/proxy",
@@ -30,14 +30,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/proxy/index.vue")
       },
       {
-        path: "/download",
-        name: "Download",
+        path: "/versions",
+        name: "Versions",
         meta: {
           title: "router.download.title",
           icon: "download",
           keepAlive: false
         },
-        component: () => import("@/views/download/index.vue")
+        component: () => import("@/views/versions/index.vue")
       },
       {
         path: "/config",

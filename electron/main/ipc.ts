@@ -163,7 +163,7 @@
 //     Object.keys(routerGroup).forEach(method => {
 //       const router = routerGroup[method];
 //       ipcMain.on(router.path, (event, args) => {
-//         const req: ControllerParam = {
+//         const  = {
 //           // win: BeanFactory.getBean("win"),
 //           channel: `${router.path}:hook`,
 //           event: event,

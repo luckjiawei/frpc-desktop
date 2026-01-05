@@ -1,6 +1,6 @@
 import "reflect-metadata"
 import { inject, injectable } from "inversify";
-import BaseRepository from "../core/BaseRepository";
+import BaseRepository from "../core/repository";
 import { TYPES } from "../di";
 import knex from "knex";
 

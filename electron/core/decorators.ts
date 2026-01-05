@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import log from "electron-log/main"
+import log, { scope } from "electron-log/main"
+import ResponseUtils from "../utils/ResponseUtils";
 
 export const IPC_METADATA_KEY = 'ipc:routes';
 export const EVENT_METADATA_KEY = 'event:listeners';
@@ -8,15 +9,26 @@ export interface IpcRouteMetadata {
   path: string;
   ipcType: string;
   method: string;
+  manualReply?: boolean;
+}
+
+export interface IpcRouteOptions {
+  manualReply?: boolean;
 }
 
 export interface EventMetadata {
-  name: string;
   method: string;
   ipcChannel?: string;
+  interval?: number;
 }
-
-export function IpcRoute(path: string, ipcType: string = 'on') {
+/**
+ *  
+ * @param path 
+ * @param ipcType 
+ * @param options
+ * @returns 
+ */
+export function IpcRoute(path: string, ipcType: string = 'on', options?: IpcRouteOptions) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     log.scope("ipc").info("IpcRoute", path, ipcType);
     if (!Reflect.hasMetadata(IPC_METADATA_KEY, target.constructor)) {
@@ -27,25 +39,26 @@ export function IpcRoute(path: string, ipcType: string = 'on') {
     routes.push({
       path,
       ipcType,
-      method: propertyKey
+      method: propertyKey,
+      manualReply: options?.manualReply
     });
 
     Reflect.defineMetadata(IPC_METADATA_KEY, routes, target.constructor);
   };
 }
 
-export function Event(name: string, ipcChannel?: string) {
+export function Event(ipcChannel?: string, interval?: number) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    log.scope("event").info("Event", name, ipcChannel);
+    log.scope("event").info("Event", ipcChannel, interval);
     if (!Reflect.hasMetadata(EVENT_METADATA_KEY, target.constructor)) {
       Reflect.defineMetadata(EVENT_METADATA_KEY, [], target.constructor);
     }
 
     const events = Reflect.getMetadata(EVENT_METADATA_KEY, target.constructor) as EventMetadata[];
     events.push({
-      name,
       method: propertyKey,
-      ipcChannel
+      ipcChannel,
+      interval
     });
 
     Reflect.defineMetadata(EVENT_METADATA_KEY, events, target.constructor);

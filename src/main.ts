@@ -29,21 +29,16 @@ app
   .mount("#app")
   .$nextTick(() => {
     const frpcDesktopStore = useFrpcDesktopStore();
-    // frpcDesktopStore.onListenerFrpcProcessRunning();
-    // frpcDesktopStore.onListenerDownloadedVersion();
+    frpcDesktopStore.onListenerFrpcProcessRunning();
+    frpcDesktopStore.onListenerDownloadedVersion();
     // frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     // frpcDesktopStore.refreshDownloadedVersion();
     // frpcDesktopStore.checkNewVersion(false);
-    // frpcDesktopStore.onListenerFrpcDesktopLanguage();
-    // frpcDesktopStore.getLanguage();
+    frpcDesktopStore.onListenerFrpcDesktopLanguage();
+    frpcDesktopStore.getLanguage();
 
     const systemUsageStore = useSystemUsageStore();
-    // systemUsageStore.onListenerSystemUsage();
-
-    // send("test/test1");
-
-    ipcRenderer.send("test/test1", {});
-    console.log('send test1')
+    systemUsageStore.onListenerSystemUsage();
     postMessage({ payload: "removeLoading" }, "*");
   })
   .then(r => { });

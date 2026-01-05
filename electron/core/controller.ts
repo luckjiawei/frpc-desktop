@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { ipcMain } from "electron";
 import { IPC_METADATA_KEY, IpcRouteMetadata } from "./decorators";
 import log from "electron-log/main";
+import ResponseUtils from "../utils/ResponseUtils";
 
 /**
  * Abstract base class for all controllers in the application.
@@ -19,32 +20,38 @@ export default abstract class BaseController {
         this.constructor
       ) as IpcRouteMetadata[]) || [];
 
-    log.scope("ipc").info(`Registering ${routes.length} routes for ${this.constructor.name}`);
+    if (routes.length > 0) {
+      log.scope("ipc").info(`Registering ${routes.length} routes for ${this.constructor.name}`);
+    }
 
     routes.forEach((route: IpcRouteMetadata) => {
       const handler = (this as any)[route.method].bind(this);
-      log.scope("ipc").info(`Binding ${route.ipcType} ${route.path} to ${route.method}`);
+      const scope = log.scope("ipc");
 
       if (route.ipcType === "on") {
         ipcMain.on(route.path, async (event: any, ...args: any[]) => {
-          log.scope("ipc").info(`Received IPC on ${route.path} for ${this.constructor.name}.${route.method}`);
+          scope.info(`[Request] ${route.path} -> ${this.constructor.name}.${route.method}`, args);
           try {
             const result = await handler(event, ...args);
-            if (result !== undefined) {
-              log.scope("ipc").info(`Replying to ${route.path}`);
-              event.reply(`${route.path}:reply`, { data: result });
+            if (!route.manualReply) {
+              scope.info(`[Response] ${route.path}`, result);
+              event.reply(route.path, ResponseUtils.success(result));
             }
           } catch (error) {
-            log.scope("ipc").error(`Error in IPC handler ${route.path}`, error);
-            event.reply(`${route.path}:error`, { error: error.message });
+            scope.error(`[Error] ${route.path}`, error);
+            event.reply(route.path, ResponseUtils.fail(error));
           }
         });
       } else if (route.ipcType === "handle") {
         ipcMain.handle(route.path, async (event: any, ...args: any[]) => {
+          scope.info(`[Invoke] ${route.path} -> ${this.constructor.name}.${route.method}`, args);
           try {
-            return await handler(event, ...args);
+            const result = await handler(event, ...args);
+            scope.info(`[Return] ${route.path}`, result);
+            return ResponseUtils.success(result);
           } catch (error) {
-            throw new Error(error.message);
+            scope.error(`[Error] ${route.path}`, error);
+            return ResponseUtils.fail(error);
           }
         });
       }

@@ -4,7 +4,7 @@ import { app, BrowserWindow, dialog } from "electron";
 import fs from "fs";
 import path from "path";
 import TOML, { TomlValue } from "smol-toml";
-import GlobalConstant from "../core/constant";
+import { GlobalConstant } from "../core/constant";
 import ProxyRepository from "../repository/ProxyRepository";
 import PathUtils from "../utils/PathUtils";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";

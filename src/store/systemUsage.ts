@@ -1,6 +1,7 @@
-import { onListener } from "@/utils/ipcUtils";
+import { onEvent } from "@/utils/ipcUtils";
+import { ResponseCode } from "../../electron/core/constant";
 import { defineStore } from "pinia";
-// import { ipcRouters, listeners } from "../../electron/core/IpcRouter";
+
 
 export const useSystemUsageStore = defineStore("systemUsage", {
   state: () => ({
@@ -16,10 +17,13 @@ export const useSystemUsageStore = defineStore("systemUsage", {
   },
   actions: {
     onListenerSystemUsage() {
-      // onListener(listeners.watchSystemUsage, data => {
-      //   this.cpu = data.cpu;
-      //   this.memory = data.memory;
-      // });
+      onEvent("systemUsage", r => {
+        const { code, data } = r;
+        if (code === ResponseCode.SUCCESS.code) {
+          this.cpu = data.cpu;
+          this.memory = data.memory;
+        }
+      });
     }
   }
 });

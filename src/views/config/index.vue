@@ -5,6 +5,7 @@ import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import confetti from "canvas-confetti/src/confetti.js";
+import { IPCChannels } from "../../../electron/core/constant";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import { Base64 } from "js-base64";
 import _ from "lodash";
@@ -17,7 +18,6 @@ import {
   watch
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
   name: "Config"
@@ -37,7 +37,7 @@ defineComponent({
 const { t } = useI18n();
 
 const defaultFormData: OpenSourceFrpcDesktopConfiguration = {
-  _id: "",
+  id: null,
   multiuser: false,
   frpcVersion: null,
   loginFailExit: false,
@@ -364,14 +364,14 @@ const checkAndResetVersion = () => {
 // };
 
 const handleLoadSavedConfig = () => {
-  send(ipcRouters.SERVER.getServerConfig);
+  send(IPCChannels.CONFIG_GET_SERVER_CONFIG);
 };
 
 onMounted(() => {
   // handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
-  on(ipcRouters.SERVER.getServerConfig, data => {
+  on(IPCChannels.CONFIG_GET_SERVER_CONFIG, data => {
     if (data) {
       formData.value = data;
       Object.keys(defaultFormData).forEach(key => {
@@ -389,7 +389,7 @@ onMounted(() => {
   //   checkAndResetVersion();
   // });
 
-  on(ipcRouters.SERVER.saveConfig, data => {
+  on(IPCChannels.CONFIG_SAVE_CONFIG, data => {
     ElMessage({
       type: "success",
       message: t("config.message.saveSuccess")
@@ -398,7 +398,7 @@ onMounted(() => {
     frpcDesktopStore.getLanguage();
   });
 
-  on(ipcRouters.SYSTEM.selectLocalFile, data => {
+  on(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, data => {
     if (!data.canceled) {
       switch (currSelectLocalFileType.value) {
         case 1:
@@ -416,7 +416,7 @@ onMounted(() => {
     }
   });
 
-  on(ipcRouters.SERVER.resetAllConfig, () => {
+  on(IPCChannels.CONFIG_RESET_ALL_CONFIG, () => {
     ElMessageBox.alert(
       t("config.alert.resetConfigSuccess.message"),
       t("config.alert.resetConfigSuccess.title"),
@@ -426,11 +426,11 @@ onMounted(() => {
         confirmButtonText: t("config.alert.resetConfigSuccess.confirm")
       }
     ).then(() => {
-      send(ipcRouters.SYSTEM.relaunchApp);
+      send(IPCChannels.SYSTEM_RELAUNCH_APP);
     });
   });
 
-  on(ipcRouters.SERVER.importTomlConfig, data => {
+  on(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, data => {
     const { canceled, path } = data;
     if (!canceled) {
       // 礼花
@@ -449,12 +449,12 @@ onMounted(() => {
           confirmButtonText: t("config.alert.importTomlConfigSuccess.confirm")
         }
       ).then(() => {
-        send(ipcRouters.SYSTEM.relaunchApp);
+        send(IPCChannels.SYSTEM_RELAUNCH_APP);
       });
     }
   });
 
-  on(ipcRouters.SERVER.exportConfig, data => {
+  on(IPCChannels.CONFIG_EXPORT_CONFIG, data => {
     const { canceled, path } = data;
     if (!canceled) {
       ElMessageBox.alert(
@@ -464,14 +464,14 @@ onMounted(() => {
     }
   });
   // ElMessageBox.alert(data, `提示`);
-  on(ipcRouters.SYSTEM.openAppData, () => {
+  on(IPCChannels.SYSTEM_OPEN_APP_DATA, () => {
     ElMessage({
       type: "success",
       message: t("config.message.openAppDataSuccess")
     });
   });
 
-  on(ipcRouters.SERVER.saveLanguage, data => {
+  on(IPCChannels.CONFIG_SAVE_LANGUAGE, data => {
     ElMessage({
       type: "success",
       message: t("config.message.saveSuccess")
@@ -483,7 +483,7 @@ onMounted(() => {
 
 const handleSelectFile = (type: number, ext: string[]) => {
   currSelectLocalFileType.value = type;
-  send(ipcRouters.SYSTEM.selectLocalFile, {
+  send(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, {
     name: "",
     extensions: ext
   });

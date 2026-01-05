@@ -2,8 +2,8 @@ import "reflect-metadata";
 import { BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
-import { BusinessError, ResponseCode } from "../core/BusinessError";
-import GlobalConstant from "../core/constant";
+import { ResponseCode } from "../core/constant";
+import { GlobalConstant } from "../core/constant";
 import frpReleasesJson from "../json/frp-releases.json";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/VersionRepository";
@@ -15,27 +15,27 @@ import SystemService from "./SystemService";
 import VersionConverter from "electron/converter/VersionConverter";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
+import BusinessError from "../core/error";
 
 @injectable()
 export default class VersionService {
+  @inject(TYPES.VersionRepository)
   private readonly _versionDao: VersionRepository;
-  private readonly _systemService: SystemService;
-  private readonly _gitHubService: GitHubService;
+
+  @inject(TYPES.VersionConverter)
   private readonly _versionConverter: VersionConverter;
+
+  @inject(TYPES.SystemService)
+  private readonly _systemService: SystemService;
+
+  @inject(TYPES.GitHubService)
+  private readonly _gitHubService: GitHubService;
+
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<VersionModel> = [];
 
   constructor(
-    @inject(TYPES.VersionRepository) versionDao: VersionRepository,
-    @inject(TYPES.VersionConverter) versionConverter: VersionConverter,
-    @inject(TYPES.SystemService) systemService: SystemService,
-    @inject(TYPES.GitHubService) gitHubService: GitHubService
   ) {
-    this._versionDao = versionDao;
-    this._versionConverter = versionConverter;
-    this._systemService = systemService;
-    this._gitHubService = gitHubService;
-
     const nodeVersion = `${process.platform}_${process.arch}`;
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
@@ -43,15 +43,15 @@ export default class VersionService {
   async downloadFrpVersion(githubReleaseId: number, onProgress: Function) {
     return new Promise(async (resolve, reject) => {
       const version = this._versions.find(
-        f => f.githubReleaseId === githubReleaseId
+        f => f.github_asset_id === githubReleaseId
       );
       if (!version) {
         reject(new Error("version not found"));
       }
-      const url = version.browserDownloadUrl;
+      const url = version.browser_download_url;
       const downloadedFilePath = path.join(
         PathUtils.getDownloadStoragePath(),
-        `${version.assetName}`
+        `${version.asset_name}`
       );
 
       const versionFilePath = path.join(
@@ -68,7 +68,7 @@ export default class VersionService {
 
       // const targetPath = path.resolve();
       download(BrowserWindow.getFocusedWindow(), url, {
-        filename: `${version.assetName}`,
+        filename: `${version.asset_name}`,
         directory: PathUtils.getDownloadStoragePath(),
         onProgress: progress => {
           onProgress(progress);
@@ -90,34 +90,29 @@ export default class VersionService {
     if (!githubReleaseId) {
       return;
     }
-    const version =
-      await this._versionDao.findByGithubReleaseId(githubReleaseId);
-    if (this.VersionModelExists(version)) {
-      fs.rmSync(version.localPath, { recursive: true, force: true });
+    const version = await this._versionDao.findByGithubReleaseId(
+      githubReleaseId
+    );
+    if (this.versionModelExists(version)) {
+      fs.rmSync(version.local_path, { recursive: true, force: true });
       await this._versionDao.deleteById(version.id);
     }
   }
 
   async getFrpVersionsByGitHub(): Promise<Array<VersionModel>> {
-    return new Promise<Array<VersionModel>>((resolve, reject) => {
-      this._gitHubService
-        .getGithubRepoAllReleases("fatedier/frp")
-        .then(async (releases: Array<GithubRelease>) => {
-          const versions: Array<VersionModel> =
-            await this.githubRelease2VersionModel(releases);
-          // const _versions: Array<VersionModel> = (this._versions = _versions);
-          this._versions = versions;
-          resolve(versions);
-        })
-        .catch(err => reject(err));
-    });
+    const gvs = await this._gitHubService
+      .getGithubRepoAllReleases("fatedier/frp");
+
+    const versions: Array<VersionModel> =
+      await this.githubRelease2VersionModel(gvs);
+    this._versions = versions;
+    return versions;
+
   }
 
   async getFrpVersionByLocalJson(): Promise<Array<VersionModel>> {
     return this.githubRelease2VersionModel(frpReleasesJson);
   }
-
-  getFrpVersion() { }
 
   private findCurrentArchitectureAsset(assets: Array<GithubAsset>) {
     return assets.find((af: GithubAsset) => {
@@ -144,32 +139,28 @@ export default class VersionService {
           0
         );
 
-        const currVersion = allVersions.find(ff => ff.githubReleaseId === m.id);
+        const currVersion = allVersions.find(ff => ff.github_release_id === m.id);
         const v: VersionModel = {
           id: null,
-          githubReleaseId: m.id,
-          githubAssetId: asset.id,
-          githubCreatedAt: asset.created_at,
+          github_asset_id: asset.id,
+          github_release_id: m.id,
+          github_created_at: asset.created_at,
           name: m.name,
-          assetName: asset.name,
-          versionDownloadCount: download_count,
-          assetDownloadCount: asset.download_count,
-          browserDownloadUrl: asset.browser_download_url,
-          downloaded: this.VersionModelExists(currVersion),
-          localPath: currVersion && currVersion.localPath,
+          asset_name: asset.name,
+          version_download_count: download_count,
+          asset_download_count: asset.download_count,
+          browser_download_url: asset.browser_download_url,
+          downloaded: this.versionModelExists(currVersion),
+          local_path: currVersion && currVersion.localPath,
           size: FileUtils.formatBytes(asset.size)
         };
         return v;
       });
   }
 
-  private VersionModelExists(version: VersionModel): boolean {
-    // const version = await this._versionDao.findByGithubReleaseId(
-    //   githubReleaseId
-    // );
-
+  private versionModelExists(version: VersionModel): boolean {
     if (version) {
-      return fs.existsSync(version.localPath);
+      return fs.existsSync(version.local_path);
     }
     return false;
   }
@@ -181,7 +172,7 @@ export default class VersionService {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
         const existsVersion = await this._versionDao.findByGithubReleaseId(
-          version.githubReleaseId
+          version.github_release_id
         );
         if (existsVersion) {
           throw new BusinessError(ResponseCode.VERSION_EXISTS);
@@ -196,7 +187,7 @@ export default class VersionService {
   }
 
   getFrpVersionByAssetName(assetName: string) {
-    return this._versions.find(f => f.assetName === assetName);
+    return this._versions.find(f => f.asset_name === assetName);
   }
 
   async decompressFrp(version: VersionModel, compressedPath: string) {
@@ -204,8 +195,8 @@ export default class VersionService {
       PathUtils.getVersionStoragePath(),
       SecureUtils.calculateMD5(version.name)
     );
-    const ext = path.extname(version.assetName);
-    const fileName = path.basename(version.assetName, ext);
+    const ext = path.extname(version.asset_name);
+    const fileName = path.basename(version.asset_name, ext);
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
       const frpTempPath = path.join(versionFilePath, fileName);
@@ -216,7 +207,7 @@ export default class VersionService {
       fs.rmSync(frpTempPath, { recursive: true, force: true });
     } else if (
       ext === GlobalConstant.GZ_EXT &&
-      version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
+      version.asset_name.includes(GlobalConstant.TAR_GZ_EXT)
     ) {
       this._systemService.decompressTarGzFile(
         compressedPath,
@@ -235,7 +226,7 @@ export default class VersionService {
           // todo has bug.
           const downloadedFile = path.join(
             PathUtils.getDownloadStoragePath(),
-            version.assetName
+            version.asset_name
           );
           if (fs.existsSync(downloadedFile)) {
             fs.rmSync(downloadedFile, { recursive: true, force: true });
@@ -245,8 +236,12 @@ export default class VersionService {
     }
 
     // todo 2025-02-23 delete downloaded file.
-    version.localPath = versionFilePath;
+    version.local_path = versionFilePath;
     version.downloaded = true;
     return await this._versionDao.insert(version);
+  }
+
+  public async getDownloadedVersions() {
+    return await this._versionDao.selectAll();
   }
 }

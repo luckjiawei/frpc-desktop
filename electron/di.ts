@@ -41,4 +41,8 @@ export const TYPES = {
     FrpcDesktopApp: Symbol.for("FrpcDesktopApp"),
     ConfigController: Symbol.for("ConfigController"),
     TestController: Symbol.for("TestController"),
+    /**
+     * event
+     */
+    SystemEvent: Symbol.for("SystemEvent")
 };

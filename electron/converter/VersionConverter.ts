@@ -1,3 +1,5 @@
-import BaseConverter from "../core/BaseConverter";
+import BaseConverter from "../core/converter";
 
-export default class VersionConverter extends BaseConverter {}
+export default class VersionConverter extends BaseConverter {
+
+}

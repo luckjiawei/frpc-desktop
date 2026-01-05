@@ -4,14 +4,14 @@ import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useClipboard, useDebounceFn } from "@vueuse/core";
+import { IPCChannels, ResponseCode } from "../../../electron/core/constant";
 import { ElMessage, ElMessageBox } from "element-plus";
 import moment from "moment";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
 
 defineComponent({
-  name: "Download"
+  name: "Versions"
 });
 
 const { t } = useI18n();
@@ -33,23 +33,27 @@ const frpcDesktopStore = useFrpcDesktopStore();
  * 获取版本
  */
 const handleLoadAllVersions = () => {
-  send(ipcRouters.VERSION.getVersions);
+  send(IPCChannels.VERSION_GET_VERSIONS, {});
 };
 
 /**
- * 下载
+ * download
  * @param version
  */
 const handleDownload = useDebounceFn((version: FrpcVersion) => {
-  send(ipcRouters.VERSION.downloadVersion, {
-    githubReleaseId: version.githubReleaseId
+  send(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, {
+    github_asset_id: version.github_asset_id
   });
-  downloading.value.set(version.githubReleaseId, 0);
+  downloading.value.set(version.github_asset_id, 0);
 }, 300);
 
+/**
+ * copy download link
+ * @param version
+ */
 const handleCopyDownloadLink = useDebounceFn((version: FrpcVersion) => {
   const { copy, copied } = useClipboard();
-  copy(version.browserDownloadUrl);
+  copy(version.browser_download_url);
   ElMessage({
     type: "success",
     message: t("download.message.copyDownloadLinkSuccess")
@@ -71,8 +75,8 @@ const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
       confirmButtonText: t("download.alert.deleteConfirm.confirm")
     }
   ).then(() => {
-    send(ipcRouters.VERSION.deleteDownloadedVersion, {
-      githubReleaseId: version.githubReleaseId
+    send(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, {
+      githubReleaseId: version.github_release_id
     });
   });
 }, 300);
@@ -84,7 +88,7 @@ const handleMirrorChange = () => {
 onMounted(() => {
   handleLoadAllVersions();
 
-  on(ipcRouters.VERSION.getVersions, data => {
+  on(IPCChannels.VERSION_GET_VERSIONS, data => {
     versions.value = data.map(m => {
       m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
       return m as FrpcVersion;
@@ -92,12 +96,12 @@ onMounted(() => {
     loading.value--;
   });
 
-  on(ipcRouters.VERSION.downloadVersion, data => {
+  on(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, data => {
     const { githubReleaseId, completed, percent } = data;
     if (completed) {
       downloading.value.delete(githubReleaseId);
       const version: FrpcVersion | undefined = versions.value.find(
-        f => f.githubReleaseId === githubReleaseId
+        f => f.github_asset_id === githubReleaseId
       );
       if (version) {
         version.downloaded = true;
@@ -108,10 +112,10 @@ onMounted(() => {
         Number(Number(percent * 100).toFixed(2))
       );
     }
-    frpcDesktopStore.refreshDownloadedVersion();
+    // frpcDesktopStore.refreshDownloadedVersion();
   });
 
-  on(ipcRouters.VERSION.deleteDownloadedVersion, () => {
+  on(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION, () => {
     loading.value++;
     ElMessage({
       type: "success",
@@ -122,7 +126,7 @@ onMounted(() => {
   });
 
   on(
-    ipcRouters.VERSION.importLocalFrpcVersion,
+    IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
     data => {
       const { canceled } = data;
       if (!canceled) {
@@ -167,15 +171,15 @@ const handleImportFrp = () => {
       dangerouslyUseHTMLString: true
     }
   ).then(() => {
-    send(ipcRouters.VERSION.importLocalFrpcVersion);
+    send(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION);
   });
 };
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.VERSION.deleteDownloadedVersion);
-  removeRouterListeners(ipcRouters.VERSION.downloadVersion);
-  removeRouterListeners(ipcRouters.VERSION.getVersions);
-  removeRouterListeners(ipcRouters.VERSION.importLocalFrpcVersion);
+  removeRouterListeners(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION);
+  removeRouterListeners(IPCChannels.VERSION_DOWNLOAD_VERSION);
+  removeRouterListeners(IPCChannels.VERSION_GET_VERSIONS);
+  removeRouterListeners(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION);
 });
 </script>
 <template>
@@ -196,7 +200,7 @@ onUnmounted(() => {
           <el-row :gutter="15">
             <el-col
               v-for="version in versions"
-              :key="version.githubAssetId"
+              :key="version.github_asset_id"
               :lg="6"
               :md="8"
               :sm="12"
@@ -221,13 +225,13 @@ onUnmounted(() => {
                       t("download.version.downloadCount")
                     }}</span>
                     <span class="font-bold text-primary">{{
-                      version.versionDownloadCount
+                      version.version_download_count
                     }}</span>
                   </div>
                   <div class="text-[12px]">
                     {{ t("download.version.publishTime")
                     }}<span class="font-bold text-primary">{{
-                      version.githubCreatedAt
+                      version.github_created_at
                     }}</span>
                   </div>
                 </div>
@@ -254,11 +258,11 @@ onUnmounted(() => {
 
                   <template v-else>
                     <div
-                      v-if="downloading.has(version.githubReleaseId)"
+                      v-if="downloading.has(version.github_release_id)"
                       class="w-32"
                     >
                       <el-progress
-                        :percentage="downloading.get(version.githubReleaseId)"
+                        :percentage="downloading.get(version.github_release_id)"
                         :text-inside="false"
                       />
                     </div>

@@ -8,10 +8,12 @@ import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktop
 import SystemService from "../service/SystemService";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
-import BaseController from "../core/BaseController";
+import BaseController from "../core/controller";
 import log from "electron-log/main";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
+import { IpcRoute } from "../core/decorators";
+import { IPCChannels } from "../core/constant";
 
 @injectable()
 export default class ConfigController extends BaseController {
@@ -31,7 +33,8 @@ export default class ConfigController extends BaseController {
     this._frpcProcessService = frpcProcessService;
   }
 
-  saveConfig(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_SAVE_CONFIG)
+  saveConfig(r) {
     this._serverService
       .saveServerConfig(req.args)
       .then(() => {
@@ -43,19 +46,14 @@ export default class ConfigController extends BaseController {
       });
   }
 
-  getServerConfig(req: ControllerParam) {
-    this._serverService
-      .getServerConfig()
-      .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
-      })
-      .catch((err: Error) => {
-        log.error("ConfigController.getServerConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
-      });
+  @IpcRoute(IPCChannels.CONFIG_GET_SERVER_CONFIG)
+  async getServerConfig(event: any, args: any) {
+    return await this._serverService
+      .getServerConfig();
   }
 
-  openAppData(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_OPEN_APP_DATA)
+  openAppData() {
     this._systemService
       .openLocalPath(PathUtils.getAppData())
       .then(data => {
@@ -67,7 +65,8 @@ export default class ConfigController extends BaseController {
       });
   }
 
-  resetAllConfig(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_RESET_ALL_CONFIG)
+  resetAllConfig() {
     // await this._serverDao.truncate();
     // await this._proxyDao.truncate();
     // await this._versionDao.truncate();
@@ -101,7 +100,8 @@ export default class ConfigController extends BaseController {
       });
   }
 
-  exportConfig(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_EXPORT_CONFIG)
+  exportConfig() {
     dialog
       .showOpenDialog({
         properties: ["openDirectory"]
@@ -136,7 +136,8 @@ export default class ConfigController extends BaseController {
       });
   }
 
-  importTomlConfig(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_IMPORT_TOML_CONFIG)
+  importTomlConfig() {
     // const win: BrowserWindow = BeanFactory.getBean("win");
     // dialog
     //   .showOpenDialog(win, {
@@ -176,13 +177,13 @@ export default class ConfigController extends BaseController {
       });
   }
 
-  getLanguage(req: ControllerParam) {
-    this._serverService.getLanguage().then(data => {
-      req.event.reply(req.channel, ResponseUtils.success(data));
-    });
+  @IpcRoute(IPCChannels.CONFIG_GET_LANGUAGE)
+  async getLanguage(event: any) {
+    return await this._serverService.getLanguage();
   }
 
-  saveLanguage(req: ControllerParam) {
+  @IpcRoute(IPCChannels.CONFIG_SAVE_LANGUAGE)
+  saveLanguage() {
     this._serverService
       .saveLanguage(req.args)
       .then(() => {
