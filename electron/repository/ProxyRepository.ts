@@ -8,7 +8,7 @@ import knex from "knex";
  * Repository for managing proxy configurations in the database
  */
 @injectable()
-export default class ProxyRepository extends BaseRepository<ProxyModel> {
+export default class ProxiesRepository extends BaseRepository<ProxiesModel> {
   constructor(@inject(TYPES.Knex) knex: knex.Knex) {
     super(knex);
   }
@@ -18,7 +18,7 @@ export default class ProxyRepository extends BaseRepository<ProxyModel> {
    * @returns Table name string
    */
   protected tableName() {
-    return "frpc_proxy";
+    return "frpc_proxies";
   }
 
   /**
@@ -49,6 +49,7 @@ export default class ProxyRepository extends BaseRepository<ProxyModel> {
       table.integer("fallback_timeout_ms");
       table.boolean("https2http");
       table.string("https2http_ca_file");
+      table.string("https2http_crt_file");
       table.string("https2http_key_file");
       table.boolean("keep_tunnel_open");
       table.json("transport");

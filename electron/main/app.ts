@@ -149,7 +149,7 @@ export class FrpcDesktopApp {
       }
       return false;
     });
-    log.scope("main").info("Main Window initialized");
+    log.scope("main").info("Main Window initialized.");
   }
 
   /**

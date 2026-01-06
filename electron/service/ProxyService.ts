@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import ProxyRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
 import ProxyConverter from "electron/converter/ProxyConverter";
@@ -7,20 +7,15 @@ import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 
 @injectable()
-export default class ProxyService {
-  private readonly _proxyDao: ProxyRepository;
+export default class ProxiesService {
+  @inject(TYPES.ProxiesRepository)
+  private readonly _proxyDao: ProxiesRepository;
+  @inject(TYPES.FrpcProcessService)
   private readonly _frpcProcessService: FrpcProcessService;
+  @inject(TYPES.ProxyConverter)
   private readonly _proxyConverter: ProxyConverter;
 
-  constructor(
-    @inject(TYPES.ProxyRepository) proxyDao: ProxyRepository,
-    @inject(TYPES.FrpcProcessService) frpcProcessService: FrpcProcessService,
-    @inject(TYPES.ProxyConverter) proxyConverter: ProxyConverter
-  ) {
-    this._proxyDao = proxyDao;
-    this._frpcProcessService = frpcProcessService;
-    this._proxyConverter = proxyConverter;
-  }
+  constructor() { }
 
   /**
    * Insert a new proxy configuration
@@ -29,7 +24,7 @@ export default class ProxyService {
    */
   async insertProxy(proxy: FrpcDesktopProxy) {
     // insert proxy
-    const model: ProxyModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
+    const model: ProxiesModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.insert(model);
     // reload
     await this._frpcProcessService.reloadFrpcProcess();
@@ -42,7 +37,7 @@ export default class ProxyService {
    * @returns The updated proxy configuration
    */
   async updateProxy(proxy: FrpcDesktopProxy) {
-    const model: ProxyModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
+    const model: ProxiesModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.updateById(model);
     // reload
     await this._frpcProcessService.reloadFrpcProcess();
@@ -150,6 +145,11 @@ export default class ProxyService {
         resolve(ports);
       });
     });
+  }
+
+  async getAllProxies(): Promise<Array<FrpcDesktopProxy>> {
+    const proxies = await this._proxyDao.selectAll();
+    return proxies.map(m => this._proxyConverter.model2FrpcDesktopProxy(m));
   }
 }
 

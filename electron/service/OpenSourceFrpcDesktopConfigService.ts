@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import TOML, { TomlValue } from "smol-toml";
 import { GlobalConstant } from "../core/constant";
-import ProxyRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/ProxyRepository";
 import PathUtils from "../utils/PathUtils";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
 import OpenSourceConfigConverter from "../converter/OpenSourceConfigConverter";
@@ -17,7 +17,7 @@ import { TYPES } from "../di";
 @injectable()
 export default class OpenSourceFrpcDesktopConfigService {
   private readonly _openSourceConfigRepository: OpenSourceConfigRepository;
-  private readonly _proxyRepository: ProxyRepository;
+  private readonly _proxyRepository: ProxiesRepository;
   private readonly _openSourceConfigConverter: OpenSourceConfigConverter;
   private readonly _container: Container;
 
@@ -28,8 +28,8 @@ export default class OpenSourceFrpcDesktopConfigService {
     openSourceConfigRepository: OpenSourceConfigRepository,
     @inject(TYPES.OpenSourceConfigConverter)
     openSourceConfigConverter: OpenSourceConfigConverter,
-    @inject(TYPES.ProxyRepository)
-    proxyRepository: ProxyRepository,
+    @inject(TYPES.ProxiesRepository)
+    proxyRepository: ProxiesRepository,
     @inject(TYPES.Container)
     container: Container
   ) {

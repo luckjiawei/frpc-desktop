@@ -15,7 +15,7 @@ export default class OpenSourceConfigConverter extends BaseConverter {
       user: c.user,
       server_addr: c.serverAddr,
       server_port: c.serverPort,
-      login_fail_exit: c.loginFailExit,
+      login_fail_exit: c.loginFailExit ? 1 : 0,
       log: super.serialization(c.log),
       auth: super.serialization(c.auth),
       web_server: super.serialization(c.webServer),
@@ -24,11 +24,11 @@ export default class OpenSourceConfigConverter extends BaseConverter {
       metadatas: super.serialization(c.metadatas),
 
       frpc_version: c.frpcVersion,
-      multiuser: c.multiuser,
+      multiuser: c.multiuser ? 1 : 0,
 
-      launch_at_startup: c.system.launchAtStartup,
-      silent_startup: c.system.silentStartup,
-      auto_connect_on_startup: c.system.autoConnectOnStartup,
+      launch_at_startup: c.system.launchAtStartup ? 1 : 0,
+      silent_startup: c.system.silentStartup ? 1 : 0,
+      auto_connect_on_startup: c.system.autoConnectOnStartup ? 1 : 0,
       language: c.system.language
     };
     return r;
@@ -42,7 +42,7 @@ export default class OpenSourceConfigConverter extends BaseConverter {
       user: m.user,
       serverAddr: m.server_addr,
       serverPort: m.server_port,
-      loginFailExit: m.login_fail_exit,
+      loginFailExit: m.login_fail_exit == 1,
       log: super.deserialization(m.log),
       auth: super.deserialization(m.auth),
       webServer: m.web_server ? super.deserialization(m.web_server) : null,
@@ -50,11 +50,11 @@ export default class OpenSourceConfigConverter extends BaseConverter {
       udpPacketSize: m.udp_packet_size,
       metadatas: super.deserialization(m.metadatas),
       frpcVersion: m.frpc_version,
-      multiuser: m.multiuser,
+      multiuser: m.multiuser == 1,
       system: {
-        launchAtStartup: m.launch_at_startup,
-        silentStartup: m.silent_startup,
-        autoConnectOnStartup: m.auto_connect_on_startup,
+        launchAtStartup: m.launch_at_startup == 1,
+        silentStartup: m.silent_startup == 1,
+        autoConnectOnStartup: m.auto_connect_on_startup == 1,
         language: m.language
       }
     };

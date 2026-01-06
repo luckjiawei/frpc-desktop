@@ -19,7 +19,7 @@ export default abstract class BaseEvent {
 
     protected send(channel: string, data: any) {
         if (this._window && !this._window.isDestroyed()) {
-            log.scope("event").debug(`Sending event ${channel} to renderer`, data);
+            log.scope("event").debug(`${channel} => ${JSON.stringify(data)}`);
             this._window.webContents.send(channel, data);
         }
     }
@@ -49,12 +49,15 @@ export default abstract class BaseEvent {
                 }
             };
 
-            log.scope("event").info(`Binding internal event ${eventName} to ${this.constructor.name}.${event.method}${event.ipcChannel ? ' (IPC: ' + event.ipcChannel + ')' : ''}`);
+
             EventBus.on(eventName, handler);
 
             if (event.interval) {
-                log.scope("event").info(`Registering interval for ${eventName} every ${event.interval}ms`);
                 setInterval(handler, event.interval);
+                log.scope("event").info(`  - [${event.interval}ms] ${event.ipcChannel} -> ${event.method}`);
+
+            } else {
+                log.scope("event").info(`  - ${event.ipcChannel} -> ${event.method}`);
             }
         });
     }

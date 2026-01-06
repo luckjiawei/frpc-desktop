@@ -22,7 +22,7 @@ class LogService {
     this._container = container;
   }
 
-  async getFrpLogContent() {
+  public async getFrpLogContent() {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this._logPath)) {
         resolve("");
@@ -37,7 +37,7 @@ class LogService {
     });
   }
 
-  async getAppLogContent() {
+  public async getAppLogContent() {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this._appPath)) {
         resolve("");

@@ -17,7 +17,6 @@ export default class FrpcProcessEvent extends BaseEvent {
         @inject(TYPES.BrowserWindow) window: BrowserWindow
     ) {
         super(window);
-        log.scope("event").info("FrpcProcessEvent initialized");
     }
 
     @Event(EventChannels.FRPC_PROCESS_STATUS, 1000)
@@ -28,7 +27,6 @@ export default class FrpcProcessEvent extends BaseEvent {
             running,
             lastStartTime
         };
-        log.scope("event").debug(`FRPC Process Status: running=${running}, lastStartTime=${lastStartTime}`);
         return result;
     }
 }

@@ -30,7 +30,11 @@ export interface EventMetadata {
  */
 export function IpcRoute(path: string, ipcType: string = 'on', options?: IpcRouteOptions) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    log.scope("ipc").info("IpcRoute", path, ipcType);
+    // if (options) {
+    //   log.scope("ipc").info(`${path} => ${propertyKey} options: ${options}`);
+    // } else {
+    //   log.scope("ipc").info(`${path} => ${propertyKey}`);
+    // }
     if (!Reflect.hasMetadata(IPC_METADATA_KEY, target.constructor)) {
       Reflect.defineMetadata(IPC_METADATA_KEY, [], target.constructor);
     }

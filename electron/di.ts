@@ -17,7 +17,7 @@ export const TYPES = {
     /** repository */
     OpenSourceConfigRepository: Symbol.for("OpenSourceConfigRepository"),
     VersionRepository: Symbol.for("VersionRepository"),
-    ProxyRepository: Symbol.for("ProxyRepository"),
+    ProxiesRepository: Symbol.for("ProxyRepository"),
     /** service */
     SystemService: Symbol.for("SystemService"),
     OpenSourceFrpcDesktopConfigService: Symbol.for(
@@ -27,7 +27,7 @@ export const TYPES = {
     VersionService: Symbol.for("VersionService"),
     LogService: Symbol.for("LogService"),
     FrpcProcessService: Symbol.for("FrpcProcessService"),
-    ProxyService: Symbol.for("ProxyService"),
+    ProxiesService: Symbol.for("ProxiesService"),
 
     /**
      * controller

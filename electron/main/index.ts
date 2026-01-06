@@ -21,13 +21,13 @@ import OpenSourceConfigConverter from "../converter/OpenSourceConfigConverter";
 import ProxyConverter from "../converter/ProxyConverter";
 import VersionConverter from "../converter/VersionConverter";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
-import ProxyRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/ProxyRepository";
 import VersionRepository from "../repository/VersionRepository";
 import FrpcProcessService from "../service/FrpcProcessService";
 import GitHubService from "../service/GitHubService";
 import LogService from "../service/LogService";
 import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
-import ProxyService from "../service/ProxyService";
+import ProxiesService from "../service/ProxyService";
 import SystemService from "../service/SystemService";
 import VersionService from "../service/VersionService";
 
@@ -37,6 +37,7 @@ import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
 import MonitorEvent from "../event/monitor";
 import FrpcProcessEvent from "../event/frpc-process";
+import { LogLevel } from "electron-log";
 
 /**
  * Main application runner class
@@ -70,8 +71,8 @@ class FrpcDesktopRunner {
       .bind<OpenSourceConfigRepository>(TYPES.OpenSourceConfigRepository)
       .to(OpenSourceConfigRepository);
     this._container
-      .bind<ProxyRepository>(TYPES.ProxyRepository)
-      .to(ProxyRepository);
+      .bind<ProxiesRepository>(TYPES.ProxiesRepository)
+      .to(ProxiesRepository);
     this._container
       .bind<VersionRepository>(TYPES.VersionRepository)
       .to(VersionRepository);
@@ -90,7 +91,7 @@ class FrpcDesktopRunner {
     this._container
       .bind<FrpcProcessService>(TYPES.FrpcProcessService)
       .to(FrpcProcessService);
-    this._container.bind<ProxyService>(TYPES.ProxyService).to(ProxyService);
+    this._container.bind<ProxiesService>(TYPES.ProxiesService).to(ProxiesService);
     // controller
     this._container
       .bind<ConfigController>(TYPES.ConfigController)
@@ -118,6 +119,15 @@ class FrpcDesktopRunner {
     this.initializeDatabase();
     this.initializeContainer();
     this.initializeController();
+
+    const configService = this._container.get<OpenSourceFrpcDesktopConfigService>(TYPES.OpenSourceFrpcDesktopConfigService);
+    configService.getServerConfig().then(config => {
+      if (config && config.log) {
+        log.transports.file.level = config.log.level as LogLevel;
+        log.transports.console.level = config.log.level as LogLevel;
+      }
+    })
+
     const app = this._container.get<FrpcDesktopApp>(TYPES.FrpcDesktopApp);
 
     app.run(() => {
@@ -125,6 +135,9 @@ class FrpcDesktopRunner {
     });
   }
 
+  /**
+   * Initialize logging
+   */
   private initializeLog(): void {
     log.initialize();
     log.transports.file.level = "info";

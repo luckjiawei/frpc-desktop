@@ -24,7 +24,7 @@ export default class LogController extends BaseController {
    */
   @IpcRoute(IPCChannels.LOG_GET_FRP_LOG_CONTENT)
   public async getFrpLogContent() {
-    await this._logService
+    return await this._logService
       .getFrpLogContent();
   }
 
