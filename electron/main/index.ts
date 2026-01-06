@@ -193,5 +193,9 @@ class FrpcDesktopRunner {
     this._container.get<FrpcProcessEvent>(TYPES.FrpcProcessEvent);
   }
 }
+
+/**
+ * start main process
+ */
 new FrpcDesktopRunner().run();
 
