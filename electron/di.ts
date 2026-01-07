@@ -17,7 +17,8 @@ export const TYPES = {
     /** repository */
     OpenSourceConfigRepository: Symbol.for("OpenSourceConfigRepository"),
     VersionRepository: Symbol.for("VersionRepository"),
-    ProxiesRepository: Symbol.for("ProxyRepository"),
+    ProxiesRepository: Symbol.for("ProxiesRepository"),
+    MigrationsRepository: Symbol.for("MigrationsRepository"),
     /** service */
     SystemService: Symbol.for("SystemService"),
     OpenSourceFrpcDesktopConfigService: Symbol.for(

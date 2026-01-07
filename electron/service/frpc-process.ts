@@ -6,7 +6,7 @@ import VersionRepository from "../repository/versions";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
-import OpenSourceFrpcDesktopConfigService from "./OpenSourceFrpcDesktopConfigService";
+import OpenSourceFrpcDesktopConfigService from "./config";
 import SystemService from "./system";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";

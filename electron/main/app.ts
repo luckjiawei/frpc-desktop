@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import { injectable, inject, Container } from "inversify";
-import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
+import OpenSourceFrpcDesktopConfigService from "../service/config";
 import { TYPES } from "../di";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";

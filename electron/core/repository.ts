@@ -9,39 +9,13 @@ export default abstract class BaseRepository<T extends BaseModel> {
     knex: knex.Knex
   ) {
     this.knex = knex;
-    this.checkTableSchema();
   }
-
-  protected checkTableSchema(): void {
-    this.knex.schema.hasTable(this.tableName()).then(async exist => {
-      log
-        .scope("repository")
-        .debug(`Checking if table "${this.tableName()}" exists.`);
-      if (exist) return;
-      await this.initTableSchema();
-      log.scope("repository").info(`Table "${this.tableName()}" created successfully.`);
-    });
-  }
-
-  /**
-   * Initialize the table schema
-   * @protected
-   */
-  protected abstract initTableSchema(): Promise<void>;
 
   /**
    * Define the table name
    * @protected
    */
   protected abstract tableName(): string;
-
-  /**
-   * Generate a unique ID
-   * @returns A unique UUID string
-   */
-  // protected genId(): string {
-  //   return IdUtils.genUUID();
-  // }
 
   /**
    * Get database table reference

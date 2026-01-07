@@ -42,11 +42,11 @@ class PathUtils {
     return app.getPath("userData");
   }
 
-  public static getDataBaseStoragePath() {
-    const result = path.join(PathUtils.getAppData(), "db");
-    FileUtils.mkdir(result);
-    return result;
-  }
+  // public static getDataBaseStoragePath() {
+  //   const result = path.join(PathUtils.getAppData(), "db");
+  //   FileUtils.mkdir(result);
+  //   return result;
+  // }
 
   public static getTomlConfigFilePath() {
     return path.join(

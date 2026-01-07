@@ -26,7 +26,7 @@ import VersionRepository from "../repository/versions";
 import FrpcProcessService from "../service/frpc-process";
 import GitHubService from "../service/github";
 import LogService from "../service/log";
-import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
+import OpenSourceFrpcDesktopConfigService from "../service/config";
 import ProxiesService from "../service/proxies";
 import SystemService from "../service/system";
 import VersionService from "../service/versions";
@@ -38,6 +38,7 @@ import PathUtils from "../utils/PathUtils";
 import SystemEvent from "../event/system";
 import FrpcProcessEvent from "../event/frpc-process";
 import { LogLevel } from "electron-log";
+import MigrationsRepository from "../repository/migrations";
 
 /**
  * Main application runner class
@@ -76,6 +77,7 @@ class FrpcDesktopRunner {
     this._container
       .bind<VersionRepository>(TYPES.VersionRepository)
       .to(VersionRepository);
+    this._container.bind<MigrationsRepository>(TYPES.MigrationsRepository).to(MigrationsRepository);
     /// service
     this._container.bind<SystemService>(TYPES.SystemService).to(SystemService);
     this._container
@@ -136,6 +138,7 @@ class FrpcDesktopRunner {
   }
 
   /**
+   * 
    * Initialize logging
    */
   private initializeLog(): void {
