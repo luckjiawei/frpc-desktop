@@ -53,6 +53,7 @@ export default class ProxiesRepository extends BaseRepository<ProxiesModel> {
       table.string("https2http_key_file");
       table.boolean("keep_tunnel_open");
       table.json("transport");
+      table.boolean("status");
       table.timestamps(true, true);
     });
   }

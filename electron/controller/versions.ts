@@ -3,7 +3,7 @@ import "reflect-metadata";
 import BaseController from "../core/controller";
 import VersionService from "../service/VersionService";
 import ResponseUtils from "../utils/ResponseUtils";
-import VersionRepository from "../repository/VersionRepository";
+import VersionRepository from "../repository/versions";
 import { BrowserWindow, dialog } from "electron";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";

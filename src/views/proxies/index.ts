@@ -337,7 +337,7 @@ export function useProxies() {
                 }
                 loading.value.form = 1;
                 const data = _.cloneDeep(editForm.value);
-                if (data._id) {
+                if (data.id) {
                     send(IPCChannels.PROXY_MODIFY_PROXY, data);
                 } else {
                     send(IPCChannels.PROXY_CREATE_PROXY, data);
@@ -399,7 +399,7 @@ export function useProxies() {
 
     const handleReversalUpdate = (proxy: FrpcDesktopProxy) => {
         send(IPCChannels.PROXY_MODIFY_PROXY_STATUS, {
-            id: proxy._id,
+            id: proxy.id,
             status: proxy.status === 1 ? 0 : 1
         });
     };

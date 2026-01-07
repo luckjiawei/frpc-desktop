@@ -5,39 +5,31 @@ import fs from "fs";
 import path from "path";
 import TOML, { TomlValue } from "smol-toml";
 import { GlobalConstant } from "../core/constant";
-import ProxiesRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/proxies";
 import PathUtils from "../utils/PathUtils";
-import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
+import OpenSourceConfigRepository from "../repository/config";
 import OpenSourceConfigConverter from "../converter/config";
 import log from "electron-log/main";
 import { LevelOption } from "electron-log";
 import { inject, injectable, Container } from "inversify";
 import { TYPES } from "../di";
+import ProxiesConverter from "../converter/proxies";
 
 @injectable()
 export default class OpenSourceFrpcDesktopConfigService {
+  @inject(TYPES.OpenSourceConfigRepository)
   private readonly _openSourceConfigRepository: OpenSourceConfigRepository;
+  @inject(TYPES.ProxiesRepository)
   private readonly _proxyRepository: ProxiesRepository;
+  @inject(TYPES.OpenSourceConfigConverter)
   private readonly _openSourceConfigConverter: OpenSourceConfigConverter;
+  @inject(TYPES.Container)
   private readonly _container: Container;
+  @inject(TYPES.ProxiesConverter)
+  private readonly _proxiesConverter: ProxiesConverter;
 
   private readonly _configId: number = 1;
 
-  constructor(
-    @inject(TYPES.OpenSourceConfigRepository)
-    openSourceConfigRepository: OpenSourceConfigRepository,
-    @inject(TYPES.OpenSourceConfigConverter)
-    openSourceConfigConverter: OpenSourceConfigConverter,
-    @inject(TYPES.ProxiesRepository)
-    proxyRepository: ProxiesRepository,
-    @inject(TYPES.Container)
-    container: Container
-  ) {
-    this._openSourceConfigRepository = openSourceConfigRepository;
-    this._proxyRepository = proxyRepository;
-    this._openSourceConfigConverter = openSourceConfigConverter;
-    this._container = container;
-  }
 
   async saveServerConfig(
     config: OpenSourceFrpcDesktopConfiguration
@@ -168,6 +160,9 @@ remotePort = {{ $v.Second }}
       .filter(f => this.isEnableProxy(f))
       .filter(f => !this.isVisitors(f))
       .filter(f => !this.isRagePort(f))
+      .map(m => {
+        return this._proxiesConverter.model2FrpcDesktopProxy(m);
+      })
       .map(proxy => {
         if (proxy.type === "tcp" || proxy.type === "udp") {
           const localPort = parseInt(proxy.localPort);
@@ -586,7 +581,7 @@ ${f}`;
           const proxies = (sourceConfig.proxies as any[]).map(
             (proxy: TomlValue) => {
               const proxy2: FrpcDesktopProxy = {
-                _id: "",
+                id: null,
                 hostHeaderRewrite: "",
                 locations: [""],
                 name: "",

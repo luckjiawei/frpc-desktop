@@ -4,7 +4,7 @@ import SystemService from "../service/SystemService";
 import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";
-import GitHubService from "../service/GitHubService";
+import GitHubService from "../service/github";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";

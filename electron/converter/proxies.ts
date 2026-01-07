@@ -3,7 +3,7 @@ import BaseConverter from "../core/converter"
 /**
  * Proxy converter
  */
-export default class ProxyConverter extends BaseConverter {
+export default class ProxiesConverter extends BaseConverter {
 
     public model2FrpcDesktopProxy(model: ProxiesModel): FrpcDesktopProxy {
         return {
@@ -32,7 +32,7 @@ export default class ProxyConverter extends BaseConverter {
             https2httpKeyFile: model.https2http_key_file,
             keepTunnelOpen: Boolean(model.keep_tunnel_open),
             transport: this.deserialization(model.transport),
-            status: 0 // Default status, can be updated separately
+            status: model.status ? 1 : 0
         };
     }
 
@@ -62,7 +62,8 @@ export default class ProxyConverter extends BaseConverter {
             https2http_crt_file: proxy.https2httpCaFile,
             https2http_key_file: proxy.https2httpKeyFile,
             keep_tunnel_open: proxy.keepTunnelOpen ? 1 : 0,
-            transport: this.serialization(proxy.transport)
+            transport: this.serialization(proxy.transport),
+            status: proxy.status ? 1 : 0
         };
     }
 

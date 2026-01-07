@@ -3,7 +3,7 @@ import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import { ResponseCode } from "../core/constant";
-import VersionRepository from "../repository/VersionRepository";
+import VersionRepository from "../repository/versions";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
@@ -14,6 +14,8 @@ import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import BusinessError from "../core/error";
 import { GlobalConstant } from "../core/constant";
+import FileUtils from "../utils/FileUtils";
+
 
 @injectable()
 class FrpcProcessService {
@@ -114,6 +116,13 @@ class FrpcProcessService {
     if (!version) {
       log.scope("frpc").warn(
         `startFrpcProcess failed: version ${config.frpcVersion} not found.`
+      );
+      throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
+    }
+
+    if (!FileUtils.exists(version.local_path)) {
+      log.scope("frpc").warn(
+        `startFrpcProcess failed: version exe file ${version.local_path} not found.`
       );
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }

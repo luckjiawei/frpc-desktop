@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import BaseController from "../core/controller";
 import ProxiesService from "../service/ProxyService";
-import ProxiesRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/proxies";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";
@@ -41,7 +41,7 @@ export default class ProxiesController extends BaseController {
   }
 
   @IpcRoute(IPCChannels.PROXY_MODIFY_PROXY_STATUS)
-  public async modifyProxyStatus(event: any, args: any) {
+  public async modifyProxyStatus(event: any, args: { id: number; status: number }) {
     return await this._proxiesRepository
       .updateProxyStatus(args.id, args.status)
   }

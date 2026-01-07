@@ -30,6 +30,7 @@ type ProxiesModel = BaseModel & {
   https2http_key_file: string;
   keep_tunnel_open: number;
   transport: string; // json
+  status: number;
 };
 
 /**

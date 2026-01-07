@@ -14,5 +14,4 @@ export default class VersionsEvent extends BaseEvent {
     @inject(TYPES.VersionService)
     private readonly _versionService: VersionService;
 
-
 }

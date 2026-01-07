@@ -43,6 +43,18 @@ class FileUtils {
       fs.mkdirSync(path, { recursive: true, mode: 0o777 });
     }
   }
+
+  /**
+   * check file exists
+   * @param path path
+   * @returns true if file exists
+   */
+  public static exists(path: string) {
+    if (!path) {
+      return false;
+    }
+    return fs.existsSync(path);
+  }
 }
 
 export default FileUtils;

@@ -12,7 +12,7 @@ export const TYPES = {
      * converter
      */
     OpenSourceConfigConverter: Symbol.for("OpenSourceConfigConverter"),
-    ProxyConverter: Symbol.for("ProxyConverter"),
+    ProxiesConverter: Symbol.for("ProxiesConverter"),
     VersionConverter: Symbol.for("VersionConverter"),
     /** repository */
     OpenSourceConfigRepository: Symbol.for("OpenSourceConfigRepository"),

@@ -18,13 +18,13 @@ import ProxiesController from "../controller/proxies";
 import SystemController from "../controller/system";
 import VersionController from "../controller/versions";
 import OpenSourceConfigConverter from "../converter/config";
-import ProxyConverter from "../converter/proxies";
+import ProxiesConverter from "../converter/proxies";
 import VersionConverter from "../converter/versions";
-import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
-import ProxiesRepository from "../repository/ProxyRepository";
-import VersionRepository from "../repository/VersionRepository";
+import OpenSourceConfigRepository from "../repository/config";
+import ProxiesRepository from "../repository/proxies";
+import VersionRepository from "../repository/versions";
 import FrpcProcessService from "../service/FrpcProcessService";
-import GitHubService from "../service/GitHubService";
+import GitHubService from "../service/github";
 import LogService from "../service/LogService";
 import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
 import ProxiesService from "../service/ProxyService";
@@ -61,8 +61,8 @@ class FrpcDesktopRunner {
       .bind<OpenSourceConfigConverter>(TYPES.OpenSourceConfigConverter)
       .to(OpenSourceConfigConverter);
     this._container
-      .bind<ProxyConverter>(TYPES.ProxyConverter)
-      .to(ProxyConverter);
+      .bind<ProxiesConverter>(TYPES.ProxiesConverter)
+      .to(ProxiesConverter);
     this._container
       .bind<VersionConverter>(TYPES.VersionConverter)
       .to(VersionConverter);

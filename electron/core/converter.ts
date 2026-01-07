@@ -17,11 +17,16 @@ export default abstract class BaseConverter {
   }
 
   protected array2string(arr: string[]): string {
+    if (!arr) {
+      return "";
+    }
     return arr.join(",");
   }
 
   protected string2array(str: string): string[] {
-    return str.split(",");
+    if (!str) {
+      return str.split(",");
+    }
+    return [];
   }
-
 }

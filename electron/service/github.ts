@@ -9,11 +9,33 @@ import { ResponseCode } from "../core/constant";
 class GitHubService {
   constructor() { }
 
+  private githubHeaders() {
+    const ghToken = process.env.GH_TOKEN;
+    if (!ghToken) {
+      log.scope("github").warn("GH_TOKEN is not set, API rate limits may be restricted.");
+      return {
+        "User-Agent": "frpc-desktop",
+      };
+    } else {
+      return {
+        "User-Agent": "frpc-desktop",
+        "Authorization": `token ${ghToken}`
+      };
+    }
+
+  }
+
+  /**
+   * 
+   * @param githubRepo 
+   * @returns 
+   */
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
         url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`,
+        headers: this.githubHeaders()
       });
 
       request.on("response", response => {
@@ -64,7 +86,8 @@ class GitHubService {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases/latest`
+        url: `https://api.github.com/repos/${githubRepo}/releases/latest`,
+        headers: this.githubHeaders()
       });
       request.on("response", response => {
         let responseData: Buffer = Buffer.alloc(0);

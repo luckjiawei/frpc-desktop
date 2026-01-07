@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import ProxiesRepository from "../repository/ProxyRepository";
+import ProxiesRepository from "../repository/proxies";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
-import ProxyConverter from "electron/converter/proxies";
+import ProxiesConverter from "electron/converter/proxies";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 
@@ -12,8 +12,8 @@ export default class ProxiesService {
   private readonly _proxyDao: ProxiesRepository;
   @inject(TYPES.FrpcProcessService)
   private readonly _frpcProcessService: FrpcProcessService;
-  @inject(TYPES.ProxyConverter)
-  private readonly _proxyConverter: ProxyConverter;
+  @inject(TYPES.ProxiesConverter)
+  private readonly _proxyConverter: ProxiesConverter;
 
   constructor() { }
 
