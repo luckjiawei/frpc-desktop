@@ -29,6 +29,9 @@ export function useLaunch() {
         }
     }, 300);
 
+    /**
+     * uptime
+     */
     const uptime = computed(() => {
         const uptime = frpcDesktopStore.frpcProcessUptime / 1000;
         const days = Math.floor(uptime / (24 * 60 * 60));

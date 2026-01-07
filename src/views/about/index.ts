@@ -32,7 +32,6 @@ export const useAbout = () => {
    * 打开github issues
    */
   const handleOpenGitHubIssues = () => {
-    console.log("open github issues")
     send(IPCChannels.SYSTEM_OPEN_URL, {
       url: "https://github.com/luckjiawei/frpc-desktop/issues"
     });

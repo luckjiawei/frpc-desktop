@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import { exec, execSync, spawn } from "child_process";
-import { app, BrowserWindow, Notification } from "electron";
 import treeKill from "tree-kill";
 import { ResponseCode } from "../core/constant";
 import VersionRepository from "../repository/versions";
@@ -8,40 +7,32 @@ import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import OpenSourceFrpcDesktopConfigService from "./OpenSourceFrpcDesktopConfigService";
-import SystemService from "./SystemService";
+import SystemService from "./system";
 import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import BusinessError from "../core/error";
-import { GlobalConstant } from "../core/constant";
 import FileUtils from "../utils/file";
 
 
 @injectable()
 class FrpcProcessService {
+
+  @inject(TYPES.OpenSourceFrpcDesktopConfigService)
   private readonly _openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService;
+  @inject(TYPES.SystemService)
   private readonly _systemService: SystemService;
+  @inject(TYPES.VersionRepository)
   private readonly _versionRepository: VersionRepository;
+  @inject(TYPES.Container)
   private readonly _container: Container;
   private _frpcProcess: any;
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
 
-  constructor(
-    @inject(TYPES.OpenSourceFrpcDesktopConfigService) openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService,
-    @inject(TYPES.SystemService) systemService: SystemService,
-    @inject(TYPES.VersionRepository) versionRepository: VersionRepository,
-    @inject(TYPES.Container) container: Container
-  ) {
-    this._openSourceFrpcDesktopConfigService = openSourceFrpcDesktopConfigService;
-    this._systemService = systemService;
-    this._versionRepository = versionRepository;
-    this._container = container;
-  }
 
   public isRunning(): boolean {
     if (!this._frpcProcess) {
-      // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
       try {
         if (process.platform !== "win32") {
           const processName = PathUtils.getFrpcFilename();
@@ -91,10 +82,17 @@ class FrpcProcessService {
     }
   }
 
+  /**
+   * get frpc last start time
+   * @returns 
+   */
   public getLastStartTime(): number {
     return this._frpcLastStartTime;
   }
 
+  /**
+   * start frpc process
+   */
   async startFrpcProcess() {
     if (this.isRunning()) {
       return;
@@ -163,6 +161,9 @@ class FrpcProcessService {
     });
   }
 
+  /**
+   * stop frpc process
+   */
   async stopFrpcProcess() {
     if (this.isRunning()) {
       log.scope("frpc").info(`stopFrpcProcess: pid: ${this._frpcProcess.pid}`);
@@ -179,6 +180,9 @@ class FrpcProcessService {
     }
   }
 
+  /**
+   * reload frpc process
+   */
   async reloadFrpcProcess() {
     if (!this.isRunning()) {
       return;
@@ -224,26 +228,26 @@ class FrpcProcessService {
     );
   }
 
-  async frpcProcessGuardian() {
-    setInterval(async () => {
-      const running = this.isRunning();
-      if (!running && this._frpcLastStartTime !== -1) {
-        const netStatus = await this._systemService.checkInternetConnect();
-        if (netStatus) {
-          this.startFrpcProcess().then(() => {
-            log.info(
-              `FrpcProcessService.frpcProcessGuardian`,
-              `The network has been restored. The frpc process has been restarted.`
-            );
-            // new Notification({
-            //   title: app.getName(),
-            //   body: "Network reconnected, frpc process restarted."
-            // }).show();
-          });
-        }
-      }
-    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
-  }
+  // async frpcProcessGuardian() {
+  //   setInterval(async () => {
+  //     const running = this.isRunning();
+  //     if (!running && this._frpcLastStartTime !== -1) {
+  //       const netStatus = await this._systemService.checkInternetConnect();
+  //       if (netStatus) {
+  //         this.startFrpcProcess().then(() => {
+  //           log.info(
+  //             `FrpcProcessService.frpcProcessGuardian`,
+  //             `The network has been restored. The frpc process has been restarted.`
+  //           );
+  //           // new Notification({
+  //           //   title: app.getName(),
+  //           //   body: "Network reconnected, frpc process restarted."
+  //           // }).show();
+  //         });
+  //       }
+  //     }
+  //   }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
+  // }
 
   // watchFrpcProcess(listenerParam: ListenerParam) {
   //   this._frpcProcessListener = setInterval(() => {

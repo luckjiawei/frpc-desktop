@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import BaseEvent from "../core/event";
-import FrpcProcessService from "electron/service/FrpcProcessService";
+import FrpcProcessService from "electron/service/frpc-process";
 import { TYPES } from "../di";
 import { EventChannels } from "../core/constant";
 import { Event } from "../core/decorators";

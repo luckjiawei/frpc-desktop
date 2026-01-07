@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import ProxiesRepository from "../repository/proxies";
-import FrpcProcessService from "./FrpcProcessService";
+import FrpcProcessService from "./frpc-process";
 import { exec } from "child_process";
 import ProxiesConverter from "electron/converter/proxies";
 import { injectable, inject } from "inversify";

@@ -1,4 +1,4 @@
-import FrpcProcessService from "../service/FrpcProcessService";
+import FrpcProcessService from "../service/frpc-process";
 import BaseController from "../core/controller";
 
 import "reflect-metadata";

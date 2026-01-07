@@ -11,7 +11,7 @@ import FileUtils from "../utils/file";
 import PathUtils from "../utils/PathUtils";
 import SecureUtils from "../utils/SecureUtils";
 import GitHubService from "./github";
-import SystemService from "./SystemService";
+import SystemService from "./system";
 import VersionConverter from "electron/converter/versions";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
@@ -242,6 +242,10 @@ export default class VersionService {
     return await this._versionRepository.insert(this._versionConverter.frpcDesktopVersion2Model(version));
   }
 
+  /**
+   * Get downloaded versions
+   * @returns downloaded versions
+   */
   public async getDownloadedVersions() {
     await this.cleanUselessVersion();
     return (await this._versionRepository.selectAll()).map(m => this._versionConverter
@@ -276,7 +280,7 @@ export default class VersionService {
   }
 
   /**
-   * 
+   * Clean useless version
    */
   public async cleanUselessVersion() {
     const versions = await this._versionRepository.selectAll();

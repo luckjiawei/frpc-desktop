@@ -5,7 +5,7 @@ import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktop
 import { TYPES } from "../di";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
-import FrpcProcessService from "../service/FrpcProcessService";
+import FrpcProcessService from "../service/frpc-process";
 import node_path, { join } from "node:path";
 import { release } from "node:os";
 

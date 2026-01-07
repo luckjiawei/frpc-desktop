@@ -10,22 +10,6 @@ export const send = (channel: string, params?: any) => {
   ipcRenderer.send(channel, params);
 };
 
-// export const invoke = (router: IpcRouter, params?: any) => {
-//   return new Promise((resolve, reject) => {
-//     ipcRenderer
-//       .invoke(router.path, params)
-//       .then((args: ApiResponse<any>) => {
-//         const { success, data, message } = args;
-//         if (success) {
-//           resolve(data);
-//         } else {
-//           // reject(new Error(message));
-//         }
-//       })
-//       .catch(err => reject(err));
-//   });
-// };
-
 /**
  * 注册 IPC 监听器（改进版，支持精确清理）
  */
@@ -81,7 +65,6 @@ export const onEvent = (
   listener: (data: any) => void
 ) => {
   const wrappedListener = (event: Electron.IpcRendererEvent, args: ApiResponse<any>) => {
-    // console.log(`evemt => ${channel} , args => `, args);
     listener(args);
   };
 

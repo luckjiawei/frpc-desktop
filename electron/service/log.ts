@@ -3,7 +3,7 @@ import { BrowserWindow } from "electron";
 import fs from "fs";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
-import SystemService from "./SystemService";
+import SystemService from "./system";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import SystemService from "../service/SystemService";
+import SystemService from "../service/system";
 import ResponseUtils from "../utils/ResponseUtils";
 import PathUtils from "../utils/PathUtils";
 import { BrowserWindow, dialog } from "electron";

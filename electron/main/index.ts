@@ -23,12 +23,12 @@ import VersionConverter from "../converter/versions";
 import OpenSourceConfigRepository from "../repository/config";
 import ProxiesRepository from "../repository/proxies";
 import VersionRepository from "../repository/versions";
-import FrpcProcessService from "../service/FrpcProcessService";
+import FrpcProcessService from "../service/frpc-process";
 import GitHubService from "../service/github";
 import LogService from "../service/log";
 import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
 import ProxiesService from "../service/proxies";
-import SystemService from "../service/SystemService";
+import SystemService from "../service/system";
 import VersionService from "../service/versions";
 
 

@@ -144,7 +144,6 @@ export const useLogger = () => {
             });
         });
 
-        // send(ipcRouters.LOG.getFrpLogContent);
         send(IPCChannels.LOG_GET_APP_LOG_CONTENT);
     });
 
@@ -152,7 +151,6 @@ export const useLogger = () => {
         removeRouterListeners(IPCChannels.LOG_GET_FRP_LOG_CONTENT);
         removeRouterListeners(IPCChannels.LOG_GET_APP_LOG_CONTENT);
         removeRouterListeners(IPCChannels.LOG_OPEN_FRPC_LOG_FILE);
-        // removeRouterListeners2(listeners.watchFrpcLog);
         clearInterval(autoRefreshTimer.value);
         autoRefreshTime.value = 10;
     });
