@@ -7,7 +7,7 @@ import { GlobalConstant } from "../core/constant";
 import frpReleasesJson from "../json/frp-releases.json";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/versions";
-import FileUtils from "../utils/FileUtils";
+import FileUtils from "../utils/file";
 import PathUtils from "../utils/PathUtils";
 import SecureUtils from "../utils/SecureUtils";
 import GitHubService from "./github";
@@ -16,11 +16,12 @@ import VersionConverter from "electron/converter/versions";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 import BusinessError from "../core/error";
+import log from "electron-log/main";
 
 @injectable()
 export default class VersionService {
   @inject(TYPES.VersionRepository)
-  private readonly _versionDao: VersionRepository;
+  private readonly _versionRepository: VersionRepository;
   @inject(TYPES.VersionConverter)
   private readonly _versionConverter: VersionConverter;
   @inject(TYPES.SystemService)
@@ -91,12 +92,12 @@ export default class VersionService {
     if (!githubReleaseId) {
       return;
     }
-    const version = await this._versionDao.findByGithubReleaseId(
+    const version = await this._versionRepository.findByGithubReleaseId(
       githubReleaseId
     );
-    if (this.versionModelExists(version)) {
-      fs.rmSync(version.local_path, { recursive: true, force: true });
-      await this._versionDao.deleteById(version.id);
+    if (this.versionFileExists(version)) {
+      FileUtils.remove(version.local_path);
+      await this._versionRepository.deleteById(version.id);
     }
   }
 
@@ -108,7 +109,6 @@ export default class VersionService {
       await this.githubRelease2FrpcDesktopVersion(gvs);
     this._versions = versions;
     return versions;
-
   }
 
   async getFrpVersionByLocalJson(): Promise<Array<FrpcDesktopVersion>> {
@@ -124,7 +124,7 @@ export default class VersionService {
   private async githubRelease2FrpcDesktopVersion(
     releases: Array<GithubRelease>
   ): Promise<Array<FrpcDesktopVersion>> {
-    const allVersions = await this._versionDao.selectAll();
+    const allVersions = await this._versionRepository.selectAll();
     return releases
       .filter(release => {
         // only support toml version.
@@ -151,7 +151,7 @@ export default class VersionService {
           versionDownloadCount: download_count,
           assetDownloadCount: asset.download_count,
           browserDownloadUrl: asset.browser_download_url,
-          downloaded: this.versionModelExists(currVersion),
+          downloaded: this.versionFileExists(currVersion),
           localPath: currVersion && currVersion.local_path,
           size: FileUtils.formatBytes(asset.size)
         };
@@ -159,9 +159,9 @@ export default class VersionService {
       });
   }
 
-  private versionModelExists(version: VersionModel): boolean {
+  private versionFileExists(version: VersionModel): boolean {
     if (version) {
-      return fs.existsSync(version.local_path);
+      return FileUtils.exists(version.local_path);
     }
     return false;
   }
@@ -172,7 +172,7 @@ export default class VersionService {
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
-        const existsVersion = await this._versionDao.findByGithubReleaseId(
+        const existsVersion = await this._versionRepository.findByGithubReleaseId(
           version.githubReleaseId
         );
         if (existsVersion) {
@@ -239,11 +239,12 @@ export default class VersionService {
     // todo 2025-02-23 delete downloaded file.
     version.localPath = versionFilePath;
     version.downloaded = true;
-    return await this._versionDao.insert(this._versionConverter.frpcDesktopVersion2Model(version));
+    return await this._versionRepository.insert(this._versionConverter.frpcDesktopVersion2Model(version));
   }
 
   public async getDownloadedVersions() {
-    return (await this._versionDao.selectAll()).map(m => this._versionConverter
+    await this.cleanUselessVersion();
+    return (await this._versionRepository.selectAll()).map(m => this._versionConverter
       .model2FrpcDesktopVersion(m)
     );
   }
@@ -259,7 +260,7 @@ export default class VersionService {
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
-        const existsVersion = await this._versionDao.findByGithubReleaseId(
+        const existsVersion = await this._versionRepository.findByGithubReleaseId(
           version.githubReleaseId
         );
         if (existsVersion) {
@@ -272,6 +273,19 @@ export default class VersionService {
     } else {
       throw new BusinessError(ResponseCode.UNKNOWN_VERSION);
     }
+  }
+
+  /**
+   * 
+   */
+  public async cleanUselessVersion() {
+    const versions = await this._versionRepository.selectAll();
+    versions.forEach(f => {
+      if (!FileUtils.exists(f.local_path)) {
+        this._versionRepository.deleteById(f.id);
+        log.scope("version").info(`delete useless version: ${f.id}`);
+      }
+    })
   }
 
 }

@@ -20,6 +20,8 @@ export interface EventMetadata {
   method: string;
   ipcChannel?: string;
   interval?: number;
+  /** 是否发送到渲染进程，默认为 true */
+  sendToRenderer?: boolean;
 }
 /**
  *  
@@ -51,7 +53,7 @@ export function IpcRoute(path: string, ipcType: string = 'on', options?: IpcRout
   };
 }
 
-export function Event(ipcChannel?: string, interval?: number) {
+export function Event(ipcChannel?: string, interval?: number, sendToRenderer?: boolean) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     log.scope("event").info("Event", ipcChannel, interval);
     if (!Reflect.hasMetadata(EVENT_METADATA_KEY, target.constructor)) {
@@ -62,7 +64,8 @@ export function Event(ipcChannel?: string, interval?: number) {
     events.push({
       method: propertyKey,
       ipcChannel,
-      interval
+      interval,
+      sendToRenderer: sendToRenderer ?? true // 默认为 true
     });
 
     Reflect.defineMetadata(EVENT_METADATA_KEY, events, target.constructor);

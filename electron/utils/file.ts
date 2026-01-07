@@ -55,6 +55,16 @@ class FileUtils {
     }
     return fs.existsSync(path);
   }
+
+  /**
+   * remove
+   * @param path path
+   */
+  public static remove(path: string) {
+    if (fs.existsSync(path)) {
+      fs.rmSync(path, { recursive: true, force: true });
+    }
+  }
 }
 
 export default FileUtils;

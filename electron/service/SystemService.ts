@@ -22,22 +22,32 @@ export default class SystemService {
 
   constructor(@inject(TYPES.Container) container: Container) {
     this._container = container;
-    // 初始化 CPU 监控状态
     this.lastCpuUsage = process.cpuUsage();
     this.lastTime = Date.now();
   }
 
+  /**
+   * Open url to browser
+   * @param url url 
+   */
   public async openUrl(url: string) {
     if (url) {
       await shell.openExternal(url);
     }
   }
 
+  /**
+   * Relaunch app
+   */
   async relaunch() {
     await app.relaunch();
     app.quit();
   }
 
+  /**
+   * Open local file
+   * @param filePath file path
+   */
   openLocalFile(filePath: string) {
     return new Promise<boolean>((resolve, reject) => {
       shell
@@ -55,6 +65,11 @@ export default class SystemService {
     });
   }
 
+  /**
+   * Open local path
+   * @param path path
+   * @returns open result
+   */
   openLocalPath(path: string) {
     return new Promise<boolean>((resolve, reject) => {
       shell.openPath(path).then(errorMessage => {
@@ -67,6 +82,11 @@ export default class SystemService {
     });
   }
 
+  /**
+   * Decompress zip file
+   * @param zipFilePath zip file path
+   * @param targetPath target path
+   */
   decompressZipFile(zipFilePath: string, targetPath: string) {
     if (!zipFilePath.endsWith(GlobalConstant.ZIP_EXT)) {
       throw new Error("The file is not a .zip file");
@@ -97,6 +117,12 @@ export default class SystemService {
     // const frpcPath = path.join("frp", path.basename(zipFilePath, zipExt));
   }
 
+  /**
+   * Decompress tar.gz file
+   * @param tarGzPath tar.gz file path
+   * @param targetPath target path
+   * @param finish finish callback
+   */
   decompressTarGzFile(tarGzPath: string, targetPath: string, finish: Function) {
     // const targetFolder = path.join(targetPath, targetPath);
     const unzip = zlib.createGunzip();
@@ -134,26 +160,46 @@ export default class SystemService {
       });
   }
 
-  checkInternetConnect() {
-    return new Promise(resolve => {
+  /**
+   * Check internet connect
+   * @returns check result
+   */
+  async checkInternetConnect(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
       const request = net.request({
         method: "get",
-        url: ``
+        url: `http://conntest.nintendowifi.net/`,
       });
+
+      // 添加超时处理
       const timeout = setTimeout(() => {
         request.abort();
         resolve(false);
       }, GlobalConstant.INTERNET_CHECK_TIMEOUT * 1000);
+
       request.on("response", response => {
-        resolve(response.statusCode === 200);
+        clearTimeout(timeout);
+        if (response.statusCode === 200) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
       });
+
       request.on("error", error => {
+        clearTimeout(timeout);
         resolve(false);
       });
+
+      // 发送请求 - 这是必须的！
       request.end();
     });
   }
 
+  /**
+   * Get system usage
+   * @returns system usage
+   */
   public getSystemUsage() {
     const os = require("os");
 

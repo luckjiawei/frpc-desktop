@@ -14,7 +14,7 @@ import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import BusinessError from "../core/error";
 import { GlobalConstant } from "../core/constant";
-import FileUtils from "../utils/FileUtils";
+import FileUtils from "../utils/file";
 
 
 @injectable()
@@ -84,10 +84,6 @@ class FrpcProcessService {
       }
     }
     try {
-      log.debug(
-        `FrpcProcessService.isRunning`,
-        `pid: ${this._frpcProcess.pid}`
-      );
       process.kill(this._frpcProcess.pid, 0);
       return true;
     } catch (err) {
@@ -249,44 +245,44 @@ class FrpcProcessService {
     }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
   }
 
-  watchFrpcProcess(listenerParam: ListenerParam) {
-    this._frpcProcessListener = setInterval(() => {
-      const running = this.isRunning();
-      // todo return status to view.
-      // logDebug(
-      //   LogModule.FRP_CLIENT,
-      //   `Monitoring frpc process status: ${status}, Listener ID: ${frpcStatusListener}`
-      // );
-      log.debug(`FrpcProcessService.watchFrpcProcess`, `running: ${running}`);
-      if (!running) {
-        if (
-          this._frpcLastStartTime !== -1 &&
-          this._notification !== this._frpcLastStartTime
-        ) {
-          new Notification({
-            title: app.getName(),
-            body: "Connection lost, please check the logs for details."
-          }).show();
-          this._notification = this._frpcLastStartTime;
-        }
-        // logError(
-        //   LogModule.FRP_CLIENT,
-        //   "Frpc process status check failed. Connection lost."
-        // );
-        // clearInterval(this._frpcProcessListener);
-      }
-      const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
-      if (win && !win.isDestroyed()) {
-        win.webContents.send(
-          listenerParam.channel,
-          ResponseUtils.success({
-            running: running,
-            lastStartTime: this._frpcLastStartTime
-          })
-        );
-      }
-    }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
-  }
+  // watchFrpcProcess(listenerParam: ListenerParam) {
+  //   this._frpcProcessListener = setInterval(() => {
+  //     const running = this.isRunning();
+  //     // todo return status to view.
+  //     // logDebug(
+  //     //   LogModule.FRP_CLIENT,
+  //     //   `Monitoring frpc process status: ${status}, Listener ID: ${frpcStatusListener}`
+  //     // );
+  //     log.debug(`FrpcProcessService.watchFrpcProcess`, `running: ${running}`);
+  //     if (!running) {
+  //       if (
+  //         this._frpcLastStartTime !== -1 &&
+  //         this._notification !== this._frpcLastStartTime
+  //       ) {
+  //         new Notification({
+  //           title: app.getName(),
+  //           body: "Connection lost, please check the logs for details."
+  //         }).show();
+  //         this._notification = this._frpcLastStartTime;
+  //       }
+  //       // logError(
+  //       //   LogModule.FRP_CLIENT,
+  //       //   "Frpc process status check failed. Connection lost."
+  //       // );
+  //       // clearInterval(this._frpcProcessListener);
+  //     }
+  //     const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
+  //     if (win && !win.isDestroyed()) {
+  //       win.webContents.send(
+  //         listenerParam.channel,
+  //         ResponseUtils.success({
+  //           running: running,
+  //           lastStartTime: this._frpcLastStartTime
+  //         })
+  //       );
+  //     }
+  //   }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
+  // }
 }
 
 export default FrpcProcessService;

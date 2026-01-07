@@ -6,7 +6,7 @@ import { TYPES } from "../di";
 import { Event } from "../core/decorators";
 import { BrowserWindow } from "electron";
 import { EventChannels } from "../core/constant";
-import VersionService from "electron/service/VersionService";
+import VersionService from "electron/service/versions";
 
 @injectable()
 export default class VersionsEvent extends BaseEvent {

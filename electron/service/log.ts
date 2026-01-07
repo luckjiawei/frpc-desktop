@@ -22,6 +22,10 @@ class LogService {
     this._container = container;
   }
 
+  /**
+   * Get frpc log content
+   * @returns frpc log content
+   */
   public async getFrpLogContent() {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this._logPath)) {
@@ -37,6 +41,10 @@ class LogService {
     });
   }
 
+  /**
+   * Get app log content
+   * @returns app log content
+   */
   public async getAppLogContent() {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(this._appPath)) {
@@ -52,36 +60,10 @@ class LogService {
     });
   }
 
-  private _watcher: fs.FSWatcher | null = null;
-
-  watchFrpcLog(listenerParam: ListenerParam) {
-    // 如果已存在watcher,先清理掉旧的
-    if (this._watcher) {
-      this._watcher.close();
-      this._watcher = null;
-    }
-
-    if (!fs.existsSync(this._logPath)) {
-      const timer = setTimeout(() => {
-        this.watchFrpcLog(listenerParam);
-        clearTimeout(timer);
-      }, 1000);
-      return;
-    }
-
-    this._watcher = fs.watch(this._logPath, (eventType, filename) => {
-      if (eventType === "change") {
-        const win = this._container.get<BrowserWindow>(TYPES.BrowserWindow);
-        if (win && !win.isDestroyed()) {
-          win.webContents.send(
-            listenerParam.channel,
-            ResponseUtils.success(true)
-          );
-        }
-      }
-    });
-  }
-
+  /**
+   * Open frpc log file
+   * @returns open result
+   */
   openFrpcLogFile(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this._systemService
@@ -95,6 +77,10 @@ class LogService {
     });
   }
 
+  /**
+   * Open app log file
+   * @returns open result
+   */
   openAppLogFile(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this._systemService

@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import BaseController from "../core/controller";
-import VersionService from "../service/VersionService";
+import VersionService from "../service/versions";
 import ResponseUtils from "../utils/ResponseUtils";
 import VersionRepository from "../repository/versions";
 import { BrowserWindow, dialog } from "electron";
@@ -69,6 +69,11 @@ export default class VersionController extends BaseController {
             completed: true
           })
         );
+
+        this._versionService.getDownloadedVersions().then(data => {
+          event.reply(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS, ResponseUtils.success(data));
+        })
+
       })
       .catch((err: Error) => {
         event.reply(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, ResponseUtils.fail(err));

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import LogService from "../service/LogService";
+import LogService from "../service/log";
 import BaseController from "../core/controller";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";

@@ -104,6 +104,7 @@ export const IPCChannels = {
  */
 export const EventChannels = {
   FRPC_PROCESS_STATUS: "frpc-process/status",
-  SYSTEM_MONITOR: "monitor/system-monitor",
+  SYSTEM_MONITOR: "system/system-monitor",
+  SYSTEM_CHECK_INTERNET_CONNECT: "system/system-check-internet-connect",
   VERSIONS_GET_VERSIONS: "versions/get-versions",
 }

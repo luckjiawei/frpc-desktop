@@ -37,13 +37,13 @@ export default abstract class BaseEvent {
                 try {
                     const result = await (this as any)[event.method].apply(this, args);
 
-                    // If ipcChannel is specified, forward the result to renderer
-                    if (event.ipcChannel) {
+                    // If ipcChannel is specified and sendToRenderer is not false, forward the result to renderer
+                    if (event.ipcChannel && event.sendToRenderer !== false) {
                         this.send(event.ipcChannel, ResponseUtils.success(result));
                     }
                 } catch (error) {
                     log.scope("event").error(`Error in event handler ${eventName}`, error);
-                    if (event.ipcChannel) {
+                    if (event.ipcChannel && event.sendToRenderer !== false) {
                         this.send(event.ipcChannel, ResponseUtils.fail(error));
                     }
                 }
@@ -61,4 +61,5 @@ export default abstract class BaseEvent {
             }
         });
     }
+
 }

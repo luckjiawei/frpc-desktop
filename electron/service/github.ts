@@ -9,6 +9,10 @@ import { ResponseCode } from "../core/constant";
 class GitHubService {
   constructor() { }
 
+  /**
+   * Get github headers
+   * @returns headers
+   */
   private githubHeaders() {
     const ghToken = process.env.GH_TOKEN;
     if (!ghToken) {

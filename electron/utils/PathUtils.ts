@@ -2,7 +2,7 @@ import SecureUtils from "./SecureUtils";
 
 import { app } from "electron";
 import path from "path";
-import FileUtils from "./FileUtils";
+import FileUtils from "./file";
 
 class PathUtils {
   public static getDownloadStoragePath() {
@@ -73,7 +73,7 @@ class PathUtils {
   }
 
   public static getDatabaseFilename() {
-      return path.join(PathUtils.getAppData(), "data.db")
+    return path.join(PathUtils.getAppData(), "data.db")
   }
 }
 

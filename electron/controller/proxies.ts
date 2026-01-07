@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import BaseController from "../core/controller";
-import ProxiesService from "../service/ProxyService";
+import ProxiesService from "../service/proxies";
 import ProxiesRepository from "../repository/proxies";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";

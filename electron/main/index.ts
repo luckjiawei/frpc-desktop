@@ -25,17 +25,17 @@ import ProxiesRepository from "../repository/proxies";
 import VersionRepository from "../repository/versions";
 import FrpcProcessService from "../service/FrpcProcessService";
 import GitHubService from "../service/github";
-import LogService from "../service/LogService";
+import LogService from "../service/log";
 import OpenSourceFrpcDesktopConfigService from "../service/OpenSourceFrpcDesktopConfigService";
-import ProxiesService from "../service/ProxyService";
+import ProxiesService from "../service/proxies";
 import SystemService from "../service/SystemService";
-import VersionService from "../service/VersionService";
+import VersionService from "../service/versions";
 
 
 import knex from "knex";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
-import MonitorEvent from "../event/monitor";
+import SystemEvent from "../event/system";
 import FrpcProcessEvent from "../event/frpc-process";
 import { LogLevel } from "electron-log";
 
@@ -110,7 +110,7 @@ class FrpcDesktopRunner {
       .bind<VersionController>(TYPES.VersionController)
       .to(VersionController);
     // event
-    this._container.bind<MonitorEvent>(TYPES.SystemEvent).to(MonitorEvent);
+    this._container.bind<SystemEvent>(TYPES.SystemEvent).to(SystemEvent);
     this._container.bind<FrpcProcessEvent>(TYPES.FrpcProcessEvent).to(FrpcProcessEvent);
   }
 
@@ -189,7 +189,7 @@ class FrpcDesktopRunner {
    * Initialize event
    */
   private initializeEvent() {
-    this._container.get<MonitorEvent>(TYPES.SystemEvent);
+    this._container.get<SystemEvent>(TYPES.SystemEvent);
     this._container.get<FrpcProcessEvent>(TYPES.FrpcProcessEvent);
   }
 }

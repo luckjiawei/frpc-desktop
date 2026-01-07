@@ -147,6 +147,10 @@ export default class ProxiesService {
     });
   }
 
+  /**
+   * Get all proxies
+   * @returns proxies
+   */
   async getAllProxies(): Promise<Array<FrpcDesktopProxy>> {
     const proxies = await this._proxyDao.selectAll();
     return proxies.map(m => this._proxyConverter.model2FrpcDesktopProxy(m));
