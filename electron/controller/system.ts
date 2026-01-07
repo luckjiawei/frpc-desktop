@@ -21,21 +21,43 @@ export default class SystemController extends BaseController {
   private readonly _container: Container;
 
 
+  /**
+   * open url
+   * @param event 
+   * @param args 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.SYSTEM_OPEN_URL)
   public async openUrl(event: any, args: { url: string }) {
     return await this._systemService.openUrl(args.url);
   }
 
+  /**
+   * relaunch app
+   * @param event 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.SYSTEM_RELAUNCH_APP)
   public async relaunchApp(event: any) {
     return await this._systemService.relaunch();
   }
 
+  /**
+   * open app data path
+   * @param event 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.SYSTEM_OPEN_APP_DATA)
-  public async openAppData(event: any) {
+  public async openAppDataPath(event: any) {
     return await this._systemService.openLocalPath(PathUtils.getAppData());
   }
 
+  /**
+   * select system local file
+   * @param event 
+   * @param args 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, "on", { manualReply: true })
   public async selectLocalFile(
     event: any, args: { name: string; extensions: string[] }) {
@@ -76,6 +98,11 @@ export default class SystemController extends BaseController {
       });
   }
 
+  /**
+   * get frpc-desktop github last release
+   * @param event 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE)
   public async getFrpcDesktopGithubLastRelease(event: any) {
     return await this._gitHubService.getGithubLastRelease("luckjiawei/frpc-desktop");

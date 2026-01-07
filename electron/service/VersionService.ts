@@ -12,7 +12,7 @@ import PathUtils from "../utils/PathUtils";
 import SecureUtils from "../utils/SecureUtils";
 import GitHubService from "./GitHubService";
 import SystemService from "./SystemService";
-import VersionConverter from "electron/converter/VersionConverter";
+import VersionConverter from "electron/converter/versions";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 import BusinessError from "../core/error";
@@ -247,4 +247,31 @@ export default class VersionService {
       .model2FrpcDesktopVersion(m)
     );
   }
+
+  /**
+   * import local frpc version
+   * @param filePath file path
+   * @returns 
+   */
+  public async importLocalFrpcVersion(filePath: string) {
+    const checksum = FileUtils.calculateFileChecksum(filePath);
+    const frpName = frpChecksums[checksum];
+    if (frpName) {
+      if (this._currFrpArch.every(item => frpName.includes(item))) {
+        const version = this.getFrpVersionByAssetName(frpName);
+        const existsVersion = await this._versionDao.findByGithubReleaseId(
+          version.githubReleaseId
+        );
+        if (existsVersion) {
+          throw new BusinessError(ResponseCode.VERSION_EXISTS);
+        }
+        return this.decompressFrp(version, filePath);
+      } else {
+        throw new BusinessError(ResponseCode.VERSION_ARGS_ERROR);
+      }
+    } else {
+      throw new BusinessError(ResponseCode.UNKNOWN_VERSION);
+    }
+  }
+
 }

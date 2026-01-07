@@ -2,16 +2,14 @@ import "reflect-metadata";
 
 import BaseController from "../core/controller";
 import ProxiesService from "../service/ProxyService";
-import ResponseUtils from "../utils/ResponseUtils";
 import ProxiesRepository from "../repository/ProxyRepository";
-import log from "electron-log/main";
 import { injectable, inject } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";
 import { IPCChannels } from "../core/constant";
 
 @injectable()
-export default class ProxyController extends BaseController {
+export default class ProxiesController extends BaseController {
   @inject(TYPES.ProxiesService)
   private readonly _proxiesService: ProxiesService;
   @inject(TYPES.ProxiesRepository)

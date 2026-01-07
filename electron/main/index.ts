@@ -11,15 +11,15 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 import { Container } from "inversify";
 import { FrpcDesktopApp } from "./app";
-import ConfigController from "../controller/ConfigController";
-import LaunchController from "../controller/LaunchController";
-import LogController from "../controller/LogController";
-import ProxyController from "../controller/ProxyController";
-import SystemController from "../controller/SystemController";
-import VersionController from "../controller/VersionController";
-import OpenSourceConfigConverter from "../converter/OpenSourceConfigConverter";
-import ProxyConverter from "../converter/ProxyConverter";
-import VersionConverter from "../converter/VersionConverter";
+import ConfigController from "../controller/config";
+import LaunchController from "../controller/launch";
+import LogController from "../controller/log";
+import ProxiesController from "../controller/proxies";
+import SystemController from "../controller/system";
+import VersionController from "../controller/versions";
+import OpenSourceConfigConverter from "../converter/config";
+import ProxyConverter from "../converter/proxies";
+import VersionConverter from "../converter/versions";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
 import ProxiesRepository from "../repository/ProxyRepository";
 import VersionRepository from "../repository/VersionRepository";
@@ -101,8 +101,8 @@ class FrpcDesktopRunner {
       .to(LaunchController);
     this._container.bind<LogController>(TYPES.LogController).to(LogController);
     this._container
-      .bind<ProxyController>(TYPES.ProxyController)
-      .to(ProxyController);
+      .bind<ProxiesController>(TYPES.ProxiesController)
+      .to(ProxiesController);
     this._container
       .bind<SystemController>(TYPES.SystemController)
       .to(SystemController);
@@ -180,7 +180,7 @@ class FrpcDesktopRunner {
     this._container.get<ConfigController>(TYPES.ConfigController);
     this._container.get<LaunchController>(TYPES.LaunchController);
     this._container.get<LogController>(TYPES.LogController);
-    this._container.get<ProxyController>(TYPES.ProxyController);
+    this._container.get<ProxiesController>(TYPES.ProxiesController);
     this._container.get<SystemController>(TYPES.SystemController);
     this._container.get<VersionController>(TYPES.VersionController);
   }

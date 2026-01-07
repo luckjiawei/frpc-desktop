@@ -14,7 +14,7 @@ export default class VersionConverter extends BaseConverter {
             version_download_count: source.versionDownloadCount,
             asset_download_count: source.assetDownloadCount,
             browser_download_url: source.browserDownloadUrl,
-            downloaded: source.downloaded,
+            downloaded: source.downloaded ? 1 : 0,
             local_path: source.localPath,
             size: source.size,
         };
@@ -31,7 +31,7 @@ export default class VersionConverter extends BaseConverter {
             versionDownloadCount: source.version_download_count,
             assetDownloadCount: source.asset_download_count,
             browserDownloadUrl: source.browser_download_url,
-            downloaded: source.downloaded,
+            downloaded: source.downloaded ? true : false,
             localPath: source.local_path,
             size: source.size,
         };

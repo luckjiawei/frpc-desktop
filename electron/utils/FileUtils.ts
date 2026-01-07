@@ -1,7 +1,17 @@
 import { createHash } from "crypto";
 import fs from "fs";
 
+/**
+ * FileUtils
+ */
 class FileUtils {
+
+  /**
+   * format bytes to human readable
+   * @param bytes bytes
+   * @param decimals decimals
+   * @returns human readable bytes
+   */
   public static formatBytes(bytes: number, decimals: number = 2): string {
     if (bytes === 0) return "0 Bytes";
     const k = 1024; // 1 KB = 1024 Bytes
@@ -12,6 +22,11 @@ class FileUtils {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]; // Return formatted string
   }
 
+  /**
+   * calculate file checksum
+   * @param filePath file path
+   * @returns checksum
+   */
   public static calculateFileChecksum(filePath: string) {
     const fileBuffer = fs.readFileSync(filePath);
     const hash = createHash("sha256");
@@ -19,6 +34,10 @@ class FileUtils {
     return hash.digest("hex");
   }
 
+  /**
+   * mkdir
+   * @param path path
+   */
   public static mkdir(path: string) {
     if (!fs.existsSync(path)) {
       fs.mkdirSync(path, { recursive: true, mode: 0o777 });

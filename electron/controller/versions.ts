@@ -9,8 +9,7 @@ import log from "electron-log/main";
 import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";
-import { IPCChannels, ResponseCode } from "../core/constant";
-import BusinessError from "electron/core/error";
+import { IPCChannels } from "../core/constant";
 
 @injectable()
 export default class VersionController extends BaseController {
@@ -32,6 +31,11 @@ export default class VersionController extends BaseController {
     return result;
   }
 
+  /**
+   * get downloaded frp versions
+   * @param event 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS)
   public async getDownloadedVersions(event: any) {
     return await this._versionService.getDownloadedVersions();
@@ -71,6 +75,12 @@ export default class VersionController extends BaseController {
       });
   }
 
+  /**
+   * delete downloaded frp version
+   * @param event 
+   * @param args 
+   * @returns 
+   */
   @IpcRoute(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION)
   public async deleteDownloadedVersion(event: any, args: { githubReleaseId: number }) {
     return await this._versionService
@@ -78,9 +88,14 @@ export default class VersionController extends BaseController {
 
   }
 
+  /**
+   * import local frpc version
+   * @param event 
+   * @param args 
+   */
   @IpcRoute(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, "on", { manualReply: true })
   importLocalFrpcVersion(event: any, args: any) {
-    const win: BrowserWindow = this._container.get("win");
+    const win: BrowserWindow = this._container.get(TYPES.BrowserWindow);
     dialog
       .showOpenDialog(win, {
         properties: ["openFile"],
@@ -91,7 +106,7 @@ export default class VersionController extends BaseController {
       .then(result => {
         if (result.canceled) {
           event.reply(
-            event.channel,
+            IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
             ResponseUtils.success({
               canceled: true
             })
@@ -103,36 +118,20 @@ export default class VersionController extends BaseController {
             .importLocalFrpcVersion(filePath)
             .then(data => {
               event.reply(
-                event.channel,
+                IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
                 ResponseUtils.success({
                   canceled: false
                 })
               );
             })
             .catch((err: Error) => {
-              log.error("VersionController.importLocalFrpcVersion", err);
-              req.event.reply(req.channel, ResponseUtils.fail(err));
+              event.reply(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, ResponseUtils.fail(err));
             });
         }
       })
       .catch(err => {
-        log.error("VersionController.importLocalFrpcVersion", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, ResponseUtils.fail(err));
       });
-
-    // const win: BrowserWindow = BeanFactory.getBean("win");
-    // const result = await dialog.showOpenDialog(win, {
-    //   properties: ["openFile"],
-    //   filters: [
-    //     { name: "Frpc", extensions: ["tar.gz", "zip"] } // 允许选择的文件类型，分开后缀以确保可以选择
-    //   ]
-    // });
-    // if (result.canceled) {
-    //
-    // }else {
-    //
-    // }
-
   }
 
 

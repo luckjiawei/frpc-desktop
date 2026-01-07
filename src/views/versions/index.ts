@@ -101,6 +101,12 @@ export function useVersions() {
                 return m as FrpcDesktopVersion;
             }) as Array<FrpcDesktopVersion>;
             loading.value--;
+        }, (code, message) => {
+            ElMessage({
+                message: message,
+                type: "error"
+            });
+            loading.value--;
         });
 
         on(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, data => {

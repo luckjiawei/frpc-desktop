@@ -52,7 +52,7 @@ export default class ConfigController extends BaseController {
   }
 
   @IpcRoute(IPCChannels.CONFIG_RESET_ALL_CONFIG)
-  resetAllConfig() {
+  public async resetAllConfig(event: any) {
     // await this._serverDao.truncate();
     // await this._proxyDao.truncate();
     // await this._versionDao.truncate();
@@ -78,24 +78,24 @@ export default class ConfigController extends BaseController {
           recursive: true,
           force: true
         });
-        req.event.reply(req.channel, ResponseUtils.success());
+        event.reply(IPCChannels.CONFIG_RESET_ALL_CONFIG, ResponseUtils.success());
       })
       .catch((err: Error) => {
         log.error("ConfigController.resetAllConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.CONFIG_RESET_ALL_CONFIG, ResponseUtils.fail(err));
       });
   }
 
   @IpcRoute(IPCChannels.CONFIG_EXPORT_CONFIG)
-  exportConfig() {
+  exportConfig(event: any) {
     dialog
       .showOpenDialog({
         properties: ["openDirectory"]
       })
       .then(result => {
         if (result.canceled) {
-          req.event.reply(
-            req.channel,
+          event.reply(
+            IPCChannels.CONFIG_EXPORT_CONFIG,
             ResponseUtils.success({
               canceled: true,
               path: ""
@@ -106,8 +106,8 @@ export default class ConfigController extends BaseController {
             "YYYYMMDDhhmmss"
           )}.toml`;
           this._serverService.genTomlConfig(path).then(() => {
-            req.event.reply(
-              req.channel,
+            event.reply(
+              IPCChannels.CONFIG_EXPORT_CONFIG,
               ResponseUtils.success({
                 canceled: false,
                 path: path
@@ -117,49 +117,19 @@ export default class ConfigController extends BaseController {
         }
       })
       .catch((err: Error) => {
-        log.error("ConfigController.exportConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.CONFIG_EXPORT_CONFIG, ResponseUtils.fail(err));
       });
   }
 
   @IpcRoute(IPCChannels.CONFIG_IMPORT_TOML_CONFIG)
-  importTomlConfig() {
-    // const win: BrowserWindow = BeanFactory.getBean("win");
-    // dialog
-    //   .showOpenDialog(win, {
-    //     properties: ["openFile"],
-    //     filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
-    //   })
-    //   .then(result => {
-    //     if (result.canceled) {
-    //       req.event.reply(
-    //         req.channel,
-    //         ResponseUtils.success({
-    //           canceled: true,
-    //           path: ""
-    //         })
-    //       );
-    //     } else {
-    //       req.event.reply(
-    //         req.channel,
-    //         ResponseUtils.success({
-    //           canceled: false,
-    //           path: ""
-    //         })
-    //       );
-    //     }
-    //   });
-    // if (result.canceled) {
-    // } else {
-    // }
+  importTomlConfig(event: any) {
     this._serverService
       .importTomlConfig()
       .then(data => {
-        req.event.reply(req.channel, ResponseUtils.success(data));
+        event.reply(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
-        log.error("ConfigController.importTomlConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
+        event.reply(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, ResponseUtils.fail(err));
       });
   }
 

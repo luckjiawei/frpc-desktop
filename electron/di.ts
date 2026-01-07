@@ -36,7 +36,7 @@ export const TYPES = {
     VersionController: Symbol.for("VersionController"),
     LogController: Symbol.for("LogController"),
     LaunchController: Symbol.for("LaunchController"),
-    ProxyController: Symbol.for("ProxyController"),
+    ProxiesController: Symbol.for("ProxiesController"),
     FrpcDesktopApp: Symbol.for("FrpcDesktopApp"),
     ConfigController: Symbol.for("ConfigController"),
     /**

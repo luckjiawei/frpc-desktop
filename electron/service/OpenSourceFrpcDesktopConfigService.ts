@@ -8,7 +8,7 @@ import { GlobalConstant } from "../core/constant";
 import ProxiesRepository from "../repository/ProxyRepository";
 import PathUtils from "../utils/PathUtils";
 import OpenSourceConfigRepository from "../repository/OpenSourceConfigRepository";
-import OpenSourceConfigConverter from "../converter/OpenSourceConfigConverter";
+import OpenSourceConfigConverter from "../converter/config";
 import log from "electron-log/main";
 import { LevelOption } from "electron-log";
 import { inject, injectable, Container } from "inversify";
