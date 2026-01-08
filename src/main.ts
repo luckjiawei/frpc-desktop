@@ -12,7 +12,7 @@ import i18n from "./lang";
 import router from "./router";
 import { useSystemUsageStore } from "./store/systemUsage";
 import "./styles/index.scss";
-import { send } from "./utils/ipcUtils"
+import { send } from "./utils/ipcUtils";
 import { ipcRenderer } from "electron";
 
 // 开发环境下启用 IPC 监听器调试
@@ -48,4 +48,4 @@ app
     systemUsageStore.onListenerSystemUsage();
     postMessage({ payload: "removeLoading" }, "*");
   })
-  .then(r => { });
+  .then(r => {});

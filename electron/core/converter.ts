@@ -7,7 +7,6 @@ export default abstract class BaseConverter {
     return JSON.parse(d);
   }
 
-
   protected serializeArray<T>(arr: T[]): string {
     return JSON.stringify(arr.map(item => JSON.stringify(item)));
   }

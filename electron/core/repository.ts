@@ -1,13 +1,11 @@
-import "reflect-metadata"
+import "reflect-metadata";
 import knex from "knex";
 import log from "electron-log/main";
 
 export default abstract class BaseRepository<T extends BaseModel> {
   protected readonly knex: knex.Knex;
 
-  protected constructor(
-    knex: knex.Knex
-  ) {
+  protected constructor(knex: knex.Knex) {
     this.knex = knex;
   }
 
@@ -87,10 +85,7 @@ export default abstract class BaseRepository<T extends BaseModel> {
    * @returns Promise resolving to true if the record exists, false otherwise
    */
   async exists(id: number): Promise<boolean> {
-    const r = await this.table()
-      .select()
-      .where("id", "=", id)
-      .first()
+    const r = await this.table().select().where("id", "=", id).first();
     return r !== undefined;
   }
 }

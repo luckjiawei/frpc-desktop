@@ -1,18 +1,18 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 class EventBus extends EventEmitter {
-    private static instance: EventBus;
+  private static instance: EventBus;
 
-    private constructor() {
-        super();
-    }
+  private constructor() {
+    super();
+  }
 
-    public static getInstance(): EventBus {
-        if (!EventBus.instance) {
-            EventBus.instance = new EventBus();
-        }
-        return EventBus.instance;
+  public static getInstance(): EventBus {
+    if (!EventBus.instance) {
+      EventBus.instance = new EventBus();
     }
+    return EventBus.instance;
+  }
 }
 
 export default EventBus.getInstance();

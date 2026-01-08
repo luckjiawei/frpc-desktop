@@ -31,8 +31,7 @@ export default class VersionService {
   private readonly _currFrpArch: Array<string>;
   private _versions: Array<FrpcDesktopVersion> = [];
 
-  constructor(
-  ) {
+  constructor() {
     const nodeVersion = `${process.platform}_${process.arch}`;
     this._currFrpArch = GlobalConstant.FRP_ARCH_VERSION_MAPPING[nodeVersion];
   }
@@ -92,9 +91,8 @@ export default class VersionService {
     if (!githubReleaseId) {
       return;
     }
-    const version = await this._versionRepository.findByGithubReleaseId(
-      githubReleaseId
-    );
+    const version =
+      await this._versionRepository.findByGithubReleaseId(githubReleaseId);
     if (this.versionFileExists(version)) {
       FileUtils.remove(version.local_path);
       await this._versionRepository.deleteById(version.id);
@@ -102,8 +100,8 @@ export default class VersionService {
   }
 
   async getFrpVersionsByGitHub(): Promise<Array<FrpcDesktopVersion>> {
-    const gvs = await this._gitHubService
-      .getGithubRepoAllReleases("fatedier/frp");
+    const gvs =
+      await this._gitHubService.getGithubRepoAllReleases("fatedier/frp");
 
     const versions: Array<FrpcDesktopVersion> =
       await this.githubRelease2FrpcDesktopVersion(gvs);
@@ -140,7 +138,9 @@ export default class VersionService {
           0
         );
 
-        const currVersion = allVersions.find(ff => ff.github_release_id === m.id);
+        const currVersion = allVersions.find(
+          ff => ff.github_release_id === m.id
+        );
         const v: FrpcDesktopVersion = {
           id: null,
           githubAssetId: asset.id,
@@ -172,9 +172,10 @@ export default class VersionService {
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
-        const existsVersion = await this._versionRepository.findByGithubReleaseId(
-          version.githubReleaseId
-        );
+        const existsVersion =
+          await this._versionRepository.findByGithubReleaseId(
+            version.githubReleaseId
+          );
         if (existsVersion) {
           throw new BusinessError(ResponseCode.VERSION_EXISTS);
         }
@@ -239,7 +240,9 @@ export default class VersionService {
     // todo 2025-02-23 delete downloaded file.
     version.localPath = versionFilePath;
     version.downloaded = true;
-    return await this._versionRepository.insert(this._versionConverter.frpcDesktopVersion2Model(version));
+    return await this._versionRepository.insert(
+      this._versionConverter.frpcDesktopVersion2Model(version)
+    );
   }
 
   /**
@@ -248,15 +251,15 @@ export default class VersionService {
    */
   public async getDownloadedVersions() {
     await this.cleanUselessVersion();
-    return (await this._versionRepository.selectAll()).map(m => this._versionConverter
-      .model2FrpcDesktopVersion(m)
+    return (await this._versionRepository.selectAll()).map(m =>
+      this._versionConverter.model2FrpcDesktopVersion(m)
     );
   }
 
   /**
    * import local frpc version
    * @param filePath file path
-   * @returns 
+   * @returns
    */
   public async importLocalFrpcVersion(filePath: string) {
     const checksum = FileUtils.calculateFileChecksum(filePath);
@@ -264,9 +267,10 @@ export default class VersionService {
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
         const version = this.getFrpVersionByAssetName(frpName);
-        const existsVersion = await this._versionRepository.findByGithubReleaseId(
-          version.githubReleaseId
-        );
+        const existsVersion =
+          await this._versionRepository.findByGithubReleaseId(
+            version.githubReleaseId
+          );
         if (existsVersion) {
           throw new BusinessError(ResponseCode.VERSION_EXISTS);
         }
@@ -289,7 +293,6 @@ export default class VersionService {
         this._versionRepository.deleteById(f.id);
         log.scope("version").info(`delete useless version: ${f.id}`);
       }
-    })
+    });
   }
-
 }

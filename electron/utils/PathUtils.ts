@@ -73,7 +73,7 @@ class PathUtils {
   }
 
   public static getDatabaseFilename() {
-    return path.join(PathUtils.getAppData(), "data.db")
+    return path.join(PathUtils.getAppData(), "data.db");
   }
 }
 

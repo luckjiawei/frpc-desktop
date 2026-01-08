@@ -1,4 +1,3 @@
-
 import log from "electron-log/main";
 import { ResponseCode } from "../core/constant";
 import BusinessError from "../core/error";
@@ -15,7 +14,7 @@ class ResponseUtils {
   }
 
   public static fail(err: Error) {
-     log.scope("ipc").error("IPC Error.", err);
+    log.scope("ipc").error("IPC Error.", err);
     if (!(err instanceof BusinessError)) {
       err = new BusinessError(ResponseCode.INTERNAL_ERROR);
     }
@@ -27,7 +26,7 @@ class ResponseUtils {
       data: null,
       message: message
     };
-   
+
     return resp;
   }
 }

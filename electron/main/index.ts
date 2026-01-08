@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { app } from "electron";
 import { join } from "node:path";
 
-import { TYPES } from "../di"
+import { TYPES } from "../di";
 process.env.DIST = join(__dirname, "../../dist");
 process.env.VITE_PUBLIC = app.isPackaged
   ? process.env.DIST
@@ -31,14 +31,12 @@ import ProxiesService from "../service/proxies";
 import SystemService from "../service/system";
 import VersionService from "../service/versions";
 
-
 import knex from "knex";
 import log from "electron-log/main";
 import PathUtils from "../utils/PathUtils";
 import SystemEvent from "../event/system";
 import FrpcProcessEvent from "../event/frpc-process";
 import { LogLevel } from "electron-log";
-
 
 /**
  * Main application runner class
@@ -56,7 +54,9 @@ class FrpcDesktopRunner {
     this._container
       .bind<Container>(TYPES.Container)
       .toConstantValue(this._container);
-    this._container.bind<FrpcDesktopApp>(TYPES.FrpcDesktopApp).to(FrpcDesktopApp);
+    this._container
+      .bind<FrpcDesktopApp>(TYPES.FrpcDesktopApp)
+      .to(FrpcDesktopApp);
     // converter
     this._container
       .bind<OpenSourceConfigConverter>(TYPES.OpenSourceConfigConverter)
@@ -93,7 +93,9 @@ class FrpcDesktopRunner {
     this._container
       .bind<FrpcProcessService>(TYPES.FrpcProcessService)
       .to(FrpcProcessService);
-    this._container.bind<ProxiesService>(TYPES.ProxiesService).to(ProxiesService);
+    this._container
+      .bind<ProxiesService>(TYPES.ProxiesService)
+      .to(ProxiesService);
     // controller
     this._container
       .bind<ConfigController>(TYPES.ConfigController)
@@ -113,7 +115,9 @@ class FrpcDesktopRunner {
       .to(VersionController);
     // event
     this._container.bind<SystemEvent>(TYPES.SystemEvent).to(SystemEvent);
-    this._container.bind<FrpcProcessEvent>(TYPES.FrpcProcessEvent).to(FrpcProcessEvent);
+    this._container
+      .bind<FrpcProcessEvent>(TYPES.FrpcProcessEvent)
+      .to(FrpcProcessEvent);
   }
 
   public run(): void {
@@ -122,13 +126,16 @@ class FrpcDesktopRunner {
     this.initializeContainer();
     this.initializeController();
 
-    const configService = this._container.get<OpenSourceFrpcDesktopConfigService>(TYPES.OpenSourceFrpcDesktopConfigService);
+    const configService =
+      this._container.get<OpenSourceFrpcDesktopConfigService>(
+        TYPES.OpenSourceFrpcDesktopConfigService
+      );
     configService.getServerConfig().then(config => {
       if (config && config.log) {
         log.transports.file.level = config.log.level as LogLevel;
         log.transports.console.level = config.log.level as LogLevel;
       }
-    })
+    });
 
     const app = this._container.get<FrpcDesktopApp>(TYPES.FrpcDesktopApp);
 
@@ -138,7 +145,7 @@ class FrpcDesktopRunner {
   }
 
   /**
-   * 
+   *
    * Initialize logging
    */
   private initializeLog(): void {
@@ -179,15 +186,21 @@ class FrpcDesktopRunner {
     });
 
     // Run migrations to initialize/update table schema
-    db.migrate.latest()
+    db.migrate
+      .latest()
       .then(([batchNo, migrations]) => {
         if (migrations.length > 0) {
-          log.scope("knex").info(`Ran ${migrations.length} migrations in batch ${batchNo}:`, migrations);
+          log
+            .scope("knex")
+            .info(
+              `Ran ${migrations.length} migrations in batch ${batchNo}:`,
+              migrations
+            );
         } else {
           log.scope("knex").info("Database is up to date.");
         }
       })
-      .catch((error) => {
+      .catch(error => {
         log.scope("knex").error("Migration failed:", error);
       });
 
@@ -220,4 +233,3 @@ class FrpcDesktopRunner {
  * start main process
  */
 new FrpcDesktopRunner().run();
-

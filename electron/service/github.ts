@@ -7,7 +7,7 @@ import { ResponseCode } from "../core/constant";
 
 @injectable()
 class GitHubService {
-  constructor() { }
+  constructor() {}
 
   /**
    * Get github headers
@@ -16,23 +16,24 @@ class GitHubService {
   private githubHeaders() {
     const ghToken = process.env.GH_TOKEN;
     if (!ghToken) {
-      log.scope("github").warn("GH_TOKEN is not set, API rate limits may be restricted.");
+      log
+        .scope("github")
+        .warn("GH_TOKEN is not set, API rate limits may be restricted.");
       return {
-        "User-Agent": "frpc-desktop",
+        "User-Agent": "frpc-desktop"
       };
     } else {
       return {
         "User-Agent": "frpc-desktop",
-        "Authorization": `token ${ghToken}`
+        Authorization: `token ${ghToken}`
       };
     }
-
   }
 
   /**
-   * 
-   * @param githubRepo 
-   * @returns 
+   *
+   * @param githubRepo
+   * @returns
    */
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
@@ -57,23 +58,22 @@ class GitHubService {
               })
               .catch(err => reject(err));
           } else if (response.statusCode === 403) {
-            log.scope("github").error(`Failed to retrieve GitHub releases. Status code: ${response.statusCode}`);
-            reject(
-              new BusinessError(
-                ResponseCode.GITHUB_UNAUTHORIZED
-              )
-            );
-          }
-          else {
-            log.scope("github").error(`Failed to retrieve GitHub releases. Status code: ${response.statusCode}`);
-            reject(
-              new BusinessError(
-                ResponseCode.GITHUB_NETWORK_ERROR
-              )
-            );
+            log
+              .scope("github")
+              .error(
+                `Failed to retrieve GitHub releases. Status code: ${response.statusCode}`
+              );
+            reject(new BusinessError(ResponseCode.GITHUB_UNAUTHORIZED));
+          } else {
+            log
+              .scope("github")
+              .error(
+                `Failed to retrieve GitHub releases. Status code: ${response.statusCode}`
+              );
+            reject(new BusinessError(ResponseCode.GITHUB_NETWORK_ERROR));
           }
         });
-        response.on("error", (error) => {
+        response.on("error", error => {
           reject(error);
         });
       });
@@ -116,7 +116,7 @@ class GitHubService {
             );
           }
         });
-        response.on("error", (error) => {
+        response.on("error", error => {
           reject(error);
         });
       });

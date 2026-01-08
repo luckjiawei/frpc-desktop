@@ -22,8 +22,8 @@ export default class VersionController extends BaseController {
 
   /**
    * get frp versions from github
-   * @param event 
-   * @returns 
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.VERSION_GET_VERSIONS)
   async getVersions(event: any) {
@@ -33,8 +33,8 @@ export default class VersionController extends BaseController {
 
   /**
    * get downloaded frp versions
-   * @param event 
-   * @returns 
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS)
   public async getDownloadedVersions(event: any) {
@@ -43,10 +43,12 @@ export default class VersionController extends BaseController {
 
   /**
    * download frp version from github
-   * @param event 
-   * @param args 
+   * @param event
+   * @param args
    */
-  @IpcRoute(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, "on", { manualReply: true })
+  @IpcRoute(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, "on", {
+    manualReply: true
+  })
   downloadFrpVersion(event: any, args: any) {
     this._versionService
       .downloadFrpVersion(args.githubReleaseId, progress => {
@@ -71,34 +73,42 @@ export default class VersionController extends BaseController {
         );
 
         this._versionService.getDownloadedVersions().then(data => {
-          event.reply(IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS, ResponseUtils.success(data));
-        })
-
+          event.reply(
+            IPCChannels.VERSION_GET_DOWNLOADED_VERSIONS,
+            ResponseUtils.success(data)
+          );
+        });
       })
       .catch((err: Error) => {
-        event.reply(IPCChannels.VERSION_DOWNLOAD_FRP_VERSION, ResponseUtils.fail(err));
+        event.reply(
+          IPCChannels.VERSION_DOWNLOAD_FRP_VERSION,
+          ResponseUtils.fail(err)
+        );
       });
   }
 
   /**
    * delete downloaded frp version
-   * @param event 
-   * @param args 
-   * @returns 
+   * @param event
+   * @param args
+   * @returns
    */
   @IpcRoute(IPCChannels.VERSION_DELETE_DOWNLOADED_VERSION)
-  public async deleteDownloadedVersion(event: any, args: { githubReleaseId: number }) {
-    return await this._versionService
-      .deleteFrpVersion(args.githubReleaseId)
-
+  public async deleteDownloadedVersion(
+    event: any,
+    args: { githubReleaseId: number }
+  ) {
+    return await this._versionService.deleteFrpVersion(args.githubReleaseId);
   }
 
   /**
    * import local frpc version
-   * @param event 
-   * @param args 
+   * @param event
+   * @param args
    */
-  @IpcRoute(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, "on", { manualReply: true })
+  @IpcRoute(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, "on", {
+    manualReply: true
+  })
   importLocalFrpcVersion(event: any, args: any) {
     const win: BrowserWindow = this._container.get(TYPES.BrowserWindow);
     dialog
@@ -130,14 +140,18 @@ export default class VersionController extends BaseController {
               );
             })
             .catch((err: Error) => {
-              event.reply(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, ResponseUtils.fail(err));
+              event.reply(
+                IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
+                ResponseUtils.fail(err)
+              );
             });
         }
       })
       .catch(err => {
-        event.reply(IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION, ResponseUtils.fail(err));
+        event.reply(
+          IPCChannels.VERSION_IMPORT_LOCAL_FRPC_VERSION,
+          ResponseUtils.fail(err)
+        );
       });
   }
-
-
 }

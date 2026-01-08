@@ -114,11 +114,11 @@ export class FrpcDesktopApp {
     this._container.bind(TYPES.BrowserWindow).toConstantValue(this._win);
     if (process.env.VITE_DEV_SERVER_URL) {
       // electron-vite-vue#298
-      this._win.loadURL(this._url).then(() => { });
+      this._win.loadURL(this._url).then(() => {});
       // Open devTool if the app is not packaged
       this._win.webContents.openDevTools();
     } else {
-      this._win.loadFile(this._indexHtml).then(() => { });
+      this._win.loadFile(this._indexHtml).then(() => {});
     }
 
     this._win.webContents.on("did-finish-load", () => {
@@ -163,7 +163,7 @@ export class FrpcDesktopApp {
         click: function () {
           that._win.show();
           if (process.platform === "darwin") {
-            app.dock.show().then(() => { });
+            app.dock.show().then(() => {});
           }
         }
       },
@@ -208,7 +208,6 @@ export class FrpcDesktopApp {
         windowReadyCallback();
       });
       this.initializeTray();
-
     });
 
     app.on("window-all-closed", () => {
@@ -242,7 +241,7 @@ export class FrpcDesktopApp {
     app.on("before-quit", () => {
       // todo stop frpc process
       this._quitting = true;
-      this._frpcProcessService.stopFrpcProcess().finally(() => { });
+      this._frpcProcessService.stopFrpcProcess().finally(() => {});
     });
 
     log.scope("main").info(`ElectronApp initialized successfully.`);

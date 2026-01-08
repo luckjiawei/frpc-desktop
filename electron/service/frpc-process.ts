@@ -14,10 +14,8 @@ import { TYPES } from "../di";
 import BusinessError from "../core/error";
 import FileUtils from "../utils/file";
 
-
 @injectable()
 class FrpcProcessService {
-
   @inject(TYPES.OpenSourceFrpcDesktopConfigService)
   private readonly _openSourceFrpcDesktopConfigService: OpenSourceFrpcDesktopConfigService;
   @inject(TYPES.SystemService)
@@ -29,7 +27,6 @@ class FrpcProcessService {
   private _frpcProcess: any;
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
-
 
   public isRunning(): boolean {
     if (!this._frpcProcess) {
@@ -84,7 +81,7 @@ class FrpcProcessService {
 
   /**
    * get frpc last start time
-   * @returns 
+   * @returns
    */
   public getLastStartTime(): number {
     return this._frpcLastStartTime;
@@ -108,16 +105,20 @@ class FrpcProcessService {
       config.frpcVersion
     );
     if (!version) {
-      log.scope("frpc").warn(
-        `startFrpcProcess failed: version ${config.frpcVersion} not found.`
-      );
+      log
+        .scope("frpc")
+        .warn(
+          `startFrpcProcess failed: version ${config.frpcVersion} not found.`
+        );
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
 
     if (!FileUtils.exists(version.local_path)) {
-      log.scope("frpc").warn(
-        `startFrpcProcess failed: version exe file ${version.local_path} not found.`
-      );
+      log
+        .scope("frpc")
+        .warn(
+          `startFrpcProcess failed: version exe file ${version.local_path} not found.`
+        );
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
 
@@ -128,9 +129,11 @@ class FrpcProcessService {
         "127.0.0.1"
       );
       if (isPortInUse) {
-        log.scope("frpc").warn(
-          `startFrpcProcess failed: Web Server Port ${config.webServer.port} is already in use.`
-        );
+        log
+          .scope("frpc")
+          .warn(
+            `startFrpcProcess failed: Web Server Port ${config.webServer.port} is already in use.`
+          );
         throw new BusinessError(ResponseCode.WEB_SERVER_PORT_IN_USE);
       }
     }
@@ -143,9 +146,11 @@ class FrpcProcessService {
     } else {
       command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
     }
-    log.scope("frpc").info(
-      `startFrpcProcess: version ${config.frpcVersion} cwd: ${version.local_path} command: ${command}`
-    );
+    log
+      .scope("frpc")
+      .info(
+        `startFrpcProcess: version ${config.frpcVersion} cwd: ${version.local_path} command: ${command}`
+      );
 
     this._frpcProcess = spawn(command, {
       cwd: version.local_path,

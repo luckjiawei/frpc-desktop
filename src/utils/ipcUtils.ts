@@ -19,7 +19,10 @@ export const on = (
   onFail?: (bizCode: string, message: string) => void
 ) => {
   // 创建监听器函数
-  const listener = (event: Electron.IpcRendererEvent, args: ApiResponse<any>) => {
+  const listener = (
+    event: Electron.IpcRendererEvent,
+    args: ApiResponse<any>
+  ) => {
     const { code, data, message } = args;
     console.log(`response => ${channel} , args => `, args);
     if (code === ResponseCode.SUCCESS.code) {
@@ -60,11 +63,11 @@ export const on = (
   };
 };
 
-export const onEvent = (
-  channel: string,
-  listener: (data: any) => void
-) => {
-  const wrappedListener = (event: Electron.IpcRendererEvent, args: ApiResponse<any>) => {
+export const onEvent = (channel: string, listener: (data: any) => void) => {
+  const wrappedListener = (
+    event: Electron.IpcRendererEvent,
+    args: ApiResponse<any>
+  ) => {
     listener(args);
   };
 
@@ -121,7 +124,7 @@ export const removeAllRouterListeners = () => {
 // 开发环境下，在模块热更新时自动清理
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    console.log('[HMR] Cleaning up IPC listeners...');
+    console.log("[HMR] Cleaning up IPC listeners...");
     removeAllRouterListeners();
   });
 }

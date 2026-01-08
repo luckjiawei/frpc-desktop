@@ -15,40 +15,39 @@ export default class ProxiesController extends BaseController {
   @inject(TYPES.ProxiesRepository)
   private readonly _proxiesRepository: ProxiesRepository;
 
-
   @IpcRoute(IPCChannels.PROXY_CREATE_PROXY)
   public async createProxy(event: any, args: any) {
-    return await this._proxiesService
-      .insertProxy(args)
+    return await this._proxiesService.insertProxy(args);
   }
 
   @IpcRoute(IPCChannels.PROXY_MODIFY_PROXY)
   public async modifyProxy(event: any, args: any) {
-    return await this._proxiesService
-      .updateProxy(args)
+    return await this._proxiesService.updateProxy(args);
   }
 
   @IpcRoute(IPCChannels.PROXY_GET_ALL_PROXIES)
   public async getAllProxies(event: any, args: any) {
-    return await this._proxiesService
-      .getAllProxies()
+    return await this._proxiesService.getAllProxies();
   }
 
   @IpcRoute(IPCChannels.PROXY_DELETE_PROXY)
   public async deleteProxy(event: any, args: any) {
-    return await this._proxiesService
-      .deleteProxy(args)
+    return await this._proxiesService.deleteProxy(args);
   }
 
   @IpcRoute(IPCChannels.PROXY_MODIFY_PROXY_STATUS)
-  public async modifyProxyStatus(event: any, args: { id: number; status: number }) {
-    return await this._proxiesRepository
-      .updateProxyStatus(args.id, args.status)
+  public async modifyProxyStatus(
+    event: any,
+    args: { id: number; status: number }
+  ) {
+    return await this._proxiesRepository.updateProxyStatus(
+      args.id,
+      args.status
+    );
   }
 
   @IpcRoute(IPCChannels.PROXY_GET_LOCAL_PORTS)
   public async getLocalPorts(event: any, args: any) {
-    return await this._proxiesService
-      .getLocalPorts()
+    return await this._proxiesService.getLocalPorts();
   }
 }

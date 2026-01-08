@@ -29,25 +29,22 @@ export default class ConfigController extends BaseController {
 
   @IpcRoute(IPCChannels.CONFIG_SAVE_CONFIG)
   public async saveConfig(event: any, args: any) {
-    return await this._serverService
-      .saveServerConfig(args);
+    return await this._serverService.saveServerConfig(args);
   }
 
   @IpcRoute(IPCChannels.CONFIG_GET_SERVER_CONFIG)
   public async getServerConfig(event: any, args: any) {
-    return await this._serverService
-      .getServerConfig();
+    return await this._serverService.getServerConfig();
   }
 
   @IpcRoute(IPCChannels.CONFIG_OPEN_APP_DATA)
   public openAppData(event: any, args: any) {
-    this._systemService
-      .openLocalPath(PathUtils.getAppData());
+    this._systemService.openLocalPath(PathUtils.getAppData());
   }
 
   /**
-   * 
-   * @param event 
+   *
+   * @param event
    */
   @IpcRoute(IPCChannels.CONFIG_RESET_ALL_CONFIG, "on", { manualReply: true })
   public async resetAllConfig(event: any) {
@@ -59,16 +56,22 @@ export default class ConfigController extends BaseController {
         FileUtils.remove(PathUtils.getVersionStoragePath());
         FileUtils.remove(PathUtils.getFrpcLogStoragePath());
 
-        event.reply(IPCChannels.CONFIG_RESET_ALL_CONFIG, ResponseUtils.success());
+        event.reply(
+          IPCChannels.CONFIG_RESET_ALL_CONFIG,
+          ResponseUtils.success()
+        );
       })
       .catch((err: Error) => {
-        event.reply(IPCChannels.CONFIG_RESET_ALL_CONFIG, ResponseUtils.fail(err));
+        event.reply(
+          IPCChannels.CONFIG_RESET_ALL_CONFIG,
+          ResponseUtils.fail(err)
+        );
       });
   }
 
   /**
-   * 
-   * @param event 
+   *
+   * @param event
    */
   @IpcRoute(IPCChannels.CONFIG_EXPORT_CONFIG)
   exportConfig(event: any) {
@@ -106,8 +109,8 @@ export default class ConfigController extends BaseController {
   }
 
   /**
-   * 
-   * @param event 
+   *
+   * @param event
    */
   @IpcRoute(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, "on", { manualReply: true })
   async importTomlConfig(event: any) {
@@ -117,20 +120,28 @@ export default class ConfigController extends BaseController {
       filters: [{ name: "Frpc Toml ConfigFile", extensions: ["toml"] }]
     });
     if (result.canceled) {
-      event.reply(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, ResponseUtils.success({
-        canceled: true,
-        path: ""
-      }));
+      event.reply(
+        IPCChannels.CONFIG_IMPORT_TOML_CONFIG,
+        ResponseUtils.success({
+          canceled: true,
+          path: ""
+        })
+      );
     } else {
-      const resp = await this._serverService.importTomlConfig(result.filePaths[0]);
-      event.reply(IPCChannels.CONFIG_IMPORT_TOML_CONFIG, ResponseUtils.success(resp));
+      const resp = await this._serverService.importTomlConfig(
+        result.filePaths[0]
+      );
+      event.reply(
+        IPCChannels.CONFIG_IMPORT_TOML_CONFIG,
+        ResponseUtils.success(resp)
+      );
     }
   }
 
   /**
-   * 
-   * @param event 
-   * @returns 
+   *
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.CONFIG_GET_LANGUAGE)
   async getLanguage(event: any) {
@@ -138,9 +149,9 @@ export default class ConfigController extends BaseController {
   }
 
   /**
-   * 
-   * @param event 
-   * @param args 
+   *
+   * @param event
+   * @param args
    */
   @IpcRoute(IPCChannels.CONFIG_SAVE_LANGUAGE)
   public async saveLanguage(event: any, args: { language: string }) {

@@ -20,12 +20,11 @@ export default class SystemController extends BaseController {
   @inject(TYPES.Container)
   private readonly _container: Container;
 
-
   /**
    * open url
-   * @param event 
-   * @param args 
-   * @returns 
+   * @param event
+   * @param args
+   * @returns
    */
   @IpcRoute(IPCChannels.SYSTEM_OPEN_URL)
   public async openUrl(event: any, args: { url: string }) {
@@ -34,8 +33,8 @@ export default class SystemController extends BaseController {
 
   /**
    * relaunch app
-   * @param event 
-   * @returns 
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.SYSTEM_RELAUNCH_APP)
   public async relaunchApp(event: any) {
@@ -44,8 +43,8 @@ export default class SystemController extends BaseController {
 
   /**
    * open app data path
-   * @param event 
-   * @returns 
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.SYSTEM_OPEN_APP_DATA)
   public async openAppDataPath(event: any) {
@@ -54,13 +53,15 @@ export default class SystemController extends BaseController {
 
   /**
    * select system local file
-   * @param event 
-   * @param args 
-   * @returns 
+   * @param event
+   * @param args
+   * @returns
    */
   @IpcRoute(IPCChannels.SYSTEM_SELECT_LOCAL_FILE, "on", { manualReply: true })
   public async selectLocalFile(
-    event: any, args: { name: string; extensions: string[] }) {
+    event: any,
+    args: { name: string; extensions: string[] }
+  ) {
     const { name, extensions } = args;
     if (!extensions || extensions.length === 0) {
       return;
@@ -100,11 +101,13 @@ export default class SystemController extends BaseController {
 
   /**
    * get frpc-desktop github last release
-   * @param event 
-   * @returns 
+   * @param event
+   * @returns
    */
   @IpcRoute(IPCChannels.SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE)
   public async getFrpcDesktopGithubLastRelease(event: any) {
-    return await this._gitHubService.getGithubLastRelease("luckjiawei/frpc-desktop");
+    return await this._gitHubService.getGithubLastRelease(
+      "luckjiawei/frpc-desktop"
+    );
   }
 }

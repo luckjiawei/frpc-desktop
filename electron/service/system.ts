@@ -26,7 +26,7 @@ export default class SystemService {
 
   /**
    * Open url to browser
-   * @param url url 
+   * @param url url
    */
   public async openUrl(url: string) {
     if (url) {
@@ -163,10 +163,10 @@ export default class SystemService {
    * @returns check result
    */
   async checkInternetConnect(): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>(resolve => {
       const request = net.request({
         method: "get",
-        url: `http://conntest.nintendowifi.net/`,
+        url: `http://conntest.nintendowifi.net/`
       });
 
       // 添加超时处理
@@ -219,9 +219,7 @@ export default class SystemService {
 
     // 计算当前Electron进程的CPU使用率百分比
     const cpuPercentage =
-      timeDiff > 0
-        ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2)
-        : "0.00";
+      timeDiff > 0 ? ((totalCPUTimeDiff / timeDiff) * 100).toFixed(2) : "0.00";
 
     // 更新上次的值（保存到实例变量）
     this.lastCpuUsage = currentCpuUsage;

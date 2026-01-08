@@ -15,7 +15,7 @@ export default class ProxiesService {
   @inject(TYPES.ProxiesConverter)
   private readonly _proxyConverter: ProxiesConverter;
 
-  constructor() { }
+  constructor() {}
 
   /**
    * Insert a new proxy configuration
@@ -24,7 +24,8 @@ export default class ProxiesService {
    */
   async insertProxy(proxy: FrpcDesktopProxy) {
     // insert proxy
-    const model: ProxiesModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
+    const model: ProxiesModel =
+      this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.insert(model);
     // reload
     await this._frpcProcessService.reloadFrpcProcess();
@@ -37,7 +38,8 @@ export default class ProxiesService {
    * @returns The updated proxy configuration
    */
   async updateProxy(proxy: FrpcDesktopProxy) {
-    const model: ProxiesModel = this._proxyConverter.frpcDesktopProxy2Model(proxy);
+    const model: ProxiesModel =
+      this._proxyConverter.frpcDesktopProxy2Model(proxy);
     const proxy2 = await this._proxyDao.updateById(model);
     // reload
     await this._frpcProcessService.reloadFrpcProcess();
@@ -156,4 +158,3 @@ export default class ProxiesService {
     return proxies.map(m => this._proxyConverter.model2FrpcDesktopProxy(m));
   }
 }
-

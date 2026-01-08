@@ -9,24 +9,21 @@ import log from "electron-log/main";
 
 @injectable()
 export default class FrpcProcessEvent extends BaseEvent {
+  @inject(TYPES.FrpcProcessService)
+  private readonly _frpcProcessService: FrpcProcessService;
 
-    @inject(TYPES.FrpcProcessService)
-    private readonly _frpcProcessService: FrpcProcessService;
+  constructor(@inject(TYPES.BrowserWindow) window: BrowserWindow) {
+    super(window);
+  }
 
-    constructor(
-        @inject(TYPES.BrowserWindow) window: BrowserWindow
-    ) {
-        super(window);
-    }
-
-    @Event(EventChannels.FRPC_PROCESS_STATUS, 1000)
-    public frpcProcessStatus() {
-        const running = this._frpcProcessService.isRunning();
-        const lastStartTime = this._frpcProcessService.getLastStartTime();
-        const result = {
-            running,
-            lastStartTime
-        };
-        return result;
-    }
+  @Event(EventChannels.FRPC_PROCESS_STATUS, 1000)
+  public frpcProcessStatus() {
+    const running = this._frpcProcessService.isRunning();
+    const lastStartTime = this._frpcProcessService.getLastStartTime();
+    const result = {
+      running,
+      lastStartTime
+    };
+    return result;
+  }
 }

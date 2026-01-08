@@ -22,7 +22,6 @@ export class GlobalConstant {
   public static FRPC_PROCESS_STATUS_CHECK_INTERVAL = 1;
 }
 
-
 /**
  * response code
  */
@@ -30,21 +29,27 @@ export const ResponseCode = {
   SUCCESS: { code: "A1000", message: "successful." },
   INTERNAL_ERROR: { code: "B1000", message: "internal error." },
   NOT_CONFIG: { code: "B1001", message: "Not configured." },
-  VERSION_EXISTS: { code: "B1002", message: "Import failed, version already exists" },
-  VERSION_ARGS_ERROR: { code: "B1003", message: "The selected frp architecture does not match the operating system" },
+  VERSION_EXISTS: {
+    code: "B1002",
+    message: "Import failed, version already exists"
+  },
+  VERSION_ARGS_ERROR: {
+    code: "B1003",
+    message: "The selected frp architecture does not match the operating system"
+  },
   UNKNOWN_VERSION: { code: "B1004", message: "Unrecognized file" },
   NOT_FOUND_VERSION: { code: "B1005", message: "Version not found" },
   WEB_SERVER_PORT_IN_USE: { code: "B1006", message: "WebServer Port In Use" },
   GITHUB_UNAUTHORIZED: { code: "B1007", message: "Unauthorized on GitHub" },
-  GITHUB_NETWORK_ERROR: { code: "B1008", message: "GitHub network error" },
+  GITHUB_NETWORK_ERROR: { code: "B1008", message: "GitHub network error" }
 };
 
 /**
- * 
+ *
  */
 export const IPCChannels = {
   /*
-  * launch
+   * launch
    */
   LAUNCH: "launch/launch",
   TERMINATE: "launch/terminate",
@@ -87,7 +92,8 @@ export const IPCChannels = {
   SYSTEM_RELAUNCH_APP: "system/relaunchApp",
   SYSTEM_OPEN_APP_DATA: "system/openAppData",
   SYSTEM_SELECT_LOCAL_FILE: "system/selectLocalFile",
-  SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE: "system/getFrpcDesktopGithubLastRelease",
+  SYSTEM_GET_FRPC_DESKTOP_GITHUB_LAST_RELEASE:
+    "system/getFrpcDesktopGithubLastRelease",
 
   /**
    * version
@@ -96,8 +102,8 @@ export const IPCChannels = {
   VERSION_GET_DOWNLOADED_VERSIONS: "version/getDownloadedVersions",
   VERSION_DOWNLOAD_FRP_VERSION: "version/downloadFrpVersion",
   VERSION_DELETE_DOWNLOADED_VERSION: "version/deleteDownloadedVersion",
-  VERSION_IMPORT_LOCAL_FRPC_VERSION: "version/importLocalFrpcVersion",
-}
+  VERSION_IMPORT_LOCAL_FRPC_VERSION: "version/importLocalFrpcVersion"
+};
 
 /**
  * event channels
@@ -106,5 +112,5 @@ export const EventChannels = {
   FRPC_PROCESS_STATUS: "frpc-process/status",
   SYSTEM_MONITOR: "system/system-monitor",
   SYSTEM_CHECK_INTERNET_CONNECT: "system/system-check-internet-connect",
-  VERSIONS_GET_VERSIONS: "versions/get-versions",
-}
+  VERSIONS_GET_VERSIONS: "versions/get-versions"
+};

@@ -30,7 +30,6 @@ export default class OpenSourceFrpcDesktopConfigService {
 
   private readonly _configId: number = 1;
 
-
   async saveServerConfig(
     config: OpenSourceFrpcDesktopConfiguration
   ): Promise<OpenSourceFrpcDesktopConfiguration> {
@@ -187,13 +186,13 @@ remotePort = {{ $v.Second }}
               ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.https2http
                 ? {
-                  plugin: {
-                    type: "https2http",
-                    localAddr: `${proxy.localIP}:${proxy.localPort}`,
-                    crtPath: proxy.https2httpCaFile,
-                    keyPath: proxy.https2httpKeyFile
+                    plugin: {
+                      type: "https2http",
+                      localAddr: `${proxy.localIP}:${proxy.localPort}`,
+                      crtPath: proxy.https2httpCaFile,
+                      keyPath: proxy.https2httpKeyFile
+                    }
                   }
-                }
                 : {})
             };
           } else {
@@ -366,8 +365,7 @@ ${f}`;
             .method as string;
         }
         if ((sourceConfig.auth as AuthConfig).token !== undefined) {
-          config.auth.token = (sourceConfig.auth as AuthConfig)
-            .token as string;
+          config.auth.token = (sourceConfig.auth as AuthConfig).token as string;
         }
       }
 
@@ -414,12 +412,9 @@ ${f}`;
             sourceConfig.transport as TransportConfig
           ).poolCount as number;
         }
-        if (
-          (sourceConfig.transport as TransportConfig).tcpMux !== undefined
-        ) {
-          config.transport.tcpMux = (
-            sourceConfig.transport as TransportConfig
-          ).tcpMux as boolean;
+        if ((sourceConfig.transport as TransportConfig).tcpMux !== undefined) {
+          config.transport.tcpMux = (sourceConfig.transport as TransportConfig)
+            .tcpMux as boolean;
         }
         if (
           (sourceConfig.transport as TransportConfig)
@@ -471,8 +466,7 @@ ${f}`;
         // transport.tls 配置
         if (sourceConfig.transport as TransportTlsConfig) {
           if (
-            (sourceConfig.transport as TransportTlsConfig).enable !==
-            undefined
+            (sourceConfig.transport as TransportTlsConfig).enable !== undefined
           ) {
             config.transport.tls.enable = (
               sourceConfig.transport as TransportTlsConfig
@@ -487,8 +481,7 @@ ${f}`;
             ).certFile as string;
           }
           if (
-            (sourceConfig.transport as TransportTlsConfig).keyFile !==
-            undefined
+            (sourceConfig.transport as TransportTlsConfig).keyFile !== undefined
           ) {
             config.transport.tls.keyFile = (
               sourceConfig.transport as TransportTlsConfig
@@ -554,8 +547,7 @@ ${f}`;
           ).password as string;
         }
         if (
-          (sourceConfig.webServer as WebServerConfig).pprofEnable !==
-          undefined
+          (sourceConfig.webServer as WebServerConfig).pprofEnable !== undefined
         ) {
           config.webServer.pprofEnable = (
             sourceConfig.webServer as WebServerConfig
@@ -566,8 +558,8 @@ ${f}`;
       await this.saveServerConfig(config);
 
       if (sourceConfig && sourceConfig.proxies) {
-        const proxies = (sourceConfig.proxies as any[]).map(
-          (proxy) => {
+        const proxies = (sourceConfig.proxies as any[])
+          .map(proxy => {
             const proxy2: FrpcDesktopProxy = {
               id: null,
               hostHeaderRewrite: "",
@@ -601,11 +593,11 @@ ${f}`;
               }
             };
 
-            if (proxy['name'] !== undefined) {
-              proxy2.name = proxy['name'] as string;
+            if (proxy["name"] !== undefined) {
+              proxy2.name = proxy["name"] as string;
             }
-            if (proxy['type'] !== undefined) {
-              proxy2.type = proxy['type'] as string;
+            if (proxy["type"] !== undefined) {
+              proxy2.type = proxy["type"] as string;
             }
             if (proxy.localIP !== undefined) {
               proxy2.localIP = proxy.localIP as string;
@@ -673,14 +665,14 @@ ${f}`;
             }
 
             return proxy2;
-          }
-        ).map(m => this._proxiesConverter.frpcDesktopProxy2Model(m));
+          })
+          .map(m => this._proxiesConverter.frpcDesktopProxy2Model(m));
         await this._proxyRepository.insertMany(proxies);
       }
 
       if (sourceConfig && sourceConfig.visitors) {
-        const visitors = (sourceConfig.visitors as any[]).map(
-          (visitor: any) => {
+        const visitors = (sourceConfig.visitors as any[])
+          .map((visitor: any) => {
             const visitor2: FrpcDesktopProxy = {
               id: null,
               hostHeaderRewrite: "",
@@ -749,8 +741,8 @@ ${f}`;
             }
 
             return visitor2;
-          }
-        ).map(m => this._proxiesConverter.frpcDesktopProxy2Model(m));
+          })
+          .map(m => this._proxiesConverter.frpcDesktopProxy2Model(m));
         await this._proxyRepository.insertMany(visitors);
       }
     } else {

@@ -1,4 +1,4 @@
-import "reflect-metadata"
+import "reflect-metadata";
 import BaseRepository from "../core/repository";
 import { inject } from "inversify";
 import { TYPES } from "../di";

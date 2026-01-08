@@ -3,7 +3,11 @@ import { on, onEvent, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
 import pkg from "../../package.json";
-import { EventChannels, IPCChannels, ResponseCode } from "../../electron/core/constant";
+import {
+  EventChannels,
+  IPCChannels,
+  ResponseCode
+} from "../../electron/core/constant";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   state: () => ({
@@ -31,7 +35,6 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
             this.uptime = new Date().getTime() - lastStartTime;
           }
         }
-
       });
     },
 
@@ -79,13 +82,15 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
               dangerouslyUseHTMLString: true,
               confirmButtonText: i18n.global.t("about.button.download")
             }
-          ).then(() => {
-            send(IPCChannels.SYSTEM_OPEN_URL, {
-              url: version["html_url"]
+          )
+            .then(() => {
+              send(IPCChannels.SYSTEM_OPEN_URL, {
+                url: version["html_url"]
+              });
+            })
+            .catch(() => {
+              // User cancelled
             });
-          }).catch(() => {
-            // User cancelled
-          });
         } else if (isLastVersion && manual) {
           ElMessage({
             message: i18n.global.t("about.message.alreadyLatest"),

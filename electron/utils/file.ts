@@ -5,7 +5,6 @@ import fs from "fs";
  * FileUtils
  */
 class FileUtils {
-
   /**
    * format bytes to human readable
    * @param bytes bytes

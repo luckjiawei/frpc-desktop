@@ -24,8 +24,7 @@ export default class LogController extends BaseController {
    */
   @IpcRoute(IPCChannels.LOG_GET_FRP_LOG_CONTENT)
   public async getFrpLogContent() {
-    return await this._logService
-      .getFrpLogContent();
+    return await this._logService.getFrpLogContent();
   }
 
   /**
@@ -33,18 +32,15 @@ export default class LogController extends BaseController {
    */
   @IpcRoute(IPCChannels.LOG_GET_APP_LOG_CONTENT)
   public async getAppLogContent() {
-    return await this._logService
-      .getAppLogContent()
+    return await this._logService.getAppLogContent();
   }
-
 
   /**
    * open frpc log file
    */
   @IpcRoute(IPCChannels.LOG_OPEN_FRPC_LOG_FILE)
   public async openFrpcLogFile() {
-    return await this._logService
-      .openFrpcLogFile()
+    return await this._logService.openFrpcLogFile();
   }
 
   /**
@@ -52,7 +48,6 @@ export default class LogController extends BaseController {
    */
   @IpcRoute(IPCChannels.LOG_OPEN_APP_LOG_FILE)
   public async openAppLogFile() {
-    return await this._logService
-      .openAppLogFile()
+    return await this._logService.openAppLogFile();
   }
 }
