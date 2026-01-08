@@ -15,12 +15,12 @@ export function useVersions() {
     const downloadPercentage = ref(0);
     const downloading = ref<Map<number, number>>(new Map<number, number>());
     const currMirror = ref("github");
-    const mirrors = ref<Array<GitHubMirror>>([
-        {
-            id: "github",
-            name: "github"
-        }
-    ]);
+    // const mirrors = ref<Array<GitHubMirror>>([
+    //     {
+    //         id: "github",
+    //         name: "github"
+    //     }
+    // ]);
     const frpcDesktopStore = useFrpcDesktopStore();
 
     /**
@@ -189,7 +189,7 @@ export function useVersions() {
         downloadPercentage,
         downloading,
         currMirror,
-        mirrors,
+        // mirrors,
         handleLoadAllVersions,
         handleDownload,
         handleCopyDownloadLink,

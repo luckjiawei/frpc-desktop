@@ -74,8 +74,3 @@ type OpenSourceConfigModel = BaseModel & {
   auto_connect_on_startup: number;
   language: string;
 };
-
-type MigrationModel = BaseModel & {
-  version: number;
-  version_no: number;
-}

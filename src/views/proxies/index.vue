@@ -68,7 +68,7 @@ const {
         <el-row :gutter="15">
           <el-col
             v-for="proxy in proxys"
-            :key="proxy._id"
+            :key="proxy.id"
             :lg="8"
             :md="8"
             :sm="12"

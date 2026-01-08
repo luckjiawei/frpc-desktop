@@ -70,7 +70,7 @@ export function useProxies() {
     const currSelectLocalFileType = ref();
     const hasPlugin = ref(false);
 
-    const frpcConfig = ref<FrpConfig>();
+    const frpcConfig = ref<OpenSourceFrpcDesktopConfiguration>();
     const visitorsModels = ref([
         {
             label: t("proxy.visitors"),

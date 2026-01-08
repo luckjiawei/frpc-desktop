@@ -14,7 +14,7 @@ import { injectable, inject, Container } from "inversify";
 import { TYPES } from "../di";
 import { IpcRoute } from "../core/decorators";
 import { IPCChannels } from "../core/constant";
-import FileUtils from "electron/utils/file";
+import FileUtils from "../utils/file";
 
 @injectable()
 export default class ConfigController extends BaseController {

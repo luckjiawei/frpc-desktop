@@ -38,7 +38,7 @@ import PathUtils from "../utils/PathUtils";
 import SystemEvent from "../event/system";
 import FrpcProcessEvent from "../event/frpc-process";
 import { LogLevel } from "electron-log";
-import MigrationsRepository from "../repository/migrations";
+
 
 /**
  * Main application runner class
@@ -77,7 +77,7 @@ class FrpcDesktopRunner {
     this._container
       .bind<VersionRepository>(TYPES.VersionRepository)
       .to(VersionRepository);
-    this._container.bind<MigrationsRepository>(TYPES.MigrationsRepository).to(MigrationsRepository);
+
     /// service
     this._container.bind<SystemService>(TYPES.SystemService).to(SystemService);
     this._container
@@ -160,6 +160,11 @@ class FrpcDesktopRunner {
       connection: {
         filename: PathUtils.getDatabaseFilename()
       },
+      migrations: {
+        directory: join(__dirname, "../migrations"),
+        extension: "ts",
+        loadExtensions: [".ts", ".js"]
+      },
       log: {
         debug(message) {
           log.scope("knex").debug(message);
@@ -172,6 +177,20 @@ class FrpcDesktopRunner {
         }
       }
     });
+
+    // Run migrations to initialize/update table schema
+    db.migrate.latest()
+      .then(([batchNo, migrations]) => {
+        if (migrations.length > 0) {
+          log.scope("knex").info(`Ran ${migrations.length} migrations in batch ${batchNo}:`, migrations);
+        } else {
+          log.scope("knex").info("Database is up to date.");
+        }
+      })
+      .catch((error) => {
+        log.scope("knex").error("Migration failed:", error);
+      });
+
     this._container.bind<knex.Knex>(TYPES.Knex).toConstantValue(db);
     log.scope("knex").info("Database initialized.");
   }
