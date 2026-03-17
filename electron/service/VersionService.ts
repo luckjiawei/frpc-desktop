@@ -122,6 +122,9 @@ class VersionService extends BaseService<FrpcVersion> {
     releases: Array<GithubRelease>
   ): Promise<Array<FrpcVersion>> {
     const allVersions = await this._versionDao.findAll();
+    const checksumByFilename: Record<string, string> = Object.fromEntries(
+      Object.entries(frpChecksums).map(([hash, filename]) => [filename, hash])
+    );
     return releases
       .filter(release => {
         // only support toml version.
@@ -150,7 +153,8 @@ class VersionService extends BaseService<FrpcVersion> {
           browserDownloadUrl: asset.browser_download_url,
           downloaded: this.frpcVersionExists(currVersion),
           localPath: currVersion && currVersion.localPath,
-          size: FileUtils.formatBytes(asset.size)
+          size: FileUtils.formatBytes(asset.size),
+          sha256: checksumByFilename[asset.name]
         };
         return v;
       });

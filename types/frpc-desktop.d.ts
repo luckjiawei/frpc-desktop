@@ -30,6 +30,7 @@ type FrpcVersion = BaseEntity & {
   downloaded: boolean;
   localPath: string;
   size: string;
+  sha256?: string;
 };
 
 type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {

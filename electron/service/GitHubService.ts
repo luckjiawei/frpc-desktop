@@ -7,7 +7,7 @@ class GitHubService {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`
+        url: `https://ghp.podux.io/repos/${githubRepo}/releases?page=1&per_page=1000`
       });
 
       request.on("response", response => {
@@ -54,7 +54,7 @@ class GitHubService {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases/latest`
+        url: `https://ghp.podux.io/repos/${githubRepo}/releases/latest`
       });
       request.on("response", response => {
         let responseData: Buffer = Buffer.alloc(0);

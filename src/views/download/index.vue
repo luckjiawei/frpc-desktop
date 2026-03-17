@@ -77,6 +77,12 @@ const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
   });
 }, 300);
 
+const handleCopySha256 = (sha256: string) => {
+  const { copy } = useClipboard();
+  copy(sha256);
+  ElMessage({ type: "success", message: "SHA256 已复制" });
+};
+
 const handleMirrorChange = () => {
   handleLoadAllVersions();
 };
@@ -229,6 +235,15 @@ onUnmounted(() => {
                     }}<span class="font-bold text-primary">{{
                       version.githubCreatedAt
                     }}</span>
+                  </div>
+                  <div v-if="version.sha256" class="text-[12px]">
+                    <span class="">SHA256: </span>
+                    <el-tooltip :content="version.sha256" placement="top">
+                      <span
+                        class="font-bold text-primary cursor-pointer"
+                        @click="handleCopySha256(version.sha256)"
+                      >{{ version.sha256.slice(0, 8) }}...{{ version.sha256.slice(-4) }}</span>
+                    </el-tooltip>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1 items-end right">
