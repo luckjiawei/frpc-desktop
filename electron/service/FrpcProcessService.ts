@@ -84,7 +84,7 @@ class FrpcProcessService {
       `chown root:wheel ${MAC_SUDOERS_FILE}`
     ].join(" && ");
 
-    Logger.debug(
+    Logger.info(
       "FrpcProcessService.installMacHelper",
       "Installing privileged helper (one-time password prompt)"
     );
@@ -99,9 +99,9 @@ class FrpcProcessService {
       );
     });
 
-    Logger.debug(
+    Logger.info(
       "FrpcProcessService.installMacHelper",
-      "Privileged helper installed successfully"
+      `Privileged helper installed successfully: launcher=${MAC_LAUNCHER_PATH}`
     );
   }
 
@@ -150,10 +150,6 @@ class FrpcProcessService {
       }
     }
     try {
-      Logger.debug(
-        `FrpcProcessService.isRunning`,
-        `pid: ${this._frpcProcess.pid}`
-      );
       process.kill(this._frpcProcess.pid, 0);
       return true;
     } catch (err: any) {
@@ -171,6 +167,10 @@ class FrpcProcessService {
 
   async startFrpcProcess() {
     if (this.isRunning()) {
+      Logger.info(
+        `FrpcProcessService.startFrpcProcess`,
+        `Already running, pid: ${this._frpcProcess.pid}`
+      );
       return;
     }
     if (!(await this._serverService.hasServerConfig())) {
@@ -185,8 +185,12 @@ class FrpcProcessService {
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
 
+    Logger.info(
+      `FrpcProcessService.startFrpcProcess`,
+      `Starting frpc. version=${version.name}, platform=${process.platform}/${process.arch}, localPath=${version.localPath}`
+    );
+
     if (config.webServer.port) {
-      // 检查端口是否被占用
       const isPortInUse = await NetUtils.checkPortInUse(
         config.webServer.port,
         "127.0.0.1"
@@ -205,7 +209,7 @@ class FrpcProcessService {
 
     Logger.debug(
       `FrpcProcessService.startFrpcProcess`,
-      `version: ${version} cwd: ${version?.localPath} configPath: ${configPath}`
+      `Config generated at: ${configPath}`
     );
 
     if (process.platform === "darwin") {
@@ -226,9 +230,9 @@ class FrpcProcessService {
         PathUtils.getFrpcFilename()
       );
 
-      Logger.debug(
+      Logger.info(
         `FrpcProcessService.startFrpcProcess`,
-        `macOS: launching via sudo -n ${MAC_LAUNCHER_PATH}`
+        `macOS: launching via sudo -n ${MAC_LAUNCHER_PATH}, binary=${frpcBinary}`
       );
 
       // sudo -n is non-interactive; NOPASSWD sudoers rule allows this without a prompt
@@ -245,6 +249,15 @@ class FrpcProcessService {
       const pid = parseInt(pidStr, 10);
       if (!isNaN(pid)) {
         this._frpcProcess = { pid };
+        Logger.info(
+          `FrpcProcessService.startFrpcProcess`,
+          `frpc started successfully (macOS), pid=${pid}`
+        );
+      } else {
+        Logger.warn(
+          `FrpcProcessService.startFrpcProcess`,
+          `frpc started but pid is invalid: "${pidStr}"`
+        );
       }
       this._frpcLastStartTime = Date.now();
       return;
@@ -262,6 +275,10 @@ class FrpcProcessService {
       shell: true
     });
     this._frpcLastStartTime = Date.now();
+    Logger.info(
+      `FrpcProcessService.startFrpcProcess`,
+      `frpc started successfully, pid=${this._frpcProcess.pid}`
+    );
 
     this._frpcProcess.stdout.on("data", data => {
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);
@@ -275,7 +292,10 @@ class FrpcProcessService {
   async stopFrpcProcess() {
     if (this._frpcProcess && this.isRunning()) {
       const pid = this._frpcProcess.pid;
-      Logger.debug(`FrpcProcessService.stopFrpcProcess`, `pid: ${pid}`);
+      Logger.info(
+        `FrpcProcessService.stopFrpcProcess`,
+        `Stopping frpc, pid=${pid}`
+      );
 
       if (process.platform === "darwin") {
         // macOS: frpc runs as root; use the privileged helper to kill it
@@ -286,8 +306,12 @@ class FrpcProcessService {
               else resolve();
             });
           });
+          Logger.info(
+            `FrpcProcessService.stopFrpcProcess`,
+            `frpc stopped successfully (macOS), pid=${pid}`
+          );
         } catch (e) {
-          Logger.error(`FrpcProcessService.stopFrpcProcess`, e);
+          Logger.error(`FrpcProcessService.stopFrpcProcess`, e as Error);
         }
         this._frpcProcess = null;
         this._frpcLastStartTime = -1;
@@ -297,12 +321,16 @@ class FrpcProcessService {
 
       treeKill(pid, (error: Error) => {
         if (error) {
+          Logger.error(`FrpcProcessService.stopFrpcProcess`, error);
           throw error;
         } else {
+          Logger.info(
+            `FrpcProcessService.stopFrpcProcess`,
+            `frpc stopped successfully, pid=${pid}`
+          );
           this._frpcProcess = null;
           this._frpcLastStartTime = -1;
           this._notification = -1;
-          // clearInterval(this._frpcProcessListener);
         }
       });
     }
@@ -327,15 +355,15 @@ class FrpcProcessService {
     } else {
       command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
     }
+    Logger.info(
+      `FrpcProcessService.reloadFrpcProcess`,
+      `Reloading frpc config, pid=${this._frpcProcess?.pid}`
+    );
     exec(
       command,
       {
         cwd: version.localPath
       },
-      // {
-      //   cwd: version.localPath,
-      //   shell: true
-      // },
       (error, stdout, stderr) => {
         if (error) {
           Logger.error(`FrpcProcessService.reloadFrpcProcess`, error);
@@ -347,15 +375,25 @@ class FrpcProcessService {
             `stderr: ${stderr}`
           );
         }
-        Logger.debug(
+        if (stdout) {
+          Logger.debug(
+            `FrpcProcessService.reloadFrpcProcess`,
+            `stdout: ${stdout}`
+          );
+        }
+        Logger.info(
           `FrpcProcessService.reloadFrpcProcess`,
-          `stderr: ${stdout}`
+          `frpc config reloaded successfully`
         );
       }
     );
   }
 
   async frpcProcessGuardian() {
+    Logger.info(
+      `FrpcProcessService.frpcProcessGuardian`,
+      `Guardian started, interval=${GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL}s`
+    );
     setInterval(async () => {
       const running = this.isRunning();
       if (!running && this._frpcLastStartTime !== -1) {
@@ -364,13 +402,14 @@ class FrpcProcessService {
           this.startFrpcProcess().then(() => {
             Logger.info(
               `FrpcProcessService.frpcProcessGuardian`,
-              `The network has been restored. The frpc process has been restarted.`
+              `Network restored, frpc process restarted.`
             );
-            // new Notification({
-            //   title: app.getName(),
-            //   body: "Network reconnected, frpc process restarted."
-            // }).show();
           });
+        } else {
+          Logger.warn(
+            `FrpcProcessService.frpcProcessGuardian`,
+            `frpc is not running and network is unreachable, waiting for recovery.`
+          );
         }
       }
     }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
@@ -379,31 +418,21 @@ class FrpcProcessService {
   watchFrpcProcess(listenerParam: ListenerParam) {
     this._frpcProcessListener = setInterval(() => {
       const running = this.isRunning();
-      // todo return status to view.
-      // logDebug(
-      //   LogModule.FRP_CLIENT,
-      //   `Monitoring frpc process status: ${status}, Listener ID: ${frpcStatusListener}`
-      // );
-      Logger.debug(
-        `FrpcProcessService.watchFrpcProcess`,
-        `running: ${running}`
-      );
       if (!running) {
         if (
           this._frpcLastStartTime !== -1 &&
           this._notification !== this._frpcLastStartTime
         ) {
+          Logger.warn(
+            `FrpcProcessService.watchFrpcProcess`,
+            `frpc process exited unexpectedly (lastStartTime=${this._frpcLastStartTime})`
+          );
           new Notification({
             title: app.getName(),
             body: "Connection lost, please check the logs for details."
           }).show();
           this._notification = this._frpcLastStartTime;
         }
-        // logError(
-        //   LogModule.FRP_CLIENT,
-        //   "Frpc process status check failed. Connection lost."
-        // );
-        // clearInterval(this._frpcProcessListener);
       }
       const win: BrowserWindow = BeanFactory.getBean("win");
       if (win && !win.isDestroyed()) {

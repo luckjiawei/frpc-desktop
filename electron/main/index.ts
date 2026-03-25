@@ -8,7 +8,7 @@ import {
   shell,
   Tray
 } from "electron";
-import { release } from "node:os";
+import { release, totalmem, cpus } from "node:os";
 import node_path, { join } from "node:path";
 import ConfigController from "../controller/ConfigController";
 import LaunchController from "../controller/LaunchController";
@@ -57,6 +57,21 @@ class FrpcDesktopApp {
     }
     const serverService: ServerService = BeanFactory.getBean("serverService");
     Logger.setLevel(await serverService.getLoggerLevel());
+    Logger.info(
+      `FrpcDesktopApp.initializeWindow`,
+      [
+        `=== Application Started ===`,
+        `App       : ${app.getName()} v${app.getVersion()}`,
+        `Platform  : ${process.platform} / ${process.arch}`,
+        `OS Release: ${release()}`,
+        `Node.js   : ${process.versions.node}`,
+        `Electron  : ${process.versions.electron}`,
+        `Chrome    : ${process.versions.chrome}`,
+        `CPU       : ${cpus()[0]?.model ?? "unknown"} (${cpus().length} cores)`,
+        `Memory    : ${(totalmem() / 1024 / 1024 / 1024).toFixed(1)} GB`,
+        `Log Level : ${(await serverService.getLoggerLevel()) || "info"}`
+      ].join("\n")
+    );
     if (await serverService.isAutoConnectOnStartup()) {
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");
@@ -181,72 +196,9 @@ class FrpcDesktopApp {
     app.whenReady().then(() => {
       this.initializeWindow().then(() => {});
       this.initializeTray();
-      // initLog();
-      // logInfo(
-      //   LogModule.APP,
-      //   `Application started. Current system architecture: ${
-      //     process.arch
-      //   }, platform: ${process.platform}, version: ${app.getVersion()}.`
-      // );
-
-      // getConfig((err, config) => {
-      // if (err) {
-      //   logError(LogModule.APP, `Failed to get config: ${err.message}`);
-      //   return;
-      // }
-
-      //   createWindow(config)
-      //     .then(r => {
-      //       logInfo(LogModule.APP, `Window created successfully.`);
-      //       createTray(config);
-      //
-      //       // if (config) {
-      //       //   logInfo(
-      //       //     LogModule.APP,
-      //       //     `Config retrieved: ${JSON.stringify(
-      //       //       maskSensitiveData(config, [
-      //       //         "serverAddr",
-      //       //         "serverPort",
-      //       //         "authToken",
-      //       //         "user",
-      //       //         "metaToken"
-      //       //       ])
-      //       //     )}`
-      //       //   );
-      //       //
-      //       //   if (config.systemStartupConnect) {
-      //       //     startFrpWorkerProcess(config);
-      //       //   }
-      //       // }
-      //       // const ipcRouterConfig = new IpcRouterConfigurate(win);
-      //       // Initialize APIs
-      //       // try {
-      //       //   initGitHubApi(win);
-      //       //   logInfo(LogModule.APP, `GitHub API initialized.`);
-      //       //
-      //       //   initConfigApi(win);
-      //       //   logInfo(LogModule.APP, `Config API initialized.`);
-      //       //
-      //       //   initFileApi();
-      //       //   logInfo(LogModule.APP, `File API initialized.`);
-      //       //
-      //       //   // initUpdaterApi(win);
-      //       //   logInfo(LogModule.APP, `Updater API initialization skipped.`);
-      //       // } catch (error) {
-      //       //   logError(
-      //       //     LogModule.APP,
-      //       //     `Error during API initialization: ${error.message}`
-      //       //   );
-      //       // }
-      //     })
-      //     .catch(error => {
-      //       logError(LogModule.APP, `Error creating window: ${error.message}`);
-      //     });
-      // });
     });
 
     app.on("window-all-closed", () => {
-      // logInfo(LogModule.APP, `All windows closed.`);
       this._win = null;
       if (process.platform !== "darwin") {
         const frpcProcessService: FrpcProcessService =
@@ -254,11 +206,6 @@ class FrpcDesktopApp {
         frpcProcessService.stopFrpcProcess().finally(() => {
           app.quit();
         });
-        // todo stop frpc process
-        // stopFrpcProcess(() => {
-        //   logInfo(LogModule.APP, `FRPC process stopped. Quitting application.`);
-        // app.quit();
-        // });
       }
     });
 
@@ -271,7 +218,6 @@ class FrpcDesktopApp {
     });
 
     app.on("activate", () => {
-      // logInfo(LogModule.APP, `Application activated.`);
       const allWindows = BrowserWindow.getAllWindows();
       if (allWindows.length) {
         allWindows[0].focus();
@@ -281,7 +227,6 @@ class FrpcDesktopApp {
     });
 
     app.on("before-quit", () => {
-      // todo stop frpc process
       this._quitting = true;
       const frpcProcessService: FrpcProcessService =
         BeanFactory.getBean("frpcProcessService");

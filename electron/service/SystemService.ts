@@ -58,27 +58,16 @@ class SystemService {
     if (!fs.existsSync(zipFilePath)) {
       throw new Error("The file does not exist");
     }
-    // const zipBasename = path.basename(zipFilePath, GlobalConstant.ZIP_EXT);
-    const targetFolder = path.join(targetPath, targetPath);
-    if (!fs.existsSync) {
-      // not exists. do mkdir
-      fs.mkdirSync(targetFolder, {
-        recursive: true
-      });
-    }
-    // starting unzip.
-    // let frpcEntry = null;
+    Logger.info(
+      `SystemService.decompressZipFile`,
+      `Extracting zip: ${zipFilePath} -> ${targetPath}`
+    );
     const zip = new admZip(zipFilePath);
-    // if (process.platform === "win32") {
-    //   frpcEntry = zip.getEntry("frpc.exe");
-    // } else {
-    //   frpcEntry = zip.getEntry("frpc");
-    // }
-    //
-    // zip.extractEntryTo(frpcEntry, targetPath, false, true);
-    zip.extractAllTo(targetPath, true); // true: cover exists file.
-    // todo 2025-02-21 return targetPath.
-    // const frpcPath = path.join("frp", path.basename(zipFilePath, zipExt));
+    zip.extractAllTo(targetPath, true);
+    Logger.info(
+      `SystemService.decompressZipFile`,
+      `Extraction completed: ${targetPath}`
+    );
   }
 
   decompressTarGzFile(tarGzPath: string, targetPath: string, finish: Function) {
@@ -89,10 +78,17 @@ class SystemService {
       fs.mkdirSync(targetPath, { recursive: true, mode: 0o777 });
     }
 
+    Logger.info(
+      `SystemService.decompressTarGzFile`,
+      `Extracting tar.gz: ${tarGzPath} -> ${targetPath}`
+    );
     readStream
       .pipe(unzip)
-      .on("error", err => {
-        // logError(LogModule.APP, `Error during gunzip: ${err.message}`);
+      .on("error", (err: Error) => {
+        Logger.error(
+          `SystemService.decompressTarGzFile`,
+          new Error(`gunzip error: ${err.message}`)
+        );
       })
       .pipe(
         tar
@@ -101,20 +97,19 @@ class SystemService {
             strip: 1,
             filter: filePath => path.basename(filePath) === "frpc"
           })
-          .on("error", err => {
-            // logError(
-            //   LogModule.APP,
-            //   `Error extracting tar file: ${err.message}`
-            // );
+          .on("error", (err: Error) => {
+            Logger.error(
+              `SystemService.decompressTarGzFile`,
+              new Error(`tar extract error: ${err.message}`)
+            );
           })
       )
       .on("finish", () => {
+        Logger.info(
+          `SystemService.decompressTarGzFile`,
+          `Extraction completed: ${targetPath}`
+        );
         finish();
-        // const frpcPath = path.join("frp", path.basename(tarGzPath, ".tar.gz"));
-        // logInfo(
-        //   LogModule.APP,
-        //   `Extraction completed. Extracted directory: ${frpcPath}`
-        // );
       });
   }
 

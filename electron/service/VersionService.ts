@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
 import GlobalConstant from "../core/GlobalConstant";
+import Logger from "../core/Logger";
 import frpReleasesJson from "../json/frp-releases.json";
 import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/VersionRepository";
@@ -40,6 +41,7 @@ class VersionService extends BaseService<FrpcVersion> {
       );
       if (!version) {
         reject(new Error("version not found"));
+        return;
       }
       const url = version.browserDownloadUrl;
       const downloadedFilePath = path.join(
@@ -56,10 +58,14 @@ class VersionService extends BaseService<FrpcVersion> {
         fs.rmSync(versionFilePath, { recursive: true, force: true });
       }
 
+      Logger.info(
+        `VersionService.downloadFrpVersion`,
+        `Downloading version=${version.name}, asset=${version.assetName}, url=${url}`
+      );
+
       // 动态导入 electron-dl (ESM 模块)
       const { download } = await import("electron-dl");
 
-      // const targetPath = path.resolve();
       download(BrowserWindow.getFocusedWindow(), url, {
         filename: `${version.assetName}`,
         directory: PathUtils.getDownloadStoragePath(),
@@ -67,11 +73,16 @@ class VersionService extends BaseService<FrpcVersion> {
           onProgress(progress);
         },
         onCompleted: () => {
+          Logger.info(
+            `VersionService.downloadFrpVersion`,
+            `Download completed: ${version.assetName}, starting decompression`
+          );
           this.decompressFrp(version, downloadedFilePath)
             .then(data => {
               resolve(data);
             })
             .catch(err => {
+              Logger.error(`VersionService.downloadFrpVersion`, err);
               reject(err);
             });
         }
@@ -86,8 +97,16 @@ class VersionService extends BaseService<FrpcVersion> {
     const version =
       await this._versionDao.findByGithubReleaseId(githubReleaseId);
     if (this.frpcVersionExists(version)) {
+      Logger.info(
+        `VersionService.deleteFrpVersion`,
+        `Deleting version=${version.name}, path=${version.localPath}`
+      );
       fs.rmSync(version.localPath, { recursive: true, force: true });
       await this._versionDao.deleteById(version._id);
+      Logger.info(
+        `VersionService.deleteFrpVersion`,
+        `Version deleted: ${version.name}`
+      );
     }
   }
 
@@ -168,10 +187,18 @@ class VersionService extends BaseService<FrpcVersion> {
   }
 
   async importLocalFrpcVersion(filePath: string) {
+    Logger.info(
+      `VersionService.importLocalFrpcVersion`,
+      `Importing local file: ${filePath}`
+    );
     const checksum = FileUtils.calculateFileChecksum(filePath);
     const frpName = frpChecksums[checksum];
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {
+        Logger.info(
+          `VersionService.importLocalFrpcVersion`,
+          `Checksum matched: ${frpName}`
+        );
         const version = this.getFrpVersionByAssetName(frpName);
         const existsVersion = await this._versionDao.findByGithubReleaseId(
           version.githubReleaseId
@@ -181,9 +208,17 @@ class VersionService extends BaseService<FrpcVersion> {
         }
         return this.decompressFrp(version, filePath);
       } else {
+        Logger.warn(
+          `VersionService.importLocalFrpcVersion`,
+          `Architecture mismatch: file=${frpName}, current=${this._currFrpArch.join(",")}`
+        );
         throw new BusinessError(ResponseCode.VERSION_ARGS_ERROR);
       }
     } else {
+      Logger.warn(
+        `VersionService.importLocalFrpcVersion`,
+        `Unknown version, checksum not found: ${checksum}`
+      );
       throw new BusinessError(ResponseCode.UNKNOWN_VERSION);
     }
   }
@@ -199,6 +234,10 @@ class VersionService extends BaseService<FrpcVersion> {
     );
     const ext = path.extname(version.assetName);
     const fileName = path.basename(version.assetName, ext);
+    Logger.info(
+      `VersionService.decompressFrp`,
+      `Decompressing version=${version.name}, src=${compressedPath}, dest=${versionFilePath}`
+    );
     if (ext === GlobalConstant.ZIP_EXT) {
       this._systemService.decompressZipFile(compressedPath, versionFilePath);
       const frpTempPath = path.join(versionFilePath, fileName);
@@ -207,6 +246,10 @@ class VersionService extends BaseService<FrpcVersion> {
         path.join(versionFilePath, PathUtils.getWinFrpFilename())
       );
       fs.rmSync(frpTempPath, { recursive: true, force: true });
+      Logger.info(
+        `VersionService.decompressFrp`,
+        `Decompression completed (zip): ${version.name}`
+      );
     } else if (
       ext === GlobalConstant.GZ_EXT &&
       version.assetName.includes(GlobalConstant.TAR_GZ_EXT)
@@ -215,7 +258,6 @@ class VersionService extends BaseService<FrpcVersion> {
         compressedPath,
         versionFilePath,
         () => {
-          // rename frpc.
           const frpcFilePath = path.join(versionFilePath, "frpc");
           if (fs.existsSync(frpcFilePath)) {
             const newFrpcFilePath = path.join(
@@ -224,8 +266,6 @@ class VersionService extends BaseService<FrpcVersion> {
             );
             fs.renameSync(frpcFilePath, newFrpcFilePath);
           }
-          // delete downloaded file.
-          // todo has bug.
           const downloadedFile = path.join(
             PathUtils.getDownloadStoragePath(),
             version.assetName
@@ -233,11 +273,14 @@ class VersionService extends BaseService<FrpcVersion> {
           if (fs.existsSync(downloadedFile)) {
             fs.rmSync(downloadedFile, { recursive: true, force: true });
           }
+          Logger.info(
+            `VersionService.decompressFrp`,
+            `Decompression completed (tar.gz): ${version.name}`
+          );
         }
       );
     }
 
-    // todo 2025-02-23 delete downloaded file.
     version.localPath = versionFilePath;
     version.downloaded = true;
     return await this._versionDao.insert(version);
