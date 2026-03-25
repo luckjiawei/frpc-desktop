@@ -350,6 +350,7 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
+    search: "Search by name / type / IP / port / domain",
     modifyTitle: "Modify Proxy",
     createTitle: "Create Proxy",
     dialog: {

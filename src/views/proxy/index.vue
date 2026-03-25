@@ -25,6 +25,25 @@ defineComponent({
 const { t } = useI18n();
 
 const proxys = ref<Array<FrpcProxy>>([]);
+const searchKeyword = ref("");
+const filteredProxys = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase();
+  if (!kw) return proxys.value;
+  return proxys.value.filter(p => {
+    const domains = [...(p.customDomains ?? []), p.subdomain ?? ""]
+      .join(" ")
+      .toLowerCase();
+    return (
+      p.name.toLowerCase().includes(kw) ||
+      p.type.toLowerCase().includes(kw) ||
+      (p.localIP ?? "").toLowerCase().includes(kw) ||
+      String(p.localPort ?? "").includes(kw) ||
+      String(p.remotePort ?? "").includes(kw) ||
+      domains.includes(kw)
+    );
+  });
+});
+
 const loading = ref({
   list: 1,
   form: 0,
@@ -647,15 +666,26 @@ onUnmounted(() => {
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
+      <el-input
+        v-model="searchKeyword"
+        :placeholder="t('proxy.search')"
+        clearable
+        class="mr-2 w-[300px]"
+        size="default"
+      >
+        <template #prefix>
+          <IconifyIconOffline icon="search" />
+        </template>
+      </el-input>
       <el-button type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
       </el-button>
     </breadcrumb>
     <div v-loading="loading.list > 0" class="app-container-breadcrumb">
-      <template v-if="proxys && proxys.length > 0">
+      <template v-if="filteredProxys && filteredProxys.length > 0">
         <el-row :gutter="15">
           <el-col
-            v-for="proxy in proxys"
+            v-for="proxy in filteredProxys"
             :key="proxy._id"
             :lg="8"
             :md="8"

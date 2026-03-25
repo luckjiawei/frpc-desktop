@@ -368,6 +368,7 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
+    search: "搜索名称/类型/IP/端口/域名",
     modifyTitle: "编辑代理",
     createTitle: "添加代理",
     message: {
