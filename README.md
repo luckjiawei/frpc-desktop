@@ -104,56 +104,6 @@ No advertisements allowed!!!
 
 👉👉👉[Click to donate](https://jwinks.com/donate/)👈👈👈
 
-**Donation List**
-
-| 🕰 Time    | 📡 Platform | 🤲 Donor          | 💰 Amount | ✉️ Message                                             |
-|------------|-------------|-------------------|-----------|--------------------------------------------------------|
-| 2024-08-06 | WeChat      | San Mu            | ¥1        | None                                                   |
-| 2024-08-25 | WeChat      | Late Wind         | ¥1        | None                                                   |
-| 2024-08-27 | WeChat      | x                 | ¥1        | None                                                   |
-| 2024-10-09 | WeChat      | Liberation        | ¥20       | None                                                   |
-| 2024-10-09 | WeChat      | KMDN              | ¥20       | None                                                   |
-| 2024-10-14 | WeChat      | 121               | ¥5        | None                                                   |
-| 2024-10-14 | WeChat      | Different         | ¥10       | Thanks for open source                                 |
-| 2024-10-16 | WeChat      | . . .             | ¥50       | Thanks for open source frp software                    |
-| 2024-11-2  | WeChat      | gesoft            | ¥10       | Keep going                                             |
-| 2024-11-7  | WeChat      | *Jin              | ¥10       | Thanks, visible and obtainable, saves effort           |
-| 2024-11-8  | WeChat      | **Chuang          | ¥10       | None                                                   |
-| 2024-11-20 | WeChat      | Yi Dong           | ¥20       | Buy you a coffee                                       |
-| 2024-11-20 | WeChat      | KEVINSKH          | ¥10       | Thanks for developing convenient graphical interface👍 |
-| 2024-11-26 | WeChat      |                   | ¥3        | None                                                   |
-| 2024-11-26 | WeChat      | Kaori             | ¥1        | Thanks, would be better with web control interface     |
-| 2024-12-03 | WeChat      | 17¥               | ¥20       | Thanks, very convenient software                       |
-| 2024-12-03 | WeChat      | Cr@k3r            | ¥5        | Thanks for your work                                   |
-| 2024-12-09 | WeChat      | Vince             | ¥20       | Support Chinese developers!                            |
-| 2024-12-11 | Alipay      | **Meng            | ¥20       | Keep going                                             |
-| 2024-12-11 | Alipay      | *Shi              | ¥20       | None                                                   |
-| 2024-12-16 | WeChat      | Iron Man Gentle   | ¥1        | Support Chinese developers                             |
-| 2024-12-16 | WeChat      | Yasuo🌪️          | ¥1        | None                                                   |
-| 2024-12-17 | WeChat      | ppp789            | ¥1.6      | None                                                   |
-| 2024-12-17 | Alipay      | *Tao              | ¥10       | None                                                   |
-| 2024-12-18 | WeChat      | Jue Yuan          | ¥6.66     | Open source is not easy                                |
-| 2024-12-19 | WeChat      | Official Reminder | ¥1        | None                                                   |
-| 2024-12-19 | WeChat      | Mu~Yi             | ¥6.66     | Keep going                                             |
-| 2025-01-06 | WeChat      | Ru Shi            | ¥2        | Support open source                                    |
-| 2025-01-13 | WeChat      | David Veith       | ¥18.88    | Open source is priceless, XOXO                         |
-| 2025-01-14 | WeChat      | Xterminal SSH     | ¥199      | Xterminal SSH client comes to support                  |
-| 2025-02-19 | Alipay      | **Yang            | ¥3        | None                                                   |
-| 2025-03-03 | WeChat      |                   | ¥6.66     |                                                        |
-| 2025-03-23 | WeChat      | AFC               | ¥3        |                                                        |
-| 2025-03-28 | Alipay      | **Fei             | ¥2        |                                                        |
-| 2025-04-04 | WeChat      | *                 | ¥18.88    | Thanks for open source                                 |
-| 2025-04-07 | Alipay      | **Tian            | ¥32       |                                                        |
-| 2025-05-13 | WeChat      | San Mu            | ¥0.1      |                                                        |
-| 2025-05-23 | WeChat      | Dream mud volume  | ¥8.88     |                                                        |
-| 2025-06-26 | WeChat      | Beidou🛰          | ¥6.66     |                                                        |
-| 2025-07-11 | WeChat      |                   | ¥1        |                                                        |
-| 2025-07-13 | WeChat      | Kyle              | ¥1.88     |                                                        |
-| 2025-07-14 | WeChat      | Rabbit God        | ¥8.88     |                                                        |
-| 2025-07-31 | Alipay      | **Jun             | ¥8.88     |                                                        |
-| 2025-08-18 | Alipay      | **Meng            | ¥5        |                                                        |
-| 2025-08-26 | Wechat      | *                 | ¥1.66     |                                                        |
-
 
 
 ## Contributors
