@@ -24,7 +24,7 @@
 
   <p>🎊 <strong>下载量突破 10,000！感谢大家的支持！</strong></p>
 
-  <p><a href="https://jwinks.com/p/frp/">📖 文档</a> &nbsp; <a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">使用教程</a> &nbsp; <a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a></p>
+  <p><a href="https://jwinks.com/p/frp/">📖 文档</a> &nbsp; <a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a></p>
 
 <a href="https://trendshift.io/repositories/12489" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12489" alt="luckjiawei%2Ffrpc-desktop | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://hellogithub.com/repository/b0dc116e9f2e4b8188da5a6d3e1bd8a4" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=b0dc116e9f2e4b8188da5a6d3e1bd8a4&claim_uid=8ZMOhz30mGJAHpa" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
