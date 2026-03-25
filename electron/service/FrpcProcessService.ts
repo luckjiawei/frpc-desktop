@@ -1,5 +1,7 @@
 import { exec, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
+import fs from "fs";
+import path from "path";
 import treeKill from "tree-kill";
 import BeanFactory from "../core/BeanFactory";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
@@ -11,6 +13,10 @@ import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import ServerService from "./ServerService";
 import SystemService from "./SystemService";
+
+// Fixed paths with no spaces so sudoers matching is unambiguous
+const MAC_LAUNCHER_PATH = "/usr/local/bin/frpc-desktop-launcher";
+const MAC_SUDOERS_FILE = "/etc/sudoers.d/frpc-desktop";
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
@@ -25,6 +31,78 @@ class FrpcProcessService {
     this._serverService = BeanFactory.getBean("serverService");
     this._systemService = BeanFactory.getBean("systemService");
     this._versionRepository = BeanFactory.getBean("versionRepository");
+  }
+
+  /**
+   * Check whether the one-time macOS privileged helper is installed.
+   * The helper is a launcher script at a fixed path covered by a sudoers NOPASSWD rule,
+   * so subsequent frpc launches require no password prompt.
+   */
+  private isMacHelperReady(): boolean {
+    return fs.existsSync(MAC_LAUNCHER_PATH) && fs.existsSync(MAC_SUDOERS_FILE);
+  }
+
+  /**
+   * Install the macOS privileged helper (one-time, shows a single password dialog).
+   * Writes a launcher script to /usr/local/bin and a sudoers NOPASSWD rule so that
+   * frpc can be started/stopped without further password prompts.
+   */
+  private async installMacHelper(): Promise<void> {
+    // Launcher script: accepts "start <binary> <config>" or "stop <pid>"
+    const launcherContent = [
+      "#!/bin/bash",
+      'ACTION="$1"',
+      'if [ "$ACTION" = "start" ]; then',
+      '  "$2" -c "$3" &',
+      "  echo $!",
+      'elif [ "$ACTION" = "stop" ]; then',
+      '  kill "$2"',
+      "fi",
+      ""
+    ].join("\n");
+
+    const tempLauncher = "/tmp/frpc_desktop_launcher_setup.sh";
+    const username = process.env.USER || "ALL";
+    const tempSudoers = "/tmp/frpc_desktop_sudoers_setup";
+
+    fs.writeFileSync(tempLauncher, launcherContent, { mode: 0o644 });
+    fs.writeFileSync(
+      tempSudoers,
+      `${username} ALL=(ALL) NOPASSWD: ${MAC_LAUNCHER_PATH}\n`,
+      { mode: 0o644 }
+    );
+
+    // All paths (/tmp/..., /usr/local/bin/..., /etc/...) contain no spaces,
+    // so no quoting is needed inside the AppleScript string literal.
+    const installCmd = [
+      `mkdir -p /usr/local/bin`,
+      `cp ${tempLauncher} ${MAC_LAUNCHER_PATH}`,
+      `chmod 755 ${MAC_LAUNCHER_PATH}`,
+      `chown root:wheel ${MAC_LAUNCHER_PATH}`,
+      `cp ${tempSudoers} ${MAC_SUDOERS_FILE}`,
+      `chmod 440 ${MAC_SUDOERS_FILE}`,
+      `chown root:wheel ${MAC_SUDOERS_FILE}`
+    ].join(" && ");
+
+    Logger.debug(
+      "FrpcProcessService.installMacHelper",
+      "Installing privileged helper (one-time password prompt)"
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      exec(
+        `osascript -e 'do shell script "${installCmd}" with administrator privileges'`,
+        err => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    Logger.debug(
+      "FrpcProcessService.installMacHelper",
+      "Privileged helper installed successfully"
+    );
   }
 
   isRunning(): boolean {
@@ -78,7 +156,11 @@ class FrpcProcessService {
       );
       process.kill(this._frpcProcess.pid, 0);
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      // EPERM means process exists but we lack permission (e.g. root-owned on macOS)
+      if (err.code === "EPERM") {
+        return true;
+      }
       return false;
     }
   }
@@ -120,26 +202,67 @@ class FrpcProcessService {
 
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
+
+    Logger.debug(
+      `FrpcProcessService.startFrpcProcess`,
+      `version: ${version} cwd: ${version?.localPath} configPath: ${configPath}`
+    );
+
+    if (process.platform === "darwin") {
+      // macOS: use the privileged helper (installed once) so no per-launch password prompt
+      if (!this.isMacHelperReady()) {
+        await this.installMacHelper();
+      }
+
+      // Pre-create the log file as the current user so frpc (running as root)
+      // appends to it without changing ownership, keeping it readable by this app.
+      const logFilePath = PathUtils.getFrpcLogFilePath();
+      if (!fs.existsSync(logFilePath)) {
+        fs.writeFileSync(logFilePath, "", { mode: 0o644 });
+      }
+
+      const frpcBinary = path.join(
+        version.localPath,
+        PathUtils.getFrpcFilename()
+      );
+
+      Logger.debug(
+        `FrpcProcessService.startFrpcProcess`,
+        `macOS: launching via sudo -n ${MAC_LAUNCHER_PATH}`
+      );
+
+      // sudo -n is non-interactive; NOPASSWD sudoers rule allows this without a prompt
+      const pidStr = await new Promise<string>((resolve, reject) => {
+        exec(
+          `sudo -n "${MAC_LAUNCHER_PATH}" start "${frpcBinary}" "${configPath}"`,
+          (err, stdout) => {
+            if (err) reject(err);
+            else resolve(stdout.trim());
+          }
+        );
+      });
+
+      const pid = parseInt(pidStr, 10);
+      if (!isNaN(pid)) {
+        this._frpcProcess = { pid };
+      }
+      this._frpcLastStartTime = Date.now();
+      return;
+    }
+
     let command = "";
     if (process.platform === "win32") {
       command = `${PathUtils.getWinFrpFilename()} -c "${configPath}"`;
     } else {
       command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
     }
-    Logger.debug(
-      `FrpcProcessService.startFrpcProcess`,
-      `version: ${version} cwd: ${version?.localPath} command: ${command}`
-    );
 
     this._frpcProcess = spawn(command, {
       cwd: version.localPath,
       shell: true
     });
     this._frpcLastStartTime = Date.now();
-    // Logger.debug(
-    //   `FrpcProcessService.startFrpcProcess`,
-    //   `start frpc cwd: ${version.localPath} command: ${command}`
-    // );
+
     this._frpcProcess.stdout.on("data", data => {
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${data}`);
     });
@@ -151,11 +274,28 @@ class FrpcProcessService {
 
   async stopFrpcProcess() {
     if (this._frpcProcess && this.isRunning()) {
-      Logger.debug(
-        `FrpcProcessService.stopFrpcProcess`,
-        `pid: ${this._frpcProcess.pid}`
-      );
-      treeKill(this._frpcProcess.pid, (error: Error) => {
+      const pid = this._frpcProcess.pid;
+      Logger.debug(`FrpcProcessService.stopFrpcProcess`, `pid: ${pid}`);
+
+      if (process.platform === "darwin") {
+        // macOS: frpc runs as root; use the privileged helper to kill it
+        try {
+          await new Promise<void>((resolve, reject) => {
+            exec(`sudo -n "${MAC_LAUNCHER_PATH}" stop ${pid}`, err => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        } catch (e) {
+          Logger.error(`FrpcProcessService.stopFrpcProcess`, e);
+        }
+        this._frpcProcess = null;
+        this._frpcLastStartTime = -1;
+        this._notification = -1;
+        return;
+      }
+
+      treeKill(pid, (error: Error) => {
         if (error) {
           throw error;
         } else {

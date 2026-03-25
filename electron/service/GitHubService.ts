@@ -1,14 +1,19 @@
-import { net } from "electron";
+import { app, net } from "electron";
 
 class GitHubService {
   constructor() {}
+
+  private get userAgent(): string {
+    return `frpc-desktop/${app.getVersion()}`;
+  }
 
   getGithubRepoAllReleases(githubRepo: string): Promise<Array<GithubRelease>> {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases?page=1&per_page=1000`
+        url: `https://ghp.podux.io/repos/${githubRepo}/releases?page=1&per_page=1000`
       });
+      request.setHeader("User-Agent", this.userAgent);
 
       request.on("response", response => {
         // logInfo(
@@ -54,8 +59,9 @@ class GitHubService {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: "get",
-        url: `https://api.github.com/repos/${githubRepo}/releases/latest`
+        url: `https://ghp.podux.io/repos/${githubRepo}/releases/latest`
       });
+      request.setHeader("User-Agent", this.userAgent);
       request.on("response", response => {
         let responseData: Buffer = Buffer.alloc(0);
         response.on("data", (data: Buffer) => {
