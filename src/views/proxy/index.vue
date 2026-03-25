@@ -670,7 +670,7 @@ onUnmounted(() => {
         v-model="searchKeyword"
         :placeholder="t('proxy.search')"
         clearable
-        class="mr-2 w-[300px]"
+        class="mr-2 !w-[300px]"
         size="default"
       >
         <template #prefix>
