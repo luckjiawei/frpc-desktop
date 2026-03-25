@@ -5,7 +5,14 @@ import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessageBox } from "element-plus";
-import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
+import {
+  computed,
+  defineComponent,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 defineComponent({
@@ -52,6 +59,15 @@ const uptime = computed(() => {
   result += t("home.uptime.seconds", { seconds });
   return result;
 });
+
+// Reset loading whenever the running state changes (covers cases where the IPC
+// reply is delayed or never arrives, e.g. macOS sudo/osascript flow).
+watch(
+  () => frpcDesktopStore.frpcProcessRunning,
+  () => {
+    loading.value = false;
+  }
+);
 
 onMounted(() => {
   on(
