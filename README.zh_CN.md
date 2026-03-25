@@ -1,6 +1,7 @@
 <a name="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
+[![Downloads][downloads-shield]][downloads-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
@@ -21,8 +22,9 @@
     支持所有frp版本 / 开机自启 / 可视化配置 / 免费开源
   </p>
 
-  <p><a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">使用教程</a></p>
-  <p><a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a></p>
+  <p>🎊 <strong>下载量突破 10,000！感谢大家的支持！</strong></p>
+
+  <p><a href="https://jwinks.com/p/frp/">📖 文档</a> &nbsp; <a href="https://jwinks.com/p/frp/#frp%E6%98%AF%E4%BB%80%E4%B9%88">使用教程</a> &nbsp; <a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a></p>
 
 <a href="https://trendshift.io/repositories/12489" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12489" alt="luckjiawei%2Ffrpc-desktop | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://hellogithub.com/repository/b0dc116e9f2e4b8188da5a6d3e1bd8a4" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=b0dc116e9f2e4b8188da5a6d3e1bd8a4&claim_uid=8ZMOhz30mGJAHpa" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
@@ -116,6 +118,10 @@
 
 [![Star History Chart](https://api.star-history.com/svg?repos=luckjiawei/frpc-desktop&type=Date)](https://star-history.com/#luckjiawei/frpc-desktop&Date)
 <!-- MARKDOWN LINKS & IMAGES -->
+
+[downloads-shield]: https://img.shields.io/github/downloads/luckjiawei/frpc-desktop/total.svg?style=for-the-badge
+
+[downloads-url]: https://github.com/luckjiawei/frpc-desktop/releases
 
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 
