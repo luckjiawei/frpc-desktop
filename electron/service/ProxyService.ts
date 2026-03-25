@@ -26,6 +26,11 @@ class ProxyService {
     return proxy2;
   }
 
+  async updateProxyStatus(id: string, status: number) {
+    await this._proxyDao.updateProxyStatus(id, status);
+    await this._frpcProcessService.reloadFrpcProcess();
+  }
+
   async deleteProxy(proxyId: string) {
     await this._proxyDao.deleteById(proxyId);
     await this._frpcProcessService.reloadFrpcProcess();

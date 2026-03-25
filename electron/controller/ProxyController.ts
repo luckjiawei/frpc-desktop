@@ -63,7 +63,7 @@ class ProxyController extends BaseController {
   }
 
   modifyProxyStatus(req: ControllerParam) {
-    this._proxyDao
+    this._proxyService
       .updateProxyStatus(req.args.id, req.args.status)
       .then(() => {
         req.event.reply(req.channel, ResponseUtils.success());
