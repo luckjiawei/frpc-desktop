@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -32,6 +33,7 @@ jobs:
           npm_config_fetch_retries: 5
           npm_config_fetch_retry_mintimeout: 10000
           npm_config_fetch_retry_maxtimeout: 60000
+        timeout-minutes: 10
 
       # 非 main 分支、非 tag：只检测编译是否报错（仅在 ubuntu 跑，节省 CI 时间）
       - name: Check build
