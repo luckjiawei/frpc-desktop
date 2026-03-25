@@ -33,6 +33,7 @@ export default {
     status: {
       running: "Running",
       disconnected: "Disconnected",
+      connectionError: "Connection Failed",
       runningTime: "Running Time",
       frpcStatus: "Frpc {status}"
     },

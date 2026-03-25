@@ -23,6 +23,13 @@ const frpcDesktopStore = useFrpcDesktopStore();
 const loading = ref(false);
 const { t } = useI18n();
 
+// Three-state status: "running" | "error" | "stopped"
+const frpcStatus = computed(() => {
+  if (!frpcDesktopStore.frpcProcessRunning) return "stopped";
+  if (frpcDesktopStore.frpcConnectionError) return "error";
+  return "running";
+});
+
 const handleStartFrpc = () => {
   send(ipcRouters.LAUNCH.launch);
 };
@@ -167,15 +174,20 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-col justify-center items-center">
-            <div class="flex flex-col gap-4 justify-between pl-10 w-72">
+            <div class="flex flex-col gap-4 justify-between pl-10 w-96">
               <transition name="fade">
                 <div
                   class="flex gap-1 justify-center text-2xl font-bold text-center"
                 >
                   <IconifyIconOffline
-                    v-if="frpcDesktopStore.frpcProcessRunning"
+                    v-if="frpcStatus === 'running'"
                     class="text-[#7EC050] inline-block relative top-1"
                     icon="check-circle-rounded"
+                  />
+                  <IconifyIconOffline
+                    v-else-if="frpcStatus === 'error'"
+                    class="text-[#E6A23C] inline-block relative top-1"
+                    icon="warningRounded"
                   />
                   <IconifyIconOffline
                     v-else
@@ -185,16 +197,38 @@ onUnmounted(() => {
                   <span>
                     {{
                       $t("home.status.frpcStatus", {
-                        status: frpcDesktopStore.frpcProcessRunning
-                          ? $t("home.status.running")
-                          : $t("home.status.disconnected")
+                        status:
+                          frpcStatus === "running"
+                            ? $t("home.status.running")
+                            : frpcStatus === "error"
+                              ? $t("home.status.connectionError")
+                              : $t("home.status.disconnected")
                       })
                     }}
                   </span>
                 </div>
               </transition>
               <div
-                v-if="frpcDesktopStore.frpcProcessRunning"
+                v-if="frpcStatus === 'error'"
+                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
+              >
+                <el-text
+                  class="break-all line-clamp-2 text-primary"
+                  :title="frpcDesktopStore.frpcConnectionError"
+                >
+                  {{ frpcDesktopStore.frpcConnectionError }}
+                </el-text>
+                <div class="mt-1">
+                  <el-link
+                    type="primary"
+                    @click="$router.replace({ name: 'Logger' })"
+                  >
+                    {{ $t("home.button.viewLog") }}
+                  </el-link>
+                </div>
+              </div>
+              <div
+                v-else-if="frpcStatus === 'running'"
                 class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
               >
                 <span class="el-text--success">{{
@@ -204,7 +238,6 @@ onUnmounted(() => {
 
                 <div class="justify-center w-full text-center">
                   <el-link
-                    v-if="frpcDesktopStore.frpcProcessRunning"
                     class="animate__animated animate__fadeIn"
                     type="primary"
                     @click="$router.replace({ name: 'Logger' })"

@@ -33,6 +33,7 @@ export default {
     status: {
       running: "已启动",
       disconnected: "已断开",
+      connectionError: "连接失败",
       runningTime: "已运行",
       frpcStatus: "Frpc {status}"
     },

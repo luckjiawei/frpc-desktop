@@ -11,11 +11,13 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     uptime: -1,
     versions: [],
     lastRelease: null,
-    language: null
+    language: null,
+    connectionError: null as string | null
   }),
   getters: {
     frpcProcessRunning: state => state.running,
     frpcProcessUptime: state => state.uptime,
+    frpcConnectionError: state => state.connectionError,
     downloadedVersions: state => state.versions,
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
@@ -23,16 +25,18 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   actions: {
     onListenerFrpcProcessRunning() {
       onListener(listeners.watchFrpcProcess, data => {
-        const { running, lastStartTime } = data;
+        const { running, lastStartTime, connectionError } = data;
         this.running = running;
+        this.connectionError = connectionError ?? null;
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }
       });
 
       on(ipcRouters.LAUNCH.getStatus, data => {
-        const { running, lastStartTime } = data;
+        const { running, lastStartTime, connectionError } = data;
         this.running = running;
+        this.connectionError = connectionError ?? null;
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }

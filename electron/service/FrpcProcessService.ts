@@ -18,6 +18,18 @@ import SystemService from "./SystemService";
 const MAC_LAUNCHER_PATH = "/usr/local/bin/frpc-desktop-launcher";
 const MAC_SUDOERS_FILE = "/etc/sudoers.d/frpc-desktop";
 
+// Error patterns that indicate frpc failed to connect to server
+const FRPC_ERROR_PATTERNS = [
+  "connect to server error",
+  "login to server failed"
+];
+// Success patterns that indicate frpc connected successfully
+const FRPC_SUCCESS_PATTERNS = [
+  "login to server success",
+  "start proxy success",
+  "proxy added success"
+];
+
 class FrpcProcessService {
   private readonly _serverService: ServerService;
   private readonly _systemService: SystemService;
@@ -163,6 +175,44 @@ class FrpcProcessService {
 
   get frpcLastStartTime(): number {
     return this._frpcLastStartTime;
+  }
+
+  /**
+   * Read the last portion of the frpc log file and detect connection errors.
+   * Scans backward through recent lines:
+   * - Returns the error message if the last relevant line is an error
+   * - Returns null if a success line appears after any errors (reconnected)
+   * - Returns null if no relevant lines found
+   */
+  readFrpcConnectionError(): string | null {
+    const logPath = PathUtils.getFrpcLogFilePath();
+    if (!fs.existsSync(logPath) || this._frpcLastStartTime === -1) {
+      return null;
+    }
+    try {
+      const stat = fs.statSync(logPath);
+      if (stat.size === 0) return null;
+      const readSize = Math.min(stat.size, 8192);
+      const buf = Buffer.alloc(readSize);
+      const fd = fs.openSync(logPath, "r");
+      fs.readSync(fd, buf, 0, readSize, stat.size - readSize);
+      fs.closeSync(fd);
+      const lines = buf.toString("utf-8").split("\n").filter(l => l.trim());
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (FRPC_SUCCESS_PATTERNS.some(p => line.includes(p))) {
+          return null;
+        }
+        const errorPattern = FRPC_ERROR_PATTERNS.find(p => line.includes(p));
+        if (errorPattern) {
+          const match = line.match(new RegExp(`${errorPattern}.*`));
+          return match ? match[0].trim() : line.trim();
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   async startFrpcProcess() {
@@ -434,13 +484,15 @@ class FrpcProcessService {
           this._notification = this._frpcLastStartTime;
         }
       }
+      const connectionError = running ? this.readFrpcConnectionError() : null;
       const win: BrowserWindow = BeanFactory.getBean("win");
       if (win && !win.isDestroyed()) {
         win.webContents.send(
           listenerParam.channel,
           ResponseUtils.success({
             running: running,
-            lastStartTime: this._frpcLastStartTime
+            lastStartTime: this._frpcLastStartTime,
+            connectionError
           })
         );
       }
