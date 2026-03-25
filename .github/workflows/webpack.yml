@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         env:
+          npm_config_registry: https://registry.npmmirror.com
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
           npm_config_fetch_retries: 5
           npm_config_fetch_retry_mintimeout: 10000
           npm_config_fetch_retry_maxtimeout: 60000
