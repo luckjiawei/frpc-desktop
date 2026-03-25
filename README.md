@@ -30,6 +30,9 @@
 <a href="https://hellogithub.com/repository/b0dc116e9f2e4b8188da5a6d3e1bd8a4" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=b0dc116e9f2e4b8188da5a6d3e1bd8a4&claim_uid=8ZMOhz30mGJAHpa" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </div>
 
+> 💡 If you prefer a **web UI**, try [Podux](https://github.com/luckjiawei/podux) —
+> the browser-based frpc manager from the same author.
+
 ## TODO
 
 - [x] Auto-start on boot
