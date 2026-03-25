@@ -1,10 +1,12 @@
-name: NodeJS with Webpack
+name: Build and Release
 
 on:
   push:
-    branches: ["main"]
+    tags:
+      - "v*"
+    branches:
+      - "**"
   pull_request:
-    branches: ["main"]
 
 jobs:
   build:
@@ -25,26 +27,41 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: |
-          npm install
+        run: npm install
 
-      - name: Build Window
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          npm run release:win
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # 非 main 分支、非 tag：只检测编译是否报错（仅在 ubuntu 跑，节省 CI 时间）
+      - name: Check build
+        if: ${{ matrix.os == 'ubuntu-latest' && !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
+        run: npm run build
 
-      - name: Build MacOS
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          npm run release:mac
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # main 分支：完整打包，不发布
+      - name: Build Windows
+        if: ${{ matrix.os == 'windows-latest' && github.ref == 'refs/heads/main' }}
+        run: npm run build:electron:win
+
+      - name: Build macOS
+        if: ${{ matrix.os == 'macos-latest' && github.ref == 'refs/heads/main' }}
+        run: npm run build:electron:mac
 
       - name: Build Linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          npm run release:linux
+        if: ${{ matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/main' }}
+        run: npm run build:electron:linux
+
+      # tag：完整打包并发布到 GitHub Release
+      - name: Release Windows
+        if: ${{ matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/') }}
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Release macOS
+        if: ${{ matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/') }}
+        run: npm run release:mac
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Release Linux
+        if: ${{ matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/') }}
+        run: npm run release:linux
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
