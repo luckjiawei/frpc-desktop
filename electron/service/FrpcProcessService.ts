@@ -235,6 +235,21 @@ class FrpcProcessService {
       throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
     }
 
+    // Check binary actually exists (may have been deleted by antivirus)
+    const frpcFilename =
+      process.platform === "win32"
+        ? PathUtils.getWinFrpFilename()
+        : PathUtils.getFrpcFilename();
+    const frpcBinaryPath = path.join(version.localPath, frpcFilename);
+    if (!fs.existsSync(frpcBinaryPath)) {
+      Logger.warn(
+        `FrpcProcessService.startFrpcProcess`,
+        `Binary not found at ${frpcBinaryPath}, removing stale DB record`
+      );
+      await this._versionRepository.deleteById(version._id);
+      throw new BusinessError(ResponseCode.NOT_FOUND_VERSION);
+    }
+
     Logger.info(
       `FrpcProcessService.startFrpcProcess`,
       `Starting frpc. version=${version.name}, platform=${process.platform}/${process.arch}, localPath=${version.localPath}`

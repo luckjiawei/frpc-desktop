@@ -96,18 +96,21 @@ class VersionService extends BaseService<FrpcVersion> {
     }
     const version =
       await this._versionDao.findByGithubReleaseId(githubReleaseId);
-    if (this.frpcVersionExists(version)) {
-      Logger.info(
-        `VersionService.deleteFrpVersion`,
-        `Deleting version=${version.name}, path=${version.localPath}`
-      );
-      fs.rmSync(version.localPath, { recursive: true, force: true });
-      await this._versionDao.deleteById(version._id);
-      Logger.info(
-        `VersionService.deleteFrpVersion`,
-        `Version deleted: ${version.name}`
-      );
+    if (!version) {
+      return;
     }
+    Logger.info(
+      `VersionService.deleteFrpVersion`,
+      `Deleting version=${version.name}, path=${version.localPath}`
+    );
+    if (version.localPath && fs.existsSync(version.localPath)) {
+      fs.rmSync(version.localPath, { recursive: true, force: true });
+    }
+    await this._versionDao.deleteById(version._id);
+    Logger.info(
+      `VersionService.deleteFrpVersion`,
+      `Version deleted: ${version.name}`
+    );
   }
 
   async getFrpVersionsByGitHub(): Promise<Array<FrpcVersion>> {
@@ -141,15 +144,17 @@ class VersionService extends BaseService<FrpcVersion> {
     releases: Array<GithubRelease>
   ): Promise<Array<FrpcVersion>> {
     const allVersions = await this._versionDao.findAll();
-    return releases
+    const filtered = releases
       .filter(release => {
         // only support toml version.
         return release.id > 124395282;
       })
       .filter(release => {
         return this.findCurrentArchitectureAsset(release.assets);
-      })
-      .map(m => {
+      });
+
+    return Promise.all(
+      filtered.map(async (m: GithubRelease) => {
         const asset = this.findCurrentArchitectureAsset(m.assets);
         const download_count = m.assets.reduce(
           (sum, item) => sum + item.download_count,
@@ -157,6 +162,17 @@ class VersionService extends BaseService<FrpcVersion> {
         );
 
         const currVersion = allVersions.find(ff => ff.githubReleaseId === m.id);
+        const binaryExists = this.frpcVersionExists(currVersion);
+
+        // If DB record exists but binary was deleted (e.g., by antivirus), clean up stale record
+        if (currVersion && !binaryExists) {
+          Logger.warn(
+            `VersionService.githubRelease2FrpcVersion`,
+            `Binary missing for version=${m.name}, removing stale DB record`
+          );
+          await this._versionDao.deleteById(currVersion._id);
+        }
+
         const v: FrpcVersion = {
           _id: "",
           githubReleaseId: m.id,
@@ -167,21 +183,22 @@ class VersionService extends BaseService<FrpcVersion> {
           versionDownloadCount: download_count,
           assetDownloadCount: asset.download_count,
           browserDownloadUrl: asset.browser_download_url,
-          downloaded: this.frpcVersionExists(currVersion),
-          localPath: currVersion && currVersion.localPath,
+          downloaded: binaryExists,
+          localPath: binaryExists ? currVersion.localPath : null,
           size: FileUtils.formatBytes(asset.size)
         };
         return v;
-      });
+      })
+    );
   }
 
   private frpcVersionExists(version: FrpcVersion): boolean {
-    // const version = await this._versionDao.findByGithubReleaseId(
-    //   githubReleaseId
-    // );
-
-    if (version) {
-      return fs.existsSync(version.localPath);
+    if (version && version.localPath) {
+      const filename =
+        process.platform === "win32"
+          ? PathUtils.getWinFrpFilename()
+          : PathUtils.getFrpcFilename();
+      return fs.existsSync(path.join(version.localPath, filename));
     }
     return false;
   }
