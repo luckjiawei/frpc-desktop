@@ -57,6 +57,7 @@ Run command: `sudo xattr -cr Frpc-Desktop.app`
 
 ## Milestones
 
+- 2026-03-26: Released v1.2.5 Fixed known bugs
 - 2025-09-10: Released v1.2.3 Fixed known bugs, Supports proxy protocol, Optimize performance
 - 2025-04-22: Released v1.2.2 Fixed known bugs, Supports HTTP Locations
 - 2025-03-25: Released v1.2.1 Fixed known bugs, Supports english
