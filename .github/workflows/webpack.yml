@@ -12,22 +12,18 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        node-version: [22.12.0]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+  # 非 main 分支、非 tag：只检测编译是否报错
+  check:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js ${{ matrix.node-version }}
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.12.0
           cache: "npm"
 
       - name: Rewrite SSH git URLs to HTTPS
@@ -43,39 +39,105 @@ jobs:
           npm_config_fetch_retry_maxtimeout: 60000
         timeout-minutes: 15
 
-      # 非 main 分支、非 tag：只检测编译是否报错（仅在 ubuntu 跑，节省 CI 时间）
       - name: Check build
-        if: ${{ matrix.os == 'ubuntu-latest' && !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
         run: npm run build
 
-      # main 分支：完整打包，不发布
+  # main 分支：完整打包，不发布
+  build:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: "npm"
+
+      - name: Rewrite SSH git URLs to HTTPS
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
+      - name: Install dependencies
+        run: npm ci --verbose
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+          npm_config_fetch_retries: 5
+          npm_config_fetch_retry_mintimeout: 10000
+          npm_config_fetch_retry_maxtimeout: 60000
+        timeout-minutes: 15
+
       - name: Build Windows
-        if: ${{ matrix.os == 'windows-latest' && github.ref == 'refs/heads/main' }}
+        if: ${{ matrix.os == 'windows-latest' }}
         run: npm run build:electron:win
 
       - name: Build macOS
-        if: ${{ matrix.os == 'macos-latest' && github.ref == 'refs/heads/main' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         run: npm run build:electron:mac
 
       - name: Build Linux
-        if: ${{ matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/main' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: npm run build:electron:linux
 
-      # tag：完整打包并发布到 GitHub Release
+  # tag：先创建 Release，再并发打包上传
+  create-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        run: gh release create ${{ github.ref_name }} --draft --title ${{ github.ref_name }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    needs: create-release
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: "npm"
+
+      - name: Rewrite SSH git URLs to HTTPS
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
+      - name: Install dependencies
+        run: npm ci --verbose
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+          npm_config_fetch_retries: 5
+          npm_config_fetch_retry_mintimeout: 10000
+          npm_config_fetch_retry_maxtimeout: 60000
+        timeout-minutes: 15
+
       - name: Release Windows
-        if: ${{ matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ matrix.os == 'windows-latest' }}
         run: npm run release:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release macOS
-        if: ${{ matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ matrix.os == 'macos-latest' }}
         run: npm run release:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release Linux
-        if: ${{ matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: npm run release:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
