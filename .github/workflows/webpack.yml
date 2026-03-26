@@ -130,6 +130,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+          DEBUG: electron-builder
 
       - name: Release macOS
         if: ${{ matrix.os == 'macos-latest' }}
@@ -137,6 +138,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+          DEBUG: electron-builder
 
       - name: Release Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -144,3 +146,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+          DEBUG: electron-builder
