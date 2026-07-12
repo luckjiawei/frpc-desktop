@@ -81,6 +81,18 @@ export const ipcRouters: IpcRouters = {
     getStatus: {
       path: "launch/getStatus",
       controller: "launchController.getStatus"
+    },
+    getExternalStatus: {
+      path: "launch/getExternalStatus",
+      controller: "launchController.getExternalStatus"
+    },
+    stopExternal: {
+      path: "launch/stopExternal",
+      controller: "launchController.stopExternal"
+    },
+    importExternalConfig: {
+      path: "launch/importExternalConfig",
+      controller: "launchController.importExternalConfig"
     }
   },
   PROXY: {

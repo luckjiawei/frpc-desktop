@@ -11,6 +11,16 @@ import Logger from "../core/Logger";
 import ResponseUtils from "../utils/ResponseUtils";
 
 class SystemService {
+  private _systemUsageTimer: NodeJS.Timeout | null = null;
+
+  private clearSystemUsageTimer() {
+    if (!this._systemUsageTimer) {
+      return;
+    }
+    clearInterval(this._systemUsageTimer);
+    this._systemUsageTimer = null;
+  }
+
   async openUrl(url: string) {
     if (url) {
       await shell.openExternal(url);
@@ -134,13 +144,21 @@ class SystemService {
   }
 
   getSystemUsage(listenerParam: ListenerParam) {
+    if (this._systemUsageTimer) {
+      return;
+    }
     const process = require("process");
-    const os = require("os");
     // const { event, channel } = listenerParam;
     let lastCpuUsage = process.cpuUsage();
     let lastTime = Date.now();
 
-    setInterval(() => {
+    this._systemUsageTimer = setInterval(() => {
+      const win: BrowserWindow = BeanFactory.getBean("win");
+      if (!win || win.isDestroyed()) {
+        this.clearSystemUsageTimer();
+        return;
+      }
+
       // 获取内存使用情况
       const memoryUsage = process.memoryUsage();
       // const totalMemory = os.totalmem();
@@ -179,14 +197,11 @@ class SystemService {
 
       Logger.debug("SystemService.getSystemUsage", JSON.stringify(result));
 
-      const win: BrowserWindow = BeanFactory.getBean("win");
-      if (win && !win.isDestroyed()) {
-        win.webContents.send(
-          listenerParam.channel,
-          ResponseUtils.success(result)
-        );
-      }
-    }, 1000);
+      win.webContents.send(
+        listenerParam.channel,
+        ResponseUtils.success(result)
+      );
+    }, GlobalConstant.SYSTEM_USAGE_CHECK_INTERVAL * 1000);
   }
 }
 

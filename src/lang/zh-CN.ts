@@ -42,6 +42,23 @@ export default {
       stop: "断 开",
       viewLog: "查看日志"
     },
+    external: {
+      title: "检测到外部 frpc 正在运行（PID: {pid}）",
+      noConfigPath: "未能从启动命令读取配置文件路径",
+      stop: "停止外部服务",
+      importConfig: "导入配置",
+      confirmStop: {
+        title: "停止外部 frpc",
+        message:
+          "确定要停止 PID 为 {pid} 的外部 frpc 服务吗？这会影响该服务当前承载的业务流量。",
+        confirm: "停止",
+        cancel: "取消"
+      },
+      message: {
+        stopSuccess: "外部 frpc 已停止",
+        importSuccess: "外部配置已导入，导入代理 {proxies} 个"
+      }
+    },
     alert: {
       configRequired: {
         title: "提示",

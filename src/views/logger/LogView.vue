@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useDebounceFn } from "@vueuse/core";
-import { defineComponent, ref, watch } from "vue";
+import { computed, defineComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { LogLevel, LogRecord } from "./log";
 
@@ -22,20 +22,18 @@ const { t } = useI18n();
 // 搜索关键词输入值
 const searchInput = ref("");
 const searchKeyword = ref("");
-// 过滤后的日志记录
-const filteredLogRecords = ref<Array<LogRecord>>([]);
-
-// 更新过滤后的日志
-const updateFilteredLogs = () => {
-  filteredLogRecords.value = props.logRecords.filter(
+const filteredLogRecords = computed<Array<LogRecord>>(() => {
+  if (!searchKeyword.value) {
+    return props.logRecords;
+  }
+  return props.logRecords.filter(
     record => record.context.indexOf(searchKeyword.value) !== -1
   );
-};
+});
 
 // 使用节流函数处理搜索输入
 const throttledSearch = useDebounceFn((value: string) => {
   searchKeyword.value = value;
-  updateFilteredLogs();
 }, 300);
 
 // 处理输入事件
@@ -43,18 +41,6 @@ const handleSearchInput = (value: string) => {
   searchInput.value = value;
   throttledSearch(value);
 };
-
-// 初始化显示所有日志
-filteredLogRecords.value = props.logRecords;
-
-// 监听 logRecords 变化，自动更新过滤结果
-watch(
-  () => props.logRecords,
-  () => {
-    updateFilteredLogs();
-  },
-  { deep: true }
-);
 </script>
 
 <template>

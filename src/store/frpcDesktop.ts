@@ -12,12 +12,14 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     versions: [],
     lastRelease: null,
     language: null,
-    connectionError: null as string | null
+    connectionError: null as string | null,
+    externalFrpc: null as ExternalFrpcProcessInfo | null
   }),
   getters: {
     frpcProcessRunning: state => state.running,
     frpcProcessUptime: state => state.uptime,
     frpcConnectionError: state => state.connectionError,
+    externalFrpcProcess: state => state.externalFrpc,
     downloadedVersions: state => state.versions,
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
@@ -25,21 +27,27 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   actions: {
     onListenerFrpcProcessRunning() {
       onListener(listeners.watchFrpcProcess, data => {
-        const { running, lastStartTime, connectionError } = data;
+        const { running, lastStartTime, connectionError, externalFrpc } = data;
         this.running = running;
         this.connectionError = connectionError ?? null;
+        this.externalFrpc = externalFrpc ?? null;
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }
       });
 
       on(ipcRouters.LAUNCH.getStatus, data => {
-        const { running, lastStartTime, connectionError } = data;
+        const { running, lastStartTime, connectionError, externalFrpc } = data;
         this.running = running;
         this.connectionError = connectionError ?? null;
+        this.externalFrpc = externalFrpc ?? null;
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }
+      });
+
+      on(ipcRouters.LAUNCH.getExternalStatus, data => {
+        this.externalFrpc = data ?? null;
       });
     },
 
@@ -50,6 +58,9 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     },
     refreshRunning() {
       send(ipcRouters.LAUNCH.getStatus);
+    },
+    refreshExternalFrpc() {
+      send(ipcRouters.LAUNCH.getExternalStatus);
     },
     refreshDownloadedVersion() {
       send(ipcRouters.VERSION.getDownloadedVersions);

@@ -5,6 +5,9 @@ import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import SystemService from "./SystemService";
 
+const LOG_TAIL_BYTES = 512 * 1024;
+const LOG_MAX_LINES = 2000;
+
 class LogService {
   private readonly _systemService: SystemService;
   private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
@@ -21,7 +24,7 @@ class LogService {
         return;
       }
       try {
-        const data = fs.readFileSync(this._logPath, "utf-8");
+        const data = this.readTailText(this._logPath);
         resolve(data);
       } catch (error) {
         reject(error);
@@ -36,12 +39,39 @@ class LogService {
         return;
       }
       try {
-        const data = fs.readFileSync(this._appPath, "utf-8");
+        const data = this.readTailText(this._appPath);
         resolve(data);
       } catch (error) {
         reject(error);
       }
     });
+  }
+
+  private readTailText(filePath: string) {
+    const stat = fs.statSync(filePath);
+    if (stat.size === 0) {
+      return "";
+    }
+
+    const readSize = Math.min(stat.size, LOG_TAIL_BYTES);
+    const start = stat.size - readSize;
+    const buffer = Buffer.alloc(readSize);
+    const fd = fs.openSync(filePath, "r");
+
+    try {
+      fs.readSync(fd, buffer, 0, readSize, start);
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    let text = buffer.toString("utf-8");
+    if (start > 0) {
+      const firstLineBreak = text.indexOf("\n");
+      text = firstLineBreak === -1 ? "" : text.slice(firstLineBreak + 1);
+    }
+
+    const lines = text.split("\n");
+    return lines.slice(Math.max(lines.length - LOG_MAX_LINES, 0)).join("\n");
   }
 
   private _watcher: fs.FSWatcher | null = null;

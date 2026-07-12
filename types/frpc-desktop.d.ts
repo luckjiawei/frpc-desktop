@@ -39,3 +39,11 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
 type FrpcProxy = BaseEntity & FrpcProxyConfig & {
   status: number; // 0: disable 1: enable
 };
+
+type ExternalFrpcProcessInfo = {
+  pid: number;
+  processName: string;
+  command: string;
+  cwd: string | null;
+  configPath: string | null;
+};

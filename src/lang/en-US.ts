@@ -42,6 +42,23 @@ export default {
       stop: "Stop",
       viewLog: "View Log"
     },
+    external: {
+      title: "External frpc is running (PID: {pid})",
+      noConfigPath: "Unable to read config path from the launch command",
+      stop: "Stop External",
+      importConfig: "Import Config",
+      confirmStop: {
+        title: "Stop external frpc",
+        message:
+          "Stop the external frpc service with PID {pid}? This may affect traffic currently handled by that service.",
+        confirm: "Stop",
+        cancel: "Cancel"
+      },
+      message: {
+        stopSuccess: "External frpc stopped",
+        importSuccess: "External config imported, {proxies} proxies imported"
+      }
+    },
     alert: {
       configRequired: {
         title: "Prompt",

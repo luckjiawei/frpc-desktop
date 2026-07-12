@@ -23,6 +23,21 @@ const autoRefreshTime = ref(10);
 const activeTabName = ref("app_log");
 const logRecords = ref<Array<LogRecord>>([]);
 
+const parseLogRecords = (
+  data: string,
+  getLevel: (line: string) => LogLevel
+) => {
+  const baseId = Date.now();
+  return data
+    .split("\n")
+    .map((line, index) => ({
+      id: baseId + index,
+      context: line,
+      level: getLevel(line)
+    }))
+    .reverse();
+};
+
 const openLocalLog = useDebounceFn(() => {
   if (activeTabName.value === "app_log") {
     send(ipcRouters.LOG.openAppLogFile);
@@ -78,21 +93,19 @@ const handleTabChange = (tab: string) => {
 onMounted(() => {
   on(ipcRouters.LOG.getFrpLogContent, data => {
     if (data) {
-      logRecords.value = data.split("\n").map(line => {
+      logRecords.value = parseLogRecords(data, line => {
         if (line.indexOf("[E]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
+          return LogLevel.ERROR;
         } else if (line.indexOf("[I]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
+          return LogLevel.INFO;
         } else if (line.indexOf("[D]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
+          return LogLevel.DEBUG;
         } else if (line.indexOf("[W]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
+          return LogLevel.WARN;
         } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
+          return LogLevel.INFO;
         }
       });
-
-      logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;
@@ -108,20 +121,19 @@ onMounted(() => {
 
   on(ipcRouters.LOG.getAppLogContent, data => {
     if (data) {
-      logRecords.value = data.split("\n").map(line => {
+      logRecords.value = parseLogRecords(data, line => {
         if (line.indexOf("[error]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
+          return LogLevel.ERROR;
         } else if (line.indexOf("[info]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
+          return LogLevel.INFO;
         } else if (line.indexOf("[debug]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
+          return LogLevel.DEBUG;
         } else if (line.indexOf("[warn]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
+          return LogLevel.WARN;
         } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
+          return LogLevel.INFO;
         }
       });
-      logRecords.value = logRecords.value.reverse();
     }
 
     logLoading.value = false;

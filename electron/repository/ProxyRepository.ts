@@ -6,6 +6,42 @@ class ProxyRepository extends BaseRepository<FrpcProxy> {
     super("proxy");
   }
 
+  upsertByNameAndType(proxy: FrpcProxy): Promise<FrpcProxy> {
+    return new Promise<FrpcProxy>((resolve, reject) => {
+      this.db.findOne(
+        { name: proxy.name, type: proxy.type },
+        (findErr, document) => {
+          if (findErr) {
+            reject(findErr);
+            return;
+          }
+
+          const id = document?._id || this.genId();
+          const nextProxy = {
+            ...proxy,
+            _id: id
+          };
+
+          this.db.update({ _id: id }, nextProxy, { upsert: true }, err => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(nextProxy);
+            }
+          });
+        }
+      );
+    });
+  }
+
+  async upsertManyByNameAndType(proxies: Array<FrpcProxy>) {
+    const results: Array<FrpcProxy> = [];
+    for (const proxy of proxies) {
+      results.push(await this.upsertByNameAndType(proxy));
+    }
+    return results;
+  }
+
   updateProxyStatus(id: string, status: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.db.update(

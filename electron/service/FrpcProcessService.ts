@@ -1,4 +1,4 @@
-import { exec, execSync, spawn } from "child_process";
+import { exec, execFileSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import fs from "fs";
 import path from "path";
@@ -37,16 +37,343 @@ class FrpcProcessService {
   private readonly _systemService: SystemService;
   private readonly _versionRepository: VersionRepository;
   private _frpcProcess: any;
-  private _frpcProcessListener: any;
+  private _frpcProcessManaged = false;
+  private _frpcProcessListener: NodeJS.Timeout | null = null;
+  private _frpcProcessGuardianTimer: NodeJS.Timeout | null = null;
   private _frpcLastStartTime: number = -1;
   private _notification: number = -1;
   private _frpcRecoveryChecking = false;
   private _frpcLastRecoveryTime = -1;
+  private _lastExternalFrpcProbeTime = 0;
+  private readonly _externalFrpcProbeIntervalMs = 5 * 1000;
+  private _externalFrpcStatus: ExternalFrpcProcessInfo | null = null;
 
   constructor() {
     this._serverService = BeanFactory.getBean("serverService");
     this._systemService = BeanFactory.getBean("systemService");
     this._versionRepository = BeanFactory.getBean("versionRepository");
+  }
+
+  private getFrpcProcessNames() {
+    if (process.platform === "win32") {
+      return [PathUtils.getWinFrpFilename(), "frpc.exe"];
+    }
+    return [PathUtils.getFrpcFilename(), "frpc"];
+  }
+
+  private splitCommandLine(command: string) {
+    const args: Array<string> = [];
+    const pattern = /"([^"]*)"|'([^']*)'|(\S+)/g;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(command)) !== null) {
+      args.push(match[1] || match[2] || match[3]);
+    }
+    return args;
+  }
+
+  private extractConfigPathFromCommand(command: string) {
+    const args = this.splitCommandLine(command);
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if ((arg === "-c" || arg === "--config") && args[i + 1]) {
+        const pathParts = [args[i + 1]];
+        for (let j = i + 2; j < args.length; j++) {
+          if (args[j].startsWith("-")) {
+            break;
+          }
+          pathParts.push(args[j]);
+        }
+        return pathParts.join(" ");
+      }
+      if (arg.startsWith("--config=")) {
+        const pathParts = [arg.slice("--config=".length)];
+        for (let j = i + 1; j < args.length; j++) {
+          if (args[j].startsWith("-")) {
+            break;
+          }
+          pathParts.push(args[j]);
+        }
+        return pathParts.join(" ");
+      }
+      if (arg.startsWith("-c=")) {
+        const pathParts = [arg.slice("-c=".length)];
+        for (let j = i + 1; j < args.length; j++) {
+          if (args[j].startsWith("-")) {
+            break;
+          }
+          pathParts.push(args[j]);
+        }
+        return pathParts.join(" ");
+      }
+    }
+    return null;
+  }
+
+  private decodeEscapedPath(value: string | null) {
+    if (!value || !value.includes("\\x")) {
+      return value;
+    }
+
+    const bytes: number[] = [];
+    for (let i = 0; i < value.length; i++) {
+      if (
+        value[i] === "\\" &&
+        value[i + 1] === "x" &&
+        /^[0-9a-fA-F]{2}$/.test(value.slice(i + 2, i + 4))
+      ) {
+        bytes.push(parseInt(value.slice(i + 2, i + 4), 16));
+        i += 3;
+      } else {
+        bytes.push(...Buffer.from(value[i], "utf-8"));
+      }
+    }
+    return Buffer.from(bytes).toString("utf-8");
+  }
+
+  private normalizePid(pid: number) {
+    if (!Number.isInteger(pid) || pid <= 0) {
+      return null;
+    }
+    return pid.toString();
+  }
+
+  private getExternalProcessCwd(pid: number): string | null {
+    const safePid = this.normalizePid(pid);
+    if (!safePid) {
+      return null;
+    }
+
+    try {
+      if (process.platform === "darwin") {
+        const stdout = execFileSync("lsof", [
+          "-a",
+          "-p",
+          safePid,
+          "-d",
+          "cwd",
+          "-Fn"
+        ])
+          .toString()
+          .trim();
+        const cwdLine = stdout.split("\n").find(line => line.startsWith("n"));
+        return cwdLine ? this.decodeEscapedPath(cwdLine.slice(1)) : null;
+      }
+      if (process.platform === "linux") {
+        return fs.realpathSync(`/proc/${pid}/cwd`);
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  private readWindowsProcessCommand(pid: number) {
+    const safePid = this.normalizePid(pid);
+    if (!safePid) {
+      return "";
+    }
+
+    try {
+      return execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${safePid}'; if ($p) { $p.CommandLine }`
+        ],
+        { windowsHide: true }
+      )
+        .toString()
+        .trim();
+    } catch {
+      try {
+        const stdout = execFileSync(
+          "wmic",
+          [
+            "process",
+            "where",
+            `ProcessId=${safePid}`,
+            "get",
+            "CommandLine",
+            "/value"
+          ],
+          { windowsHide: true }
+        )
+          .toString()
+          .trim();
+        const commandLine = stdout
+          .split("\n")
+          .find(line => line.startsWith("CommandLine="));
+        return commandLine
+          ? commandLine.slice("CommandLine=".length).trim()
+          : "";
+      } catch {
+        return "";
+      }
+    }
+  }
+
+  private normalizeConfigPath(configPath: string | null) {
+    if (!configPath) {
+      return null;
+    }
+    return path.normalize(this.decodeEscapedPath(configPath) || configPath);
+  }
+
+  private isAppManagedConfigPath(configPath: string | null) {
+    const normalizedConfigPath = this.normalizeConfigPath(configPath);
+    if (!normalizedConfigPath) {
+      return false;
+    }
+    return (
+      normalizedConfigPath ===
+      path.normalize(PathUtils.getTomlConfigFilePath())
+    );
+  }
+
+  private adoptRunningFrpcProcess(info: ExternalFrpcProcessInfo) {
+    this._frpcProcess = { pid: info.pid };
+    this._frpcProcessManaged = true;
+    if (this._frpcLastStartTime === -1) {
+      this._frpcLastStartTime = Date.now();
+    }
+    this._externalFrpcStatus = null;
+    Logger.info(
+      `FrpcProcessService.adoptRunningFrpcProcess`,
+      `Adopted existing app-managed frpc process, pid=${info.pid}, config=${info.configPath}`
+    );
+  }
+
+  private findRunningFrpcProcess(
+    predicate: (info: ExternalFrpcProcessInfo) => boolean
+  ): ExternalFrpcProcessInfo | null {
+    if (process.platform !== "win32") {
+      for (const processName of this.getFrpcProcessNames()) {
+        let stdout = "";
+        try {
+          stdout = execFileSync("pgrep", ["-x", processName])
+            .toString()
+            .trim();
+        } catch {
+          stdout = "";
+        }
+        const pids = stdout
+          .split("\n")
+          .map(pid => parseInt(pid, 10))
+          .filter(pid => !Number.isNaN(pid));
+        for (const pid of pids) {
+          const info = this.readExternalProcessInfo(pid, processName);
+          if (info && predicate(info)) {
+            return info;
+          }
+        }
+      }
+      return null;
+    }
+
+    for (const processName of this.getFrpcProcessNames()) {
+      const stdout = execFileSync("tasklist", [
+        "/FI",
+        `IMAGENAME eq ${processName}`,
+        "/FO",
+        "CSV"
+      ]).toString();
+      const lines = stdout.split("\n").filter(Boolean).slice(1);
+      for (const line of lines) {
+        const processInfo = line
+          .split('","')
+          .map(s => s.replace(/(^"|"$)/g, ""));
+        const pid = parseInt(processInfo[1], 10);
+        if (Number.isNaN(pid)) {
+          continue;
+        }
+        const externalInfo = this.readExternalProcessInfo(pid, processName);
+        if (externalInfo && predicate(externalInfo)) {
+          return externalInfo;
+        }
+      }
+    }
+    return null;
+  }
+
+  private adoptExistingAppManagedFrpcProcess() {
+    try {
+      const info = this.findRunningFrpcProcess(info =>
+        this.isAppManagedConfigPath(info.configPath)
+      );
+      if (!info) {
+        return false;
+      }
+      this.adoptRunningFrpcProcess(info);
+      return true;
+    } catch (error) {
+      Logger.warn(
+        `FrpcProcessService.adoptExistingAppManagedFrpcProcess`,
+        `Unable to adopt existing frpc process`
+      );
+      return false;
+    }
+  }
+
+  private resolveExternalConfigPath(pid: number, configPath: string) {
+    if (path.isAbsolute(configPath)) {
+      return this.decodeEscapedPath(configPath);
+    }
+    const cwd = this.getExternalProcessCwd(pid);
+    const resolvedPath = cwd
+      ? path.resolve(cwd, configPath)
+      : path.resolve(configPath);
+    return this.decodeEscapedPath(resolvedPath);
+  }
+
+  private readExternalProcessInfo(
+    pid: number,
+    processName: string
+  ): ExternalFrpcProcessInfo | null {
+    try {
+      process.kill(pid, 0);
+    } catch (err: any) {
+      if (err.code !== "EPERM") {
+        return null;
+      }
+    }
+
+    let command = "";
+    try {
+      if (process.platform === "win32") {
+        command = this.readWindowsProcessCommand(pid);
+      } else {
+        const safePid = this.normalizePid(pid);
+        if (!safePid) {
+          return null;
+        }
+        command = execFileSync("ps", ["-p", safePid, "-o", "command="])
+          .toString()
+          .trim();
+      }
+    } catch (error) {
+      Logger.warn(
+        `FrpcProcessService.readExternalProcessInfo`,
+        `Unable to read frpc process command line, pid=${pid}`
+      );
+    }
+
+    const rawConfigPath = command
+      ? this.extractConfigPathFromCommand(command)
+      : null;
+    const cwd = this.getExternalProcessCwd(pid);
+    const configPath = rawConfigPath
+      ? this.resolveExternalConfigPath(pid, rawConfigPath)
+      : null;
+
+    return {
+      pid,
+      processName,
+      command,
+      cwd,
+      configPath
+    };
   }
 
   /**
@@ -122,48 +449,8 @@ class FrpcProcessService {
   }
 
   isRunning(): boolean {
-    if (!this._frpcProcess) {
-      // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
-      try {
-        if (process.platform !== "win32") {
-          const processName = PathUtils.getFrpcFilename();
-          const stdout = execSync(`pgrep -x ${processName}`).toString().trim();
-          if (stdout) {
-            const pid = parseInt(stdout.split("\n")[0], 10);
-            if (!Number.isNaN(pid)) {
-              this._frpcProcess = { pid };
-              if (this._frpcLastStartTime === -1) {
-                this._frpcLastStartTime = Date.now();
-              }
-            }
-          }
-        } else {
-          const processName = PathUtils.getWinFrpFilename();
-          const stdout = execSync(
-            `tasklist /FI "IMAGENAME eq ${processName}" /FO CSV`
-          ).toString();
-          const lines = stdout.split("\n").filter(Boolean);
-
-          if (lines.length > 1) {
-            const info = lines[1]
-              .split('","')
-              .map(s => s.replace(/(^"|"$)/g, ""));
-            const pid = parseInt(info[1], 10);
-            if (!Number.isNaN(pid)) {
-              this._frpcProcess = { pid };
-              if (this._frpcLastStartTime === -1) {
-                this._frpcLastStartTime = Date.now();
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // 忽略未找到进程的错误
-      }
-
-      if (!this._frpcProcess) {
-        return false;
-      }
+    if (!this._frpcProcess || !this._frpcProcessManaged) {
+      return this.adoptExistingAppManagedFrpcProcess();
     }
     try {
       process.kill(this._frpcProcess.pid, 0);
@@ -173,12 +460,62 @@ class FrpcProcessService {
       if (err.code === "EPERM") {
         return true;
       }
-      return false;
+      this._frpcProcess = null;
+      this._frpcProcessManaged = false;
+      return this.adoptExistingAppManagedFrpcProcess();
     }
   }
 
   get frpcLastStartTime(): number {
     return this._frpcLastStartTime;
+  }
+
+  getExternalFrpcStatus(force = false): ExternalFrpcProcessInfo | null {
+    const now = Date.now();
+    if (
+      !force &&
+      now - this._lastExternalFrpcProbeTime < this._externalFrpcProbeIntervalMs
+    ) {
+      return this._externalFrpcStatus;
+    }
+    this._lastExternalFrpcProbeTime = now;
+    this._externalFrpcStatus = null;
+
+    try {
+      const info = this.findRunningFrpcProcess(info => {
+        if (this._frpcProcessManaged && this._frpcProcess?.pid === info.pid) {
+          return false;
+        }
+        if (this.isAppManagedConfigPath(info.configPath)) {
+          this.adoptRunningFrpcProcess(info);
+          return false;
+        }
+        return true;
+      });
+      if (info) {
+        this._externalFrpcStatus = info;
+        return info;
+      }
+    } catch (error) {
+      Logger.warn(
+        `FrpcProcessService.getExternalFrpcStatus`,
+        `Unable to detect external frpc process`
+      );
+    }
+    return null;
+  }
+
+  async importExternalFrpcConfig() {
+    const externalFrpc = this.getExternalFrpcStatus(true);
+    if (!externalFrpc) {
+      throw new Error("未检测到外部 frpc 服务");
+    }
+    if (!externalFrpc.configPath) {
+      throw new Error("未能从外部 frpc 启动命令中读取配置文件路径");
+    }
+    return await this._serverService.syncTomlConfigFile(
+      externalFrpc.configPath
+    );
   }
 
   /**
@@ -321,6 +658,7 @@ class FrpcProcessService {
       const pid = parseInt(pidStr, 10);
       if (!isNaN(pid)) {
         this._frpcProcess = { pid };
+        this._frpcProcessManaged = true;
         Logger.info(
           `FrpcProcessService.startFrpcProcess`,
           `frpc started successfully (macOS), pid=${pid}`
@@ -348,6 +686,7 @@ class FrpcProcessService {
       cwd: version.localPath,
       shell: true
     });
+    this._frpcProcessManaged = true;
     this._frpcLastStartTime = Date.now();
     Logger.info(
       `FrpcProcessService.startFrpcProcess`,
@@ -387,6 +726,7 @@ class FrpcProcessService {
         Logger.warn(`FrpcProcessService.startFrpcProcess`, exitMessage);
       }
       this._frpcProcess = null;
+      this._frpcProcessManaged = false;
     });
   }
 
@@ -415,6 +755,7 @@ class FrpcProcessService {
           Logger.error(`FrpcProcessService.stopFrpcProcess`, e as Error);
         }
         this._frpcProcess = null;
+        this._frpcProcessManaged = false;
         this._frpcLastStartTime = -1;
         this._notification = -1;
         this._frpcRecoveryChecking = false;
@@ -432,6 +773,7 @@ class FrpcProcessService {
             `frpc stopped successfully, pid=${pid}`
           );
           this._frpcProcess = null;
+          this._frpcProcessManaged = false;
           this._frpcLastStartTime = -1;
           this._notification = -1;
           this._frpcRecoveryChecking = false;
@@ -441,8 +783,49 @@ class FrpcProcessService {
     }
   }
 
+  async stopExternalFrpcProcess() {
+    const externalFrpc = this.getExternalFrpcStatus(true);
+    if (!externalFrpc) {
+      return null;
+    }
+    const pid = externalFrpc.pid;
+    Logger.info(
+      `FrpcProcessService.stopExternalFrpcProcess`,
+      `Stopping external frpc, pid=${pid}`
+    );
+
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch (error: any) {
+      if (process.platform === "darwin" && error?.code === "EPERM") {
+        if (!this.isMacHelperReady()) {
+          await this.installMacHelper();
+        }
+        await new Promise<void>((resolve, reject) => {
+          exec(`sudo -n "${MAC_LAUNCHER_PATH}" stop ${pid}`, err => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    this._externalFrpcStatus = null;
+    this._lastExternalFrpcProbeTime = 0;
+    return externalFrpc;
+  }
+
   async reloadFrpcProcess() {
     if (!this.isRunning()) {
+      return;
+    }
+    if (!this._frpcProcessManaged) {
+      Logger.info(
+        `FrpcProcessService.reloadFrpcProcess`,
+        `Detected external frpc, skip reload, pid=${this._frpcProcess?.pid}`
+      );
       return;
     }
     const config = await this._serverService.getServerConfig();
@@ -495,11 +878,14 @@ class FrpcProcessService {
   }
 
   async frpcProcessGuardian() {
+    if (this._frpcProcessGuardianTimer) {
+      return;
+    }
     Logger.info(
       `FrpcProcessService.frpcProcessGuardian`,
       `Guardian started, interval=${GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL}s`
     );
-    setInterval(async () => {
+    this._frpcProcessGuardianTimer = setInterval(async () => {
       if (this._frpcRecoveryChecking) {
         return;
       }
@@ -541,6 +927,9 @@ class FrpcProcessService {
   }
 
   watchFrpcProcess(listenerParam: ListenerParam) {
+    if (this._frpcProcessListener) {
+      return;
+    }
     this._frpcProcessListener = setInterval(() => {
       const running = this.isRunning();
       if (!running) {
@@ -570,7 +959,8 @@ class FrpcProcessService {
           ResponseUtils.success({
             running: running,
             lastStartTime: this._frpcLastStartTime,
-            connectionError
+            connectionError,
+            externalFrpc: this.getExternalFrpcStatus()
           })
         );
       }
