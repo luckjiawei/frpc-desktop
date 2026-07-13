@@ -130,7 +130,10 @@ export default {
   logger: {
     message: {
       openSuccess: "Open log successfully",
-      refreshSuccess: "Refresh successfully"
+      refreshSuccess: "Refresh successfully",
+      copySelectionSuccess: "Selected logs copied",
+      copyAllSuccess: "Current logs copied",
+      copyEmpty: "No logs to copy"
     },
     content: {
       empty: "No log"
@@ -144,6 +147,9 @@ export default {
     },
     loading: {
       text: "Loading..."
+    },
+    tooltip: {
+      copyLog: "Copy selected logs; copy current logs when nothing is selected"
     },
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"

@@ -125,7 +125,10 @@ export default {
   logger: {
     message: {
       openSuccess: "打开日志成功",
-      refreshSuccess: "刷新成功"
+      refreshSuccess: "刷新成功",
+      copySelectionSuccess: "已复制选中的日志",
+      copyAllSuccess: "已复制当前日志",
+      copyEmpty: "暂无可复制的日志"
     },
     content: {
       empty: "暂无日志"
@@ -139,6 +142,9 @@ export default {
     },
     loading: {
       text: "加载中..."
+    },
+    tooltip: {
+      copyLog: "复制选中日志；未选择时复制当前日志"
     },
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
