@@ -17,6 +17,10 @@ class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
       });
     });
   }
+
+  create(server: OpenSourceFrpcDesktopServer): Promise<OpenSourceFrpcDesktopServer> {
+    return this.insert(server);
+  }
 }
 
 export default ServerRepository;

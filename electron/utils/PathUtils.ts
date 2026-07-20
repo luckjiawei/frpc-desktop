@@ -55,6 +55,16 @@ class PathUtils {
     );
   }
 
+  public static getTomlConfigFilePathByServerId(serverId = "1") {
+    if (!serverId || serverId === "1") {
+      return PathUtils.getTomlConfigFilePath();
+    }
+    return path.join(
+      PathUtils.getConfigStoragePath(),
+      `frpc-${serverId.replace(/[^a-zA-Z0-9_-]/g, "_")}.toml`
+    );
+  }
+
   public static getFrpcLogStoragePath() {
     const result = path.join(PathUtils.getAppData(), "log");
     FileUtils.mkdir(result);
@@ -65,6 +75,16 @@ class PathUtils {
     return path.join(
       PathUtils.getFrpcLogStoragePath(),
       SecureUtils.calculateMD5("frpc-log") + ".log"
+    );
+  }
+
+  public static getFrpcLogFilePathByServerId(serverId = "1") {
+    if (!serverId || serverId === "1") {
+      return PathUtils.getFrpcLogFilePath();
+    }
+    return path.join(
+      PathUtils.getFrpcLogStoragePath(),
+      `frpc-${serverId.replace(/[^a-zA-Z0-9_-]/g, "_")}.log`
     );
   }
 

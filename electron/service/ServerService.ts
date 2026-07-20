@@ -31,12 +31,15 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     frpcServer: OpenSourceFrpcDesktopServer,
     applySystemSettings = true
   ): Promise<OpenSourceFrpcDesktopServer> {
-    frpcServer._id = this._serverId;
+    if (!frpcServer._id) {
+      frpcServer._id = this._serverId;
+    }
+    this.normalizeServerConfig(frpcServer);
     const newConfig = await this._serverDao.updateById(
-      this._serverId,
+      frpcServer._id,
       frpcServer
     );
-    if (applySystemSettings) {
+    if (applySystemSettings && newConfig._id === this._serverId) {
       try {
         app.setLoginItemSettings({
           openAtLogin: newConfig.system.launchAtStartup || false, //win
@@ -50,8 +53,61 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return newConfig;
   }
 
+  async createServerConfig(
+    frpcServer: OpenSourceFrpcDesktopServer
+  ): Promise<OpenSourceFrpcDesktopServer> {
+    const server = {
+      ...this.createDefaultServerConfig(undefined, ""),
+      ...frpcServer,
+      _id: "",
+      name: frpcServer.name || "未命名节点",
+      remark: frpcServer.remark || "",
+      isDefault: false
+    };
+    const newConfig = await this._serverDao.create(server);
+    return this.normalizeServerConfig(newConfig);
+  }
+
   async getServerConfig(): Promise<OpenSourceFrpcDesktopServer> {
-    return await this._serverDao.findById(this._serverId);
+    const config = await this._serverDao.findById(this._serverId);
+    return this.normalizeServerConfig(
+      config || this.createDefaultServerConfig()
+    );
+  }
+
+  async getServerConfigById(id: string): Promise<OpenSourceFrpcDesktopServer> {
+    const config = await this._serverDao.findById(id || this._serverId);
+    return this.normalizeServerConfig(
+      config || this.createDefaultServerConfig(undefined, id || this._serverId)
+    );
+  }
+
+  async getServerConfigs(): Promise<Array<OpenSourceFrpcDesktopServer>> {
+    const configs = await this._serverDao.findAll();
+    if (!configs || configs.length === 0) {
+      return [this.createDefaultServerConfig()];
+    }
+    return configs
+      .map(config => this.normalizeServerConfig(config))
+      .sort((a, b) => {
+        if (a._id === this._serverId) return -1;
+        if (b._id === this._serverId) return 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+  }
+
+  async deleteServerConfig(id: string) {
+    if (!id || id === this._serverId) {
+      throw new Error("默认服务不能删除");
+    }
+    const proxies = await this._proxyDao.findAll();
+    for (const proxy of proxies.filter(proxy => proxy.serverId === id)) {
+      await this._proxyDao.updateById(proxy._id, {
+        ...proxy,
+        serverId: this._serverId
+      });
+    }
+    await this._serverDao.deleteById(id);
   }
 
   hasServerConfig(): Promise<boolean> {
@@ -93,13 +149,33 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.https2http;
   }
 
+  private normalizeServerConfig(config: OpenSourceFrpcDesktopServer) {
+    if (!config) {
+      return config;
+    }
+    if (!config._id) config._id = this._serverId;
+    if (!config.name) {
+      config.name = config._id === this._serverId ? "默认节点" : "未命名节点";
+    }
+    if (config.remark === undefined) config.remark = "";
+    config.isDefault = config._id === this._serverId;
+    if (!config.system) {
+      config.system = this.createDefaultServerConfig().system;
+    }
+    return config;
+  }
+
   private createDefaultServerConfig(
-    existingConfig?: OpenSourceFrpcDesktopServer
+    existingConfig?: OpenSourceFrpcDesktopServer,
+    id = this._serverId
   ): OpenSourceFrpcDesktopServer {
     return {
-      _id: "",
+      _id: id,
       multiuser: false,
       frpcVersion: existingConfig?.frpcVersion ?? null,
+      name: id === this._serverId ? "默认节点" : "未命名节点",
+      remark: "",
+      isDefault: id === this._serverId,
       loginFailExit: false,
       udpPacketSize: 1500,
       serverAddr: "",
@@ -159,6 +235,7 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   private createDefaultProxy(visitorsModel = "visitorsProvider"): FrpcProxy {
     return {
       _id: "",
+      serverId: this._serverId,
       hostHeaderRewrite: "",
       locations: [""],
       name: "",
@@ -286,6 +363,9 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     if (proxy.keepTunnelOpen !== undefined) {
       proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
     }
+    if (proxy.serverId !== undefined) {
+      proxy2.serverId = proxy.serverId as string;
+    }
     if (proxy.transport) {
       Object.assign(proxy2.transport, proxy.transport);
     }
@@ -358,6 +438,10 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     this.applyTomlServerConfig(sourceConfig, config);
     await this.saveServerConfig(config, false);
 
+    validProxies.forEach(proxy => {
+      proxy.serverId = config._id;
+    });
+
     await this._proxyDao.truncate();
     if (validProxies.length > 0) {
       await this._proxyDao.insertMany(validProxies);
@@ -370,12 +454,45 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     };
   }
 
-  async genTomlConfig(outputPath: string) {
+  private async getServerRuntimeIndex(serverId: string) {
+    const servers = await this.getServerConfigs();
+    const index = servers.findIndex(server => server._id === serverId);
+    return index < 0 ? 0 : index;
+  }
+
+  private async getServerWebPort(server: OpenSourceFrpcDesktopServer) {
+    const basePort = server.webServer?.port || 57400;
+    return basePort + (await this.getServerRuntimeIndex(server._id));
+  }
+
+  async getServerRuntimeWebPort(server: OpenSourceFrpcDesktopServer) {
+    return this.getServerWebPort(server);
+  }
+
+  private isProxyAssignedToServer(proxy: FrpcProxy, serverId: string) {
+    const proxyServerId = proxy.serverId || this._serverId;
+    return proxyServerId === serverId;
+  }
+
+  async getRunnableServerConfigs() {
+    const servers = await this.getServerConfigs();
+    const proxies = await this._proxyDao.findAll();
+    const enabledServerIds = new Set(
+      proxies
+        .filter(proxy => this.isEnableProxy(proxy))
+        .map(proxy => proxy.serverId || this._serverId)
+    );
+    return servers.filter(server => enabledServerIds.has(server._id));
+  }
+
+  async genTomlConfig(outputPath: string, serverId = this._serverId) {
     if (!outputPath) {
       return;
     }
-    const server = await this.getServerConfig();
-    const proxies = await this._proxyDao.findAll();
+    const server = await this.getServerConfigById(serverId);
+    const proxies = (await this._proxyDao.findAll()).filter(proxy =>
+      this.isProxyAssignedToServer(proxy, server._id)
+    );
 
     const enabledRangePortProxies = proxies
       .filter(f => this.isEnableProxy(f))
@@ -493,11 +610,21 @@ remotePort = {{ $v.Second }}
         }
       });
 
-    const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
+    const {
+      frpcVersion,
+      _id,
+      system,
+      multiuser,
+      name,
+      remark,
+      isDefault,
+      ...commonConfig
+    } = server;
     const frpcConfig = { ...commonConfig };
-    frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
+    frpcConfig.log.to = PathUtils.getFrpcLogFilePathByServerId(server._id);
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
+    frpcConfig.webServer.port = await this.getServerWebPort(server);
 
     if (frpcConfig.auth.method === "none") {
       frpcConfig.auth = null;
@@ -584,6 +711,9 @@ ${f}`;
         _id: "",
         multiuser: false,
         frpcVersion: null,
+        name: "默认节点",
+        remark: "",
+        isDefault: true,
         loginFailExit: false,
         udpPacketSize: 1500,
         serverAddr: "",

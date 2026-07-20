@@ -4,9 +4,21 @@ export const ipcRouters: IpcRouters = {
       path: "server/saveConfig",
       controller: "configController.saveConfig"
     },
+    createServerConfig: {
+      path: "server/createServerConfig",
+      controller: "configController.createServerConfig"
+    },
     getServerConfig: {
       path: "server/getServerConfig",
       controller: "configController.getServerConfig"
+    },
+    getServerConfigs: {
+      path: "server/getServerConfigs",
+      controller: "configController.getServerConfigs"
+    },
+    deleteServerConfig: {
+      path: "server/deleteServerConfig",
+      controller: "configController.deleteServerConfig"
     },
     resetAllConfig: {
       path: "server/resetAllConfig",

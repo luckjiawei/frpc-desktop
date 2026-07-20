@@ -28,11 +28,23 @@ class ConfigController extends BaseController {
   saveConfig(req: ControllerParam) {
     this._serverService
       .saveServerConfig(req.args)
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.saveConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  createServerConfig(req: ControllerParam) {
+    this._serverService
+      .createServerConfig(req.args)
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.createServerConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -45,6 +57,30 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.getServerConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  getServerConfigs(req: ControllerParam) {
+    this._serverService
+      .getServerConfigs()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.getServerConfigs", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  deleteServerConfig(req: ControllerParam) {
+    this._serverService
+      .deleteServerConfig(req.args)
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.deleteServerConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }

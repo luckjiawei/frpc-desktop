@@ -15,6 +15,9 @@ type FrpcDesktopServer = BaseEntity &
   FrpcCommonConfig & {
     frpcVersion: number;
     multiuser: boolean;
+    name: string;
+    remark: string;
+    isDefault: boolean;
     // system: any;
   };
 
@@ -37,6 +40,7 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
 };
 
 type FrpcProxy = BaseEntity & FrpcProxyConfig & {
+  serverId: string;
   status: number; // 0: disable 1: enable
 };
 

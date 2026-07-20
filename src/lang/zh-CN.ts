@@ -175,6 +175,15 @@ export default {
         label: "Frp版本",
         requireMessage: "请选择Frp版本"
       },
+      serverName: {
+        label: "节点名称",
+        requireMessage: "请输入节点名称",
+        placeholder: "例如：华东生产节点"
+      },
+      serverRemark: {
+        label: "备注",
+        placeholder: "记录线路、用途或到期时间"
+      },
       serverAddr: {
         label: "服务端地址",
         requireMessage: "请输入服务端地址",
@@ -318,6 +327,19 @@ export default {
       systemConfiguration: "系统配置",
       serverConfiguration: "服务器配置"
     },
+    server: {
+      listTitle: "上游服务器",
+      add: "新增",
+      creating: "正在新增节点",
+      creatingTips: "填写右侧配置后点击保存",
+      defaultName: "默认节点",
+      newName: "未命名节点",
+      defaultTag: "默认",
+      deleteConfirm: {
+        title: "删除上游服务器",
+        message: "确定删除 “{name}” 吗？该节点下的代理会自动迁移到默认节点。"
+      }
+    },
     button: {
       manualRefresh: "手动刷新",
       goToDownload: "点击这里去下载",
@@ -444,6 +466,11 @@ export default {
         proxyType: {
           label: "代理类型",
           requireMessage: "请选择代理类型"
+        },
+        server: {
+          label: "上游服务器",
+          requireMessage: "请选择上游服务器",
+          placeholder: "请选择要连接的上游 FRP 服务器"
         },
         name: {
           label: "代理名称",

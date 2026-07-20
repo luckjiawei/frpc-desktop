@@ -35,11 +35,17 @@ defineComponent({
 // };
 
 const { t } = useI18n();
+const defaultServerId = "1";
+const hostPattern =
+  /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
 
 const defaultFormData: OpenSourceFrpcDesktopServer = {
   _id: "",
   multiuser: false,
   frpcVersion: null,
+  name: t("config.server.defaultName"),
+  remark: "",
+  isDefault: true,
   loginFailExit: false,
   udpPacketSize: 1500,
   serverAddr: "",
@@ -92,9 +98,29 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   },
   user: ""
 };
-const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
+const createDefaultFormData = () =>
+  _.cloneDeep(defaultFormData) as OpenSourceFrpcDesktopServer;
+const createNewServerFormData = () => {
+  const data = createDefaultFormData();
+  data._id = "";
+  data.name = t("config.server.newName");
+  data.remark = "";
+  data.isDefault = false;
+  return data;
+};
+const formData = ref<OpenSourceFrpcDesktopServer>(createDefaultFormData());
+const serverConfigs = ref<Array<OpenSourceFrpcDesktopServer>>([]);
+const selectedServerId = ref(defaultServerId);
+const creatingServer = ref(false);
 const loading = ref(1);
 const rules = reactive<FormRules>({
+  name: [
+    {
+      required: true,
+      message: t("config.form.serverName.requireMessage"),
+      trigger: "blur"
+    }
+  ],
   frpcVersion: [
     {
       required: true,
@@ -109,7 +135,7 @@ const rules = reactive<FormRules>({
       trigger: "blur"
     },
     {
-      pattern: /^[\w-]+(\.[\w-]+)+$/,
+      pattern: hostPattern,
       message: t("config.form.serverAddr.patternMessage"),
       trigger: "blur"
     }
@@ -327,7 +353,12 @@ const handleSubmit = useDebounceFn(() => {
     if (valid) {
       loading.value = 1;
       const data = _.cloneDeep(formData.value);
-      send(ipcRouters.SERVER.saveConfig, data);
+      send(
+        creatingServer.value || !data._id
+          ? ipcRouters.SERVER.createServerConfig
+          : ipcRouters.SERVER.saveConfig,
+        data
+      );
     }
   });
 }, 300);
@@ -364,21 +395,88 @@ const checkAndResetVersion = () => {
 // };
 
 const handleLoadSavedConfig = () => {
-  send(ipcRouters.SERVER.getServerConfig);
+  loading.value = 1;
+  send(ipcRouters.SERVER.getServerConfigs);
+};
+
+const mergeServerDefaults = (server: OpenSourceFrpcDesktopServer) => {
+  return _.merge(createDefaultFormData(), server);
+};
+
+const selectServer = (server: OpenSourceFrpcDesktopServer) => {
+  creatingServer.value = false;
+  selectedServerId.value = server._id;
+  formData.value = mergeServerDefaults(server);
+  checkAndResetVersion();
+};
+
+const handleCreateServer = () => {
+  creatingServer.value = true;
+  selectedServerId.value = "";
+  formData.value = createNewServerFormData();
+  checkAndResetVersion();
+};
+
+const handleDeleteServer = (server: OpenSourceFrpcDesktopServer) => {
+  if (server.isDefault) return;
+  ElMessageBox.confirm(
+    t("config.server.deleteConfirm.message", { name: server.name }),
+    t("config.server.deleteConfirm.title"),
+    {
+      type: "warning",
+      cancelButtonText: t("common.close"),
+      confirmButtonText: t("common.delete")
+    }
+  ).then(() => {
+    loading.value = 1;
+    send(ipcRouters.SERVER.deleteServerConfig, server._id);
+  });
 };
 
 onMounted(() => {
   // handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
+  on(ipcRouters.SERVER.getServerConfigs, data => {
+    serverConfigs.value = (data || []).map(mergeServerDefaults);
+    if (creatingServer.value) {
+      loading.value--;
+      return;
+    }
+    const selected =
+      serverConfigs.value.find(
+        server => server._id === selectedServerId.value
+      ) || serverConfigs.value[0];
+    if (selected) {
+      selectServer(selected);
+    } else {
+      formData.value = createDefaultFormData();
+    }
+    loading.value--;
+  });
+
+  on(ipcRouters.SERVER.createServerConfig, data => {
+    ElMessage({
+      type: "success",
+      message: t("config.message.saveSuccess")
+    });
+    creatingServer.value = false;
+    selectedServerId.value = data?._id || defaultServerId;
+    handleLoadSavedConfig();
+  });
+
+  on(ipcRouters.SERVER.deleteServerConfig, () => {
+    ElMessage({
+      type: "success",
+      message: t("common.deleteSuccess")
+    });
+    selectedServerId.value = defaultServerId;
+    handleLoadSavedConfig();
+  });
+
   on(ipcRouters.SERVER.getServerConfig, data => {
     if (data) {
-      formData.value = data;
-      Object.keys(defaultFormData).forEach(key => {
-        if (!formData.value[key]) {
-          formData.value[key] = defaultFormData[key];
-        }
-      });
+      formData.value = mergeServerDefaults(data);
       checkAndResetVersion();
     }
     loading.value--;
@@ -394,7 +492,10 @@ onMounted(() => {
       type: "success",
       message: t("config.message.saveSuccess")
     });
-    loading.value--;
+    if (data?._id) {
+      selectedServerId.value = data._id;
+    }
+    handleLoadSavedConfig();
     frpcDesktopStore.getLanguage();
   });
 
@@ -596,7 +697,10 @@ const handleSystemLanguageChange = e => {
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.SERVER.saveConfig);
+  removeRouterListeners(ipcRouters.SERVER.createServerConfig);
   removeRouterListeners(ipcRouters.SERVER.getServerConfig);
+  removeRouterListeners(ipcRouters.SERVER.getServerConfigs);
+  removeRouterListeners(ipcRouters.SERVER.deleteServerConfig);
   removeRouterListeners(ipcRouters.SERVER.resetAllConfig);
   removeRouterListeners(ipcRouters.SERVER.importTomlConfig);
   removeRouterListeners(ipcRouters.SERVER.exportConfig);
@@ -625,204 +729,298 @@ onUnmounted(() => {
       </el-button>
     </breadcrumb>
     <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
-      <div class="p-4 w-full bg-white rounded drop-shadow-lg">
-        <el-form
-          ref="formRef"
-          :model="formData"
-          :rules="rules"
-          label-position="right"
-          label-width="150"
-        >
-          <el-row :gutter="10">
-            <el-col :span="24">
-              <div class="flex justify-between h2">
-                <div>{{ t("config.title.versionSelection") }}</div>
+      <div class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div class="p-4 w-full bg-white rounded drop-shadow-lg">
+          <div class="flex justify-between items-center mb-4">
+            <div class="font-bold text-primary">
+              {{ t("config.server.listTitle") }}
+            </div>
+            <el-button
+              plain
+              type="primary"
+              size="small"
+              @click="handleCreateServer"
+            >
+              <IconifyIconOffline icon="add" />
+              {{ t("config.server.add") }}
+            </el-button>
+          </div>
+          <div class="flex flex-col gap-3">
+            <div
+              v-if="creatingServer"
+              class="p-3 rounded border border-[#5A3DAA] bg-[#F7F4FF]"
+            >
+              <div class="font-bold text-primary">
+                {{ t("config.server.creating") }}
               </div>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.frpcVerson.label')"
-                prop="frpcVersion"
-              >
-                <el-select
-                  v-model="formData.frpcVersion"
-                  class="w-full"
-                  clearable
-                >
-                  <el-option
-                    v-for="v in frpcDesktopStore.downloadedVersions"
-                    :key="v.githubReleaseId"
-                    :label="v.name"
-                    :value="v.githubReleaseId"
-                  />
-                </el-select>
-                <div class="flex justify-end w-full">
-                  <el-link
-                    type="primary"
-                    @click="frpcDesktopStore.refreshDownloadedVersion()"
-                  >
-                    <iconify-icon-offline class="mr-1" icon="refresh-rounded" />
-                    {{ t("config.button.manualRefresh") }}
-                  </el-link>
-                  <el-link
-                    class="ml-2"
-                    type="primary"
-                    @click="$router.replace({ name: 'Download' })"
-                  >
-                    <IconifyIconOffline class="mr-1" icon="download" />
-                    {{ t("config.button.goToDownload") }}
-                  </el-link>
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <div class="flex justify-between h2">
-                <div>{{ t("config.title.serverConfiguration") }}</div>
-                <div class="flex justify-center items-center">
-                  <IconifyIconOffline
-                    class="mr-2 text-xl font-bold cursor-pointer"
-                    icon="content-copy"
-                    @click="handleCopyServerConfig2Base64"
-                  />
-                  <IconifyIconOffline
-                    class="mr-2 text-xl font-bold cursor-pointer"
-                    icon="content-paste-go"
-                    @click="handlePasteServerConfig4Base64"
-                  />
-                </div>
+              <div class="mt-1 text-xs text-gray-500">
+                {{ t("config.server.creatingTips") }}
               </div>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.serverAddr.label')"
-                prop="serverAddr"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" trigger="hover" width="300">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.serverAddr.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
+            </div>
+            <div
+              v-for="server in serverConfigs"
+              :key="server._id"
+              class="p-3 rounded border cursor-pointer transition-colors"
+              :class="
+                selectedServerId === server._id && !creatingServer
+                  ? 'border-[#5A3DAA] bg-[#F7F4FF]'
+                  : 'border-gray-200 bg-white hover:border-[#5A3DAA]/50'
+              "
+              @click="selectServer(server)"
+            >
+              <div class="flex gap-2 justify-between items-start min-w-0">
+                <div class="min-w-0">
+                  <div class="flex gap-2 items-center min-w-0">
+                    <span class="font-bold truncate">{{ server.name }}</span>
+                    <el-tag v-if="server.isDefault" size="small">
+                      {{ t("config.server.defaultTag") }}
+                    </el-tag>
                   </div>
-                  {{ t("config.form.serverAddr.label") }}
-                </template>
-                <el-input
-                  v-model="formData.serverAddr"
-                  placeholder="127.0.0.1"
-                ></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.serverPort.label')"
-                prop="serverPort"
-              >
-                <el-input-number
-                  v-model="formData.serverPort"
-                  placeholder="7000"
-                  :min="0"
-                  :max="65535"
-                  controls-position="right"
-                  class="!w-full"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.authMethod.label')"
-                prop="auth.method"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:
-                        <span class="font-black text-[#5A3DAA]"
-                          >auth.method</span
-                        >
-                      </template>
-                      <template #reference>
-                        <!--                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
+                  <div class="mt-1 text-xs text-gray-500 break-all">
+                    {{ server.serverAddr || "-" }}:{{
+                      server.serverPort || "-"
+                    }}
                   </div>
-                  {{ t("config.form.authMethod.label") }}
-                </template>
-                <el-select
-                  v-model="formData.auth.method"
-                  :placeholder="t('config.form.authMethod.requireMessage')"
-                  clearable
+                  <div
+                    v-if="server.remark"
+                    class="mt-1 text-xs leading-5 text-gray-500 break-all"
+                  >
+                    {{ server.remark }}
+                  </div>
+                </div>
+                <el-button
+                  v-if="!server.isDefault"
+                  link
+                  type="danger"
+                  size="small"
+                  @click.stop="handleDeleteServer(server)"
                 >
-                  <el-option
-                    :label="t('config.form.authMethod.none')"
-                    value="none"
-                  ></el-option>
-                  <el-option
-                    :label="t('config.form.authMethod.token')"
-                    value="token"
-                  ></el-option>
-                  <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col v-if="formData.auth.method === 'token'" :span="24">
-              <el-form-item
-                :label="t('config.form.authToken.label')"
-                prop="authToken"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" trigger="hover" width="300">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >auth.token</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
+                  <IconifyIconOffline icon="delete-rounded" />
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-4 min-w-0 w-full bg-white rounded drop-shadow-lg">
+          <el-form
+            ref="formRef"
+            :model="formData"
+            :rules="rules"
+            label-position="right"
+            label-width="150"
+          >
+            <el-row :gutter="10">
+              <el-col :span="24">
+                <div class="flex justify-between h2">
+                  <div>{{ t("config.title.versionSelection") }}</div>
+                </div>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.serverName.label')"
+                  prop="name"
+                >
+                  <el-input
+                    v-model="formData.name"
+                    :placeholder="t('config.form.serverName.placeholder')"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item :label="t('config.form.serverRemark.label')">
+                  <el-input
+                    v-model="formData.remark"
+                    :placeholder="t('config.form.serverRemark.placeholder')"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('config.form.frpcVerson.label')"
+                  prop="frpcVersion"
+                >
+                  <el-select
+                    v-model="formData.frpcVersion"
+                    class="w-full"
+                    clearable
+                  >
+                    <el-option
+                      v-for="v in frpcDesktopStore.downloadedVersions"
+                      :key="v.githubReleaseId"
+                      :label="v.name"
+                      :value="v.githubReleaseId"
+                    />
+                  </el-select>
+                  <div class="flex justify-end w-full">
+                    <el-link
+                      type="primary"
+                      @click="frpcDesktopStore.refreshDownloadedVersion()"
+                    >
+                      <iconify-icon-offline
+                        class="mr-1"
+                        icon="refresh-rounded"
+                      />
+                      {{ t("config.button.manualRefresh") }}
+                    </el-link>
+                    <el-link
+                      class="ml-2"
+                      type="primary"
+                      @click="$router.replace({ name: 'Download' })"
+                    >
+                      <IconifyIconOffline class="mr-1" icon="download" />
+                      {{ t("config.button.goToDownload") }}
+                    </el-link>
                   </div>
-                  {{ t("config.form.authToken.label") }}
-                </template>
-                <el-input
-                  v-model="formData.auth.token"
-                  placeholder="token"
-                  type="password"
-                  :show-password="true"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.multiuser.label')"
-                prop="multiuser"
-              >
-                <!--
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <div class="flex justify-between h2">
+                  <div>{{ t("config.title.serverConfiguration") }}</div>
+                  <div class="flex justify-center items-center">
+                    <IconifyIconOffline
+                      class="mr-2 text-xl font-bold cursor-pointer"
+                      icon="content-copy"
+                      @click="handleCopyServerConfig2Base64"
+                    />
+                    <IconifyIconOffline
+                      class="mr-2 text-xl font-bold cursor-pointer"
+                      icon="content-paste-go"
+                      @click="handlePasteServerConfig4Base64"
+                    />
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('config.form.serverAddr.label')"
+                  prop="serverAddr"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" trigger="hover" width="300">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.serverAddr.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.serverAddr.label") }}
+                  </template>
+                  <el-input
+                    v-model="formData.serverAddr"
+                    placeholder="127.0.0.1"
+                  ></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.serverPort.label')"
+                  prop="serverPort"
+                >
+                  <el-input-number
+                    v-model="formData.serverPort"
+                    placeholder="7000"
+                    :min="0"
+                    :max="65535"
+                    controls-position="right"
+                    class="!w-full"
+                  ></el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.authMethod.label')"
+                  prop="auth.method"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          {{ t("config.popover.frpParameter") }}:
+                          <span class="font-black text-[#5A3DAA]"
+                            >auth.method</span
+                          >
+                        </template>
+                        <template #reference>
+                          <!--                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.authMethod.label") }}
+                  </template>
+                  <el-select
+                    v-model="formData.auth.method"
+                    :placeholder="t('config.form.authMethod.requireMessage')"
+                    clearable
+                  >
+                    <el-option
+                      :label="t('config.form.authMethod.none')"
+                      value="none"
+                    ></el-option>
+                    <el-option
+                      :label="t('config.form.authMethod.token')"
+                      value="token"
+                    ></el-option>
+                    <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col v-if="formData.auth.method === 'token'" :span="24">
+                <el-form-item
+                  :label="t('config.form.authToken.label')"
+                  prop="authToken"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" trigger="hover" width="300">
+                        <template #default>
+                          {{ t("config.popover.frpParameter") }}:<span
+                            class="font-black text-[#5A3DAA]"
+                            >auth.token</span
+                          >
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.authToken.label") }}
+                  </template>
+                  <el-input
+                    v-model="formData.auth.token"
+                    placeholder="token"
+                    type="password"
+                    :show-password="true"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('config.form.multiuser.label')"
+                  prop="multiuser"
+                >
+                  <!--
                 <template #label>
                   <div class="flex items-center mr-1 h-full">
                     <el-popover placement="top" trigger="hover">
@@ -839,460 +1037,127 @@ onUnmounted(() => {
                   {{ t("config.form.multiuser.label") }}
                 </template>
                 -->
-                <el-switch
-                  v-model="formData.multiuser"
-                  :active-text="t('common.yes')"
-                  :inactive-text="t('common.no')"
-                  inline-prompt
-                  @change="handleMultiuserChange"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col v-if="formData.multiuser" :span="12">
-              <el-form-item :label="t('config.form.user.label')" prop="user">
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" trigger="hover" width="300">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >user</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.user.label") }}
-                </template>
-                <el-input
-                  v-model="formData.user"
-                  :placeholder="t('config.form.user.placeholder')"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col v-if="formData.multiuser" :span="12">
-              <el-form-item
-                :label="t('config.form.metadatasToken.label')"
-                prop="metadatas.token"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >metadatas.token</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.metadatasToken.label") }}
-                </template>
-                <el-input
-                  v-model="formData.metadatas.token"
-                  :placeholder="t('config.form.metadatasToken.placeholder')"
-                  type="password"
-                  :show-password="true"
-                />
-              </el-form-item>
-            </el-col>
-            <!-- <el-col :span="24">
+                  <el-switch
+                    v-model="formData.multiuser"
+                    :active-text="t('common.yes')"
+                    :inactive-text="t('common.no')"
+                    inline-prompt
+                    @change="handleMultiuserChange"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col v-if="formData.multiuser" :span="12">
+                <el-form-item :label="t('config.form.user.label')" prop="user">
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" trigger="hover" width="300">
+                        <template #default>
+                          {{ t("config.popover.frpParameter") }}:<span
+                            class="font-black text-[#5A3DAA]"
+                            >user</span
+                          >
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.user.label") }}
+                  </template>
+                  <el-input
+                    v-model="formData.user"
+                    :placeholder="t('config.form.user.placeholder')"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col v-if="formData.multiuser" :span="12">
+                <el-form-item
+                  :label="t('config.form.metadatasToken.label')"
+                  prop="metadatas.token"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          {{ t("config.popover.frpParameter") }}:<span
+                            class="font-black text-[#5A3DAA]"
+                            >metadatas.token</span
+                          >
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.metadatasToken.label") }}
+                  </template>
+                  <el-input
+                    v-model="formData.metadatas.token"
+                    :placeholder="t('config.form.metadatasToken.placeholder')"
+                    type="password"
+                    :show-password="true"
+                  />
+                </el-form-item>
+              </el-col>
+              <!-- <el-col :span="24">
               <div class="h2">TLS Config</div>
             </el-col> -->
 
-            <el-col :span="24">
-              <div class="h2">
-                {{ t("config.title.transportConfiguration") }}
-              </div>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportProtocol.label')"
-                prop="transport.protocol"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportProtocol.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportProtocol.label") }}
-                </template>
-                <el-select v-model="formData.transport.protocol">
-                  <el-option label="tcp" value="tcp" />
-                  <el-option label="kcp" value="kcp" />
-                  <el-option label="quic" value="quic" />
-                  <el-option label="websocket" value="websocket" />
-                  <el-option label="wss" value="wss" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportPoolCount.label')"
-                prop="transport.poolCount"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.poolCount</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportPoolCount.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.poolCount"
-                  class="w-full"
-                  controls-position="right"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportHeartbeatInterval.label')"
-                prop="transport.heartbeatInterval"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportHeartbeatInterval.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        />
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportHeartbeatInterval.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.heartbeatInterval"
-                  class="w-full"
-                  :min="1"
-                  :max="600"
-                  controls-position="right"
-                />
-                <!--                <el-input-->
-                <!--                    placeholder="请输入心跳间隔"-->
-                <!--                    type="number"-->
-                <!--                    :min="0"-->
-                <!--                    v-model="formData.heartbeatInterval"-->
-                <!--                >-->
-                <!--                  <template #append>秒</template>-->
-                <!--                </el-input>-->
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportHeartbeatTimeout.label')"
-                prop="transport.heartbeatTimeout"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportHeartbeatTimeout.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        />
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportHeartbeatTimeout.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.heartbeatTimeout"
-                  class="w-full"
-                  :min="1"
-                  :max="600"
-                  controls-position="right"
-                />
-                <!--                <el-input-->
-                <!--                    placeholder="请输入心跳超时时间"-->
-                <!--                    :min="0"-->
-                <!--                    type="number"-->
-                <!--                    v-model="formData.heartbeatTimeout"-->
-                <!--                >-->
-                <!--                  <template #append>秒</template>-->
-                <!--                </el-input>-->
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportDialServerTimeout.label')"
-                prop="transport.dialServerTimeout"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportDialServerTimeout.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportDialServerTimeout.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.dialServerTimeout"
-                  class="w-full"
-                  controls-position="right"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportDialServerKeepalive.label')"
-                prop="transport.dialServerKeepalive"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportDialServerKeepalive.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportDialServerKeepalive.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.dialServerKeepalive"
-                  class="w-full"
-                  controls-position="right"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.transportTcpMux.label')"
-                prop="transport.tcpMux"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.transportTcpMux.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportTcpMux.label") }}
-                </template>
-                <el-switch
-                  v-model="formData.transport.tcpMux"
-                  :active-text="t('common.yes')"
-                  inline-prompt
-                  :inactive-text="t('common.no')"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col v-if="formData.transport.tcpMux" :span="12">
-              <el-form-item
-                :label="t('config.form.transportTcpMuxKeepaliveInterval.label')"
-                prop="transport.tcpMuxKeepaliveInterval"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t(
-                              'config.form.transportTcpMuxKeepaliveInterval.tips',
-                              {
+              <el-col :span="24">
+                <div class="h2">
+                  {{ t("config.title.transportConfiguration") }}
+                </div>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportProtocol.label')"
+                  prop="transport.protocol"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.transportProtocol.tips', {
                                 frpParameter: t('config.popover.frpParameter')
-                              }
-                            )
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportTcpMuxKeepaliveInterval.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.transport.tcpMuxKeepaliveInterval"
-                  class="w-full"
-                  controls-position="right"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <!--            <el-col :span="24">-->
-            <!--              <el-form-item label="启用代理：" prop="proxyConfigEnable">-->
-            <!--                <el-switch-->
-            <!--                  active-text="开"-->
-            <!--                  inline-prompt-->
-            <!--                  inactive-text="关"-->
-            <!--                  v-model="formData.proxyConfigEnable"-->
-            <!--                />-->
-            <!--              </el-form-item>-->
-            <!--            </el-col>-->
-            <!--            <template v-if="formData.proxyConfigEnable">-->
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.transportProxyURL.label')"
-                prop="transport.proxyURL"
-                label-width="180"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
-                          >transport.proxyURL</span
-                        >
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.transportProxyURL.label") }}
-                </template>
-                <el-input
-                  v-model="formData.transport.proxyURL"
-                  placeholder="http://user:pwd@192.168.1.128:8080"
-                />
-              </el-form-item>
-            </el-col>
-            <!--            </template>-->
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.tlsEnable.label')"
-                prop="transport.tls.enable"
-                label-width="180"
-              >
-                <el-switch
-                  v-model="formData.transport.tls.enable"
-                  :active-text="t('common.yes')"
-                  :inactive-text="t('common.no')"
-                  inline-prompt
-                />
-              </el-form-item>
-            </el-col>
-            <template v-if="formData.transport.tls.enable">
-              <el-col :span="24">
+                              })
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportProtocol.label") }}
+                  </template>
+                  <el-select v-model="formData.transport.protocol">
+                    <el-option label="tcp" value="tcp" />
+                    <el-option label="kcp" value="kcp" />
+                    <el-option label="quic" value="quic" />
+                    <el-option label="websocket" value="websocket" />
+                    <el-option label="wss" value="wss" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
                 <el-form-item
-                  :label="t('config.form.tlsCertFile.label')"
-                  prop="tlsConfigCertFile"
+                  :label="t('config.form.transportPoolCount.label')"
+                  prop="transport.poolCount"
                   label-width="180"
                 >
                   <template #label>
@@ -1301,7 +1166,7 @@ onUnmounted(() => {
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
                             class="font-black text-[#5A3DAA]"
-                            >transport.tls.certFile</span
+                            >transport.poolCount</span
                           >
                         </template>
                         <template #reference>
@@ -1313,35 +1178,278 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    {{ t("config.form.tlsCertFile.label") }}
+                    {{ t("config.form.transportPoolCount.label") }}
                   </template>
-                  <el-input
-                    v-model="formData.transport.tls.certFile"
-                    class="button-input !cursor-pointer"
-                    :placeholder="t('config.form.tlsCertFile.placeholder')"
-                    readonly
-                    clearable
-                    @click="handleSelectFile(1, ['crt'])"
-                  />
-                  <!--                  <el-button-->
-                  <!--                    class="ml-2"-->
-                  <!--                    type="primary"-->
-                  <!--                    @click="handleSelectFile(1, ['crt'])"-->
-                  <!--                    >选择-->
-                  <!--                  </el-button>-->
-                  <el-button
-                    v-if="formData.transport.tls.certFile"
-                    class="ml-2"
-                    type="danger"
-                    @click="formData.transport.tls.certFile = ''"
-                    >{{ t("config.button.clear") }}
-                  </el-button>
+                  <el-input-number
+                    v-model="formData.transport.poolCount"
+                    class="w-full"
+                    controls-position="right"
+                  ></el-input-number>
                 </el-form-item>
               </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportHeartbeatInterval.label')"
+                  prop="transport.heartbeatInterval"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.transportHeartbeatInterval.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          />
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportHeartbeatInterval.label") }}
+                  </template>
+                  <el-input-number
+                    v-model="formData.transport.heartbeatInterval"
+                    class="w-full"
+                    :min="1"
+                    :max="600"
+                    controls-position="right"
+                  />
+                  <!--                <el-input-->
+                  <!--                    placeholder="请输入心跳间隔"-->
+                  <!--                    type="number"-->
+                  <!--                    :min="0"-->
+                  <!--                    v-model="formData.heartbeatInterval"-->
+                  <!--                >-->
+                  <!--                  <template #append>秒</template>-->
+                  <!--                </el-input>-->
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportHeartbeatTimeout.label')"
+                  prop="transport.heartbeatTimeout"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.transportHeartbeatTimeout.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          />
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportHeartbeatTimeout.label") }}
+                  </template>
+                  <el-input-number
+                    v-model="formData.transport.heartbeatTimeout"
+                    class="w-full"
+                    :min="1"
+                    :max="600"
+                    controls-position="right"
+                  />
+                  <!--                <el-input-->
+                  <!--                    placeholder="请输入心跳超时时间"-->
+                  <!--                    :min="0"-->
+                  <!--                    type="number"-->
+                  <!--                    v-model="formData.heartbeatTimeout"-->
+                  <!--                >-->
+                  <!--                  <template #append>秒</template>-->
+                  <!--                </el-input>-->
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportDialServerTimeout.label')"
+                  prop="transport.dialServerTimeout"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.transportDialServerTimeout.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportDialServerTimeout.label") }}
+                  </template>
+                  <el-input-number
+                    v-model="formData.transport.dialServerTimeout"
+                    class="w-full"
+                    controls-position="right"
+                  ></el-input-number>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportDialServerKeepalive.label')"
+                  prop="transport.dialServerKeepalive"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t(
+                                'config.form.transportDialServerKeepalive.tips',
+                                {
+                                  frpParameter: t('config.popover.frpParameter')
+                                }
+                              )
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportDialServerKeepalive.label") }}
+                  </template>
+                  <el-input-number
+                    v-model="formData.transport.dialServerKeepalive"
+                    class="w-full"
+                    controls-position="right"
+                  ></el-input-number>
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.transportTcpMux.label')"
+                  prop="transport.tcpMux"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.transportTcpMux.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.transportTcpMux.label") }}
+                  </template>
+                  <el-switch
+                    v-model="formData.transport.tcpMux"
+                    :active-text="t('common.yes')"
+                    inline-prompt
+                    :inactive-text="t('common.no')"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col v-if="formData.transport.tcpMux" :span="12">
+                <el-form-item
+                  :label="
+                    t('config.form.transportTcpMuxKeepaliveInterval.label')
+                  "
+                  prop="transport.tcpMuxKeepaliveInterval"
+                  label-width="180"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover width="300" placement="top" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t(
+                                'config.form.transportTcpMuxKeepaliveInterval.tips',
+                                {
+                                  frpParameter: t('config.popover.frpParameter')
+                                }
+                              )
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{
+                      t("config.form.transportTcpMuxKeepaliveInterval.label")
+                    }}
+                  </template>
+                  <el-input-number
+                    v-model="formData.transport.tcpMuxKeepaliveInterval"
+                    class="w-full"
+                    controls-position="right"
+                  ></el-input-number>
+                </el-form-item>
+              </el-col>
+              <!--            <el-col :span="24">-->
+              <!--              <el-form-item label="启用代理：" prop="proxyConfigEnable">-->
+              <!--                <el-switch-->
+              <!--                  active-text="开"-->
+              <!--                  inline-prompt-->
+              <!--                  inactive-text="关"-->
+              <!--                  v-model="formData.proxyConfigEnable"-->
+              <!--                />-->
+              <!--              </el-form-item>-->
+              <!--            </el-col>-->
+              <!--            <template v-if="formData.proxyConfigEnable">-->
               <el-col :span="24">
                 <el-form-item
-                  :label="t('config.form.tlsKeyFile.label')"
-                  prop="transport.tls.keyFile"
+                  :label="t('config.form.transportProxyURL.label')"
+                  prop="transport.proxyURL"
                   label-width="180"
                 >
                   <template #label>
@@ -1350,7 +1458,7 @@ onUnmounted(() => {
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
                             class="font-black text-[#5A3DAA]"
-                            >transport.tls.keyFile</span
+                            >transport.proxyURL</span
                           >
                         </template>
                         <template #reference>
@@ -1362,44 +1470,261 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    {{ t("config.form.tlsKeyFile.label") }}
+                    {{ t("config.form.transportProxyURL.label") }}
                   </template>
                   <el-input
-                    v-model="formData.transport.tls.keyFile"
-                    class="button-input"
-                    :placeholder="t('config.form.tlsKeyFile.placeholder')"
-                    readonly
-                    @click="handleSelectFile(2, ['key'])"
+                    v-model="formData.transport.proxyURL"
+                    placeholder="http://user:pwd@192.168.1.128:8080"
                   />
-                  <!--                  <el-button-->
-                  <!--                    class="ml-2"-->
-                  <!--                    type="primary"-->
-                  <!--                    @click="handleSelectFile(2, ['key'])"-->
-                  <!--                    >选择-->
-                  <!--                  </el-button>-->
-                  <el-button
-                    v-if="formData.transport.tls.keyFile"
-                    class="ml-2"
-                    type="danger"
-                    @click="formData.transport.tls.keyFile = ''"
-                    >{{ t("config.button.clear") }}
-                  </el-button>
                 </el-form-item>
               </el-col>
+              <!--            </template>-->
               <el-col :span="24">
                 <el-form-item
-                  :label="t('config.form.caCertFile.label')"
-                  prop="transport.tls.trustedCaFile"
+                  :label="t('config.form.tlsEnable.label')"
+                  prop="transport.tls.enable"
                   label-width="180"
+                >
+                  <el-switch
+                    v-model="formData.transport.tls.enable"
+                    :active-text="t('common.yes')"
+                    :inactive-text="t('common.no')"
+                    inline-prompt
+                  />
+                </el-form-item>
+              </el-col>
+              <template v-if="formData.transport.tls.enable">
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('config.form.tlsCertFile.label')"
+                    prop="tlsConfigCertFile"
+                    label-width="180"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover width="300" placement="top" trigger="hover">
+                          <template #default>
+                            {{ t("config.popover.frpParameter") }}:<span
+                              class="font-black text-[#5A3DAA]"
+                              >transport.tls.certFile</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.tlsCertFile.label") }}
+                    </template>
+                    <el-input
+                      v-model="formData.transport.tls.certFile"
+                      class="button-input !cursor-pointer"
+                      :placeholder="t('config.form.tlsCertFile.placeholder')"
+                      readonly
+                      clearable
+                      @click="handleSelectFile(1, ['crt'])"
+                    />
+                    <!--                  <el-button-->
+                    <!--                    class="ml-2"-->
+                    <!--                    type="primary"-->
+                    <!--                    @click="handleSelectFile(1, ['crt'])"-->
+                    <!--                    >选择-->
+                    <!--                  </el-button>-->
+                    <el-button
+                      v-if="formData.transport.tls.certFile"
+                      class="ml-2"
+                      type="danger"
+                      @click="formData.transport.tls.certFile = ''"
+                      >{{ t("config.button.clear") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('config.form.tlsKeyFile.label')"
+                    prop="transport.tls.keyFile"
+                    label-width="180"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover width="300" placement="top" trigger="hover">
+                          <template #default>
+                            {{ t("config.popover.frpParameter") }}:<span
+                              class="font-black text-[#5A3DAA]"
+                              >transport.tls.keyFile</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.tlsKeyFile.label") }}
+                    </template>
+                    <el-input
+                      v-model="formData.transport.tls.keyFile"
+                      class="button-input"
+                      :placeholder="t('config.form.tlsKeyFile.placeholder')"
+                      readonly
+                      @click="handleSelectFile(2, ['key'])"
+                    />
+                    <!--                  <el-button-->
+                    <!--                    class="ml-2"-->
+                    <!--                    type="primary"-->
+                    <!--                    @click="handleSelectFile(2, ['key'])"-->
+                    <!--                    >选择-->
+                    <!--                  </el-button>-->
+                    <el-button
+                      v-if="formData.transport.tls.keyFile"
+                      class="ml-2"
+                      type="danger"
+                      @click="formData.transport.tls.keyFile = ''"
+                      >{{ t("config.button.clear") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('config.form.caCertFile.label')"
+                    prop="transport.tls.trustedCaFile"
+                    label-width="180"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover width="300" placement="top" trigger="hover">
+                          <template #default>
+                            {{ t("config.popover.frpParameter") }}:<span
+                              class="font-black text-[#5A3DAA]"
+                              >transport.tls.trustedCaFile</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.caCertFile.label") }}
+                    </template>
+                    <el-input
+                      v-model="formData.transport.tls.trustedCaFile"
+                      class="button-input"
+                      :placeholder="t('config.form.caCertFile.placeholder')"
+                      readonly
+                      @click="handleSelectFile(3, ['crt'])"
+                    />
+                    <!--                  <el-button-->
+                    <!--                    class="ml-2"-->
+                    <!--                    type="primary"-->
+                    <!--                    @click="handleSelectFile(3, ['crt'])"-->
+                    <!--                    >选择-->
+                    <!--                  </el-button>-->
+                    <el-button
+                      v-if="formData.transport.tls.trustedCaFile"
+                      class="ml-2"
+                      type="danger"
+                      @click="formData.transport.tls.trustedCaFile = ''"
+                      >{{ t("config.button.clear") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('config.form.tlsServerName.label')"
+                    prop="tlsConfigServerName"
+                    label-width="180"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover width="300" placement="top" trigger="hover">
+                          <template #default>
+                            {{ t("config.popover.frpParameter") }}:<span
+                              class="font-black text-[#5A3DAA]"
+                              >transport.tls.serverName</span
+                            >
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.tlsServerName.label") }}
+                    </template>
+                    <el-input
+                      v-model="formData.transport.tls.serverName"
+                      :placeholder="t('config.form.tlsServerName.placeholder')"
+                      clearable
+                    />
+                  </el-form-item>
+                </el-col>
+              </template>
+
+              <el-col :span="24">
+                <div class="h2">{{ t("config.title.webInterface") }}</div>
+              </el-col>
+
+              <!--            <el-col :span="12">-->
+              <!--              <el-form-item label="启用Web界面：" prop="webEnable">-->
+              <!--                <template #label>-->
+              <!--                  <div class="flex items-center mr-1 h-full">-->
+              <!--                    <el-popover width="300" placement="top" trigger="hover">-->
+              <!--                      <template #reference>-->
+              <!--                        <IconifyIconOffline-->
+              <!--                          class="text-base"-->
+              <!--                          color="#5A3DAA"-->
+              <!--                          icon="info"-->
+              <!--                        />-->
+              <!--                      </template>-->
+              <!--                      热更新等功能依赖于web界面，<span-->
+              <!--                        class="font-black text-[#5A3DAA]"-->
+              <!--                        >不可停用Web</span-->
+              <!--                      >-->
+              <!--                    </el-popover>-->
+              <!--                  </div>-->
+              <!--                  启用Web：-->
+              <!--                </template>-->
+              <!--                <el-switch-->
+              <!--                  active-text="开"-->
+              <!--                  inline-prompt-->
+              <!--                  disabled-->
+              <!--                  inactive-text="关"-->
+              <!--                  v-model="formData.webServer."-->
+              <!--                />-->
+              <!--              </el-form-item>-->
+              <!--            </el-col>-->
+
+              <!--            <template v-if="formData.webEnable">-->
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.webServerPort.label')"
+                  prop="webPort"
                 >
                   <template #label>
                     <div class="flex items-center mr-1 h-full">
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
-                          {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
-                            >transport.tls.trustedCaFile</span
-                          >
+                          <div
+                            v-html="
+                              t('config.form.webServerPort.tips', {
+                                frpParameter: t('config.popover.frpParameter')
+                              })
+                            "
+                          ></div>
                         </template>
                         <template #reference>
                           <IconifyIconOffline
@@ -1410,294 +1735,177 @@ onUnmounted(() => {
                         </template>
                       </el-popover>
                     </div>
-                    {{ t("config.form.caCertFile.label") }}
+                    {{ t("config.form.webServerPort.label") }}
                   </template>
-                  <el-input
-                    v-model="formData.transport.tls.trustedCaFile"
-                    class="button-input"
-                    :placeholder="t('config.form.caCertFile.placeholder')"
-                    readonly
-                    @click="handleSelectFile(3, ['crt'])"
-                  />
-                  <!--                  <el-button-->
-                  <!--                    class="ml-2"-->
-                  <!--                    type="primary"-->
-                  <!--                    @click="handleSelectFile(3, ['crt'])"-->
-                  <!--                    >选择-->
-                  <!--                  </el-button>-->
-                  <el-button
-                    v-if="formData.transport.tls.trustedCaFile"
-                    class="ml-2"
-                    type="danger"
-                    @click="formData.transport.tls.trustedCaFile = ''"
-                    >{{ t("config.button.clear") }}
-                  </el-button>
+                  <el-input-number
+                    v-model="formData.webServer.port"
+                    placeholder="57400"
+                    :min="0"
+                    :max="65535"
+                    controls-position="right"
+                    class="w-full"
+                  ></el-input-number>
                 </el-form-item>
               </el-col>
+              <!--            </template>-->
+
               <el-col :span="24">
-                <el-form-item
-                  :label="t('config.form.tlsServerName.label')"
-                  prop="tlsConfigServerName"
-                  label-width="180"
-                >
-                  <template #label>
-                    <div class="flex items-center mr-1 h-full">
-                      <el-popover width="300" placement="top" trigger="hover">
-                        <template #default>
-                          {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
-                            >transport.tls.serverName</span
-                          >
-                        </template>
-                        <template #reference>
-                          <IconifyIconOffline
-                            class="text-base"
-                            color="#5A3DAA"
-                            icon="info"
-                          />
-                        </template>
-                      </el-popover>
-                    </div>
-                    {{ t("config.form.tlsServerName.label") }}
-                  </template>
-                  <el-input
-                    v-model="formData.transport.tls.serverName"
-                    :placeholder="t('config.form.tlsServerName.placeholder')"
-                    clearable
-                  />
-                </el-form-item>
+                <div class="h2">{{ t("config.title.logConfiguration") }}</div>
               </el-col>
-            </template>
-
-            <el-col :span="24">
-              <div class="h2">{{ t("config.title.webInterface") }}</div>
-            </el-col>
-
-            <!--            <el-col :span="12">-->
-            <!--              <el-form-item label="启用Web界面：" prop="webEnable">-->
-            <!--                <template #label>-->
-            <!--                  <div class="flex items-center mr-1 h-full">-->
-            <!--                    <el-popover width="300" placement="top" trigger="hover">-->
-            <!--                      <template #reference>-->
-            <!--                        <IconifyIconOffline-->
-            <!--                          class="text-base"-->
-            <!--                          color="#5A3DAA"-->
-            <!--                          icon="info"-->
-            <!--                        />-->
-            <!--                      </template>-->
-            <!--                      热更新等功能依赖于web界面，<span-->
-            <!--                        class="font-black text-[#5A3DAA]"-->
-            <!--                        >不可停用Web</span-->
-            <!--                      >-->
-            <!--                    </el-popover>-->
-            <!--                  </div>-->
-            <!--                  启用Web：-->
-            <!--                </template>-->
-            <!--                <el-switch-->
-            <!--                  active-text="开"-->
-            <!--                  inline-prompt-->
-            <!--                  disabled-->
-            <!--                  inactive-text="关"-->
-            <!--                  v-model="formData.webServer."-->
-            <!--                />-->
-            <!--              </el-form-item>-->
-            <!--            </el-col>-->
-
-            <!--            <template v-if="formData.webEnable">-->
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.webServerPort.label')"
-                prop="webPort"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover width="300" placement="top" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.webServerPort.tips', {
-                              frpParameter: t('config.popover.frpParameter')
-                            })
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.webServerPort.label") }}
-                </template>
-                <el-input-number
-                  v-model="formData.webServer.port"
-                  placeholder="57400"
-                  :min="0"
-                  :max="65535"
-                  controls-position="right"
-                  class="w-full"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <!--            </template>-->
-
-            <el-col :span="24">
-              <div class="h2">{{ t("config.title.logConfiguration") }}</div>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                class="!w-full"
-                :label="t('config.form.logLevel.label')"
-                prop="log.level"
-              >
-                <el-select v-model="formData.log.level">
-                  <el-option label="info" value="info" />
-                  <el-option label="debug" value="debug" />
-                  <el-option label="warn" value="warn" />
-                  <el-option label="error" value="error" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item
-                :label="t('config.form.logMaxDays.label')"
-                prop="log.maxDays"
-              >
-                <el-input-number
-                  v-model="formData.log.maxDays"
+              <el-col :span="12">
+                <el-form-item
                   class="!w-full"
-                  controls-position="right"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <div class="h2">{{ t("config.title.systemConfiguration") }}</div>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item
-                :label="t('config.form.systemLaunchAtStartup.label')"
-                prop="system.launchAtStartup"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" width="300" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="t('config.form.systemLaunchAtStartup.tips')"
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.systemLaunchAtStartup.label") }}
-                </template>
-                <el-switch
-                  v-model="formData.system.launchAtStartup"
-                  :active-text="t('common.yes')"
-                  :inactive-text="t('common.no')"
-                  inline-prompt
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item
-                :label="t('config.form.systemSilentStartup.label')"
-                prop="system.silentStartup"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" width="300" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="t('config.form.systemSilentStartup.tips')"
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.systemSilentStartup.label") }}
-                </template>
-                <el-switch
-                  v-model="formData.system.silentStartup"
-                  :active-text="t('common.yes')"
-                  :inactive-text="t('common.no')"
-                  inline-prompt
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item
-                :label="t('config.form.systemAutoConnectOnStartup.label')"
-                prop="system.autoConnectOnStartup"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" width="300" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="
-                            t('config.form.systemAutoConnectOnStartup.tips')
-                          "
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="#5A3DAA"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.systemAutoConnectOnStartup.label") }}
-                </template>
-                <el-switch
-                  v-model="formData.system.autoConnectOnStartup"
-                  :active-text="t('common.yes')"
-                  :inactive-text="t('common.no')"
-                  inline-prompt
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.systemLanguage.label')"
-                prop="system.language"
-              >
-                <el-select
-                  v-model="formData.system.language"
-                  @change="handleSystemLanguageChange"
+                  :label="t('config.form.logLevel.label')"
+                  prop="log.level"
                 >
-                  <el-option label="中文" value="zh-CN" />
-                  <el-option label="English" value="en-US" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <!--            <el-col :span="24">-->
-            <!--              <el-form-item>-->
-            <!--                <el-button plain type="primary" @click="handleSubmit">-->
-            <!--                  <IconifyIconOffline icon="save" />-->
-            <!--                  保 存-->
-            <!--                </el-button>-->
-            <!--              </el-form-item>-->
-            <!--            </el-col>-->
-          </el-row>
-        </el-form>
+                  <el-select v-model="formData.log.level">
+                    <el-option label="info" value="info" />
+                    <el-option label="debug" value="debug" />
+                    <el-option label="warn" value="warn" />
+                    <el-option label="error" value="error" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
+                  :label="t('config.form.logMaxDays.label')"
+                  prop="log.maxDays"
+                >
+                  <el-input-number
+                    v-model="formData.log.maxDays"
+                    class="!w-full"
+                    controls-position="right"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <div class="h2">
+                  {{ t("config.title.systemConfiguration") }}
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item
+                  :label="t('config.form.systemLaunchAtStartup.label')"
+                  prop="system.launchAtStartup"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" width="300" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="t('config.form.systemLaunchAtStartup.tips')"
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.systemLaunchAtStartup.label") }}
+                  </template>
+                  <el-switch
+                    v-model="formData.system.launchAtStartup"
+                    :active-text="t('common.yes')"
+                    :inactive-text="t('common.no')"
+                    inline-prompt
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item
+                  :label="t('config.form.systemSilentStartup.label')"
+                  prop="system.silentStartup"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" width="300" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="t('config.form.systemSilentStartup.tips')"
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.systemSilentStartup.label") }}
+                  </template>
+                  <el-switch
+                    v-model="formData.system.silentStartup"
+                    :active-text="t('common.yes')"
+                    :inactive-text="t('common.no')"
+                    inline-prompt
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item
+                  :label="t('config.form.systemAutoConnectOnStartup.label')"
+                  prop="system.autoConnectOnStartup"
+                >
+                  <template #label>
+                    <div class="flex items-center mr-1 h-full">
+                      <el-popover placement="top" width="300" trigger="hover">
+                        <template #default>
+                          <div
+                            v-html="
+                              t('config.form.systemAutoConnectOnStartup.tips')
+                            "
+                          ></div>
+                        </template>
+                        <template #reference>
+                          <IconifyIconOffline
+                            class="text-base"
+                            color="#5A3DAA"
+                            icon="info"
+                          />
+                        </template>
+                      </el-popover>
+                    </div>
+                    {{ t("config.form.systemAutoConnectOnStartup.label") }}
+                  </template>
+                  <el-switch
+                    v-model="formData.system.autoConnectOnStartup"
+                    :active-text="t('common.yes')"
+                    :inactive-text="t('common.no')"
+                    inline-prompt
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('config.form.systemLanguage.label')"
+                  prop="system.language"
+                >
+                  <el-select
+                    v-model="formData.system.language"
+                    @change="handleSystemLanguageChange"
+                  >
+                    <el-option label="中文" value="zh-CN" />
+                    <el-option label="English" value="en-US" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <!--            <el-col :span="24">-->
+              <!--              <el-form-item>-->
+              <!--                <el-button plain type="primary" @click="handleSubmit">-->
+              <!--                  <IconifyIconOffline icon="save" />-->
+              <!--                  保 存-->
+              <!--                </el-button>-->
+              <!--              </el-form-item>-->
+              <!--            </el-col>-->
+            </el-row>
+          </el-form>
+        </div>
       </div>
     </div>
     <!--  链接导入服务器  -->

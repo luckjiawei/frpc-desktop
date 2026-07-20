@@ -23,17 +23,20 @@ defineComponent({
 });
 
 const { t } = useI18n();
+const defaultServerId = "1";
 
 const hostPattern =
   /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
 
 const proxys = ref<Array<FrpcProxy>>([]);
+const serverConfigs = ref<Array<OpenSourceFrpcDesktopServer>>([]);
 const searchKeyword = ref("");
 const viewMode = ref<"card" | "list">("card");
 const filteredProxys = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase();
   if (!kw) return proxys.value;
   return proxys.value.filter(p => {
+    const server = getProxyServer(p);
     const domains = [...(p.customDomains ?? []), p.subdomain ?? ""]
       .join(" ")
       .toLowerCase();
@@ -43,7 +46,10 @@ const filteredProxys = computed(() => {
       (p.localIP ?? "").toLowerCase().includes(kw) ||
       String(p.localPort ?? "").includes(kw) ||
       String(p.remotePort ?? "").includes(kw) ||
-      domains.includes(kw)
+      domains.includes(kw) ||
+      (server?.name ?? "").toLowerCase().includes(kw) ||
+      (server?.remark ?? "").toLowerCase().includes(kw) ||
+      (server?.serverAddr ?? "").toLowerCase().includes(kw)
     );
   });
 });
@@ -64,6 +70,7 @@ const edit = ref({
 
 const defaultForm: FrpcProxy = {
   _id: "",
+  serverId: defaultServerId,
   hostHeaderRewrite: "",
   locations: [""],
   name: "",
@@ -131,6 +138,13 @@ const editFormRules = reactive<FormRules>({
       required: true,
       message: t("proxy.form.formItem.type.requireMessage"),
       trigger: "blur"
+    }
+  ],
+  serverId: [
+    {
+      required: true,
+      message: t("proxy.form.formItem.server.requireMessage"),
+      trigger: "change"
     }
   ],
   localIP: [
@@ -296,7 +310,17 @@ const isStcpVisitors = computed(() => {
   );
 });
 
-const frpcConfig = ref<FrpConfig>();
+const getProxyServer = (proxy: FrpcProxy) => {
+  const serverId = proxy.serverId || defaultServerId;
+  return (
+    serverConfigs.value.find(server => server._id === serverId) ||
+    serverConfigs.value.find(server => server._id === defaultServerId)
+  );
+};
+
+const getProxyServerLabel = (proxy: FrpcProxy) => {
+  return getProxyServer(proxy)?.name || "-";
+};
 
 const handleGetPortCount = (portString: string) => {
   let count = 0;
@@ -362,8 +386,9 @@ const getProxyLocalAddress = (proxy: FrpcProxy) => {
 };
 
 const getProxyMappingAddress = (proxy: FrpcProxy) => {
+  const serverAddr = getProxyServer(proxy)?.serverAddr ?? "";
   if (proxy.type === "tcp" || proxy.type === "udp") {
-    return `${frpcConfig.value?.serverAddr ?? ""}:${proxy.remotePort}`;
+    return `${serverAddr}:${proxy.remotePort}`;
   }
   if (
     (proxy.type === "http" || proxy.type === "https") &&
@@ -449,7 +474,7 @@ const handleLoadProxies = () => {
 };
 
 const handleLoadFrpcConfig = () => {
-  send(ipcRouters.SERVER.getServerConfig);
+  send(ipcRouters.SERVER.getServerConfigs);
 };
 
 const handleDeleteProxy = (proxy: FrpcProxy) => {
@@ -459,9 +484,11 @@ const handleDeleteProxy = (proxy: FrpcProxy) => {
 
 const handleResetForm = () => {
   editForm.value = _.cloneDeep(defaultForm);
+  editForm.value.serverId = serverConfigs.value[0]?._id || defaultServerId;
 };
 
 const handleOpenInsert = () => {
+  handleResetForm();
   edit.value = {
     title: t("proxy.createTitle"),
     visible: true
@@ -628,9 +655,10 @@ onMounted(() => {
   handleLoadProxies();
   handleLoadFrpcConfig();
 
-  on(ipcRouters.SERVER.getServerConfig, data => {
-    if (data) {
-      frpcConfig.value = data;
+  on(ipcRouters.SERVER.getServerConfigs, data => {
+    serverConfigs.value = data || [];
+    if (!editForm.value.serverId) {
+      editForm.value.serverId = serverConfigs.value[0]?._id || defaultServerId;
     }
   });
 
@@ -719,6 +747,7 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.PROXY.getAllProxies);
   removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
   removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
+  removeRouterListeners(ipcRouters.SERVER.getServerConfigs);
   removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
 });
 </script>
@@ -775,6 +804,9 @@ onUnmounted(() => {
                 </div>
                 <div class="mb-1">
                   <el-tag size="small">{{ proxy.type }}</el-tag>
+                  <el-tag class="ml-2" size="small" type="success">
+                    {{ getProxyServerLabel(proxy) }}
+                  </el-tag>
                   <el-tag
                     v-if="
                       (proxy.type === 'stcp' ||
@@ -853,13 +885,9 @@ onUnmounted(() => {
                     <span>{{ t("proxy.mappingAddress") }}：</span>
                     <span
                       class="font-bold underline cursor-pointer text-primary"
-                      @click="
-                        handleCopyString(
-                          `${frpcConfig?.serverAddr}:${proxy.remotePort}`
-                        )
-                      "
+                      @click="handleCopyMappingAddress(proxy)"
                     >
-                      {{ frpcConfig?.serverAddr }}:{{ proxy.remotePort }}
+                      {{ getProxyMappingAddress(proxy) }}
                     </span>
                   </div>
                   <div
@@ -1007,6 +1035,14 @@ onUnmounted(() => {
               <el-tag size="small">{{ scope.row.type }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column
+            :label="t('proxy.form.formItem.server.label')"
+            min-width="150"
+          >
+            <template #default="scope">
+              <span>{{ getProxyServerLabel(scope.row) }}</span>
+            </template>
+          </el-table-column>
           <el-table-column :label="t('common.mode')" width="120">
             <template #default="scope">
               <span>{{ getProxyModeLabel(scope.row) || "-" }}</span>
@@ -1143,6 +1179,37 @@ onUnmounted(() => {
                   :value="p"
                 />
               </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item
+              :label="t('proxy.form.formItem.server.label')"
+              prop="serverId"
+            >
+              <el-select
+                v-model="editForm.serverId"
+                class="w-full"
+                :placeholder="t('proxy.form.formItem.server.placeholder')"
+              >
+                <el-option
+                  v-for="server in serverConfigs"
+                  :key="server._id"
+                  :label="`${server.name} (${server.serverAddr || '-'})`"
+                  :value="server._id"
+                >
+                  <div class="flex flex-col py-1 leading-5">
+                    <span>{{ server.name }}</span>
+                    <span class="text-xs text-gray-500">
+                      {{ server.serverAddr || "-" }}:{{
+                        server.serverPort || "-"
+                      }}
+                      <template v-if="server.remark">
+                        · {{ server.remark }}
+                      </template>
+                    </span>
+                  </div>
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="24">

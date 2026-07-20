@@ -178,6 +178,15 @@ export default {
         label: "Frp Version",
         requireMessage: "Please select Frp version"
       },
+      serverName: {
+        label: "Node Name",
+        requireMessage: "Please enter node name",
+        placeholder: "For example: East production node"
+      },
+      serverRemark: {
+        label: "Remark",
+        placeholder: "Line, purpose, or expiry note"
+      },
       serverAddr: {
         label: "Server Address",
         requireMessage: "Please enter server address",
@@ -319,6 +328,20 @@ export default {
       systemConfiguration: "System Configuration",
       serverConfiguration: "Server Configuration"
     },
+    server: {
+      listTitle: "Upstream Servers",
+      add: "Add",
+      creating: "Creating node",
+      creatingTips: "Fill the form on the right and save",
+      defaultName: "Default Node",
+      newName: "Unnamed Node",
+      defaultTag: "Default",
+      deleteConfirm: {
+        title: "Delete upstream server",
+        message:
+          'Delete "{name}"? Proxies under this node will be moved to the default node.'
+      }
+    },
     button: {
       manualRefresh: "Manual Refresh",
       goToDownload: "Click here to download",
@@ -424,6 +447,11 @@ export default {
         proxyType: {
           label: "Proxy Type",
           requireMessage: "Please select proxy type"
+        },
+        server: {
+          label: "Upstream Server",
+          requireMessage: "Please select upstream server",
+          placeholder: "Select the upstream FRP server"
         },
         name: {
           label: "Proxy Name",
