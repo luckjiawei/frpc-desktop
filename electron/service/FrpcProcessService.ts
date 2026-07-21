@@ -31,7 +31,7 @@ const FRPC_SUCCESS_PATTERNS = [
 ];
 const DISCONNECT_NOTIFICATION_COOLDOWN_MS = 60 * 1000;
 const FRPC_RECOVERY_COOLDOWN_MS = 10 * 1000;
-const MAC_HELPER_START_TIMEOUT_MS = 5000;
+const MAC_HELPER_PID_READ_TIMEOUT_MS = 5000;
 
 class FrpcProcessService {
   private readonly _serverService: ServerService;
@@ -758,20 +758,59 @@ class FrpcProcessService {
         version.localPath,
         PathUtils.getFrpcFilename()
       );
-      const pidStr = await new Promise<string>(resolve => {
-        exec(
-          `sudo -n "${MAC_LAUNCHER_PATH}" start "${frpcBinary}" "${configPath}"`,
-          { timeout: MAC_HELPER_START_TIMEOUT_MS },
-          (err, stdout) => {
-            if (err) {
-              Logger.warn(
-                `FrpcProcessService.startSingleFrpcProcess`,
-                `[${server.name}] helper start did not return cleanly: ${err.message}`
-              );
-            }
-            resolve(stdout.trim());
+      const pidStr = await new Promise<string>((resolve, reject) => {
+        const helperProcess = spawn(
+          "sudo",
+          ["-n", MAC_LAUNCHER_PATH, "start", frpcBinary, configPath],
+          {
+            stdio: ["ignore", "pipe", "pipe"]
           }
         );
+        let stdout = "";
+        let stderr = "";
+        let settled = false;
+        const finish = (value: string) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          helperProcess.stdout?.destroy();
+          helperProcess.stderr?.destroy();
+          resolve(value.trim());
+        };
+        const timer = setTimeout(() => {
+          Logger.warn(
+            `FrpcProcessService.startSingleFrpcProcess`,
+            `[${server.name}] helper did not emit pid within ${MAC_HELPER_PID_READ_TIMEOUT_MS}ms`
+          );
+          finish(stdout);
+        }, MAC_HELPER_PID_READ_TIMEOUT_MS);
+
+        helperProcess.stdout?.on("data", data => {
+          stdout += data.toString();
+          const pidCandidate = stdout.trim().split(/\s+/)[0];
+          if (/^\d+$/.test(pidCandidate)) {
+            finish(pidCandidate);
+          }
+        });
+        helperProcess.stderr?.on("data", data => {
+          stderr += data.toString();
+        });
+        helperProcess.on("error", error => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(error);
+        });
+        helperProcess.on("exit", code => {
+          if (settled) return;
+          if (code && code !== 0) {
+            Logger.warn(
+              `FrpcProcessService.startSingleFrpcProcess`,
+              `[${server.name}] helper exited with code=${code}: ${stderr.trim()}`
+            );
+          }
+          finish(stdout);
+        });
       });
 
       const pid = parseInt(pidStr, 10);
@@ -1116,8 +1155,31 @@ class FrpcProcessService {
       if (this._frpcRecoveryChecking) {
         return;
       }
-      const running = this.isRunning();
-      if (!running && this._frpcLastStartTime !== -1) {
+      if (this._frpcLastStartTime === -1) {
+        return;
+      }
+      try {
+        const runnableServers = (
+          await this._serverService.getRunnableServerConfigs()
+        ).filter(server => server?.serverAddr);
+        if (runnableServers.length === 0) {
+          return;
+        }
+        const runningInfos = this.listRunningFrpcProcesses().filter(info =>
+          this.isAppManagedConfigPath(info.configPath)
+        );
+        const missingServers = runnableServers.filter(server => {
+          const knownProcess = this._frpcProcesses.get(server._id);
+          const knownRunning = this.isPidAlive(knownProcess?.pid);
+          const processRunning = runningInfos.some(info =>
+            this.isServerConfigPath(info.configPath, server._id)
+          );
+          return !knownRunning && !processRunning;
+        });
+        if (missingServers.length === 0) {
+          return;
+        }
+
         const now = Date.now();
         if (
           this._frpcLastRecoveryTime !== -1 &&
@@ -1130,10 +1192,16 @@ class FrpcProcessService {
         try {
           const netStatus = await this._systemService.checkInternetConnect();
           if (netStatus) {
-            await this.startFrpcProcess();
+            Logger.warn(
+              `FrpcProcessService.frpcProcessGuardian`,
+              `Detected missing runnable frpc process: ${missingServers
+                .map(server => server.name)
+                .join(", ")}`
+            );
+            await this.syncRunnableFrpcProcesses(false);
             Logger.info(
               `FrpcProcessService.frpcProcessGuardian`,
-              `Network restored, frpc process restarted.`
+              `Missing frpc processes restarted.`
             );
           } else {
             Logger.warn(
@@ -1149,6 +1217,11 @@ class FrpcProcessService {
         } finally {
           this._frpcRecoveryChecking = false;
         }
+      } catch (error) {
+        Logger.error(
+          `FrpcProcessService.frpcProcessGuardian`,
+          error as Error
+        );
       }
     }, GlobalConstant.FRPC_PROCESS_STATUS_CHECK_INTERVAL * 1000);
   }
