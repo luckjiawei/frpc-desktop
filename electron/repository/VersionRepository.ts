@@ -6,7 +6,8 @@ class VersionRepository extends BaseRepository<FrpcVersion> {
     super("version");
   }
 
-  findByGithubReleaseId(githubReleaseId: number): Promise<FrpcVersion> {
+  async findByGithubReleaseId(githubReleaseId: number): Promise<FrpcVersion> {
+    await this.ready();
     return new Promise<FrpcVersion>((resolve, reject) => {
       this.db.findOne({ githubReleaseId: githubReleaseId }, (err, document) => {
         if (err) {
@@ -18,7 +19,8 @@ class VersionRepository extends BaseRepository<FrpcVersion> {
     });
   }
 
-  exists(githubReleaseId: number): Promise<boolean> {
+  async exists(githubReleaseId: number): Promise<boolean> {
+    await this.ready();
     return new Promise((resolve, reject) => {
       this.db.count({ githubReleaseId: githubReleaseId }, (err, count) => {
         if (err) {

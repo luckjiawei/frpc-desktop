@@ -50,6 +50,25 @@ class ProxyController extends BaseController {
       });
   }
 
+  getProxyReachability(req: ControllerParam) {
+    const requestId = req.args?.requestId ?? 0;
+    this._proxyService
+      .getProxyReachability()
+      .then(data => {
+        req.event.reply(
+          req.channel,
+          ResponseUtils.success({
+            requestId,
+            items: data
+          })
+        );
+      })
+      .catch((err: Error) => {
+        Logger.error("ProxyController.getProxyReachability", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
   deleteProxy(req: ControllerParam) {
     this._proxyService
       .deleteProxy(req.args)

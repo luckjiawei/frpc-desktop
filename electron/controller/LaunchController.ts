@@ -36,18 +36,46 @@ class LaunchController extends BaseController {
   }
 
   getStatus(req: ControllerParam) {
-    const running = this._frpcProcessService.isRunning();
-    const connectionError = running
-      ? this._frpcProcessService.readFrpcConnectionError()
-      : null;
+    this._frpcProcessService
+      .getStatusSnapshot()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("LaunchController.getStatus", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  getExternalStatus(req: ControllerParam) {
     req.event.reply(
       req.channel,
-      ResponseUtils.success({
-        running,
-        lastStartTime: this._frpcProcessService.frpcLastStartTime,
-        connectionError
-      })
+      ResponseUtils.success(this._frpcProcessService.getExternalFrpcStatus(true))
     );
+  }
+
+  stopExternal(req: ControllerParam) {
+    this._frpcProcessService
+      .stopExternalFrpcProcess()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch(err => {
+        Logger.error("LaunchController.stopExternal", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  importExternalConfig(req: ControllerParam) {
+    this._frpcProcessService
+      .importExternalFrpcConfig()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch(err => {
+        Logger.error("LaunchController.importExternalConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
   }
 }
 

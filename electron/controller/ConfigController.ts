@@ -25,14 +25,35 @@ class ConfigController extends BaseController {
     this._frpcProcessService = frpcProcessService;
   }
 
+  private reloadFrpcInBackground(source: string) {
+    this._frpcProcessService
+      .reloadFrpcProcess()
+      .catch((err: Error) =>
+        Logger.error(`ConfigController.${source}.reloadFrpcProcess`, err)
+      );
+  }
+
   saveConfig(req: ControllerParam) {
     this._serverService
       .saveServerConfig(req.args)
-      .then(() => {
-        req.event.reply(req.channel, ResponseUtils.success());
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+        this.reloadFrpcInBackground("saveConfig");
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.saveConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  createServerConfig(req: ControllerParam) {
+    this._serverService
+      .createServerConfig(req.args)
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.createServerConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }
@@ -45,6 +66,31 @@ class ConfigController extends BaseController {
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.getServerConfig", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  getServerConfigs(req: ControllerParam) {
+    this._serverService
+      .getServerConfigs()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.getServerConfigs", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
+  }
+
+  deleteServerConfig(req: ControllerParam) {
+    this._serverService
+      .deleteServerConfig(req.args)
+      .then(() => {
+        req.event.reply(req.channel, ResponseUtils.success());
+        this.reloadFrpcInBackground("deleteServerConfig");
+      })
+      .catch((err: Error) => {
+        Logger.error("ConfigController.deleteServerConfig", err);
         req.event.reply(req.channel, ResponseUtils.fail(err));
       });
   }

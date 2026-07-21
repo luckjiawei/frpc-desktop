@@ -1,6 +1,5 @@
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import "animate.css";
-import ElementPlus from "element-plus";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 import App from "./App.vue";
@@ -22,7 +21,6 @@ app.component("IconifyIconOnline", IconifyIconOnline);
 app
   .use(i18n)
   .use(router)
-  .use(ElementPlus)
   .use(pinia)
   .mount("#app")
   .$nextTick(() => {
@@ -30,8 +28,6 @@ app
     frpcDesktopStore.onListenerFrpcProcessRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
-    frpcDesktopStore.refreshDownloadedVersion();
-    frpcDesktopStore.checkNewVersion(false);
     frpcDesktopStore.onListenerFrpcDesktopLanguage();
     frpcDesktopStore.getLanguage();
 
@@ -39,5 +35,10 @@ app
     systemUsageStore.onListenerSystemUsage();
 
     postMessage({ payload: "removeLoading" }, "*");
+
+    setTimeout(() => {
+      frpcDesktopStore.refreshDownloadedVersion();
+      frpcDesktopStore.checkNewVersion(false);
+    }, 1000);
   })
   .then(r => {});

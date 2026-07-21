@@ -15,6 +15,9 @@ type FrpcDesktopServer = BaseEntity &
   FrpcCommonConfig & {
     frpcVersion: number;
     multiuser: boolean;
+    name: string;
+    remark: string;
+    isDefault: boolean;
     // system: any;
   };
 
@@ -37,5 +40,47 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
 };
 
 type FrpcProxy = BaseEntity & FrpcProxyConfig & {
+  serverId: string;
   status: number; // 0: disable 1: enable
+};
+
+type ProxyReachabilityState =
+  | "online"
+  | "offline"
+  | "disabled"
+  | "unknown";
+
+type ProxyReachabilityResult = {
+  proxyId: string;
+  proxyName: string;
+  proxyRemark: string;
+  serverId: string;
+  target: string;
+  state: ProxyReachabilityState;
+  statusCode?: number;
+  elapsedMs: number;
+  message: string;
+  checkedAt: number;
+};
+
+type ExternalFrpcProcessInfo = {
+  pid: number;
+  processName: string;
+  command: string;
+  cwd: string | null;
+  configPath: string | null;
+};
+
+type FrpcServerRuntimeStatus = {
+  serverId: string;
+  name: string;
+  remark: string;
+  serverAddr: string;
+  serverPort: number;
+  isDefault: boolean;
+  running: boolean;
+  pid: number | null;
+  configPath: string;
+  logPath: string;
+  connectionError: string | null;
 };

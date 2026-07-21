@@ -21,6 +21,7 @@ import IdUtils from "../utils/IdUtils";
 
 class BaseRepository<T> {
   protected readonly db: Datastore;
+  private readonly _ready: Promise<void>;
 
   constructor(dbName: string) {
     const dbFilename = path.join(
@@ -28,10 +29,23 @@ class BaseRepository<T> {
       `${dbName}-v2.db`
     );
     this.db = new Datastore({
-      autoload: true,
+      autoload: false,
       filename: dbFilename
     });
+    this._ready = new Promise((resolve, reject) => {
+      this.db.loadDatabase(err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
     // todo log
+  }
+
+  protected async ready() {
+    await this._ready;
   }
 
   protected genId(): string {
@@ -44,7 +58,8 @@ class BaseRepository<T> {
   //   });
   // }
   //
-  insert(t: T): Promise<T> {
+  async insert(t: T): Promise<T> {
+    await this.ready();
     return new Promise<T>((resolve, reject) => {
       t["_id"] = this.genId();
       this.db.insert(t, (err, document) => {
@@ -56,7 +71,8 @@ class BaseRepository<T> {
     });
   }
 
-  insertMany(ts: Array<T>): Promise<Array<T>> {
+  async insertMany(ts: Array<T>): Promise<Array<T>> {
+    await this.ready();
     return new Promise<Array<T>>((resolve, reject) => {
       ts.forEach(t => {
         t["_id"] = this.genId();
@@ -71,7 +87,8 @@ class BaseRepository<T> {
     });
   }
 
-  updateById(id: string, t: T): Promise<T> {
+  async updateById(id: string, t: T): Promise<T> {
+    await this.ready();
     return new Promise<T>((resolve, reject) => {
       this.db.update(
         { _id: id },
@@ -96,7 +113,8 @@ class BaseRepository<T> {
     });
   }
 
-  deleteById(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
+    await this.ready();
     return new Promise<void>((resolve, reject) => {
       this.db.remove({ _id: id }, err => {
         if (err) {
@@ -112,7 +130,8 @@ class BaseRepository<T> {
   //   return null;
   // }
 
-  findById(id: string): Promise<T> {
+  async findById(id: string): Promise<T> {
+    await this.ready();
     return new Promise<T>((resolve, reject) => {
       this.db.findOne({ _id: id }, (err, document) => {
         if (err) {
@@ -124,7 +143,8 @@ class BaseRepository<T> {
     });
   }
 
-  findAll(): Promise<Array<T>> {
+  async findAll(): Promise<Array<T>> {
+    await this.ready();
     return new Promise<Array<T>>((resolve, reject) => {
       this.db.find({}, (err, document) => {
         if (err) {
@@ -136,7 +156,8 @@ class BaseRepository<T> {
     });
   }
 
-  truncate() {
+  async truncate() {
+    await this.ready();
     return new Promise<void>((resolve, reject) => {
       this.db.remove({}, { multi: true }, (err, n) => {
         if (err) {

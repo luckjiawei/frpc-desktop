@@ -4,9 +4,21 @@ export const ipcRouters: IpcRouters = {
       path: "server/saveConfig",
       controller: "configController.saveConfig"
     },
+    createServerConfig: {
+      path: "server/createServerConfig",
+      controller: "configController.createServerConfig"
+    },
     getServerConfig: {
       path: "server/getServerConfig",
       controller: "configController.getServerConfig"
+    },
+    getServerConfigs: {
+      path: "server/getServerConfigs",
+      controller: "configController.getServerConfigs"
+    },
+    deleteServerConfig: {
+      path: "server/deleteServerConfig",
+      controller: "configController.deleteServerConfig"
     },
     resetAllConfig: {
       path: "server/resetAllConfig",
@@ -81,6 +93,18 @@ export const ipcRouters: IpcRouters = {
     getStatus: {
       path: "launch/getStatus",
       controller: "launchController.getStatus"
+    },
+    getExternalStatus: {
+      path: "launch/getExternalStatus",
+      controller: "launchController.getExternalStatus"
+    },
+    stopExternal: {
+      path: "launch/stopExternal",
+      controller: "launchController.stopExternal"
+    },
+    importExternalConfig: {
+      path: "launch/importExternalConfig",
+      controller: "launchController.importExternalConfig"
     }
   },
   PROXY: {
@@ -99,6 +123,10 @@ export const ipcRouters: IpcRouters = {
     getAllProxies: {
       path: "proxy/getAllProxies",
       controller: "proxyController.getAllProxies"
+    },
+    getProxyReachability: {
+      path: "proxy/getProxyReachability",
+      controller: "proxyController.getProxyReachability"
     },
     modifyProxyStatus: {
       path: "proxy/modifyProxyStatus",

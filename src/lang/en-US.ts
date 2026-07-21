@@ -42,6 +42,27 @@ export default {
       stop: "Stop",
       viewLog: "View Log"
     },
+    external: {
+      title: "External frpc is running (PID: {pid})",
+      noConfigPath: "Unable to read config path from the launch command",
+      stop: "Stop External",
+      importConfig: "Import Config",
+      confirmStop: {
+        title: "Stop external frpc",
+        message:
+          "Stop the external frpc service with PID {pid}? This may affect traffic currently handled by that service.",
+        confirm: "Stop",
+        cancel: "Cancel"
+      },
+      message: {
+        stopSuccess: "External frpc stopped",
+        importSuccess: "External config imported, {proxies} proxies imported"
+      }
+    },
+    upstream: {
+      title: "Upstream Service Status",
+      empty: "No upstream service"
+    },
     alert: {
       configRequired: {
         title: "Prompt",
@@ -113,7 +134,10 @@ export default {
   logger: {
     message: {
       openSuccess: "Open log successfully",
-      refreshSuccess: "Refresh successfully"
+      refreshSuccess: "Refresh successfully",
+      copySelectionSuccess: "Selected logs copied",
+      copyAllSuccess: "Current logs copied",
+      copyEmpty: "No logs to copy"
     },
     content: {
       empty: "No log"
@@ -128,8 +152,12 @@ export default {
     loading: {
       text: "Loading..."
     },
+    tooltip: {
+      copyLog: "Copy selected logs; copy current logs when nothing is selected"
+    },
     autoRefresh: "Auto Refresh",
-    autoRefreshTime: "{time}s after auto refresh"
+    autoRefreshTime: "{time}s after auto refresh",
+    serverFilter: "Upstream Server"
   },
   about: {
     button: {
@@ -154,6 +182,15 @@ export default {
       frpcVerson: {
         label: "Frp Version",
         requireMessage: "Please select Frp version"
+      },
+      serverName: {
+        label: "Node Name",
+        requireMessage: "Please enter node name",
+        placeholder: "For example: East production node"
+      },
+      serverRemark: {
+        label: "Remark",
+        placeholder: "Line, purpose, or expiry note"
       },
       serverAddr: {
         label: "Server Address",
@@ -296,6 +333,20 @@ export default {
       systemConfiguration: "System Configuration",
       serverConfiguration: "Server Configuration"
     },
+    server: {
+      listTitle: "Upstream Servers",
+      add: "Add",
+      creating: "Creating node",
+      creatingTips: "Fill the form on the right and save",
+      defaultName: "Default Node",
+      newName: "Unnamed Node",
+      defaultTag: "Default",
+      deleteConfirm: {
+        title: "Delete upstream server",
+        message:
+          'Delete "{name}"? Proxies under this node will be moved to the default node.'
+      }
+    },
     button: {
       manualRefresh: "Manual Refresh",
       goToDownload: "Click here to download",
@@ -361,6 +412,18 @@ export default {
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
     search: "Search by name / type / IP / port / domain",
+    filter: {
+      serverPlaceholder: "Filter upstream server"
+    },
+    reachability: {
+      column: "External Status",
+      refresh: "Refresh Status",
+      online: "Online",
+      offline: "Offline",
+      checking: "Checking",
+      disabled: "Disabled",
+      unknown: "Unknown"
+    },
     viewMode: {
       card: "Card",
       list: "List"
@@ -402,10 +465,19 @@ export default {
           label: "Proxy Type",
           requireMessage: "Please select proxy type"
         },
+        server: {
+          label: "Upstream Server",
+          requireMessage: "Please select upstream server",
+          placeholder: "Select the upstream FRP server"
+        },
         name: {
           label: "Proxy Name",
           requireMessage: "Please enter proxy name",
           placeholder: "Please enter proxy name"
+        },
+        remark: {
+          label: "Remark",
+          placeholder: "Enter remark. The proxy list shows it first."
         },
         localIP: {
           label: "Local IP",

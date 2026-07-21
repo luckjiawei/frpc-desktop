@@ -4,7 +4,7 @@ import router from "@/router";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
-import { ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   computed,
   defineComponent,
@@ -21,6 +21,10 @@ defineComponent({
 
 const frpcDesktopStore = useFrpcDesktopStore();
 const loading = ref(false);
+const externalActionLoading = ref({
+  stop: false,
+  importConfig: false
+});
 const { t } = useI18n();
 
 // Three-state status: "running" | "error" | "stopped"
@@ -29,6 +33,11 @@ const frpcStatus = computed(() => {
   if (frpcDesktopStore.frpcConnectionError) return "error";
   return "running";
 });
+
+const externalFrpc = computed(() => frpcDesktopStore.externalFrpcProcess);
+const upstreamServerStatuses = computed(
+  () => frpcDesktopStore.upstreamServerStatuses
+);
 
 const handleStartFrpc = () => {
   send(ipcRouters.LAUNCH.launch);
@@ -45,6 +54,28 @@ const handleButtonClick = useDebounceFn(() => {
   } else {
     handleStartFrpc();
   }
+}, 300);
+
+const handleStopExternalFrpc = useDebounceFn(() => {
+  if (!externalFrpc.value) return;
+  ElMessageBox.confirm(
+    t("home.external.confirmStop.message", { pid: externalFrpc.value.pid }),
+    t("home.external.confirmStop.title"),
+    {
+      confirmButtonText: t("home.external.confirmStop.confirm"),
+      cancelButtonText: t("home.external.confirmStop.cancel"),
+      type: "warning"
+    }
+  ).then(() => {
+    externalActionLoading.value.stop = true;
+    send(ipcRouters.LAUNCH.stopExternal);
+  });
+}, 300);
+
+const handleImportExternalConfig = useDebounceFn(() => {
+  if (!externalFrpc.value?.configPath) return;
+  externalActionLoading.value.importConfig = true;
+  send(ipcRouters.LAUNCH.importExternalConfig);
 }, 300);
 
 const uptime = computed(() => {
@@ -77,6 +108,8 @@ watch(
 );
 
 onMounted(() => {
+  frpcDesktopStore.refreshRunning();
+
   on(
     ipcRouters.LAUNCH.launch,
     () => {
@@ -130,11 +163,53 @@ onMounted(() => {
     frpcDesktopStore.refreshRunning();
     loading.value = false;
   });
+
+  on(
+    ipcRouters.LAUNCH.stopExternal,
+    () => {
+      externalActionLoading.value.stop = false;
+      frpcDesktopStore.refreshExternalFrpc();
+      ElMessage({
+        type: "success",
+        message: t("home.external.message.stopSuccess")
+      });
+    },
+    (_bizCode: string, message: string) => {
+      externalActionLoading.value.stop = false;
+      ElMessage({
+        type: "error",
+        message
+      });
+    }
+  );
+
+  on(
+    ipcRouters.LAUNCH.importExternalConfig,
+    data => {
+      externalActionLoading.value.importConfig = false;
+      frpcDesktopStore.refreshExternalFrpc();
+      ElMessage({
+        type: "success",
+        message: t("home.external.message.importSuccess", {
+          proxies: data?.proxies ?? 0
+        })
+      });
+    },
+    (_bizCode: string, message: string) => {
+      externalActionLoading.value.importConfig = false;
+      ElMessage({
+        type: "error",
+        message
+      });
+    }
+  );
 });
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LAUNCH.launch);
   removeRouterListeners(ipcRouters.LAUNCH.terminate);
+  removeRouterListeners(ipcRouters.LAUNCH.stopExternal);
+  removeRouterListeners(ipcRouters.LAUNCH.importExternalConfig);
 });
 </script>
 
@@ -143,8 +218,49 @@ onUnmounted(() => {
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="flex overflow-y-auto justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
+        class="flex overflow-y-auto flex-col gap-4 justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
       >
+        <div
+          v-if="externalFrpc"
+          class="flex gap-3 justify-between items-start p-3 w-full max-w-[720px] rounded border border-[#E6A23C]/40 bg-[#FDF6EC] text-[#7A4D05]"
+        >
+          <div class="flex gap-2 min-w-0">
+            <IconifyIconOffline
+              class="shrink-0 mt-0.5 text-xl text-[#E6A23C]"
+              icon="warningRounded"
+            />
+            <div class="min-w-0 text-sm">
+              <div class="font-bold">
+                {{ t("home.external.title", { pid: externalFrpc.pid }) }}
+              </div>
+              <div class="mt-1 leading-5 break-all">
+                {{ externalFrpc.configPath || t("home.external.noConfigPath") }}
+              </div>
+            </div>
+          </div>
+          <div class="flex shrink-0 gap-2">
+            <el-button
+              size="small"
+              type="warning"
+              plain
+              :loading="externalActionLoading.stop"
+              @click="handleStopExternalFrpc"
+            >
+              <IconifyIconOffline class="mr-1" icon="cancel-presentation" />
+              {{ t("home.external.stop") }}
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="!externalFrpc.configPath"
+              :loading="externalActionLoading.importConfig"
+              @click="handleImportExternalConfig"
+            >
+              <IconifyIconOffline class="mr-1" icon="file-open-rounded" />
+              {{ t("home.external.importConfig") }}
+            </el-button>
+          </div>
+        </div>
         <div class="flex">
           <div
             class="w-52 h-52 !border-4 border-[#5A3DAA] text-[#5A3DAA] rounded-full flex justify-center items-center text-[100px] relative"
@@ -258,6 +374,63 @@ onUnmounted(() => {
                 }}
               </el-button>
             </div>
+          </div>
+        </div>
+        <div class="w-full max-w-[720px]">
+          <div class="mb-2 text-sm font-bold text-primary">
+            {{ t("home.upstream.title") }}
+          </div>
+          <div
+            v-if="upstreamServerStatuses.length > 0"
+            class="grid gap-2 md:grid-cols-2"
+          >
+            <div
+              v-for="server in upstreamServerStatuses"
+              :key="server.serverId"
+              class="p-3 rounded border border-gray-200 bg-white"
+            >
+              <div class="flex gap-2 justify-between items-start min-w-0">
+                <div class="min-w-0">
+                  <div class="flex gap-2 items-center min-w-0">
+                    <span class="font-bold truncate">{{ server.name }}</span>
+                    <el-tag v-if="server.isDefault" size="small">
+                      {{ t("config.server.defaultTag") }}
+                    </el-tag>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-500 break-all">
+                    {{ server.serverAddr || "-" }}:{{
+                      server.serverPort || "-"
+                    }}
+                  </div>
+                  <div
+                    v-if="server.pid"
+                    class="mt-1 text-xs text-gray-500 break-all"
+                  >
+                    PID: {{ server.pid }}
+                  </div>
+                  <div
+                    v-if="server.connectionError"
+                    class="mt-1 text-xs leading-5 break-all text-[#E6A23C]"
+                  >
+                    {{ server.connectionError }}
+                  </div>
+                </div>
+                <el-tag
+                  class="shrink-0"
+                  :type="server.running ? 'success' : 'info'"
+                  size="small"
+                >
+                  {{
+                    server.running
+                      ? t("home.status.running")
+                      : t("home.status.disconnected")
+                  }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-sm text-gray-500">
+            {{ t("home.upstream.empty") }}
           </div>
         </div>
       </div>

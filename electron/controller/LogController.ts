@@ -13,7 +13,7 @@ class LogController extends BaseController {
 
   getFrpLogContent(req: ControllerParam) {
     this._logService
-      .getFrpLogContent()
+      .getFrpLogContent(req.args?.serverId)
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success(data));
       })
@@ -43,12 +43,15 @@ class LogController extends BaseController {
 
   openFrpcLogFile(req: ControllerParam) {
     this._logService
-      .openFrpcLogFile()
+      .openFrpcLogFile(req.args?.serverId)
       .then(data => {
         if (data) {
-          ResponseUtils.success();
+          req.event.reply(req.channel, ResponseUtils.success());
         } else {
-          // ResponseUtils.fail();
+          req.event.reply(
+            req.channel,
+            ResponseUtils.fail(new Error("打开日志文件失败"))
+          );
         }
       })
       .catch((err: Error) => {
@@ -62,9 +65,12 @@ class LogController extends BaseController {
       .openAppLogFile()
       .then(data => {
         if (data) {
-          ResponseUtils.success();
+          req.event.reply(req.channel, ResponseUtils.success());
         } else {
-          // ResponseUtils.fail();
+          req.event.reply(
+            req.channel,
+            ResponseUtils.fail(new Error("打开日志文件失败"))
+          );
         }
       })
       .catch((err: Error) => {

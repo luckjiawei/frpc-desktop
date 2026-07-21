@@ -29,6 +29,7 @@ import ProxyService from "../service/ProxyService";
 import ServerService from "../service/ServerService";
 import SystemService from "../service/SystemService";
 import VersionService from "../service/VersionService";
+import ResponseUtils from "../utils/ResponseUtils";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -43,10 +44,10 @@ const indexHtml = join(process.env.DIST, "index.html");
 class FrpcDesktopApp {
   private _win: BrowserWindow | null = null;
   private _quitting = false;
+  private _listenersInitialized = false;
 
   constructor() {
     this.initializeBeans();
-    this.initializeListeners();
     this.initializeRouters();
     this.initializeElectronApp();
   }
@@ -56,7 +57,9 @@ class FrpcDesktopApp {
       return;
     }
     const serverService: ServerService = BeanFactory.getBean("serverService");
-    Logger.setLevel(await serverService.getLoggerLevel());
+    const serverConfig = await serverService.getServerConfig();
+    const loggerLevel = serverConfig?.log?.level || "info";
+    Logger.setLevel(loggerLevel);
     Logger.info(
       `FrpcDesktopApp.initializeWindow`,
       [
@@ -69,18 +72,16 @@ class FrpcDesktopApp {
         `Chrome    : ${process.versions.chrome}`,
         `CPU       : ${cpus()[0]?.model ?? "unknown"} (${cpus().length} cores)`,
         `Memory    : ${(totalmem() / 1024 / 1024 / 1024).toFixed(1)} GB`,
-        `Log Level : ${(await serverService.getLoggerLevel()) || "info"}`
+        `Log Level : ${loggerLevel}`
       ].join("\n")
     );
-    if (await serverService.isAutoConnectOnStartup()) {
-      const frpcProcessService: FrpcProcessService =
-        BeanFactory.getBean("frpcProcessService");
-      frpcProcessService.startFrpcProcess().then(() => {
-        Logger.info(
-          `FrpcDesktopApp.initializeWindow`,
-          `AutoConnectOnStartup Completed.`
-        );
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: serverConfig?.system?.launchAtStartup || false,
+        openAsHidden: serverConfig?.system?.silentStartup || false
       });
+    } catch (error) {
+      Logger.error("FrpcDesktopApp.initializeWindow", error as Error);
     }
 
     this._win = new BrowserWindow({
@@ -100,16 +101,41 @@ class FrpcDesktopApp {
         nodeIntegration: true,
         contextIsolation: false
       },
-      show: !(await serverService.isSilentStart())
+      show: !(serverConfig?.system?.silentStartup || false)
     });
     BeanFactory.setBean("win", this._win);
+    this.initializeListeners();
+
     if (process.env.VITE_DEV_SERVER_URL) {
       // electron-vite-vue#298
-      this._win.loadURL(url).then(() => {});
-      // Open devTool if the app is not packaged
-      this._win.webContents.openDevTools();
+      this._win.loadURL(url).then(() => {
+        this.syncRunningFrpcState();
+      });
+      if (process.env.OPEN_DEVTOOLS === "1") {
+        this._win.webContents.openDevTools();
+      }
     } else {
-      this._win.loadFile(indexHtml).then(() => {});
+      this._win.loadFile(indexHtml).then(() => {
+        this.syncRunningFrpcState();
+      });
+    }
+
+    if (serverConfig?.system?.autoConnectOnStartup) {
+      const frpcProcessService: FrpcProcessService =
+        BeanFactory.getBean("frpcProcessService");
+      if (frpcProcessService.getExternalFrpcStatus(true)) {
+        Logger.warn(
+          `FrpcDesktopApp.initializeWindow`,
+          `AutoConnectOnStartup skipped because an external frpc is already running.`
+        );
+      } else {
+        frpcProcessService.startFrpcProcess().then(() => {
+          Logger.info(
+            `FrpcDesktopApp.initializeWindow`,
+            `AutoConnectOnStartup Completed.`
+          );
+        });
+      }
     }
 
     this._win.webContents.on("did-finish-load", () => {
@@ -117,7 +143,11 @@ class FrpcDesktopApp {
         "main-process-message",
         new Date().toLocaleString()
       );
+      this.syncRunningFrpcState();
     });
+    setTimeout(() => {
+      this.syncRunningFrpcState();
+    }, 1500);
     this._win.webContents.setWindowOpenHandler(({ url }) => {
       if (url.startsWith("https:")) shell.openExternal(url);
       return { action: "deny" };
@@ -269,6 +299,7 @@ class FrpcDesktopApp {
       "proxyService",
       new ProxyService(
         BeanFactory.getBean("proxyRepository"),
+        BeanFactory.getBean("serverRepository"),
         BeanFactory.getBean("frpcProcessService")
       )
     );
@@ -311,6 +342,10 @@ class FrpcDesktopApp {
    * @private
    */
   private initializeListeners() {
+    if (this._listenersInitialized) {
+      return;
+    }
+    this._listenersInitialized = true;
     Object.keys(listeners).forEach(listenerKey => {
       const { listenerMethod, channel } = listeners[listenerKey];
       const [beanName, method] = listenerMethod.split(".");
@@ -324,6 +359,33 @@ class FrpcDesktopApp {
     });
     Logger.info(`FrpcDesktopApp.initializeListeners`, `Listeners initialized.`);
     // this._beans.get("logService").watchFrpcLog(this._win);
+  }
+
+  private async syncRunningFrpcState() {
+    if (!this._win || this._win.isDestroyed()) {
+      return;
+    }
+
+    try {
+      const frpcProcessService: FrpcProcessService =
+        BeanFactory.getBean("frpcProcessService");
+      const running = frpcProcessService.isRunning();
+      const connectionError = running
+        ? frpcProcessService.readFrpcConnectionError()
+        : null;
+
+      this._win.webContents.send(
+        `${ipcRouters.LAUNCH.getStatus.path}:hook`,
+        ResponseUtils.success({
+          running,
+          lastStartTime: frpcProcessService.frpcLastStartTime,
+          connectionError,
+          externalFrpc: frpcProcessService.getExternalFrpcStatus()
+        })
+      );
+    } catch (error) {
+      Logger.error("FrpcDesktopApp.syncRunningFrpcState", error as Error);
+    }
   }
 
   /**

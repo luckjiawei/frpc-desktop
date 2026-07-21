@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { useDebounceFn } from "@vueuse/core";
-import { defineComponent, ref, watch } from "vue";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
+import { ElMessage } from "element-plus";
+import { computed, defineComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { LogLevel, LogRecord } from "./log";
 
@@ -19,23 +20,23 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { copy } = useClipboard();
 // 搜索关键词输入值
 const searchInput = ref("");
 const searchKeyword = ref("");
-// 过滤后的日志记录
-const filteredLogRecords = ref<Array<LogRecord>>([]);
-
-// 更新过滤后的日志
-const updateFilteredLogs = () => {
-  filteredLogRecords.value = props.logRecords.filter(
+const logContentRef = ref<HTMLElement>();
+const filteredLogRecords = computed<Array<LogRecord>>(() => {
+  if (!searchKeyword.value) {
+    return props.logRecords;
+  }
+  return props.logRecords.filter(
     record => record.context.indexOf(searchKeyword.value) !== -1
   );
-};
+});
 
 // 使用节流函数处理搜索输入
 const throttledSearch = useDebounceFn((value: string) => {
   searchKeyword.value = value;
-  updateFilteredLogs();
 }, 300);
 
 // 处理输入事件
@@ -44,17 +45,51 @@ const handleSearchInput = (value: string) => {
   throttledSearch(value);
 };
 
-// 初始化显示所有日志
-filteredLogRecords.value = props.logRecords;
+const getSelectedLogText = () => {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !logContentRef.value) {
+    return "";
+  }
 
-// 监听 logRecords 变化，自动更新过滤结果
-watch(
-  () => props.logRecords,
-  () => {
-    updateFilteredLogs();
-  },
-  { deep: true }
-);
+  const selectedText = selection.toString().trim();
+  if (!selectedText) {
+    return "";
+  }
+
+  const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  if (!range) {
+    return "";
+  }
+
+  const selectedInLogContent =
+    logContentRef.value.contains(range.commonAncestorContainer) ||
+    logContentRef.value === range.commonAncestorContainer;
+
+  return selectedInLogContent ? selectedText : "";
+};
+
+const copyLogContent = async () => {
+  const selectedText = getSelectedLogText();
+  const text =
+    selectedText ||
+    filteredLogRecords.value.map(record => record.context).join("\n");
+
+  if (!text.trim()) {
+    ElMessage({
+      type: "warning",
+      message: t("logger.message.copyEmpty")
+    });
+    return;
+  }
+
+  await copy(text);
+  ElMessage({
+    type: "success",
+    message: selectedText
+      ? t("logger.message.copySelectionSuccess")
+      : t("logger.message.copyAllSuccess")
+  });
+};
 </script>
 
 <template>
@@ -82,21 +117,33 @@ watch(
         />
       </div>
       <div class="flex gap-3 items-center">
+        <el-tooltip
+          :content="t('logger.tooltip.copyLog')"
+          placement="bottom"
+        >
+          <IconifyIconOffline
+            class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
+            icon="content-copy"
+            @mousedown.prevent
+            @click="copyLogContent"
+          />
+        </el-tooltip>
         <slot name="toolbar"></slot>
       </div>
     </div>
 
     <!-- 日志内容区域 -->
     <div
+      ref="logContentRef"
       v-loading="loading"
       :element-loading-text="t('logger.loading.text')"
       element-loading-background="rgba(15, 15, 35, 0.8)"
-      class="overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
+      class="log-content overflow-y-auto flex-1 p-2 w-full rounded drop-shadow-lg"
     >
       <div
         v-for="record in filteredLogRecords"
         :key="record.id"
-        class="overflow-hidden w-full break-words"
+        class="log-line overflow-hidden w-full break-words"
       >
         <span v-if="record.level === LogLevel.ERROR" class="text-[#FF0006]">
           {{ record.context }}
@@ -137,5 +184,27 @@ watch(
 
 :deep(.el-empty__image) {
   color: red;
+}
+
+.log-content,
+.log-content * {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+.log-content {
+  cursor: text;
+}
+
+.log-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 </style>

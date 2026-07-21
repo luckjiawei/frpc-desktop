@@ -62,6 +62,7 @@ interface FrpcProxyTransportConfig {
 
 interface FrpcProxyConfig {
   name: string;
+  remark: string;
   type: string;
   localIP: string;
   localPort: any;

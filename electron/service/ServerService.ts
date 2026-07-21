@@ -28,27 +28,86 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   }
 
   async saveServerConfig(
-    frpcServer: OpenSourceFrpcDesktopServer
+    frpcServer: OpenSourceFrpcDesktopServer,
+    applySystemSettings = true
   ): Promise<OpenSourceFrpcDesktopServer> {
-    frpcServer._id = this._serverId;
+    if (!frpcServer._id) {
+      frpcServer._id = this._serverId;
+    }
+    this.normalizeServerConfig(frpcServer);
     const newConfig = await this._serverDao.updateById(
-      this._serverId,
+      frpcServer._id,
       frpcServer
     );
-    try {
-      app.setLoginItemSettings({
-        openAtLogin: newConfig.system.launchAtStartup || false, //win
-        openAsHidden: newConfig.system.launchAtStartup || false //macOs
-      });
-    } catch (error) {
-      Logger.error("ServerService.saveServerConfig", error);
+    if (applySystemSettings && newConfig._id === this._serverId) {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: newConfig.system.launchAtStartup || false, //win
+          openAsHidden: newConfig.system.launchAtStartup || false //macOs
+        });
+      } catch (error) {
+        Logger.error("ServerService.saveServerConfig", error);
+      }
     }
     Logger.setLevel(newConfig.log.level);
     return newConfig;
   }
 
+  async createServerConfig(
+    frpcServer: OpenSourceFrpcDesktopServer
+  ): Promise<OpenSourceFrpcDesktopServer> {
+    const server = {
+      ...this.createDefaultServerConfig(undefined, ""),
+      ...frpcServer,
+      _id: "",
+      name: frpcServer.name || "未命名节点",
+      remark: frpcServer.remark || "",
+      isDefault: false
+    };
+    const newConfig = await this._serverDao.create(server);
+    return this.normalizeServerConfig(newConfig);
+  }
+
   async getServerConfig(): Promise<OpenSourceFrpcDesktopServer> {
-    return await this._serverDao.findById(this._serverId);
+    const config = await this._serverDao.findById(this._serverId);
+    return this.normalizeServerConfig(
+      config || this.createDefaultServerConfig()
+    );
+  }
+
+  async getServerConfigById(id: string): Promise<OpenSourceFrpcDesktopServer> {
+    const config = await this._serverDao.findById(id || this._serverId);
+    return this.normalizeServerConfig(
+      config || this.createDefaultServerConfig(undefined, id || this._serverId)
+    );
+  }
+
+  async getServerConfigs(): Promise<Array<OpenSourceFrpcDesktopServer>> {
+    const configs = await this._serverDao.findAll();
+    if (!configs || configs.length === 0) {
+      return [this.createDefaultServerConfig()];
+    }
+    return configs
+      .map(config => this.normalizeServerConfig(config))
+      .sort((a, b) => {
+        if (a._id === this._serverId) return -1;
+        if (b._id === this._serverId) return 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+  }
+
+  async deleteServerConfig(id: string) {
+    if (!id || id === this._serverId) {
+      throw new Error("默认服务不能删除");
+    }
+    const proxies = await this._proxyDao.findAll();
+    for (const proxy of proxies.filter(proxy => proxy.serverId === id)) {
+      await this._proxyDao.updateById(proxy._id, {
+        ...proxy,
+        serverId: this._serverId
+      });
+    }
+    await this._serverDao.deleteById(id);
   }
 
   hasServerConfig(): Promise<boolean> {
@@ -90,12 +149,351 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.https2http;
   }
 
-  async genTomlConfig(outputPath: string) {
+  private normalizeServerConfig(config: OpenSourceFrpcDesktopServer) {
+    if (!config) {
+      return config;
+    }
+    if (!config._id) config._id = this._serverId;
+    if (!config.name) {
+      config.name = config._id === this._serverId ? "默认节点" : "未命名节点";
+    }
+    if (config.remark === undefined) config.remark = "";
+    config.isDefault = config._id === this._serverId;
+    if (!config.system) {
+      config.system = this.createDefaultServerConfig().system;
+    }
+    return config;
+  }
+
+  private createDefaultServerConfig(
+    existingConfig?: OpenSourceFrpcDesktopServer,
+    id = this._serverId
+  ): OpenSourceFrpcDesktopServer {
+    return {
+      _id: id,
+      multiuser: false,
+      frpcVersion: existingConfig?.frpcVersion ?? null,
+      name: id === this._serverId ? "默认节点" : "未命名节点",
+      remark: "",
+      isDefault: id === this._serverId,
+      loginFailExit: false,
+      udpPacketSize: 1500,
+      serverAddr: "",
+      serverPort: 7000,
+      auth: {
+        method: "",
+        token: ""
+      },
+      log: {
+        to: "",
+        level: "info",
+        maxDays: 3,
+        disablePrintColor: false
+      },
+      transport: {
+        dialServerTimeout: 10,
+        dialServerKeepalive: 7200,
+        poolCount: 0,
+        tcpMux: true,
+        tcpMuxKeepaliveInterval: 30,
+        protocol: "tcp",
+        connectServerLocalIP: "",
+        proxyURL: "",
+        tls: {
+          enable: true,
+          certFile: "",
+          keyFile: "",
+          trustedCaFile: "",
+          serverName: "",
+          disableCustomTLSFirstByte: true
+        },
+        heartbeatInterval: 30,
+        heartbeatTimeout: 90
+      },
+      metadatas: {
+        token: ""
+      },
+      webServer: {
+        addr: "127.0.0.1",
+        port: 57400,
+        user: "",
+        password: "",
+        pprofEnable: false
+      },
+      system: {
+        launchAtStartup: existingConfig?.system?.launchAtStartup || false,
+        silentStartup: existingConfig?.system?.silentStartup || false,
+        autoConnectOnStartup:
+          existingConfig?.system?.autoConnectOnStartup || false,
+        language:
+          existingConfig?.system?.language || GlobalConstant.DEFAULT_LANGUAGE
+      },
+      user: ""
+    };
+  }
+
+  private createDefaultProxy(visitorsModel = "visitorsProvider"): FrpcProxy {
+    return {
+      _id: "",
+      serverId: this._serverId,
+      hostHeaderRewrite: "",
+      locations: [""],
+      name: "",
+      remark: "",
+      type: "http",
+      localIP: "",
+      localPort: "8080",
+      remotePort: "8080",
+      customDomains: [""],
+      visitorsModel,
+      serverUser: "",
+      serverName: "",
+      secretKey: "",
+      bindAddr: "",
+      bindPort: null,
+      subdomain: "",
+      basicAuth: false,
+      httpUser: "",
+      httpPassword: "",
+      fallbackTo: "",
+      fallbackTimeoutMs: 500,
+      https2http: false,
+      https2httpCaFile: "",
+      https2httpKeyFile: "",
+      keepTunnelOpen: false,
+      status: 1,
+      transport: {
+        useEncryption: false,
+        useCompression: false,
+        proxyProtocolVersion: ""
+      }
+    };
+  }
+
+  private applyTomlServerConfig(
+    sourceConfig: Record<string, any>,
+    config: OpenSourceFrpcDesktopServer
+  ) {
+    if (sourceConfig.loginFailExit !== undefined) {
+      config.loginFailExit = sourceConfig.loginFailExit as boolean;
+    }
+    if (sourceConfig.udpPacketSize !== undefined) {
+      config.udpPacketSize = sourceConfig.udpPacketSize as number;
+    }
+    if (sourceConfig.serverAddr !== undefined) {
+      config.serverAddr = sourceConfig.serverAddr as string;
+    }
+    if (sourceConfig.serverPort !== undefined) {
+      config.serverPort = sourceConfig.serverPort as number;
+    }
+    if (sourceConfig.user !== undefined) {
+      config.user = sourceConfig.user as string;
+    }
+
+    if (sourceConfig.auth) {
+      Object.assign(config.auth, sourceConfig.auth);
+    }
+    if (sourceConfig.log) {
+      Object.assign(config.log, sourceConfig.log);
+    }
+    if (sourceConfig.transport) {
+      Object.assign(config.transport, sourceConfig.transport);
+      if (sourceConfig.transport.tls) {
+        Object.assign(config.transport.tls, sourceConfig.transport.tls);
+      }
+    }
+    if (sourceConfig.metadatas) {
+      Object.assign(config.metadatas, sourceConfig.metadatas);
+    }
+    if (sourceConfig.webServer) {
+      Object.assign(config.webServer, sourceConfig.webServer);
+    }
+  }
+
+  private mapTomlProxy(proxy: Record<string, any>, visitorsModel: string) {
+    const proxy2 = this.createDefaultProxy(visitorsModel);
+
+    if (proxy.name !== undefined) proxy2.name = proxy.name as string;
+    if (proxy.type !== undefined) proxy2.type = proxy.type as string;
+    if (proxy.localIP !== undefined) proxy2.localIP = proxy.localIP as string;
+    if (proxy.localPort !== undefined) {
+      proxy2.localPort = proxy.localPort.toString();
+    }
+    if (proxy.remotePort !== undefined) {
+      proxy2.remotePort = proxy.remotePort.toString();
+    }
+    if (proxy.customDomains !== undefined) {
+      proxy2.customDomains = proxy.customDomains as string[];
+    }
+    if (proxy.subdomain !== undefined) {
+      proxy2.subdomain = proxy.subdomain as string;
+    }
+    if (proxy.locations !== undefined) {
+      proxy2.locations = proxy.locations as string[];
+    }
+    if (proxy.hostHeaderRewrite !== undefined) {
+      proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
+    }
+    if (proxy.httpUser !== undefined) {
+      proxy2.httpUser = proxy.httpUser as string;
+    }
+    if (proxy.httpPassword !== undefined) {
+      proxy2.httpPassword = proxy.httpPassword as string;
+    }
+    if (proxy.serverName !== undefined) {
+      proxy2.serverName = proxy.serverName as string;
+    }
+    if (proxy.serverUser !== undefined) {
+      proxy2.serverUser = proxy.serverUser as string;
+    }
+    if (proxy.secretKey !== undefined) {
+      proxy2.secretKey = proxy.secretKey as string;
+    }
+    if (proxy.bindAddr !== undefined) {
+      proxy2.bindAddr = proxy.bindAddr as string;
+    }
+    if (proxy.bindPort !== undefined) {
+      proxy2.bindPort = proxy.bindPort as number;
+    }
+    if (proxy.fallbackTo !== undefined) {
+      proxy2.fallbackTo = proxy.fallbackTo as string;
+    }
+    if (proxy.fallbackTimeoutMs !== undefined) {
+      proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
+    }
+    if (proxy.keepTunnelOpen !== undefined) {
+      proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
+    }
+    if (proxy.serverId !== undefined) {
+      proxy2.serverId = proxy.serverId as string;
+    }
+    if (proxy.transport) {
+      Object.assign(proxy2.transport, proxy.transport);
+    }
+    if (proxy.plugin?.type === "https2http") {
+      proxy2.https2http = true;
+      if (proxy.plugin.localAddr) {
+        const localAddr = String(proxy.plugin.localAddr);
+        const separatorIndex = localAddr.lastIndexOf(":");
+        if (separatorIndex > -1) {
+          proxy2.localIP = localAddr.slice(0, separatorIndex);
+          proxy2.localPort = localAddr.slice(separatorIndex + 1);
+        } else {
+          proxy2.localIP = localAddr;
+        }
+      }
+      if (proxy.plugin.crtPath !== undefined) {
+        proxy2.https2httpCaFile = proxy.plugin.crtPath as string;
+      }
+      if (proxy.plugin.keyPath !== undefined) {
+        proxy2.https2httpKeyFile = proxy.plugin.keyPath as string;
+      }
+    }
+
+    return proxy2;
+  }
+
+  async syncTomlConfigFile(filePath: string) {
+    if (!filePath || path.extname(filePath) !== GlobalConstant.TOML_EXT) {
+      throw new Error(`导入失败，暂不支持 ${path.extname(filePath)} 格式文件`);
+    }
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`导入失败，文件不存在: ${filePath}`);
+    }
+
+    const sourceConfig = TOML.parse(
+      fs.readFileSync(filePath, "utf-8")
+    ) as Record<string, any> | null;
+    if (!sourceConfig) {
+      return {
+        path: filePath,
+        proxies: 0
+      };
+    }
+
+    const proxies: Array<FrpcProxy> = [];
+    if (Array.isArray(sourceConfig.proxies)) {
+      proxies.push(
+        ...sourceConfig.proxies.map(proxy =>
+          this.mapTomlProxy(proxy, "visitorsProvider")
+        )
+      );
+    }
+    if (Array.isArray(sourceConfig.visitors)) {
+      proxies.push(
+        ...sourceConfig.visitors.map(visitor =>
+          this.mapTomlProxy(visitor, "visitors")
+        )
+      );
+    }
+
+    const proxyMap = new Map<string, FrpcProxy>();
+    proxies
+      .filter(proxy => proxy.name && proxy.type)
+      .forEach(proxy => {
+        proxyMap.set(`${proxy.name}\u0000${proxy.type}`, proxy);
+      });
+    const validProxies = Array.from(proxyMap.values());
+
+    const config = this.createDefaultServerConfig(await this.getServerConfig());
+    this.applyTomlServerConfig(sourceConfig, config);
+    await this.saveServerConfig(config, false);
+
+    validProxies.forEach(proxy => {
+      proxy.serverId = config._id;
+    });
+
+    await this._proxyDao.truncate();
+    if (validProxies.length > 0) {
+      await this._proxyDao.insertMany(validProxies);
+    }
+
+    return {
+      path: filePath,
+      proxies: validProxies.length,
+      replaced: true
+    };
+  }
+
+  private async getServerRuntimeIndex(serverId: string) {
+    const servers = await this.getServerConfigs();
+    const index = servers.findIndex(server => server._id === serverId);
+    return index < 0 ? 0 : index;
+  }
+
+  private async getServerWebPort(server: OpenSourceFrpcDesktopServer) {
+    const basePort = server.webServer?.port || 57400;
+    return basePort + (await this.getServerRuntimeIndex(server._id));
+  }
+
+  async getServerRuntimeWebPort(server: OpenSourceFrpcDesktopServer) {
+    return this.getServerWebPort(server);
+  }
+
+  private isProxyAssignedToServer(proxy: FrpcProxy, serverId: string) {
+    const proxyServerId = proxy.serverId || this._serverId;
+    return proxyServerId === serverId;
+  }
+
+  async getRunnableServerConfigs() {
+    const servers = await this.getServerConfigs();
+    const proxies = await this._proxyDao.findAll();
+    const enabledServerIds = new Set(
+      proxies
+        .filter(proxy => this.isEnableProxy(proxy))
+        .map(proxy => proxy.serverId || this._serverId)
+    );
+    return servers.filter(server => enabledServerIds.has(server._id));
+  }
+
+  async genTomlConfig(outputPath: string, serverId = this._serverId) {
     if (!outputPath) {
       return;
     }
-    const server = await this.getServerConfig();
-    const proxies = await this._proxyDao.findAll();
+    const server = await this.getServerConfigById(serverId);
+    const proxies = (await this._proxyDao.findAll()).filter(proxy =>
+      this.isProxyAssignedToServer(proxy, server._id)
+    );
 
     const enabledRangePortProxies = proxies
       .filter(f => this.isEnableProxy(f))
@@ -132,7 +530,6 @@ remotePort = {{ $v.Second }}
             transport: proxy.transport
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
-          const locations = proxy.locations.filter(l => l !== "");
           if (this.isHttps2http(proxy) && proxy.type === "https") {
             return {
               name: proxy.name,
@@ -140,7 +537,6 @@ remotePort = {{ $v.Second }}
               customDomains: proxy.customDomains,
               subdomain: proxy.subdomain,
               transport: proxy.transport,
-              ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.https2http
                 ? {
                     plugin: {
@@ -161,7 +557,6 @@ remotePort = {{ $v.Second }}
               customDomains: proxy.customDomains,
               transport: proxy.transport,
               subdomain: proxy.subdomain,
-              ...(locations.length > 0 ? { locations } : {}),
               ...(proxy.basicAuth
                 ? { httpUser: proxy.httpUser, httpPassword: proxy.httpPassword }
                 : {})
@@ -213,11 +608,21 @@ remotePort = {{ $v.Second }}
         }
       });
 
-    const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
+    const {
+      frpcVersion,
+      _id,
+      system,
+      multiuser,
+      name,
+      remark,
+      isDefault,
+      ...commonConfig
+    } = server;
     const frpcConfig = { ...commonConfig };
-    frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
+    frpcConfig.log.to = PathUtils.getFrpcLogFilePathByServerId(server._id);
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
+    frpcConfig.webServer.port = await this.getServerWebPort(server);
 
     if (frpcConfig.auth.method === "none") {
       frpcConfig.auth = null;
@@ -248,494 +653,14 @@ ${f}`;
         canceled: true,
         path: ""
       };
-    } else {
-      const filePath = result.filePaths[0];
-      const fileExtension = path.extname(filePath);
-      if (fileExtension === GlobalConstant.TOML_EXT) {
-        const tomlData = fs.readFileSync(filePath, "utf-8");
-        const sourceConfig = TOML.parse(tomlData);
-        // 默认配置
-        const config: OpenSourceFrpcDesktopServer = {
-          _id: "",
-          multiuser: false,
-          frpcVersion: null,
-          loginFailExit: false,
-          udpPacketSize: 1500,
-          serverAddr: "",
-          serverPort: 7000,
-          auth: {
-            method: "",
-            token: ""
-          },
-          log: {
-            to: "",
-            level: "info",
-            maxDays: 3,
-            disablePrintColor: false
-          },
-          transport: {
-            dialServerTimeout: 10,
-            dialServerKeepalive: 7200,
-            poolCount: 0,
-            tcpMux: true,
-            tcpMuxKeepaliveInterval: 30,
-            protocol: "tcp",
-            connectServerLocalIP: "",
-            proxyURL: "",
-            tls: {
-              enable: true,
-              certFile: "",
-              keyFile: "",
-              trustedCaFile: "",
-              serverName: "",
-              disableCustomTLSFirstByte: true
-            },
-            heartbeatInterval: 30,
-            heartbeatTimeout: 90
-          },
-          metadatas: {
-            token: ""
-          },
-          webServer: {
-            addr: "127.0.0.1",
-            port: 57400,
-            user: "",
-            password: "",
-            pprofEnable: false
-          },
-          system: {
-            launchAtStartup: false,
-            silentStartup: false,
-            autoConnectOnStartup: false,
-            language: "en-US"
-          },
-          user: ""
-        };
-        // 判断 toml 中是否有这些配置项，有则覆盖默认的
-        if (sourceConfig.loginFailExit !== undefined) {
-          config.loginFailExit = sourceConfig.loginFailExit as boolean;
-        }
-        if (sourceConfig.udpPacketSize !== undefined) {
-          config.udpPacketSize = sourceConfig.udpPacketSize as number;
-        }
-        if (sourceConfig.serverAddr !== undefined) {
-          config.serverAddr = sourceConfig.serverAddr as string;
-        }
-        if (sourceConfig.serverPort !== undefined) {
-          config.serverPort = sourceConfig.serverPort as number;
-        }
-        if (sourceConfig.user !== undefined) {
-          config.user = sourceConfig.user as string;
-        }
-
-        // auth 配置
-        if (sourceConfig.auth) {
-          if ((sourceConfig.auth as AuthConfig).method !== undefined) {
-            config.auth.method = (sourceConfig.auth as AuthConfig)
-              .method as string;
-          }
-          if ((sourceConfig.auth as AuthConfig).token !== undefined) {
-            config.auth.token = (sourceConfig.auth as AuthConfig)
-              .token as string;
-          }
-        }
-
-        // log 配置
-        if (sourceConfig.log as LogConfig) {
-          if ((sourceConfig.log as LogConfig).to !== undefined) {
-            config.log.to = (sourceConfig.log as LogConfig).to as string;
-          }
-          if ((sourceConfig.log as LogConfig).level !== undefined) {
-            config.log.level = (sourceConfig.log as LogConfig).level as string;
-          }
-          if ((sourceConfig.log as LogConfig).maxDays !== undefined) {
-            config.log.maxDays = (sourceConfig.log as LogConfig)
-              .maxDays as number;
-          }
-          if ((sourceConfig.log as LogConfig).disablePrintColor !== undefined) {
-            config.log.disablePrintColor = (sourceConfig.log as LogConfig)
-              .disablePrintColor as boolean;
-          }
-        }
-
-        // transport 配置
-        if (sourceConfig.transport as TransportConfig) {
-          if (
-            (sourceConfig.transport as TransportConfig).dialServerTimeout !==
-            undefined
-          ) {
-            config.transport.dialServerTimeout = (
-              sourceConfig.transport as TransportConfig
-            ).dialServerTimeout as number;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).dialServerKeepalive !==
-            undefined
-          ) {
-            config.transport.dialServerKeepalive = (
-              sourceConfig.transport as TransportConfig
-            ).dialServerKeepalive as number;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).poolCount !== undefined
-          ) {
-            config.transport.poolCount = (
-              sourceConfig.transport as TransportConfig
-            ).poolCount as number;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).tcpMux !== undefined
-          ) {
-            config.transport.tcpMux = (
-              sourceConfig.transport as TransportConfig
-            ).tcpMux as boolean;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig)
-              .tcpMuxKeepaliveInterval !== undefined
-          ) {
-            config.transport.tcpMuxKeepaliveInterval = (
-              sourceConfig.transport as TransportConfig
-            ).tcpMuxKeepaliveInterval as number;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).protocol !== undefined
-          ) {
-            config.transport.protocol = (
-              sourceConfig.transport as TransportConfig
-            ).protocol as string;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).connectServerLocalIP !==
-            undefined
-          ) {
-            config.transport.connectServerLocalIP = (
-              sourceConfig.transport as TransportConfig
-            ).connectServerLocalIP as string;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).proxyURL !== undefined
-          ) {
-            config.transport.proxyURL = (
-              sourceConfig.transport as TransportConfig
-            ).proxyURL as string;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).heartbeatInterval !==
-            undefined
-          ) {
-            config.transport.heartbeatInterval = (
-              sourceConfig.transport as TransportConfig
-            ).heartbeatInterval as number;
-          }
-          if (
-            (sourceConfig.transport as TransportConfig).heartbeatTimeout !==
-            undefined
-          ) {
-            config.transport.heartbeatTimeout = (
-              sourceConfig.transport as TransportConfig
-            ).heartbeatTimeout as number;
-          }
-
-          // transport.tls 配置
-          if (sourceConfig.transport as TransportTlsConfig) {
-            if (
-              (sourceConfig.transport as TransportTlsConfig).enable !==
-              undefined
-            ) {
-              config.transport.tls.enable = (
-                sourceConfig.transport as TransportTlsConfig
-              ).enable as boolean;
-            }
-            if (
-              (sourceConfig.transport as TransportTlsConfig).certFile !==
-              undefined
-            ) {
-              config.transport.tls.certFile = (
-                sourceConfig.transport as TransportTlsConfig
-              ).certFile as string;
-            }
-            if (
-              (sourceConfig.transport as TransportTlsConfig).keyFile !==
-              undefined
-            ) {
-              config.transport.tls.keyFile = (
-                sourceConfig.transport as TransportTlsConfig
-              ).keyFile as string;
-            }
-            if (
-              (sourceConfig.transport as TransportTlsConfig).trustedCaFile !==
-              undefined
-            ) {
-              config.transport.tls.trustedCaFile = (
-                sourceConfig.transport as TransportTlsConfig
-              ).trustedCaFile as string;
-            }
-            if (
-              (sourceConfig.transport as TransportTlsConfig).serverName !==
-              undefined
-            ) {
-              config.transport.tls.serverName = (
-                sourceConfig.transport as TransportTlsConfig
-              ).serverName as string;
-            }
-            if (
-              (sourceConfig.transport as TransportTlsConfig)
-                .disableCustomTLSFirstByte !== undefined
-            ) {
-              config.transport.tls.disableCustomTLSFirstByte = (
-                sourceConfig.transport as TransportTlsConfig
-              ).disableCustomTLSFirstByte as boolean;
-            }
-          }
-        }
-
-        // metadatas 配置
-        if (sourceConfig.metadatas as Record<string, any>) {
-          if (
-            (sourceConfig.metadatas as Record<string, any>).token !== undefined
-          ) {
-            config.metadatas.token = (
-              sourceConfig.metadatas as Record<string, any>
-            ).token as string;
-          }
-        }
-
-        // webServer 配置
-        if (sourceConfig.webServer as WebServerConfig) {
-          if ((sourceConfig.webServer as WebServerConfig).addr !== undefined) {
-            config.webServer.addr = (sourceConfig.webServer as WebServerConfig)
-              .addr as string;
-          }
-          if ((sourceConfig.webServer as WebServerConfig).port !== undefined) {
-            config.webServer.port = (sourceConfig.webServer as WebServerConfig)
-              .port as number;
-          }
-          if ((sourceConfig.webServer as WebServerConfig).user !== undefined) {
-            config.webServer.user = (sourceConfig.webServer as WebServerConfig)
-              .user as string;
-          }
-          if (
-            (sourceConfig.webServer as WebServerConfig).password !== undefined
-          ) {
-            config.webServer.password = (
-              sourceConfig.webServer as WebServerConfig
-            ).password as string;
-          }
-          if (
-            (sourceConfig.webServer as WebServerConfig).pprofEnable !==
-            undefined
-          ) {
-            config.webServer.pprofEnable = (
-              sourceConfig.webServer as WebServerConfig
-            ).pprofEnable as boolean;
-          }
-        }
-
-        await this.saveServerConfig(config);
-
-        if (sourceConfig && sourceConfig.proxies) {
-          const proxies = (sourceConfig.proxies as any[]).map((proxy: any) => {
-            const proxy2: FrpcProxy = {
-              _id: "",
-              hostHeaderRewrite: "",
-              locations: [""],
-              name: "",
-              type: "http",
-              localIP: "",
-              localPort: "8080",
-              remotePort: "8080",
-              customDomains: [""],
-              visitorsModel: "visitors",
-              serverUser: "",
-              serverName: "",
-              secretKey: "",
-              bindAddr: "",
-              bindPort: null,
-              subdomain: "",
-              basicAuth: false,
-              httpUser: "",
-              httpPassword: "",
-              fallbackTo: "",
-              fallbackTimeoutMs: 500,
-              https2http: false,
-              https2httpCaFile: "",
-              https2httpKeyFile: "",
-              keepTunnelOpen: false,
-              status: 1,
-              transport: {
-                useEncryption: false,
-                useCompression: false,
-                proxyProtocolVersion: ""
-              }
-            };
-
-            if (proxy.name !== undefined) {
-              proxy2.name = proxy.name as string;
-            }
-            if (proxy.type !== undefined) {
-              proxy2.type = proxy.type as string;
-            }
-            if (proxy.localIP !== undefined) {
-              proxy2.localIP = proxy.localIP as string;
-            }
-            if (proxy.localPort !== undefined) {
-              proxy2.localPort = proxy.localPort.toString();
-            }
-            if (proxy.remotePort !== undefined) {
-              proxy2.remotePort = proxy.remotePort.toString();
-            }
-            if (proxy.customDomains !== undefined) {
-              proxy2.customDomains = proxy.customDomains as string[];
-            }
-            if (proxy.subdomain !== undefined) {
-              proxy2.subdomain = proxy.subdomain as string;
-            }
-            if (proxy.locations !== undefined) {
-              proxy2.locations = proxy.locations as string[];
-            }
-            if (proxy.hostHeaderRewrite !== undefined) {
-              proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
-            }
-            if (proxy.httpUser !== undefined) {
-              proxy2.httpUser = proxy.httpUser as string;
-            }
-            if (proxy.httpPassword !== undefined) {
-              proxy2.httpPassword = proxy.httpPassword as string;
-            }
-            if (proxy.serverName !== undefined) {
-              proxy2.serverName = proxy.serverName as string;
-            }
-            if (proxy.serverUser !== undefined) {
-              proxy2.serverUser = proxy.serverUser as string;
-            }
-            if (proxy.secretKey !== undefined) {
-              proxy2.secretKey = proxy.secretKey as string;
-            }
-            if (proxy.bindAddr !== undefined) {
-              proxy2.bindAddr = proxy.bindAddr as string;
-            }
-            if (proxy.bindPort !== undefined) {
-              proxy2.bindPort = proxy.bindPort as number;
-            }
-            if (proxy.fallbackTo !== undefined) {
-              proxy2.fallbackTo = proxy.fallbackTo as string;
-            }
-            if (proxy.fallbackTimeoutMs !== undefined) {
-              proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
-            }
-            if (proxy.keepTunnelOpen !== undefined) {
-              proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
-            }
-
-            // 处理 transport 配置
-            if (proxy.transport) {
-              if (proxy.transport.useEncryption !== undefined) {
-                proxy2.transport.useEncryption = proxy.transport
-                  .useEncryption as boolean;
-              }
-              if (proxy.transport.useCompression !== undefined) {
-                proxy2.transport.useCompression = proxy.transport
-                  .useCompression as boolean;
-              }
-              if (proxy.transport.proxyProtocolVersion !== undefined) {
-                proxy2.transport.proxyProtocolVersion = proxy.transport
-                  .proxyProtocolVersion as string;
-              }
-            }
-
-            return proxy2;
-          });
-          await this._proxyDao.insertMany(proxies);
-        }
-
-        if (sourceConfig && sourceConfig.visitors) {
-          const visitors = (sourceConfig.visitors as any[]).map(
-            (visitor: any) => {
-              const visitor2: FrpcProxy = {
-                _id: "",
-                hostHeaderRewrite: "",
-                locations: [""],
-                name: "",
-                type: "http",
-                localIP: "",
-                localPort: "8080",
-                remotePort: "8080",
-                customDomains: [""],
-                visitorsModel: "visitors",
-                serverUser: "",
-                serverName: "",
-                secretKey: "",
-                bindAddr: "",
-                bindPort: null,
-                subdomain: "",
-                basicAuth: false,
-                httpUser: "",
-                httpPassword: "",
-                fallbackTo: "",
-                fallbackTimeoutMs: 500,
-                https2http: false,
-                https2httpCaFile: "",
-                https2httpKeyFile: "",
-                keepTunnelOpen: false,
-                status: 1,
-                transport: {
-                  useEncryption: false,
-                  useCompression: false,
-                  proxyProtocolVersion: ""
-                }
-              };
-
-              if (visitor.name !== undefined) {
-                visitor2.name = visitor.name as string;
-              }
-              if (visitor.type !== undefined) {
-                visitor2.type = visitor.type as string;
-              }
-              if (visitor.serverName !== undefined) {
-                visitor2.serverName = visitor.serverName as string;
-              }
-              if (visitor.serverUser !== undefined) {
-                visitor2.serverUser = visitor.serverUser as string;
-              }
-              if (visitor.secretKey !== undefined) {
-                visitor2.secretKey = visitor.secretKey as string;
-              }
-              if (visitor.bindAddr !== undefined) {
-                visitor2.bindAddr = visitor.bindAddr as string;
-              }
-              if (visitor.bindPort !== undefined) {
-                visitor2.bindPort = visitor.bindPort as number;
-              }
-
-              if (visitor.transport) {
-                if (visitor.transport.useEncryption !== undefined) {
-                  visitor2.transport.useEncryption = visitor.transport
-                    .useEncryption as boolean;
-                }
-                if (visitor.transport.useCompression !== undefined) {
-                  visitor2.transport.useCompression = visitor.transport
-                    .useCompression as boolean;
-                }
-                if (visitor.transport.proxyProtocolVersion !== undefined) {
-                  visitor2.transport.proxyProtocolVersion = visitor.transport
-                    .proxyProtocolVersion as string;
-                }
-              }
-
-              return visitor2;
-            }
-          );
-          await this._proxyDao.insertMany(visitors);
-        }
-      } else {
-        throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
-      }
-      return {
-        canceled: false,
-        path: filePath
-      };
     }
+
+    const filePath = result.filePaths[0];
+    const importResult = await this.syncTomlConfigFile(filePath);
+    return {
+      canceled: false,
+      ...importResult
+    };
   }
 
   async isSilentStart() {
@@ -784,6 +709,9 @@ ${f}`;
         _id: "",
         multiuser: false,
         frpcVersion: null,
+        name: "默认节点",
+        remark: "",
+        isDefault: true,
         loginFailExit: false,
         udpPacketSize: 1500,
         serverAddr: "",

@@ -42,6 +42,27 @@ export default {
       stop: "断 开",
       viewLog: "查看日志"
     },
+    external: {
+      title: "检测到外部 frpc 正在运行（PID: {pid}）",
+      noConfigPath: "未能从启动命令读取配置文件路径",
+      stop: "停止外部服务",
+      importConfig: "导入配置",
+      confirmStop: {
+        title: "停止外部 frpc",
+        message:
+          "确定要停止 PID 为 {pid} 的外部 frpc 服务吗？这会影响该服务当前承载的业务流量。",
+        confirm: "停止",
+        cancel: "取消"
+      },
+      message: {
+        stopSuccess: "外部 frpc 已停止",
+        importSuccess: "外部配置已导入，导入代理 {proxies} 个"
+      }
+    },
+    upstream: {
+      title: "上游服务状态",
+      empty: "暂无上游服务"
+    },
     alert: {
       configRequired: {
         title: "提示",
@@ -108,7 +129,10 @@ export default {
   logger: {
     message: {
       openSuccess: "打开日志成功",
-      refreshSuccess: "刷新成功"
+      refreshSuccess: "刷新成功",
+      copySelectionSuccess: "已复制选中的日志",
+      copyAllSuccess: "已复制当前日志",
+      copyEmpty: "暂无可复制的日志"
     },
     content: {
       empty: "暂无日志"
@@ -123,8 +147,12 @@ export default {
     loading: {
       text: "加载中..."
     },
+    tooltip: {
+      copyLog: "复制选中日志；未选择时复制当前日志"
+    },
     autoRefresh: "自动刷新",
-    autoRefreshTime: "{time}秒 后自动刷新"
+    autoRefreshTime: "{time}秒 后自动刷新",
+    serverFilter: "上游服务器"
   },
   about: {
     button: {
@@ -151,6 +179,15 @@ export default {
       frpcVerson: {
         label: "Frp版本",
         requireMessage: "请选择Frp版本"
+      },
+      serverName: {
+        label: "节点名称",
+        requireMessage: "请输入节点名称",
+        placeholder: "例如：华东生产节点"
+      },
+      serverRemark: {
+        label: "备注",
+        placeholder: "记录线路、用途或到期时间"
       },
       serverAddr: {
         label: "服务端地址",
@@ -295,6 +332,19 @@ export default {
       systemConfiguration: "系统配置",
       serverConfiguration: "服务器配置"
     },
+    server: {
+      listTitle: "上游服务器",
+      add: "新增",
+      creating: "正在新增节点",
+      creatingTips: "填写右侧配置后点击保存",
+      defaultName: "默认节点",
+      newName: "未命名节点",
+      defaultTag: "默认",
+      deleteConfirm: {
+        title: "删除上游服务器",
+        message: "确定删除 “{name}” 吗？该节点下的代理会自动迁移到默认节点。"
+      }
+    },
     button: {
       manualRefresh: "手动刷新",
       goToDownload: "点击这里去下载",
@@ -380,6 +430,18 @@ export default {
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
     search: "搜索名称/类型/IP/端口/域名",
+    filter: {
+      serverPlaceholder: "筛选上游服务器"
+    },
+    reachability: {
+      column: "外网状态",
+      refresh: "刷新状态",
+      online: "外网在线",
+      offline: "外网离线",
+      checking: "检测中",
+      disabled: "已禁用",
+      unknown: "不可探测"
+    },
     viewMode: {
       card: "卡片",
       list: "列表"
@@ -422,10 +484,19 @@ export default {
           label: "代理类型",
           requireMessage: "请选择代理类型"
         },
+        server: {
+          label: "上游服务器",
+          requireMessage: "请选择上游服务器",
+          placeholder: "请选择要连接的上游 FRP 服务器"
+        },
         name: {
           label: "代理名称",
           requireMessage: "请输入代理名称",
           placeholder: "请输入代理名称"
+        },
+        remark: {
+          label: "备注",
+          placeholder: "请输入备注，代理列表会优先显示备注"
         },
         localIP: {
           label: "内网地址",
