@@ -35,6 +35,9 @@ const frpcStatus = computed(() => {
 });
 
 const externalFrpc = computed(() => frpcDesktopStore.externalFrpcProcess);
+const upstreamServerStatuses = computed(
+  () => frpcDesktopStore.upstreamServerStatuses
+);
 
 const handleStartFrpc = () => {
   send(ipcRouters.LAUNCH.launch);
@@ -105,6 +108,8 @@ watch(
 );
 
 onMounted(() => {
+  frpcDesktopStore.refreshRunning();
+
   on(
     ipcRouters.LAUNCH.launch,
     () => {
@@ -369,6 +374,63 @@ onUnmounted(() => {
                 }}
               </el-button>
             </div>
+          </div>
+        </div>
+        <div class="w-full max-w-[720px]">
+          <div class="mb-2 text-sm font-bold text-primary">
+            {{ t("home.upstream.title") }}
+          </div>
+          <div
+            v-if="upstreamServerStatuses.length > 0"
+            class="grid gap-2 md:grid-cols-2"
+          >
+            <div
+              v-for="server in upstreamServerStatuses"
+              :key="server.serverId"
+              class="p-3 rounded border border-gray-200 bg-white"
+            >
+              <div class="flex gap-2 justify-between items-start min-w-0">
+                <div class="min-w-0">
+                  <div class="flex gap-2 items-center min-w-0">
+                    <span class="font-bold truncate">{{ server.name }}</span>
+                    <el-tag v-if="server.isDefault" size="small">
+                      {{ t("config.server.defaultTag") }}
+                    </el-tag>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-500 break-all">
+                    {{ server.serverAddr || "-" }}:{{
+                      server.serverPort || "-"
+                    }}
+                  </div>
+                  <div
+                    v-if="server.pid"
+                    class="mt-1 text-xs text-gray-500 break-all"
+                  >
+                    PID: {{ server.pid }}
+                  </div>
+                  <div
+                    v-if="server.connectionError"
+                    class="mt-1 text-xs leading-5 break-all text-[#E6A23C]"
+                  >
+                    {{ server.connectionError }}
+                  </div>
+                </div>
+                <el-tag
+                  class="shrink-0"
+                  :type="server.running ? 'success' : 'info'"
+                  size="small"
+                >
+                  {{
+                    server.running
+                      ? t("home.status.running")
+                      : t("home.status.disconnected")
+                  }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-sm text-gray-500">
+            {{ t("home.upstream.empty") }}
           </div>
         </div>
       </div>

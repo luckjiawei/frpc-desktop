@@ -124,6 +124,10 @@ export const ipcRouters: IpcRouters = {
       path: "proxy/getAllProxies",
       controller: "proxyController.getAllProxies"
     },
+    getProxyReachability: {
+      path: "proxy/getProxyReachability",
+      controller: "proxyController.getProxyReachability"
+    },
     modifyProxyStatus: {
       path: "proxy/modifyProxyStatus",
       controller: "proxyController.modifyProxyStatus"

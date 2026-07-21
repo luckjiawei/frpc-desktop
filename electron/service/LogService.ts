@@ -10,21 +10,25 @@ const LOG_MAX_LINES = 2000;
 
 class LogService {
   private readonly _systemService: SystemService;
-  private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
   private readonly _appPath: string = PathUtils.getAppLogFilePath();
 
   constructor(systemService: SystemService) {
     this._systemService = systemService;
   }
 
-  async getFrpLogContent() {
+  private getFrpcLogPath(serverId = "1") {
+    return PathUtils.getFrpcLogFilePathByServerId(serverId);
+  }
+
+  async getFrpLogContent(serverId = "1") {
     return new Promise((resolve, reject) => {
-      if (!fs.existsSync(this._logPath)) {
+      const logPath = this.getFrpcLogPath(serverId);
+      if (!fs.existsSync(logPath)) {
         resolve("");
         return;
       }
       try {
-        const data = this.readTailText(this._logPath);
+        const data = this.readTailText(logPath);
         resolve(data);
       } catch (error) {
         reject(error);
@@ -83,7 +87,8 @@ class LogService {
       this._watcher = null;
     }
 
-    if (!fs.existsSync(this._logPath)) {
+    const logPath = this.getFrpcLogPath();
+    if (!fs.existsSync(logPath)) {
       const timer = setTimeout(() => {
         this.watchFrpcLog(listenerParam);
         clearTimeout(timer);
@@ -91,7 +96,7 @@ class LogService {
       return;
     }
 
-    this._watcher = fs.watch(this._logPath, (eventType, filename) => {
+    this._watcher = fs.watch(logPath, (eventType, filename) => {
       if (eventType === "change") {
         const win: BrowserWindow = BeanFactory.getBean("win");
         if (win && !win.isDestroyed()) {
@@ -104,10 +109,10 @@ class LogService {
     });
   }
 
-  openFrpcLogFile(): Promise<boolean> {
+  openFrpcLogFile(serverId = "1"): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this._systemService
-        .openLocalFile(this._logPath)
+        .openLocalFile(this.getFrpcLogPath(serverId))
         .then(result => {
           resolve(result);
         })

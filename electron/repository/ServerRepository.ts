@@ -6,7 +6,8 @@ class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
     super("server");
   }
 
-  exists(id: string): Promise<boolean> {
+  async exists(id: string): Promise<boolean> {
+    await this.ready();
     return new Promise((resolve, reject) => {
       this.db.count({ _id: id }, (err, count) => {
         if (err) {
@@ -18,7 +19,9 @@ class ServerRepository extends BaseRepository<OpenSourceFrpcDesktopServer> {
     });
   }
 
-  create(server: OpenSourceFrpcDesktopServer): Promise<OpenSourceFrpcDesktopServer> {
+  create(
+    server: OpenSourceFrpcDesktopServer
+  ): Promise<OpenSourceFrpcDesktopServer> {
     return this.insert(server);
   }
 }

@@ -59,6 +59,10 @@ export default {
         importSuccess: "外部配置已导入，导入代理 {proxies} 个"
       }
     },
+    upstream: {
+      title: "上游服务状态",
+      empty: "暂无上游服务"
+    },
     alert: {
       configRequired: {
         title: "提示",
@@ -147,7 +151,8 @@ export default {
       copyLog: "复制选中日志；未选择时复制当前日志"
     },
     autoRefresh: "自动刷新",
-    autoRefreshTime: "{time}秒 后自动刷新"
+    autoRefreshTime: "{time}秒 后自动刷新",
+    serverFilter: "上游服务器"
   },
   about: {
     button: {
@@ -425,6 +430,18 @@ export default {
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
     search: "搜索名称/类型/IP/端口/域名",
+    filter: {
+      serverPlaceholder: "筛选上游服务器"
+    },
+    reachability: {
+      column: "外网状态",
+      refresh: "刷新状态",
+      online: "外网在线",
+      offline: "外网离线",
+      checking: "检测中",
+      disabled: "已禁用",
+      unknown: "不可探测"
+    },
     viewMode: {
       card: "卡片",
       list: "列表"
@@ -476,6 +493,10 @@ export default {
           label: "代理名称",
           requireMessage: "请输入代理名称",
           placeholder: "请输入代理名称"
+        },
+        remark: {
+          label: "备注",
+          placeholder: "请输入备注，代理列表会优先显示备注"
         },
         localIP: {
           label: "内网地址",

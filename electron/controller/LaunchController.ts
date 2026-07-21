@@ -36,19 +36,15 @@ class LaunchController extends BaseController {
   }
 
   getStatus(req: ControllerParam) {
-    const running = this._frpcProcessService.isRunning();
-    const connectionError = running
-      ? this._frpcProcessService.readFrpcConnectionError()
-      : null;
-    req.event.reply(
-      req.channel,
-      ResponseUtils.success({
-        running,
-        lastStartTime: this._frpcProcessService.frpcLastStartTime,
-        connectionError,
-        externalFrpc: this._frpcProcessService.getExternalFrpcStatus()
+    this._frpcProcessService
+      .getStatusSnapshot()
+      .then(data => {
+        req.event.reply(req.channel, ResponseUtils.success(data));
       })
-    );
+      .catch((err: Error) => {
+        Logger.error("LaunchController.getStatus", err);
+        req.event.reply(req.channel, ResponseUtils.fail(err));
+      });
   }
 
   getExternalStatus(req: ControllerParam) {

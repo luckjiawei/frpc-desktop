@@ -347,6 +347,22 @@ const visible = reactive({
 
 // const exportConfigType = ref("toml");
 
+const finishLoading = () => {
+  loading.value = Math.max(loading.value - 1, 0);
+};
+
+const stopLoading = () => {
+  loading.value = 0;
+};
+
+const handleIpcError = (_bizCode: string, message: string) => {
+  stopLoading();
+  ElMessage({
+    message: message || "internal error.",
+    type: "error"
+  });
+};
+
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
   formRef.value.validate(valid => {
@@ -437,67 +453,87 @@ onMounted(() => {
   // handleLoadDownloadedVersion();
   handleLoadSavedConfig();
 
-  on(ipcRouters.SERVER.getServerConfigs, data => {
-    serverConfigs.value = (data || []).map(mergeServerDefaults);
-    if (creatingServer.value) {
-      loading.value--;
-      return;
-    }
-    const selected =
-      serverConfigs.value.find(
-        server => server._id === selectedServerId.value
-      ) || serverConfigs.value[0];
-    if (selected) {
-      selectServer(selected);
-    } else {
-      formData.value = createDefaultFormData();
-    }
-    loading.value--;
-  });
+  on(
+    ipcRouters.SERVER.getServerConfigs,
+    data => {
+      serverConfigs.value = (data || []).map(mergeServerDefaults);
+      if (creatingServer.value) {
+        finishLoading();
+        return;
+      }
+      const selected =
+        serverConfigs.value.find(
+          server => server._id === selectedServerId.value
+        ) || serverConfigs.value[0];
+      if (selected) {
+        selectServer(selected);
+      } else {
+        formData.value = createDefaultFormData();
+      }
+      finishLoading();
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.SERVER.createServerConfig, data => {
-    ElMessage({
-      type: "success",
-      message: t("config.message.saveSuccess")
-    });
-    creatingServer.value = false;
-    selectedServerId.value = data?._id || defaultServerId;
-    handleLoadSavedConfig();
-  });
+  on(
+    ipcRouters.SERVER.createServerConfig,
+    data => {
+      ElMessage({
+        type: "success",
+        message: t("config.message.saveSuccess")
+      });
+      creatingServer.value = false;
+      selectedServerId.value = data?._id || defaultServerId;
+      handleLoadSavedConfig();
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.SERVER.deleteServerConfig, () => {
-    ElMessage({
-      type: "success",
-      message: t("common.deleteSuccess")
-    });
-    selectedServerId.value = defaultServerId;
-    handleLoadSavedConfig();
-  });
+  on(
+    ipcRouters.SERVER.deleteServerConfig,
+    () => {
+      ElMessage({
+        type: "success",
+        message: t("common.deleteSuccess")
+      });
+      selectedServerId.value = defaultServerId;
+      handleLoadSavedConfig();
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.SERVER.getServerConfig, data => {
-    if (data) {
-      formData.value = mergeServerDefaults(data);
-      checkAndResetVersion();
-    }
-    loading.value--;
-  });
+  on(
+    ipcRouters.SERVER.getServerConfig,
+    data => {
+      if (data) {
+        formData.value = mergeServerDefaults(data);
+        checkAndResetVersion();
+      }
+      finishLoading();
+    },
+    handleIpcError
+  );
 
   // on(ipcRouters.VERSION.getDownloadedVersions, data => {
   //   // versions.value = data;
   //   checkAndResetVersion();
   // });
 
-  on(ipcRouters.SERVER.saveConfig, data => {
-    ElMessage({
-      type: "success",
-      message: t("config.message.saveSuccess")
-    });
-    if (data?._id) {
-      selectedServerId.value = data._id;
-    }
-    handleLoadSavedConfig();
-    frpcDesktopStore.getLanguage();
-  });
+  on(
+    ipcRouters.SERVER.saveConfig,
+    data => {
+      ElMessage({
+        type: "success",
+        message: t("config.message.saveSuccess")
+      });
+      if (data?._id) {
+        selectedServerId.value = data._id;
+      }
+      handleLoadSavedConfig();
+      frpcDesktopStore.getLanguage();
+    },
+    handleIpcError
+  );
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
     if (!data.canceled) {
@@ -572,14 +608,18 @@ onMounted(() => {
     });
   });
 
-  on(ipcRouters.SERVER.saveLanguage, data => {
-    ElMessage({
-      type: "success",
-      message: t("config.message.saveSuccess")
-    });
-    loading.value--;
-    frpcDesktopStore.getLanguage();
-  });
+  on(
+    ipcRouters.SERVER.saveLanguage,
+    () => {
+      ElMessage({
+        type: "success",
+        message: t("config.message.saveSuccess")
+      });
+      finishLoading();
+      frpcDesktopStore.getLanguage();
+    },
+    handleIpcError
+  );
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -692,6 +732,7 @@ const handleOpenDataFolder = useDebounceFn(() => {
 }, 300);
 
 const handleSystemLanguageChange = e => {
+  loading.value = 1;
   send(ipcRouters.SERVER.saveLanguage, e);
 };
 
@@ -1778,123 +1819,129 @@ onUnmounted(() => {
                   />
                 </el-form-item>
               </el-col>
-              <el-col :span="24">
-                <div class="h2">
-                  {{ t("config.title.systemConfiguration") }}
-                </div>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item
-                  :label="t('config.form.systemLaunchAtStartup.label')"
-                  prop="system.launchAtStartup"
-                >
-                  <template #label>
-                    <div class="flex items-center mr-1 h-full">
-                      <el-popover placement="top" width="300" trigger="hover">
-                        <template #default>
-                          <div
-                            v-html="t('config.form.systemLaunchAtStartup.tips')"
-                          ></div>
-                        </template>
-                        <template #reference>
-                          <IconifyIconOffline
-                            class="text-base"
-                            color="#5A3DAA"
-                            icon="info"
-                          />
-                        </template>
-                      </el-popover>
-                    </div>
-                    {{ t("config.form.systemLaunchAtStartup.label") }}
-                  </template>
-                  <el-switch
-                    v-model="formData.system.launchAtStartup"
-                    :active-text="t('common.yes')"
-                    :inactive-text="t('common.no')"
-                    inline-prompt
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item
-                  :label="t('config.form.systemSilentStartup.label')"
-                  prop="system.silentStartup"
-                >
-                  <template #label>
-                    <div class="flex items-center mr-1 h-full">
-                      <el-popover placement="top" width="300" trigger="hover">
-                        <template #default>
-                          <div
-                            v-html="t('config.form.systemSilentStartup.tips')"
-                          ></div>
-                        </template>
-                        <template #reference>
-                          <IconifyIconOffline
-                            class="text-base"
-                            color="#5A3DAA"
-                            icon="info"
-                          />
-                        </template>
-                      </el-popover>
-                    </div>
-                    {{ t("config.form.systemSilentStartup.label") }}
-                  </template>
-                  <el-switch
-                    v-model="formData.system.silentStartup"
-                    :active-text="t('common.yes')"
-                    :inactive-text="t('common.no')"
-                    inline-prompt
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item
-                  :label="t('config.form.systemAutoConnectOnStartup.label')"
-                  prop="system.autoConnectOnStartup"
-                >
-                  <template #label>
-                    <div class="flex items-center mr-1 h-full">
-                      <el-popover placement="top" width="300" trigger="hover">
-                        <template #default>
-                          <div
-                            v-html="
-                              t('config.form.systemAutoConnectOnStartup.tips')
-                            "
-                          ></div>
-                        </template>
-                        <template #reference>
-                          <IconifyIconOffline
-                            class="text-base"
-                            color="#5A3DAA"
-                            icon="info"
-                          />
-                        </template>
-                      </el-popover>
-                    </div>
-                    {{ t("config.form.systemAutoConnectOnStartup.label") }}
-                  </template>
-                  <el-switch
-                    v-model="formData.system.autoConnectOnStartup"
-                    :active-text="t('common.yes')"
-                    :inactive-text="t('common.no')"
-                    inline-prompt
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="24">
-                <el-form-item
-                  :label="t('config.form.systemLanguage.label')"
-                  prop="system.language"
-                >
-                  <el-select
-                    v-model="formData.system.language"
-                    @change="handleSystemLanguageChange"
+              <template v-if="formData.isDefault && !creatingServer">
+                <el-col :span="24">
+                  <div class="h2">
+                    {{ t("config.title.systemConfiguration") }}
+                  </div>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="t('config.form.systemLaunchAtStartup.label')"
+                    prop="system.launchAtStartup"
                   >
-                    <el-option label="中文" value="zh-CN" />
-                    <el-option label="English" value="en-US" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover placement="top" width="300" trigger="hover">
+                          <template #default>
+                            <div
+                              v-html="
+                                t('config.form.systemLaunchAtStartup.tips')
+                              "
+                            ></div>
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.systemLaunchAtStartup.label") }}
+                    </template>
+                    <el-switch
+                      v-model="formData.system.launchAtStartup"
+                      :active-text="t('common.yes')"
+                      :inactive-text="t('common.no')"
+                      inline-prompt
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="t('config.form.systemSilentStartup.label')"
+                    prop="system.silentStartup"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover placement="top" width="300" trigger="hover">
+                          <template #default>
+                            <div
+                              v-html="t('config.form.systemSilentStartup.tips')"
+                            ></div>
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.systemSilentStartup.label") }}
+                    </template>
+                    <el-switch
+                      v-model="formData.system.silentStartup"
+                      :active-text="t('common.yes')"
+                      :inactive-text="t('common.no')"
+                      inline-prompt
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="t('config.form.systemAutoConnectOnStartup.label')"
+                    prop="system.autoConnectOnStartup"
+                  >
+                    <template #label>
+                      <div class="flex items-center mr-1 h-full">
+                        <el-popover placement="top" width="300" trigger="hover">
+                          <template #default>
+                            <div
+                              v-html="
+                                t(
+                                  'config.form.systemAutoConnectOnStartup.tips'
+                                )
+                              "
+                            ></div>
+                          </template>
+                          <template #reference>
+                            <IconifyIconOffline
+                              class="text-base"
+                              color="#5A3DAA"
+                              icon="info"
+                            />
+                          </template>
+                        </el-popover>
+                      </div>
+                      {{ t("config.form.systemAutoConnectOnStartup.label") }}
+                    </template>
+                    <el-switch
+                      v-model="formData.system.autoConnectOnStartup"
+                      :active-text="t('common.yes')"
+                      :inactive-text="t('common.no')"
+                      inline-prompt
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('config.form.systemLanguage.label')"
+                    prop="system.language"
+                  >
+                    <el-select
+                      v-model="formData.system.language"
+                      @change="handleSystemLanguageChange"
+                    >
+                      <el-option label="中文" value="zh-CN" />
+                      <el-option label="English" value="en-US" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </template>
               <!--            <el-col :span="24">-->
               <!--              <el-form-item>-->
               <!--                <el-button plain type="primary" @click="handleSubmit">-->

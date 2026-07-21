@@ -59,6 +59,10 @@ export default {
         importSuccess: "External config imported, {proxies} proxies imported"
       }
     },
+    upstream: {
+      title: "Upstream Service Status",
+      empty: "No upstream service"
+    },
     alert: {
       configRequired: {
         title: "Prompt",
@@ -152,7 +156,8 @@ export default {
       copyLog: "Copy selected logs; copy current logs when nothing is selected"
     },
     autoRefresh: "Auto Refresh",
-    autoRefreshTime: "{time}s after auto refresh"
+    autoRefreshTime: "{time}s after auto refresh",
+    serverFilter: "Upstream Server"
   },
   about: {
     button: {
@@ -407,6 +412,18 @@ export default {
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
     search: "Search by name / type / IP / port / domain",
+    filter: {
+      serverPlaceholder: "Filter upstream server"
+    },
+    reachability: {
+      column: "External Status",
+      refresh: "Refresh Status",
+      online: "Online",
+      offline: "Offline",
+      checking: "Checking",
+      disabled: "Disabled",
+      unknown: "Unknown"
+    },
     viewMode: {
       card: "Card",
       list: "List"
@@ -457,6 +474,10 @@ export default {
           label: "Proxy Name",
           requireMessage: "Please enter proxy name",
           placeholder: "Please enter proxy name"
+        },
+        remark: {
+          label: "Remark",
+          placeholder: "Enter remark. The proxy list shows it first."
         },
         localIP: {
           label: "Local IP",

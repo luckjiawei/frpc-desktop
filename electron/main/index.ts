@@ -299,6 +299,7 @@ class FrpcDesktopApp {
       "proxyService",
       new ProxyService(
         BeanFactory.getBean("proxyRepository"),
+        BeanFactory.getBean("serverRepository"),
         BeanFactory.getBean("frpcProcessService")
       )
     );

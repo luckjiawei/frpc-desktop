@@ -13,13 +13,15 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     lastRelease: null,
     language: null,
     connectionError: null as string | null,
-    externalFrpc: null as ExternalFrpcProcessInfo | null
+    externalFrpc: null as ExternalFrpcProcessInfo | null,
+    serverStatuses: [] as Array<FrpcServerRuntimeStatus>
   }),
   getters: {
     frpcProcessRunning: state => state.running,
     frpcProcessUptime: state => state.uptime,
     frpcConnectionError: state => state.connectionError,
     externalFrpcProcess: state => state.externalFrpc,
+    upstreamServerStatuses: state => state.serverStatuses,
     downloadedVersions: state => state.versions,
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
@@ -27,20 +29,34 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   actions: {
     onListenerFrpcProcessRunning() {
       onListener(listeners.watchFrpcProcess, data => {
-        const { running, lastStartTime, connectionError, externalFrpc } = data;
+        const {
+          running,
+          lastStartTime,
+          connectionError,
+          externalFrpc,
+          serverStatuses
+        } = data;
         this.running = running;
         this.connectionError = connectionError ?? null;
         this.externalFrpc = externalFrpc ?? null;
+        this.serverStatuses = serverStatuses ?? [];
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }
       });
 
       on(ipcRouters.LAUNCH.getStatus, data => {
-        const { running, lastStartTime, connectionError, externalFrpc } = data;
+        const {
+          running,
+          lastStartTime,
+          connectionError,
+          externalFrpc,
+          serverStatuses
+        } = data;
         this.running = running;
         this.connectionError = connectionError ?? null;
         this.externalFrpc = externalFrpc ?? null;
+        this.serverStatuses = serverStatuses ?? [];
         if (running) {
           this.uptime = new Date().getTime() - lastStartTime;
         }

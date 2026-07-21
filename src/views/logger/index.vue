@@ -22,6 +22,9 @@ const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
 const activeTabName = ref("app_log");
 const logRecords = ref<Array<LogRecord>>([]);
+const defaultServerId = "1";
+const selectedServerId = ref(defaultServerId);
+const serverConfigs = ref<Array<OpenSourceFrpcDesktopServer>>([]);
 
 const parseLogRecords = (
   data: string,
@@ -42,9 +45,21 @@ const openLocalLog = useDebounceFn(() => {
   if (activeTabName.value === "app_log") {
     send(ipcRouters.LOG.openAppLogFile);
   } else {
-    send(ipcRouters.LOG.openFrpcLogFile);
+    send(ipcRouters.LOG.openFrpcLogFile, {
+      serverId: selectedServerId.value
+    });
   }
 }, 1000);
+
+const loadCurrentLog = () => {
+  if (activeTabName.value === "app_log") {
+    send(ipcRouters.LOG.getAppLogContent);
+  } else {
+    send(ipcRouters.LOG.getFrpLogContent, {
+      serverId: selectedServerId.value
+    });
+  }
+};
 
 const refreshLog = useDebounceFn(() => {
   // ElMessage({
@@ -55,11 +70,7 @@ const refreshLog = useDebounceFn(() => {
   refreshStatus.value = true;
   logLoading.value = true;
   logRecords.value = [];
-  if (activeTabName.value === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
+  loadCurrentLog();
 }, 300);
 
 const handleAutoRefreshChange = () => {
@@ -83,14 +94,29 @@ const handleAutoRefreshChange = () => {
 const handleTabChange = (tab: string) => {
   activeTabName.value = tab;
   logRecords.value = [];
-  if (tab === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
+  logLoading.value = true;
+  loadCurrentLog();
+};
+
+const handleServerChange = () => {
+  logRecords.value = [];
+  logLoading.value = true;
+  loadCurrentLog();
 };
 
 onMounted(() => {
+  send(ipcRouters.SERVER.getServerConfigs);
+
+  on(ipcRouters.SERVER.getServerConfigs, data => {
+    serverConfigs.value = data || [];
+    if (
+      serverConfigs.value.length > 0 &&
+      !serverConfigs.value.some(server => server._id === selectedServerId.value)
+    ) {
+      selectedServerId.value = serverConfigs.value[0]._id;
+    }
+  });
+
   on(ipcRouters.LOG.getFrpLogContent, data => {
     if (data) {
       logRecords.value = parseLogRecords(data, line => {
@@ -154,14 +180,22 @@ onMounted(() => {
     });
   });
 
-  // send(ipcRouters.LOG.getFrpLogContent);
-  send(ipcRouters.LOG.getAppLogContent);
+  on(ipcRouters.LOG.openAppLogFile, () => {
+    ElMessage({
+      type: "success",
+      message: t("logger.message.openSuccess")
+    });
+  });
+
+  loadCurrentLog();
 });
 
 onUnmounted(() => {
   removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
   removeRouterListeners(ipcRouters.LOG.getAppLogContent);
   removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
+  removeRouterListeners(ipcRouters.LOG.openAppLogFile);
+  removeRouterListeners(ipcRouters.SERVER.getServerConfigs);
   // removeRouterListeners2(listeners.watchFrpcLog);
   clearInterval(autoRefreshTimer.value);
   autoRefreshTime.value = 10;
@@ -187,6 +221,31 @@ onUnmounted(() => {
         >
           <log-view :log-records="logRecords" :loading="logLoading">
             <template #toolbar>
+              <el-select
+                v-model="selectedServerId"
+                size="small"
+                class="log-server-select"
+                :placeholder="t('logger.serverFilter')"
+                @change="handleServerChange"
+              >
+                <el-option
+                  v-for="server in serverConfigs"
+                  :key="server._id"
+                  :label="server.name"
+                  :value="server._id"
+                >
+                  <div class="log-server-option">
+                    <span class="log-server-option__name">{{
+                      server.name
+                    }}</span>
+                    <span class="log-server-option__meta">
+                      {{ server.serverAddr || "-" }}:{{
+                        server.serverPort || "-"
+                      }}
+                    </span>
+                  </div>
+                </el-option>
+              </el-select>
               <span
                 v-if="autoRefresh"
                 class="text-sm font-medium text-gray-300"
@@ -266,5 +325,33 @@ onUnmounted(() => {
 
 .log-container {
   height: 100%;
+}
+
+.log-server-select {
+  width: 180px;
+}
+
+.log-server-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.log-server-option__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.log-server-option__meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 </style>

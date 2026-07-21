@@ -25,11 +25,20 @@ class ConfigController extends BaseController {
     this._frpcProcessService = frpcProcessService;
   }
 
+  private reloadFrpcInBackground(source: string) {
+    this._frpcProcessService
+      .reloadFrpcProcess()
+      .catch((err: Error) =>
+        Logger.error(`ConfigController.${source}.reloadFrpcProcess`, err)
+      );
+  }
+
   saveConfig(req: ControllerParam) {
     this._serverService
       .saveServerConfig(req.args)
       .then(data => {
         req.event.reply(req.channel, ResponseUtils.success(data));
+        this.reloadFrpcInBackground("saveConfig");
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.saveConfig", err);
@@ -78,6 +87,7 @@ class ConfigController extends BaseController {
       .deleteServerConfig(req.args)
       .then(() => {
         req.event.reply(req.channel, ResponseUtils.success());
+        this.reloadFrpcInBackground("deleteServerConfig");
       })
       .catch((err: Error) => {
         Logger.error("ConfigController.deleteServerConfig", err);

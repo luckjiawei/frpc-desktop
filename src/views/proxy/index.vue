@@ -31,17 +31,28 @@ const hostPattern =
 const proxys = ref<Array<FrpcProxy>>([]);
 const serverConfigs = ref<Array<OpenSourceFrpcDesktopServer>>([]);
 const searchKeyword = ref("");
+const selectedServerFilter = ref("");
 const viewMode = ref<"card" | "list">("card");
 const filteredProxys = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase();
-  if (!kw) return proxys.value;
   return proxys.value.filter(p => {
+    const proxyServerId = p.serverId || defaultServerId;
+    if (
+      selectedServerFilter.value &&
+      proxyServerId !== selectedServerFilter.value
+    ) {
+      return false;
+    }
+    if (!kw) {
+      return true;
+    }
     const server = getProxyServer(p);
     const domains = [...(p.customDomains ?? []), p.subdomain ?? ""]
       .join(" ")
       .toLowerCase();
     return (
       p.name.toLowerCase().includes(kw) ||
+      (p.remark ?? "").toLowerCase().includes(kw) ||
       p.type.toLowerCase().includes(kw) ||
       (p.localIP ?? "").toLowerCase().includes(kw) ||
       String(p.localPort ?? "").includes(kw) ||
@@ -59,6 +70,40 @@ const loading = ref({
   form: 0,
   localPorts: 1
 });
+const proxyReachability = ref<Record<string, ProxyReachabilityResult>>({});
+const proxyReachabilityPendingCount = ref(0);
+const proxyReachabilityRequestId = ref(0);
+const proxyReachabilityAppliedRequestId = ref(0);
+const proxyReachabilityLoading = computed(() => {
+  return proxyReachabilityPendingCount.value > 0;
+});
+const proxyReachabilityRefreshTimer = ref<ReturnType<typeof setInterval>>();
+
+const finishListLoading = () => {
+  loading.value.list = Math.max(loading.value.list - 1, 0);
+};
+
+const finishFormLoading = () => {
+  loading.value.form = Math.max(loading.value.form - 1, 0);
+};
+
+const finishLocalPortsLoading = () => {
+  loading.value.localPorts = Math.max(loading.value.localPorts - 1, 0);
+};
+
+const stopAllLoading = () => {
+  loading.value.list = 0;
+  loading.value.form = 0;
+  loading.value.localPorts = 0;
+};
+
+const handleIpcError = (_bizCode: string, message: string) => {
+  stopAllLoading();
+  ElMessage({
+    message: message || "internal error.",
+    type: "error"
+  });
+};
 
 const localPorts = ref<Array<LocalPort>>([]);
 const listPortsVisible = ref(false);
@@ -74,6 +119,7 @@ const defaultForm: FrpcProxy = {
   hostHeaderRewrite: "",
   locations: [""],
   name: "",
+  remark: "",
   type: "http",
   localIP: "",
   localPort: "8080",
@@ -108,6 +154,34 @@ const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
 const hasPlugin = ref(false);
+const certificateFileExtensions = [
+  "crt",
+  "cer",
+  "cert",
+  "pem",
+  "der",
+  "p7b",
+  "p7c",
+  "pfx",
+  "p12",
+  "ca-bundle",
+  "bundle",
+  "chain",
+  "key",
+  "*"
+];
+const privateKeyFileExtensions = [
+  "key",
+  "pem",
+  "crt",
+  "cer",
+  "cert",
+  "der",
+  "p8",
+  "pfx",
+  "p12",
+  "*"
+];
 
 const visitorsModels = ref([
   {
@@ -322,6 +396,36 @@ const getProxyServerLabel = (proxy: FrpcProxy) => {
   return getProxyServer(proxy)?.name || "-";
 };
 
+const getProxyDisplayName = (proxy: FrpcProxy) => {
+  return proxy.remark?.trim() || proxy.name;
+};
+
+const shouldShowProxyNameBelowRemark = (proxy: FrpcProxy) => {
+  return !!proxy.remark?.trim() && proxy.remark.trim() !== proxy.name;
+};
+
+const serverTagPalette = [
+  { color: "#1D4ED8", backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" },
+  { color: "#047857", backgroundColor: "#ECFDF5", borderColor: "#A7F3D0" },
+  { color: "#B45309", backgroundColor: "#FFFBEB", borderColor: "#FDE68A" },
+  { color: "#BE123C", backgroundColor: "#FFF1F2", borderColor: "#FECDD3" },
+  { color: "#6D28D9", backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" },
+  { color: "#0F766E", backgroundColor: "#F0FDFA", borderColor: "#99F6E4" },
+  { color: "#C2410C", backgroundColor: "#FFF7ED", borderColor: "#FED7AA" },
+  { color: "#4338CA", backgroundColor: "#EEF2FF", borderColor: "#C7D2FE" }
+];
+
+const hashString = (value: string) => {
+  return Array.from(value || defaultServerId).reduce((hash, char) => {
+    return (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }, 0);
+};
+
+const getProxyServerTagStyle = (proxy: FrpcProxy) => {
+  const serverId = proxy.serverId || defaultServerId;
+  return serverTagPalette[hashString(serverId) % serverTagPalette.length];
+};
+
 const handleGetPortCount = (portString: string) => {
   let count = 0;
   const portRanges = portString.split(",");
@@ -406,6 +510,42 @@ const getProxyMappingAddress = (proxy: FrpcProxy) => {
   return "";
 };
 
+const getProxyReachability = (proxy: FrpcProxy) => {
+  return proxyReachability.value[proxy._id];
+};
+
+const getProxyReachabilityState = (proxy: FrpcProxy) => {
+  if (proxy.status !== 1) return "disabled";
+  const reachability = getProxyReachability(proxy);
+  if (!reachability && proxyReachabilityLoading.value) return "checking";
+  return reachability?.state || "unknown";
+};
+
+const getProxyReachabilityTagType = (proxy: FrpcProxy) => {
+  const state = getProxyReachabilityState(proxy);
+  if (state === "online") return "success";
+  if (state === "offline") return "danger";
+  if (state === "checking") return "warning";
+  if (state === "disabled") return "info";
+  return "primary";
+};
+
+const getProxyReachabilityLabel = (proxy: FrpcProxy) => {
+  return t(`proxy.reachability.${getProxyReachabilityState(proxy)}`);
+};
+
+const getProxyReachabilityTooltip = (proxy: FrpcProxy) => {
+  const reachability = getProxyReachability(proxy);
+  if (!reachability) {
+    return getProxyReachabilityLabel(proxy);
+  }
+  const parts = [reachability.target, reachability.message].filter(Boolean);
+  if (reachability.elapsedMs) {
+    parts.push(`${reachability.elapsedMs}ms`);
+  }
+  return parts.join(" · ") || getProxyReachabilityLabel(proxy);
+};
+
 const handleCopyMappingAddress = (proxy: FrpcProxy) => {
   const address = getProxyMappingAddress(proxy);
   if (address) {
@@ -477,6 +617,15 @@ const handleLoadFrpcConfig = () => {
   send(ipcRouters.SERVER.getServerConfigs);
 };
 
+const handleRefreshProxyReachability = (showMessage = false) => {
+  proxyReachabilityRequestId.value += 1;
+  proxyReachabilityPendingCount.value += 1;
+  send(ipcRouters.PROXY.getProxyReachability, {
+    showMessage,
+    requestId: proxyReachabilityRequestId.value
+  });
+};
+
 const handleDeleteProxy = (proxy: FrpcProxy) => {
   send(ipcRouters.PROXY.deleteProxy, proxy._id);
   // ipcRenderer.send("proxy.deleteProxyById", proxy._id);
@@ -497,6 +646,9 @@ const handleOpenInsert = () => {
 
 const handleOpenUpdate = (proxy: FrpcProxy) => {
   editForm.value = _.cloneDeep(proxy);
+  if (editForm.value.remark === undefined) {
+    editForm.value.remark = "";
+  }
   // if (!editForm.value.fallbackTimeoutMs) {
   //   editForm.value.fallbackTimeoutMs = defaultForm.fallbackTimeoutMs;
   // }
@@ -655,17 +807,63 @@ onMounted(() => {
   handleLoadProxies();
   handleLoadFrpcConfig();
 
-  on(ipcRouters.SERVER.getServerConfigs, data => {
-    serverConfigs.value = data || [];
-    if (!editForm.value.serverId) {
-      editForm.value.serverId = serverConfigs.value[0]?._id || defaultServerId;
-    }
-  });
+  on(
+    ipcRouters.SERVER.getServerConfigs,
+    data => {
+      serverConfigs.value = data || [];
+      if (!editForm.value.serverId) {
+        editForm.value.serverId =
+          serverConfigs.value[0]?._id || defaultServerId;
+      }
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.PROXY.getAllProxies, data => {
-    loading.value.list--;
-    proxys.value = data;
-  });
+  on(
+    ipcRouters.PROXY.getAllProxies,
+    data => {
+      finishListLoading();
+      proxys.value = data;
+      handleRefreshProxyReachability();
+    },
+    handleIpcError
+  );
+
+  on(
+    ipcRouters.PROXY.getProxyReachability,
+    data => {
+      proxyReachabilityPendingCount.value = Math.max(
+        proxyReachabilityPendingCount.value - 1,
+        0
+      );
+      const requestId = Array.isArray(data) ? 0 : data?.requestId || 0;
+      if (requestId < proxyReachabilityAppliedRequestId.value) {
+        return;
+      }
+      proxyReachabilityAppliedRequestId.value = requestId;
+      const items = Array.isArray(data) ? data : data?.items || [];
+      proxyReachability.value = items.reduce(
+        (
+          map: Record<string, ProxyReachabilityResult>,
+          item: ProxyReachabilityResult
+        ) => {
+          map[item.proxyId] = item;
+          return map;
+        },
+        {}
+      );
+    },
+    (_bizCode: string, message: string) => {
+      proxyReachabilityPendingCount.value = Math.max(
+        proxyReachabilityPendingCount.value - 1,
+        0
+      );
+      ElMessage({
+        message: message || "internal error.",
+        type: "error"
+      });
+    }
+  );
 
   on(ipcRouters.SYSTEM.selectLocalFile, data => {
     if (!data.canceled) {
@@ -681,7 +879,7 @@ onMounted(() => {
   });
 
   const insertOrUpdateHook = (message: string) => {
-    loading.value.form--;
+    finishFormLoading();
     // const { err } = args;
     // if (!err) {
     ElMessage({
@@ -694,36 +892,61 @@ onMounted(() => {
     // }
   };
 
-  on(ipcRouters.PROXY.createProxy, data => {
-    insertOrUpdateHook(t("common.createSuccess"));
-  });
+  on(
+    ipcRouters.PROXY.createProxy,
+    () => {
+      insertOrUpdateHook(t("common.createSuccess"));
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.PROXY.modifyProxy, data => {
-    insertOrUpdateHook(t("common.modifySuccess"));
-  });
+  on(
+    ipcRouters.PROXY.modifyProxy,
+    () => {
+      insertOrUpdateHook(t("common.modifySuccess"));
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.PROXY.deleteProxy, () => {
-    handleLoadProxies();
-    ElMessage({
-      type: "success",
-      message: t("common.deleteSuccess")
-    });
-  });
+  on(
+    ipcRouters.PROXY.deleteProxy,
+    () => {
+      handleLoadProxies();
+      ElMessage({
+        type: "success",
+        message: t("common.deleteSuccess")
+      });
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.PROXY.modifyProxyStatus, () => {
-    ElMessage({
-      type: "success",
-      message: t("common.modifySuccess")
-    });
-    // handleResetForm();
-    handleLoadProxies();
-    // edit.value.visible = false;
-  });
+  on(
+    ipcRouters.PROXY.modifyProxyStatus,
+    () => {
+      ElMessage({
+        type: "success",
+        message: t("common.modifySuccess")
+      });
+      // handleResetForm();
+      handleLoadProxies();
+      handleRefreshProxyReachability();
+      // edit.value.visible = false;
+    },
+    handleIpcError
+  );
 
-  on(ipcRouters.PROXY.getLocalPorts, data => {
-    loading.value.localPorts--;
-    localPorts.value = data;
-  });
+  on(
+    ipcRouters.PROXY.getLocalPorts,
+    data => {
+      finishLocalPortsLoading();
+      localPorts.value = data;
+    },
+    handleIpcError
+  );
+
+  proxyReachabilityRefreshTimer.value = setInterval(() => {
+    handleRefreshProxyReachability();
+  }, 30000);
 });
 
 const handleProxyTypeChange = e => {
@@ -745,16 +968,40 @@ onUnmounted(() => {
   removeRouterListeners(ipcRouters.PROXY.modifyProxy);
   removeRouterListeners(ipcRouters.PROXY.deleteProxy);
   removeRouterListeners(ipcRouters.PROXY.getAllProxies);
+  removeRouterListeners(ipcRouters.PROXY.getProxyReachability);
   removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
   removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
   removeRouterListeners(ipcRouters.SERVER.getServerConfigs);
   removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
+  if (proxyReachabilityRefreshTimer.value) {
+    clearInterval(proxyReachabilityRefreshTimer.value);
+  }
 });
 </script>
 <template>
   <!--  <coming-soon />-->
   <div class="main">
     <breadcrumb>
+      <el-select
+        v-model="selectedServerFilter"
+        clearable
+        class="mr-2 !w-[220px]"
+        :placeholder="t('proxy.filter.serverPlaceholder')"
+      >
+        <el-option
+          v-for="server in serverConfigs"
+          :key="server._id"
+          :label="server.name"
+          :value="server._id"
+        >
+          <div class="proxy-server-option">
+            <span class="proxy-server-option__name">{{ server.name }}</span>
+            <span class="proxy-server-option__meta">
+              {{ server.serverAddr || "-" }}:{{ server.serverPort || "-" }}
+            </span>
+          </div>
+        </el-option>
+      </el-select>
       <el-input
         v-model="searchKeyword"
         :placeholder="t('proxy.search')"
@@ -776,6 +1023,21 @@ onUnmounted(() => {
           {{ t("proxy.viewMode.list") }}
         </el-radio-button>
       </el-radio-group>
+      <el-button
+        plain
+        @click="handleRefreshProxyReachability(true)"
+      >
+        <template #icon>
+          <IconifyIconOffline
+            icon="refresh-rounded"
+            :class="{ 'proxy-refresh-icon--spinning': proxyReachabilityLoading }"
+          />
+        </template>
+        {{ t("proxy.reachability.refresh") }}
+        <span v-if="proxyReachabilityPendingCount > 0">
+          ({{ proxyReachabilityPendingCount }})
+        </span>
+      </el-button>
       <el-button type="primary" @click="handleOpenInsert">
         <IconifyIconOffline icon="add" />
       </el-button>
@@ -798,13 +1060,23 @@ onUnmounted(() => {
             >
               <div class="left">
                 <div class="flex items-center">
-                  <span class="mr-2 font-bold text-primary">{{
-                    proxy.name
-                  }}</span>
+                  <span class="mr-2 font-bold text-primary proxy-display-name">
+                    {{ getProxyDisplayName(proxy) }}
+                  </span>
+                </div>
+                <div
+                  v-if="shouldShowProxyNameBelowRemark(proxy)"
+                  class="proxy-technical-name"
+                >
+                  {{ proxy.name }}
                 </div>
                 <div class="mb-1">
                   <el-tag size="small">{{ proxy.type }}</el-tag>
-                  <el-tag class="ml-2" size="small" type="success">
+                  <el-tag
+                    class="ml-2 upstream-server-tag"
+                    size="small"
+                    :style="getProxyServerTagStyle(proxy)"
+                  >
                     {{ getProxyServerLabel(proxy) }}
                   </el-tag>
                   <el-tag
@@ -837,6 +1109,18 @@ onUnmounted(() => {
                     size="small"
                     >{{ t("common.disabled") }}
                   </el-tag>
+                  <el-tooltip
+                    :content="getProxyReachabilityTooltip(proxy)"
+                    placement="top"
+                  >
+                    <el-tag
+                      class="ml-2"
+                      size="small"
+                      :type="getProxyReachabilityTagType(proxy)"
+                    >
+                      {{ getProxyReachabilityLabel(proxy) }}
+                    </el-tag>
+                  </el-tooltip>
                 </div>
                 <div class="h-[36px]">
                   <!--
@@ -1024,7 +1308,17 @@ onUnmounted(() => {
             show-overflow-tooltip
           >
             <template #default="scope">
-              <span class="font-bold text-primary">{{ scope.row.name }}</span>
+              <div class="proxy-name-cell">
+                <span class="font-bold text-primary proxy-display-name">
+                  {{ getProxyDisplayName(scope.row) }}
+                </span>
+                <span
+                  v-if="shouldShowProxyNameBelowRemark(scope.row)"
+                  class="proxy-technical-name"
+                >
+                  {{ scope.row.name }}
+                </span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column
@@ -1040,7 +1334,13 @@ onUnmounted(() => {
             min-width="150"
           >
             <template #default="scope">
-              <span>{{ getProxyServerLabel(scope.row) }}</span>
+              <el-tag
+                class="upstream-server-tag"
+                size="small"
+                :style="getProxyServerTagStyle(scope.row)"
+              >
+                {{ getProxyServerLabel(scope.row) }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column :label="t('common.mode')" width="120">
@@ -1064,6 +1364,24 @@ onUnmounted(() => {
                 {{ getProxyMappingAddress(scope.row) }}
               </el-button>
               <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="t('proxy.reachability.column')"
+            width="120"
+          >
+            <template #default="scope">
+              <el-tooltip
+                :content="getProxyReachabilityTooltip(scope.row)"
+                placement="top"
+              >
+                <el-tag
+                  size="small"
+                  :type="getProxyReachabilityTagType(scope.row)"
+                >
+                  {{ getProxyReachabilityLabel(scope.row) }}
+                </el-tag>
+              </el-tooltip>
             </template>
           </el-table-column>
           <el-table-column
@@ -1189,6 +1507,7 @@ onUnmounted(() => {
               <el-select
                 v-model="editForm.serverId"
                 class="w-full"
+                popper-class="proxy-server-select-popper"
                 :placeholder="t('proxy.form.formItem.server.placeholder')"
               >
                 <el-option
@@ -1197,9 +1516,11 @@ onUnmounted(() => {
                   :label="`${server.name} (${server.serverAddr || '-'})`"
                   :value="server._id"
                 >
-                  <div class="flex flex-col py-1 leading-5">
-                    <span>{{ server.name }}</span>
-                    <span class="text-xs text-gray-500">
+                  <div class="proxy-server-option">
+                    <span class="proxy-server-option__name">{{
+                      server.name
+                    }}</span>
+                    <span class="proxy-server-option__meta">
                       {{ server.serverAddr || "-" }}:{{
                         server.serverPort || "-"
                       }}
@@ -1292,6 +1613,16 @@ onUnmounted(() => {
                   {{ t("proxy.form.button.generateName") }}
                 </el-button>
               </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item :label="t('proxy.form.formItem.remark.label')">
+              <el-input
+                v-model="editForm.remark"
+                class="w-full"
+                :placeholder="t('proxy.form.formItem.remark.placeholder')"
+                clearable
+              />
             </el-form-item>
           </el-col>
           <template
@@ -1611,8 +1942,8 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="hasPlugin">
-            <el-col v-if="hasPlugin" :span="24">
+          <template v-if="isHttps">
+            <el-col :span="24">
               <div class="flex justify-between h3">
                 <div>{{ t("proxy.form.title.pluginConfig") }}</div>
               </div>
@@ -1661,7 +1992,7 @@ onUnmounted(() => {
                       t('proxy.form.formItem.https2httpCaFile.placeholder')
                     "
                     readonly
-                    @click="handleSelectFile(1, ['crt', 'pem'])"
+                    @click="handleSelectFile(1, certificateFileExtensions)"
                   />
                   <!--                  <el-button-->
                   <!--                    class="ml-2"-->
@@ -1700,7 +2031,7 @@ onUnmounted(() => {
                       t('proxy.form.formItem.https2httpKeyFile.placeholder')
                     "
                     readonly
-                    @click="handleSelectFile(2, ['key'])"
+                    @click="handleSelectFile(2, privateKeyFileExtensions)"
                   />
                   <!--                  <el-button-->
                   <!--                    class="ml-2"-->
@@ -2269,6 +2600,44 @@ onUnmounted(() => {
   // width: calc(100% - 130px);
 }
 
+.proxy-display-name {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.proxy-technical-name {
+  min-width: 0;
+  margin-bottom: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.proxy-name-cell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.35;
+}
+
+.proxy-refresh-icon--spinning {
+  animation: proxy-refresh-spin 1s linear infinite;
+}
+
+@keyframes proxy-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .domain-input-button {
   background: #5f3bb0;
   display: flex;
@@ -2304,5 +2673,58 @@ onUnmounted(() => {
   :deep(.el-button) {
     margin-left: 0;
   }
+}
+
+.upstream-server-tag {
+  max-width: 100%;
+  border-style: solid;
+  font-weight: 500;
+}
+
+.upstream-server-tag :deep(.el-tag__content) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxy-server-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.proxy-server-option__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.proxy-server-option__meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+:global(.proxy-server-select-popper) {
+  min-width: min(560px, calc(100vw - 48px));
+  max-width: calc(100vw - 48px);
+}
+
+:global(.proxy-server-select-popper .el-select-dropdown__item) {
+  height: auto;
+  min-height: 56px;
+  padding: 4px 12px;
+  line-height: normal;
+}
+
+:global(.proxy-server-select-popper .el-select-dropdown__item.is-selected) {
+  font-weight: inherit;
 }
 </style>
