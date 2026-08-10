@@ -2,6 +2,7 @@ import { dialog } from "electron";
 import fs from "fs";
 import moment from "moment";
 import Logger from "../core/Logger";
+import DatabaseManager from "../database/DatabaseManager";
 import FrpcProcessService from "../service/FrpcProcessService";
 import ServerService from "../service/ServerService";
 import SystemService from "../service/SystemService";
@@ -13,16 +14,19 @@ class ConfigController extends BaseController {
   private readonly _serverService: ServerService;
   private readonly _systemService: SystemService;
   private readonly _frpcProcessService: FrpcProcessService;
+  private readonly _databaseManager: DatabaseManager;
 
   constructor(
     serverService: ServerService,
     systemService: SystemService,
-    frpcProcessService: FrpcProcessService
+    frpcProcessService: FrpcProcessService,
+    databaseManager: DatabaseManager
   ) {
     super();
     this._serverService = serverService;
     this._systemService = systemService;
     this._frpcProcessService = frpcProcessService;
+    this._databaseManager = databaseManager;
   }
 
   saveConfig(req: ControllerParam) {
@@ -68,10 +72,7 @@ class ConfigController extends BaseController {
     this._frpcProcessService
       .stopFrpcProcess()
       .then(() => {
-        fs.rmSync(PathUtils.getDataBaseStoragePath(), {
-          recursive: true,
-          force: true
-        });
+        this._databaseManager.resetData();
 
         fs.rmSync(PathUtils.getDownloadStoragePath(), {
           recursive: true,

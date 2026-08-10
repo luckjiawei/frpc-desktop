@@ -1,151 +1,90 @@
-import Datastore from "nedb";
-import path from "path";
-import PathUtils from "../utils/PathUtils";
+import Database from "better-sqlite3";
 import IdUtils from "../utils/IdUtils";
 
-// interface BaseDaoInterface<T> {
-//   db: Datastore;
-//
-//   insert(t: T): Promise<T>;
-//
-//   //
-//   updateById(id: string, t: T): Promise<T>;
-//
-//   //
-//   // deleteById(id: string): void;
-//   //
-//   // findAll(): T[];
-//
-//   findById(id: string): Promise<T>;
-// }
+export type SqlRow = Record<string, string | number | null>;
 
-class BaseRepository<T> {
-  protected readonly db: Datastore;
+abstract class BaseRepository<T extends BaseEntity> {
+  protected readonly database: Database.Database;
+  private readonly tableName: string;
+  private readonly insertStatement: Database.Statement;
 
-  constructor(dbName: string) {
-    const dbFilename = path.join(
-      PathUtils.getDataBaseStoragePath(),
-      `${dbName}-v2.db`
-    );
-    this.db = new Datastore({
-      autoload: true,
-      filename: dbFilename
-    });
-    // todo log
+  protected constructor(
+    database: Database.Database,
+    tableName: string,
+    columns: string[]
+  ) {
+    this.database = database;
+    this.tableName = tableName;
+    const columnList = columns.join(", ");
+    const values = columns.map(column => `@${column}`).join(", ");
+    const updates = columns
+      .filter(column => column !== "id")
+      .map(column => `${column} = excluded.${column}`)
+      .join(", ");
+    this.insertStatement = database.prepare(`
+      INSERT INTO ${tableName} (${columnList})
+      VALUES (${values})
+      ON CONFLICT(id) DO UPDATE SET ${updates}
+    `);
   }
+
+  protected abstract toRow(entity: T): SqlRow;
+
+  protected abstract fromRow(row: SqlRow): T;
 
   protected genId(): string {
     return IdUtils.genUUID();
   }
 
-  // async insert(t: T): Promise<T> {
-  //   return new Promise<T>((resolve, reject) => {
-  //     resolve(t);
-  //   });
-  // }
-  //
-  insert(t: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      t["_id"] = this.genId();
-      this.db.insert(t, (err, document) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(document);
-      });
-    });
+  async insert(entity: T): Promise<T> {
+    entity._id = this.genId();
+    this.upsertForMigration(entity);
+    return entity;
   }
 
-  insertMany(ts: Array<T>): Promise<Array<T>> {
-    return new Promise<Array<T>>((resolve, reject) => {
-      ts.forEach(t => {
-        t["_id"] = this.genId();
+  async insertMany(entities: T[]): Promise<T[]> {
+    this.database.transaction(() => {
+      entities.forEach(entity => {
+        entity._id = this.genId();
+        this.upsertForMigration(entity);
       });
-      this.db.insert(ts, (err, documents) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(documents);
-        }
-      });
-    });
+    })();
+    return entities;
   }
 
-  updateById(id: string, t: T): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.db.update(
-        { _id: id },
-        t,
-        { upsert: true },
-        (err, numberOfUpdated, upsert) => {
-          if (err) {
-            reject(err);
-          } else {
-            t["_id"] = id;
-            resolve(t);
-            // this.findById(id)
-            //   .then(data => {
-            //     resolve(t);
-            //   })
-            //   .catch(err2 => {
-            //     reject(err2);
-            //   });
-          }
-        }
-      );
-    });
+  async updateById(id: string, entity: T): Promise<T> {
+    entity._id = id;
+    this.upsertForMigration(entity);
+    return entity;
   }
 
-  deleteById(id: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.db.remove({ _id: id }, err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-  //
-  // findAll(): T[] {
-  //   return null;
-  // }
-
-  findById(id: string): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.db.findOne({ _id: id }, (err, document) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(document);
-        }
-      });
-    });
+  async deleteById(id: string): Promise<void> {
+    this.database.prepare(`DELETE FROM ${this.tableName} WHERE id = ?`).run(id);
   }
 
-  findAll(): Promise<Array<T>> {
-    return new Promise<Array<T>>((resolve, reject) => {
-      this.db.find({}, (err, document) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(document);
-        }
-      });
-    });
+  async findById(id: string): Promise<T> {
+    const row = this.database
+      .prepare(`SELECT * FROM ${this.tableName} WHERE id = ?`)
+      .get(id) as SqlRow | undefined;
+    return row ? this.fromRow(row) : undefined;
   }
 
-  truncate() {
-    return new Promise<void>((resolve, reject) => {
-      this.db.remove({}, { multi: true }, (err, n) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+  async findAll(): Promise<T[]> {
+    const rows = this.database
+      .prepare(`SELECT * FROM ${this.tableName}`)
+      .all() as SqlRow[];
+    return rows.map(row => this.fromRow(row));
+  }
+
+  async truncate(): Promise<void> {
+    this.database.prepare(`DELETE FROM ${this.tableName}`).run();
+  }
+
+  public upsertForMigration(entity: T): void {
+    if (!entity._id) {
+      entity._id = this.genId();
+    }
+    this.insertStatement.run(this.toRow(entity));
   }
 }
 

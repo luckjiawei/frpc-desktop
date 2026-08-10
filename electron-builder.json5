@@ -14,6 +14,15 @@
     "dist",
     "dist-electron"
   ],
+  "extraResources": [
+    {
+      "from": "electron/database/migrations",
+      "to": "database/migrations",
+      "filter": [
+        "**/*.sql"
+      ]
+    }
+  ],
   "dmg": {
     "window": {
       "width": 540,

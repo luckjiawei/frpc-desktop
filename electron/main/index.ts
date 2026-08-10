@@ -19,6 +19,9 @@ import VersionController from "../controller/VersionController";
 import BeanFactory from "../core/BeanFactory";
 import { ipcRouters, listeners } from "../core/IpcRouter";
 import Logger from "../core/Logger";
+import DatabaseManager from "../database/DatabaseManager";
+import NedbMigrationService from "../database/NedbMigrationService";
+import AppConfigRepository from "../repository/AppConfigRepository";
 import ProxyRepository from "../repository/ProxyRepository";
 import ServerRepository from "../repository/ServerRepository";
 import VersionRepository from "../repository/VersionRepository";
@@ -45,9 +48,6 @@ class FrpcDesktopApp {
   private _quitting = false;
 
   constructor() {
-    this.initializeBeans();
-    this.initializeListeners();
-    this.initializeRouters();
     this.initializeElectronApp();
   }
 
@@ -193,10 +193,46 @@ class FrpcDesktopApp {
       app.quit();
       process.exit(0);
     }
-    app.whenReady().then(() => {
-      this.initializeWindow().then(() => {});
-      this.initializeTray();
-    });
+    app
+      .whenReady()
+      .then(async () => {
+        const databaseManager = new DatabaseManager();
+        BeanFactory.setBean("databaseManager", databaseManager);
+        databaseManager.initialize();
+        const database = databaseManager.getDatabase();
+        const appConfigRepository = new AppConfigRepository(database);
+        const serverRepository = new ServerRepository(
+          database,
+          appConfigRepository
+        );
+        const versionRepository = new VersionRepository(database);
+        const proxyRepository = new ProxyRepository(database);
+        const nedbMigrationService = new NedbMigrationService(
+          database,
+          appConfigRepository,
+          serverRepository,
+          proxyRepository,
+          versionRepository
+        );
+        await nedbMigrationService.migrate();
+        this.initializeBeans(
+          appConfigRepository,
+          serverRepository,
+          versionRepository,
+          proxyRepository
+        );
+        this.initializeListeners();
+        this.initializeRouters();
+        await this.initializeWindow();
+        this.initializeTray();
+      })
+      .catch(error => {
+        Logger.error(
+          `FrpcDesktopApp.initializeElectronApp`,
+          error instanceof Error ? error : new Error(String(error))
+        );
+        app.quit();
+      });
 
     app.on("window-all-closed", () => {
       this._win = null;
@@ -228,9 +264,19 @@ class FrpcDesktopApp {
 
     app.on("before-quit", () => {
       this._quitting = true;
-      const frpcProcessService: FrpcProcessService =
-        BeanFactory.getBean("frpcProcessService");
-      frpcProcessService.stopFrpcProcess().finally(() => {});
+      if (BeanFactory.hasBean("frpcProcessService")) {
+        const frpcProcessService: FrpcProcessService =
+          BeanFactory.getBean("frpcProcessService");
+        frpcProcessService.stopFrpcProcess().finally(() => {});
+      }
+    });
+
+    app.on("will-quit", () => {
+      if (BeanFactory.hasBean("databaseManager")) {
+        const databaseManager: DatabaseManager =
+          BeanFactory.getBean("databaseManager");
+        databaseManager.close();
+      }
     });
 
     Logger.info(
@@ -239,10 +285,16 @@ class FrpcDesktopApp {
     );
   }
 
-  initializeBeans() {
-    BeanFactory.setBean("serverRepository", new ServerRepository());
-    BeanFactory.setBean("versionRepository", new VersionRepository());
-    BeanFactory.setBean("proxyRepository", new ProxyRepository());
+  initializeBeans(
+    appConfigRepository: AppConfigRepository,
+    serverRepository: ServerRepository,
+    versionRepository: VersionRepository,
+    proxyRepository: ProxyRepository
+  ) {
+    BeanFactory.setBean("appConfigRepository", appConfigRepository);
+    BeanFactory.setBean("serverRepository", serverRepository);
+    BeanFactory.setBean("versionRepository", versionRepository);
+    BeanFactory.setBean("proxyRepository", proxyRepository);
     BeanFactory.setBean("systemService", new SystemService());
     BeanFactory.setBean(
       "serverService",
@@ -277,7 +329,8 @@ class FrpcDesktopApp {
       new ConfigController(
         BeanFactory.getBean("serverService"),
         BeanFactory.getBean("systemService"),
-        BeanFactory.getBean("frpcProcessService")
+        BeanFactory.getBean("frpcProcessService"),
+        BeanFactory.getBean("databaseManager")
       )
     );
     BeanFactory.setBean(
