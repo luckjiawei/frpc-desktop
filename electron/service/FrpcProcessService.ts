@@ -1,4 +1,4 @@
-import { exec, execSync, spawn } from "child_process";
+import { exec, execFile, execSync, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import fs from "fs";
 import path from "path";
@@ -42,6 +42,7 @@ class FrpcProcessService {
   private _notification: number = -1;
   private _frpcRecoveryChecking = false;
   private _frpcLastRecoveryTime = -1;
+  private _stoppingPromise: Promise<void> | null = null;
 
   constructor() {
     this._serverService = BeanFactory.getBean("serverService");
@@ -179,6 +180,61 @@ class FrpcProcessService {
 
   get frpcLastStartTime(): number {
     return this._frpcLastStartTime;
+  }
+
+  private isProcessAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error: any) {
+      return error.code === "EPERM";
+    }
+  }
+
+  private resetProcessState(pid: number): void {
+    if (this._frpcProcess?.pid === pid) {
+      this._frpcProcess = null;
+    }
+    if (!this._frpcProcess) {
+      this._frpcLastStartTime = -1;
+      this._notification = -1;
+      this._frpcRecoveryChecking = false;
+      this._frpcLastRecoveryTime = -1;
+    }
+  }
+
+  private terminateWindowsProcess(pid: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const taskkill = spawn("taskkill", ["/PID", String(pid), "/T", "/F"], {
+        shell: false,
+        stdio: "ignore",
+        windowsHide: true
+      });
+
+      taskkill.once("error", reject);
+      taskkill.once("close", code => {
+        if (code === 0 || !this.isProcessAlive(pid)) {
+          resolve();
+          return;
+        }
+        reject(new Error(`taskkill failed for pid=${pid}, exitCode=${code}`));
+      });
+    });
+  }
+
+  private terminateProcessTree(pid: number): Promise<void> {
+    if (process.platform === "win32") {
+      return this.terminateWindowsProcess(pid);
+    }
+    return new Promise((resolve, reject) => {
+      treeKill(pid, (error: Error) => {
+        if (!error || !this.isProcessAlive(pid)) {
+          resolve();
+          return;
+        }
+        reject(error);
+      });
+    });
   }
 
   /**
@@ -335,42 +391,37 @@ class FrpcProcessService {
       return;
     }
 
-    let command = "";
-    if (process.platform === "win32") {
-      command = `${PathUtils.getWinFrpFilename()} -c "${configPath}"`;
-    } else {
-      command = `./${PathUtils.getFrpcFilename()} -c "${configPath}"`;
-    }
-
     let frpcStdout = "";
     let frpcStderr = "";
-    this._frpcProcess = spawn(command, {
+    const frpcProcess = spawn(frpcBinaryPath, ["-c", configPath], {
       cwd: version.localPath,
-      shell: true
+      shell: false,
+      windowsHide: true
     });
+    this._frpcProcess = frpcProcess;
     this._frpcLastStartTime = Date.now();
     Logger.info(
       `FrpcProcessService.startFrpcProcess`,
       `frpc started successfully, pid=${this._frpcProcess.pid}`
     );
 
-    this._frpcProcess.stdout.on("data", data => {
+    frpcProcess.stdout.on("data", data => {
       const message = data.toString();
       frpcStdout += message;
       Logger.debug(`FrpcProcessService.startFrpcProcess`, `stdout: ${message}`);
     });
 
-    this._frpcProcess.stderr.on("data", data => {
+    frpcProcess.stderr.on("data", data => {
       const message = data.toString();
       frpcStderr += message;
       Logger.warn(`FrpcProcessService.startFrpcProcess`, `stderr: ${message}`);
     });
 
-    this._frpcProcess.on("error", error => {
+    frpcProcess.on("error", error => {
       Logger.error(`FrpcProcessService.startFrpcProcess`, error);
     });
 
-    this._frpcProcess.on("exit", (code, signal) => {
+    frpcProcess.on("exit", (code, signal) => {
       const exitMessage = [
         `frpc exited, code=${code}, signal=${signal}`,
         frpcStderr.trim() ? `stderr: ${frpcStderr.trim()}` : "",
@@ -386,59 +437,83 @@ class FrpcProcessService {
       } else {
         Logger.warn(`FrpcProcessService.startFrpcProcess`, exitMessage);
       }
-      this._frpcProcess = null;
+      if (this._frpcProcess === frpcProcess) {
+        this._frpcProcess = null;
+      }
     });
   }
 
-  async stopFrpcProcess() {
-    if (this._frpcProcess && this.isRunning()) {
-      const pid = this._frpcProcess.pid;
+  async stopFrpcProcess(): Promise<void> {
+    if (this._stoppingPromise) {
+      return this._stoppingPromise;
+    }
+
+    if (!this._frpcProcess) {
+      return;
+    }
+
+    const pid = Number(this._frpcProcess.pid);
+    if (!Number.isInteger(pid) || pid <= 0) {
+      Logger.warn(
+        `FrpcProcessService.stopFrpcProcess`,
+        `Skipping stop because pid is invalid: ${this._frpcProcess.pid}`
+      );
+      this._frpcProcess = null;
+      this.resetProcessState(pid);
+      return;
+    }
+
+    if (!this.isProcessAlive(pid)) {
+      Logger.info(
+        `FrpcProcessService.stopFrpcProcess`,
+        `frpc is already stopped, pid=${pid}`
+      );
+      this.resetProcessState(pid);
+      return;
+    }
+
+    this._stoppingPromise = (async () => {
       Logger.info(
         `FrpcProcessService.stopFrpcProcess`,
         `Stopping frpc, pid=${pid}`
       );
 
-      if (process.platform === "darwin") {
-        // macOS: frpc runs as root; use the privileged helper to kill it
-        try {
+      try {
+        if (process.platform === "darwin") {
+          // macOS: frpc runs as root; use the privileged helper to kill it
           await new Promise<void>((resolve, reject) => {
             exec(`sudo -n "${MAC_LAUNCHER_PATH}" stop ${pid}`, err => {
               if (err) reject(err);
               else resolve();
             });
           });
-          Logger.info(
-            `FrpcProcessService.stopFrpcProcess`,
-            `frpc stopped successfully (macOS), pid=${pid}`
-          );
-        } catch (e) {
-          Logger.error(`FrpcProcessService.stopFrpcProcess`, e as Error);
-        }
-        this._frpcProcess = null;
-        this._frpcLastStartTime = -1;
-        this._notification = -1;
-        this._frpcRecoveryChecking = false;
-        this._frpcLastRecoveryTime = -1;
-        return;
-      }
-
-      treeKill(pid, (error: Error) => {
-        if (error) {
-          Logger.error(`FrpcProcessService.stopFrpcProcess`, error);
-          throw error;
         } else {
+          await this.terminateProcessTree(pid);
+        }
+
+        Logger.info(
+          `FrpcProcessService.stopFrpcProcess`,
+          `frpc stopped successfully, pid=${pid}`
+        );
+        this.resetProcessState(pid);
+      } catch (error) {
+        if (!this.isProcessAlive(pid)) {
           Logger.info(
             `FrpcProcessService.stopFrpcProcess`,
-            `frpc stopped successfully, pid=${pid}`
+            `frpc exited before termination completed, pid=${pid}`
           );
-          this._frpcProcess = null;
-          this._frpcLastStartTime = -1;
-          this._notification = -1;
-          this._frpcRecoveryChecking = false;
-          this._frpcLastRecoveryTime = -1;
+          this.resetProcessState(pid);
+          return;
         }
-      });
-    }
+
+        Logger.error(`FrpcProcessService.stopFrpcProcess`, error as Error);
+        throw error;
+      } finally {
+        this._stoppingPromise = null;
+      }
+    })();
+
+    return this._stoppingPromise;
   }
 
   async reloadFrpcProcess() {
@@ -454,44 +529,49 @@ class FrpcProcessService {
     );
     const configPath = PathUtils.getTomlConfigFilePath();
     await this._serverService.genTomlConfig(configPath);
-    let command = "";
-    if (process.platform === "win32") {
-      command = `${PathUtils.getWinFrpFilename()} reload -c "${configPath}"`;
-    } else {
-      command = `./${PathUtils.getFrpcFilename()} reload -c "${configPath}"`;
-    }
+    const frpcFilename =
+      process.platform === "win32"
+        ? PathUtils.getWinFrpFilename()
+        : PathUtils.getFrpcFilename();
+    const frpcBinaryPath = path.join(version.localPath, frpcFilename);
     Logger.info(
       `FrpcProcessService.reloadFrpcProcess`,
       `Reloading frpc config, pid=${this._frpcProcess?.pid}`
     );
-    exec(
-      command,
-      {
-        cwd: version.localPath
-      },
-      (error, stdout, stderr) => {
-        if (error) {
-          Logger.error(`FrpcProcessService.reloadFrpcProcess`, error);
-          return;
-        }
-        if (stderr) {
-          Logger.debug(
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        frpcBinaryPath,
+        ["reload", "-c", configPath],
+        {
+          cwd: version.localPath,
+          windowsHide: true
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            Logger.error(`FrpcProcessService.reloadFrpcProcess`, error);
+            reject(error);
+            return;
+          }
+          if (stderr) {
+            Logger.debug(
+              `FrpcProcessService.reloadFrpcProcess`,
+              `stderr: ${stderr}`
+            );
+          }
+          if (stdout) {
+            Logger.debug(
+              `FrpcProcessService.reloadFrpcProcess`,
+              `stdout: ${stdout}`
+            );
+          }
+          Logger.info(
             `FrpcProcessService.reloadFrpcProcess`,
-            `stderr: ${stderr}`
+            `frpc config reloaded successfully`
           );
+          resolve();
         }
-        if (stdout) {
-          Logger.debug(
-            `FrpcProcessService.reloadFrpcProcess`,
-            `stdout: ${stdout}`
-          );
-        }
-        Logger.info(
-          `FrpcProcessService.reloadFrpcProcess`,
-          `frpc config reloaded successfully`
-        );
-      }
-    );
+      );
+    });
   }
 
   async frpcProcessGuardian() {
