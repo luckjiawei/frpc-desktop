@@ -68,14 +68,33 @@ PRAGMA busy_timeout = 5000;
 - TypeScript `_id` 映射到数据库 `id TEXT PRIMARY KEY`，Repository 返回对象时再映射回 `_id`；
 - JavaScript `boolean` 映射为 `INTEGER NOT NULL CHECK (value IN (0, 1))`；
 - 端口映射字段使用 `INTEGER`，但代理的 `local_port`、`remote_port` 保持 `TEXT`，因为现有功能支持单端口、逗号列表和端口范围；
-- 数组和动态对象使用 JSON 文本，并通过 `CHECK (json_valid(...))` 校验；
+- TypeScript 中本身包含多个子属性的配置对象、数组和动态对象使用 JSON 文本，并通过 `CHECK (json_valid(...))` 与 `json_type(...)` 校验；
 - 当前对象没有创建时间和更新时间字段，本次不凭空补写时间，避免生成无法还原的迁移数据。
 
 ## 4. 表结构
 
 所有业务表和数据库管理表统一使用 `t_frpcd_` 前缀，避免与同一数据库中未来可能增加的其他模块表冲突。
 
-### 4.1 `t_frpcd_schema_migrations`
+### 4.1 数据关系图
+
+```mermaid
+flowchart LR
+  migrations["t_frpcd_schema_migrations<br/>数据库迁移记录"]
+  appConfig["t_frpcd_app_config<br/>桌面应用配置"]
+  servers["t_frpcd_servers<br/>frpc 服务端配置"]
+  proxies["t_frpcd_proxies<br/>代理与 Visitor 配置"]
+  versions["t_frpcd_versions<br/>本地 frpc 版本"]
+
+  proxies -->|"FK: server_id → id<br/>ON DELETE CASCADE"| servers
+  servers -.->|"逻辑引用: frpc_version → github_release_id<br/>不建立外键"| versions
+```
+
+- f实线表示数据库外键，删除 server 时级联删除其 proxy；
+- 虚线表示业务层逻辑引用，不由 SQLite 强制约束；
+- `t_frpcd_app_config` 的作用域是多态设计，当前没有 user、project 实体表，因此 `scope_id` 不建立外键；
+- `t_frpcd_schema_migrations` 是独立的数据库管理表，不与业务表关联。
+
+### 4.2 `t_frpcd_schema_migrations`
 
 记录已执行的数据库迁移。应用启动时必须先执行未应用的迁移，再初始化 Repository 和业务服务。
 
@@ -85,14 +104,14 @@ PRAGMA busy_timeout = 5000;
 | `name` | TEXT | NOT NULL | 迁移名称 |
 | `applied_at` | TEXT | NOT NULL | UTC ISO 8601 时间 |
 
-### 4.2 `t_frpcd_app_config`
+### 4.3 `t_frpcd_app_config`
 
 使用 Key-Value 模型保存 Frpc-Desktop 自身的桌面设置，与 frpc 服务端连接配置分离。一个配置项占一行，新增配置项时不需要修改表结构。
 
 | 字段 | 类型 | 可空 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
 | `id` | TEXT | 否 | — | 主键，UUID，由应用层生成 |
-| `scope_type` | TEXT | 否 | `'global'` | 配置作用域：global-全局、user-用户、project-项目 |
+| `scope_type` | TEXT | 否 | `'global'` | 配置作用域：global-全局 |
 | `scope_id` | TEXT | 是 | NULL | 作用域对象 ID；全局配置为空，用户或项目配置填写对应对象 ID |
 | `namespace` | TEXT | 否 | — | 配置命名空间，用于区分功能模块 |
 | `config_key` | TEXT | 否 | — | 配置键；与作用域、命名空间组成有效配置唯一约束 |
@@ -132,7 +151,7 @@ PRAGMA busy_timeout = 5000;
 - `json`：写入前执行序列化校验，读取后执行 JSON 解析；
 - `is_secret = 1`：`config_value` 保存密文，应用层根据 `encryption_type` 解密后再按 `value_type` 解析。
 
-### 4.3 `t_frpcd_servers`
+### 4.4 `t_frpcd_servers`
 
 保存 frpc 公共配置和服务端连接配置。桌面应用设置统一存放在 `t_frpcd_app_config`。当前版本只允许一条 `id = "1"` 的记录。
 
@@ -146,38 +165,15 @@ PRAGMA busy_timeout = 5000;
 | `server_port` | INTEGER | NOT NULL DEFAULT 7000；1–65535 | `serverPort` |
 | `login_fail_exit` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `loginFailExit` |
 | `udp_packet_size` | INTEGER | NOT NULL DEFAULT 1500；大于 0 | `udpPacketSize` |
-| `auth_method` | TEXT | NOT NULL DEFAULT `''` | `auth.method` |
-| `auth_token` | TEXT | NOT NULL DEFAULT `''` | `auth.token` |
-| `log_to` | TEXT | NOT NULL DEFAULT `''` | `log.to` |
-| `log_level` | TEXT | NOT NULL DEFAULT `'info'` | `log.level` |
-| `log_max_days` | INTEGER | NOT NULL DEFAULT 3；大于等于 0 | `log.maxDays` |
-| `log_disable_print_color` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `log.disablePrintColor` |
-| `web_server_addr` | TEXT | NOT NULL DEFAULT `'127.0.0.1'` | `webServer.addr` |
-| `web_server_port` | INTEGER | NOT NULL DEFAULT 57400；1–65535 | `webServer.port` |
-| `web_server_user` | TEXT | NOT NULL DEFAULT `''` | `webServer.user` |
-| `web_server_password` | TEXT | NOT NULL DEFAULT `''` | `webServer.password` |
-| `web_server_pprof_enable` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `webServer.pprofEnable` |
-| `transport_dial_server_timeout` | INTEGER | NOT NULL DEFAULT 10；大于等于 0 | `transport.dialServerTimeout` |
-| `transport_dial_server_keepalive` | INTEGER | NOT NULL DEFAULT 7200；大于等于 0 | `transport.dialServerKeepalive` |
-| `transport_pool_count` | INTEGER | NOT NULL DEFAULT 0；大于等于 0 | `transport.poolCount` |
-| `transport_tcp_mux` | INTEGER | NOT NULL DEFAULT 1；布尔检查 | `transport.tcpMux` |
-| `transport_tcp_mux_keepalive_interval` | INTEGER | NOT NULL DEFAULT 30；大于等于 0 | `transport.tcpMuxKeepaliveInterval` |
-| `transport_protocol` | TEXT | NOT NULL DEFAULT `'tcp'` | `transport.protocol` |
-| `transport_connect_server_local_ip` | TEXT | NOT NULL DEFAULT `''` | `transport.connectServerLocalIP` |
-| `transport_proxy_url` | TEXT | NOT NULL DEFAULT `''` | `transport.proxyURL` |
-| `transport_heartbeat_interval` | INTEGER | NOT NULL DEFAULT 30；大于等于 0 | `transport.heartbeatInterval` |
-| `transport_heartbeat_timeout` | INTEGER | NOT NULL DEFAULT 90；大于等于 0 | `transport.heartbeatTimeout` |
-| `tls_enable` | INTEGER | NOT NULL DEFAULT 1；布尔检查 | `transport.tls.enable` |
-| `tls_cert_file` | TEXT | NOT NULL DEFAULT `''` | `transport.tls.certFile` |
-| `tls_key_file` | TEXT | NOT NULL DEFAULT `''` | `transport.tls.keyFile` |
-| `tls_trusted_ca_file` | TEXT | NOT NULL DEFAULT `''` | `transport.tls.trustedCaFile` |
-| `tls_server_name` | TEXT | NOT NULL DEFAULT `''` | `transport.tls.serverName` |
-| `tls_disable_custom_first_byte` | INTEGER | NOT NULL DEFAULT 1；布尔检查 | `transport.tls.disableCustomTLSFirstByte` |
+| `auth_json` | TEXT | NOT NULL；合法 JSON 对象 | `auth` 完整对象 |
+| `log_json` | TEXT | NOT NULL；合法 JSON 对象 | `log` 完整对象 |
+| `web_server_json` | TEXT | NOT NULL；合法 JSON 对象 | `webServer` 完整对象 |
+| `transport_json` | TEXT | NOT NULL；合法 JSON 对象 | `transport` 完整对象，包含 `tls` 子对象 |
 | `metadatas_json` | TEXT | NOT NULL DEFAULT `'{}'`；合法 JSON 对象 | `metadatas` |
 
-`auth_token`、`web_server_password`、证书路径和代理地址可能包含敏感信息，不得出现在普通日志或错误上报中。
+`auth_json`、`web_server_json` 和 `transport_json` 中可能包含 token、密码、证书路径或代理地址，不得将完整 JSON 输出到普通日志或错误上报中。
 
-### 4.4 `t_frpcd_proxies`
+### 4.5 `t_frpcd_proxies`
 
 保存代理和 visitor 配置。为兼容当前模型，普通代理与 visitor 仍共用一张表，通过 `visitors_model` 区分。
 
@@ -210,18 +206,11 @@ PRAGMA busy_timeout = 5000;
 | `https2http_key_file` | TEXT | NOT NULL DEFAULT `''` | `https2httpKeyFile` |
 | `keep_tunnel_open` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `keepTunnelOpen` |
 | `status` | INTEGER | NOT NULL DEFAULT 1；限定 0/1 | `status` |
-| `transport_use_encryption` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `transport.useEncryption` |
-| `transport_use_compression` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `transport.useCompression` |
-| `transport_proxy_protocol_version` | TEXT | NOT NULL DEFAULT `''` | `transport.proxyProtocolVersion` |
+| `transport_json` | TEXT | NOT NULL；合法 JSON 对象 | `transport` 完整对象 |
 
-约束与索引：
+该表的外键和索引统一见“4.7 外键与索引设计”。暂不对代理名称增加唯一约束，因为现有 NeDB 数据可能存在重名，迁移不能因此失败。
 
-- `FOREIGN KEY (server_id) REFERENCES t_frpcd_servers(id) ON DELETE CASCADE`；
-- `CREATE INDEX idx_t_frpcd_proxies_server_id ON t_frpcd_proxies(server_id)`；
-- `CREATE INDEX idx_t_frpcd_proxies_server_status ON t_frpcd_proxies(server_id, status)`；
-- 暂不对代理名称增加唯一约束，因为现有 NeDB 数据可能存在重名，迁移不能因此失败。
-
-### 4.5 `t_frpcd_versions`
+### 4.6 `t_frpcd_versions`
 
 只保存已经下载并解压到本地的 frpc 版本。远程版本列表来自 GitHub 或内置 JSON，不应全部写入数据库。
 
@@ -242,147 +231,40 @@ PRAGMA busy_timeout = 5000;
 
 `size` 保持 `TEXT` 是为了兼容当前 `FileUtils.formatBytes` 生成的展示字符串。若未来需要按字节排序，应新增 `size_bytes INTEGER`，而不是改变现有字段语义。
 
-## 5. 初始化 DDL
+### 4.7 外键与索引设计
 
-以下 DDL 是目标 schema 的基线版本。实际实现时应作为版本化 migration 执行，不应在 Repository 中零散建表。
+#### 4.7.1 外键
 
-```sql
-CREATE TABLE t_frpcd_schema_migrations (
-  version INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  applied_at TEXT NOT NULL
-);
+| 外键名称 | 子表与字段 | 父表与字段 | 更新策略 | 删除策略 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `fk_t_frpcd_proxies_server` | `t_frpcd_proxies.server_id` | `t_frpcd_servers.id` | CASCADE | CASCADE | proxy 必须属于一个 server；server ID 更新或 server 删除时同步处理所属 proxy |
 
-CREATE TABLE t_frpcd_app_config (
-  id TEXT PRIMARY KEY,
-  scope_type TEXT NOT NULL DEFAULT 'global'
-    CHECK (scope_type IN ('global', 'user', 'project')),
-  scope_id TEXT,
-  namespace TEXT NOT NULL,
-  config_key TEXT NOT NULL,
-  value_type TEXT NOT NULL DEFAULT 'string'
-    CHECK (value_type IN ('string', 'integer', 'boolean', 'json')),
-  config_value TEXT NOT NULL,
-  is_secret INTEGER NOT NULL DEFAULT 0 CHECK (is_secret IN (0, 1)),
-  encryption_type TEXT,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-  deleted_at TEXT,
-  CHECK (
-    (scope_type = 'global' AND scope_id IS NULL) OR
-    (scope_type IN ('user', 'project') AND scope_id IS NOT NULL AND length(trim(scope_id)) > 0)
-  ),
-  CHECK (is_secret = 1 OR encryption_type IS NULL),
-  CHECK (value_type <> 'boolean' OR config_value IN ('true', 'false')),
-  CHECK (value_type <> 'json' OR json_valid(config_value))
-);
+以下字段仅为逻辑引用，不建立数据库外键：
 
-CREATE UNIQUE INDEX uq_t_frpcd_app_config_active
-  ON t_frpcd_app_config (
-    scope_type,
-    COALESCE(scope_id, ''),
-    namespace,
-    config_key
-  )
-  WHERE deleted_at IS NULL;
+| 表与字段 | 逻辑目标 | 不建立外键的原因 |
+| --- | --- | --- |
+| `t_frpcd_servers.frpc_version` | `t_frpcd_versions.github_release_id` | 当前业务允许删除已经下载的版本；建立外键会改变现有删除行为 |
+| `t_frpcd_app_config.scope_id` | user 或 project 实体 ID | 当前尚无对应实体表，且该字段是由 `scope_type` 决定目标的多态引用 |
 
-CREATE INDEX idx_t_frpcd_app_config_lookup
-  ON t_frpcd_app_config (scope_type, scope_id, namespace, deleted_at);
+所有 SQLite 连接必须开启 `PRAGMA foreign_keys = ON`，否则外键声明不会生效。
 
-CREATE TABLE t_frpcd_servers (
-  id TEXT PRIMARY KEY,
-  frpc_version INTEGER,
-  multiuser INTEGER NOT NULL DEFAULT 0 CHECK (multiuser IN (0, 1)),
-  user TEXT NOT NULL DEFAULT '',
-  server_addr TEXT NOT NULL DEFAULT '',
-  server_port INTEGER NOT NULL DEFAULT 7000 CHECK (server_port BETWEEN 1 AND 65535),
-  login_fail_exit INTEGER NOT NULL DEFAULT 0 CHECK (login_fail_exit IN (0, 1)),
-  udp_packet_size INTEGER NOT NULL DEFAULT 1500 CHECK (udp_packet_size > 0),
-  auth_method TEXT NOT NULL DEFAULT '',
-  auth_token TEXT NOT NULL DEFAULT '',
-  log_to TEXT NOT NULL DEFAULT '',
-  log_level TEXT NOT NULL DEFAULT 'info',
-  log_max_days INTEGER NOT NULL DEFAULT 3 CHECK (log_max_days >= 0),
-  log_disable_print_color INTEGER NOT NULL DEFAULT 0 CHECK (log_disable_print_color IN (0, 1)),
-  web_server_addr TEXT NOT NULL DEFAULT '127.0.0.1',
-  web_server_port INTEGER NOT NULL DEFAULT 57400 CHECK (web_server_port BETWEEN 1 AND 65535),
-  web_server_user TEXT NOT NULL DEFAULT '',
-  web_server_password TEXT NOT NULL DEFAULT '',
-  web_server_pprof_enable INTEGER NOT NULL DEFAULT 0 CHECK (web_server_pprof_enable IN (0, 1)),
-  transport_dial_server_timeout INTEGER NOT NULL DEFAULT 10 CHECK (transport_dial_server_timeout >= 0),
-  transport_dial_server_keepalive INTEGER NOT NULL DEFAULT 7200 CHECK (transport_dial_server_keepalive >= 0),
-  transport_pool_count INTEGER NOT NULL DEFAULT 0 CHECK (transport_pool_count >= 0),
-  transport_tcp_mux INTEGER NOT NULL DEFAULT 1 CHECK (transport_tcp_mux IN (0, 1)),
-  transport_tcp_mux_keepalive_interval INTEGER NOT NULL DEFAULT 30 CHECK (transport_tcp_mux_keepalive_interval >= 0),
-  transport_protocol TEXT NOT NULL DEFAULT 'tcp',
-  transport_connect_server_local_ip TEXT NOT NULL DEFAULT '',
-  transport_proxy_url TEXT NOT NULL DEFAULT '',
-  transport_heartbeat_interval INTEGER NOT NULL DEFAULT 30 CHECK (transport_heartbeat_interval >= 0),
-  transport_heartbeat_timeout INTEGER NOT NULL DEFAULT 90 CHECK (transport_heartbeat_timeout >= 0),
-  tls_enable INTEGER NOT NULL DEFAULT 1 CHECK (tls_enable IN (0, 1)),
-  tls_cert_file TEXT NOT NULL DEFAULT '',
-  tls_key_file TEXT NOT NULL DEFAULT '',
-  tls_trusted_ca_file TEXT NOT NULL DEFAULT '',
-  tls_server_name TEXT NOT NULL DEFAULT '',
-  tls_disable_custom_first_byte INTEGER NOT NULL DEFAULT 1 CHECK (tls_disable_custom_first_byte IN (0, 1)),
-  metadatas_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadatas_json) AND json_type(metadatas_json) = 'object')
-);
+#### 4.7.2 索引
 
-CREATE TABLE t_frpcd_proxies (
-  id TEXT PRIMARY KEY,
-  server_id TEXT NOT NULL DEFAULT '1',
-  name TEXT NOT NULL DEFAULT '',
-  type TEXT NOT NULL CHECK (type IN ('http', 'https', 'tcp', 'udp', 'stcp', 'xtcp', 'sudp')),
-  local_ip TEXT NOT NULL DEFAULT '',
-  local_port TEXT NOT NULL DEFAULT '8080',
-  remote_port TEXT NOT NULL DEFAULT '8080',
-  custom_domains_json TEXT NOT NULL DEFAULT '[""]' CHECK (json_valid(custom_domains_json) AND json_type(custom_domains_json) = 'array'),
-  locations_json TEXT NOT NULL DEFAULT '[""]' CHECK (json_valid(locations_json) AND json_type(locations_json) = 'array'),
-  host_header_rewrite TEXT NOT NULL DEFAULT '',
-  visitors_model TEXT NOT NULL DEFAULT 'visitors',
-  server_user TEXT NOT NULL DEFAULT '',
-  server_name TEXT NOT NULL DEFAULT '',
-  secret_key TEXT NOT NULL DEFAULT '',
-  bind_addr TEXT NOT NULL DEFAULT '',
-  bind_port INTEGER CHECK (bind_port IS NULL OR bind_port BETWEEN 1 AND 65535),
-  subdomain TEXT NOT NULL DEFAULT '',
-  basic_auth INTEGER NOT NULL DEFAULT 0 CHECK (basic_auth IN (0, 1)),
-  http_user TEXT NOT NULL DEFAULT '',
-  http_password TEXT NOT NULL DEFAULT '',
-  fallback_to TEXT NOT NULL DEFAULT '',
-  fallback_timeout_ms INTEGER NOT NULL DEFAULT 500 CHECK (fallback_timeout_ms >= 0),
-  https2http INTEGER NOT NULL DEFAULT 0 CHECK (https2http IN (0, 1)),
-  https2http_ca_file TEXT NOT NULL DEFAULT '',
-  https2http_key_file TEXT NOT NULL DEFAULT '',
-  keep_tunnel_open INTEGER NOT NULL DEFAULT 0 CHECK (keep_tunnel_open IN (0, 1)),
-  status INTEGER NOT NULL DEFAULT 1 CHECK (status IN (0, 1)),
-  transport_use_encryption INTEGER NOT NULL DEFAULT 0 CHECK (transport_use_encryption IN (0, 1)),
-  transport_use_compression INTEGER NOT NULL DEFAULT 0 CHECK (transport_use_compression IN (0, 1)),
-  transport_proxy_protocol_version TEXT NOT NULL DEFAULT '',
-  FOREIGN KEY (server_id) REFERENCES t_frpcd_servers(id) ON DELETE CASCADE
-);
+| 索引/约束名称 | 表 | 类型 | 字段或表达式 | 用途 |
+| --- | --- | --- | --- | --- |
+| `pk_t_frpcd_schema_migrations` | `t_frpcd_schema_migrations` | PRIMARY KEY | `version` | 保证迁移版本唯一，并按版本定位迁移记录 |
+| `pk_t_frpcd_app_config` | `t_frpcd_app_config` | PRIMARY KEY | `id` | 按 UUID 定位配置记录 |
+| `uq_t_frpcd_app_config_active` | `t_frpcd_app_config` | UNIQUE PARTIAL | `scope_type, COALESCE(scope_id, ''), namespace, config_key`；条件：`deleted_at IS NULL` | 保证同一作用域和命名空间中只存在一条有效同名配置，同时允许软删除后重新创建 |
+| `idx_t_frpcd_app_config_lookup` | `t_frpcd_app_config` | INDEX | `scope_type, scope_id, namespace, deleted_at` | 加速按作用域和命名空间批量读取有效配置 |
+| `pk_t_frpcd_servers` | `t_frpcd_servers` | PRIMARY KEY | `id` | 按 server ID 定位服务端配置 |
+| `pk_t_frpcd_proxies` | `t_frpcd_proxies` | PRIMARY KEY | `id` | 按 UUID 定位 proxy |
+| `idx_t_frpcd_proxies_server_status` | `t_frpcd_proxies` | INDEX | `server_id, status` | 加速 server 下全部 proxy、启用 proxy 查询以及外键级联定位；其最左列可支持仅按 `server_id` 查询，无需重复单列索引 |
+| `pk_t_frpcd_versions` | `t_frpcd_versions` | PRIMARY KEY | `id` | 按 UUID 定位本地版本记录 |
+| `uq_t_frpcd_versions_github_release_id` | `t_frpcd_versions` | UNIQUE | `github_release_id` | 支持 `findByGithubReleaseId` 和 `exists`，并防止同一 GitHub Release 重复入库 |
 
-CREATE INDEX idx_t_frpcd_proxies_server_id ON t_frpcd_proxies(server_id);
-CREATE INDEX idx_t_frpcd_proxies_server_status ON t_frpcd_proxies(server_id, status);
+索引设计保持与当前查询路径一致。暂不为 `name`、`type`、`downloaded` 等低选择性或当前仅在 renderer 内过滤的字段增加索引，避免无收益的写放大。
 
-CREATE TABLE t_frpcd_versions (
-  id TEXT PRIMARY KEY,
-  github_release_id INTEGER NOT NULL UNIQUE,
-  github_asset_id INTEGER NOT NULL,
-  github_created_at TEXT NOT NULL,
-  name TEXT NOT NULL,
-  asset_name TEXT NOT NULL,
-  version_download_count INTEGER NOT NULL DEFAULT 0 CHECK (version_download_count >= 0),
-  asset_download_count INTEGER NOT NULL DEFAULT 0 CHECK (asset_download_count >= 0),
-  browser_download_url TEXT NOT NULL,
-  downloaded INTEGER NOT NULL DEFAULT 1 CHECK (downloaded IN (0, 1)),
-  local_path TEXT,
-  size TEXT NOT NULL DEFAULT ''
-);
-```
-
-## 6. Repository 映射与事务边界
+## 5. Repository 映射与事务边界
 
 现有 renderer、IPC、controller 和 service 继续使用 camelCase 对象，不直接感知 SQL 列名。Repository 负责：
 
@@ -390,6 +272,7 @@ CREATE TABLE t_frpcd_versions (
 - camelCase 与 snake_case 的双向转换；
 - `0/1` 与 boolean 的双向转换；
 - JSON 字段的序列化与解析；
+- server 的 `auth`、`log`、`webServer`、`transport` 及 proxy 的 `transport` 按完整对象读写，不在 Repository 中拆成多个标量列；
 - app config 的 `config_value` 类型校验、序列化、加解密和默认值回退；
 - 将 SQLite “未找到记录”映射为当前调用方可处理的空值；
 - 捕获数据库异常并交由 controller 使用现有 `ResponseUtils` 返回。
@@ -424,9 +307,9 @@ CREATE TABLE t_frpcd_versions (
 
 文件下载、解压、启动 frpc 等操作不应长时间占用数据库事务。数据库与文件系统无法组成真正的原子事务，相关流程应先完成文件操作，再短事务写库；失败时执行补偿清理。
 
-## 7. NeDB 到 SQLite 的迁移
+## 6. NeDB 到 SQLite 的迁移
 
-### 7.1 触发条件
+### 6.1 触发条件
 
 应用启动且满足以下条件时执行一次迁移：
 
@@ -436,7 +319,7 @@ CREATE TABLE t_frpcd_versions (
 
 迁移过程必须在创建主窗口和启动 frpc 进程之前完成。
 
-### 7.2 迁移步骤
+### 6.2 迁移步骤
 
 1. 获取应用级迁移锁，禁止同时启动第二个迁移任务；
 2. 使用 NeDB 自身加载旧文件并调用现有查询接口取得最终有效文档，不按行直接解析数据文件；
@@ -451,10 +334,11 @@ CREATE TABLE t_frpcd_versions (
 
 任一步骤失败都必须回滚 SQLite 事务并继续保留原 NeDB 文件。不得出现“部分表已迁移，但应用按迁移完成启动”的状态。
 
-### 7.3 数据清洗规则
+### 6.3 数据清洗规则
 
 - `_id` 缺失或为空：生成 UUID，并记录告警；server 始终归一为 `"1"`；
 - 缺失的嵌套对象：按当前界面默认配置补齐；
+- server 的 `auth`、`log`、`webServer`、`transport` 和 proxy 的 `transport` 直接序列化到对应 JSON 字段，并保留对象内当前及未来可识别的属性；
 - app config 的 4 条初始记录分别生成 UUID，迁移后的 `version` 均从 1 开始；
 - `localPort`、`remotePort`：统一转为字符串，保留范围和逗号格式；
 - boolean：只接受 `true`、`false`、`0`、`1`，其他值视为无效数据；
@@ -464,7 +348,7 @@ CREATE TABLE t_frpcd_versions (
 - server 不存在但 proxy 存在：创建默认 `id = "1"` server 后导入 proxy；
 - 本地版本记录存在但二进制缺失：保持当前 `VersionService` 行为，由版本列表刷新流程清理陈旧记录。
 
-### 7.4 验证与回滚
+### 6.4 验证与回滚
 
 迁移完成后至少验证：
 
@@ -480,7 +364,7 @@ CREATE TABLE t_frpcd_versions (
 
 若新版本启动失败，回滚版本应仍能读取保留的 NeDB 文件。迁移成功前不得重命名、截断或删除原文件。
 
-## 8. 安全、备份与维护
+## 7. 安全、备份与维护
 
 - 数据库仅由 Electron main process 访问，renderer 必须通过现有 IPC 路由调用；
 - main process 必须继续校验 renderer 传入的 ID、路径、端口、状态和下载参数；
@@ -490,7 +374,7 @@ CREATE TABLE t_frpcd_versions (
 - 在线备份优先使用 SQLite backup API；直接复制前必须 checkpoint 并关闭连接；
 - 定期维护可在合适时机执行 `PRAGMA optimize`，不要在每次启动时执行昂贵的 `VACUUM`。
 
-## 9. 暂不纳入本次迁移的事项
+## 8. 暂不纳入本次迁移的事项
 
 - 不修改 renderer、IPC 请求或响应的数据结构；
 - 不将日志文件、frpc 二进制、下载压缩包或 TOML 文件存入 SQLite；
@@ -499,7 +383,7 @@ CREATE TABLE t_frpcd_versions (
 - 不增加代理名称唯一约束，不自动合并当前可能存在的重复记录；
 - 不在本次迁移中改变 `FrpcVersion.size` 的展示字符串格式。
 
-## 10. 实施顺序建议
+## 9. 实施顺序建议
 
 1. 选定支持 Electron 当前 ABI、事务和参数绑定的 SQLite 驱动；
 2. 新增单例数据库连接和版本化 migration runner；
