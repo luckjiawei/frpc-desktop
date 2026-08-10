@@ -1703,8 +1703,9 @@ onUnmounted(() => {
     <!--  链接导入服务器  -->
     <el-dialog
       v-model="visible.copyServerConfig"
+      class="config-link-dialog"
       :title="t('config.dialog.copyLink.title')"
-      width="500"
+      width="min(720px, calc(100% - 32px))"
       top="5%"
     >
       <el-alert
@@ -1715,7 +1716,7 @@ onUnmounted(() => {
       />
       <el-input
         v-model="copyServerConfigBase64"
-        class="h-30"
+        class="config-link-textarea"
         type="textarea"
         :rows="8"
       ></el-input>
@@ -1723,13 +1724,14 @@ onUnmounted(() => {
     <!--    链接导出服务器-->
     <el-dialog
       v-model="visible.pasteServerConfig"
+      class="config-link-dialog"
       :title="t('config.dialog.importLink.title')"
-      width="500"
+      width="min(720px, calc(100% - 32px))"
       top="5%"
     >
       <el-input
         v-model="pasteServerConfigBase64"
-        class="h-30"
+        class="config-link-textarea"
         type="textarea"
         placeholder="frp://......"
         :rows="8"
@@ -1789,5 +1791,20 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .button-input {
   width: calc(100% - 68px);
+}
+
+.config-link-dialog {
+  display: flex;
+  max-height: 90vh;
+  flex-direction: column;
+
+  :deep(.el-dialog__body) {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+.config-link-textarea {
+  display: block;
 }
 </style>
