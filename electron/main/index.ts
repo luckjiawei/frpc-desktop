@@ -45,6 +45,7 @@ const indexHtml = join(process.env.DIST, "index.html");
 
 class FrpcDesktopApp {
   private _win: BrowserWindow | null = null;
+  private _tray: Tray | null = null;
   private _quitting = false;
 
   constructor() {
@@ -52,9 +53,10 @@ class FrpcDesktopApp {
   }
 
   async initializeWindow() {
-    if (this._win) {
+    if (this._win && !this._win.isDestroyed()) {
       return;
     }
+    this._win = null;
     const serverService: ServerService = BeanFactory.getBean("serverService");
     Logger.setLevel(await serverService.getLoggerLevel());
     Logger.info(
@@ -143,41 +145,87 @@ class FrpcDesktopApp {
     Logger.info(`FrpcDesktopApp.initializeWindow`, `Window initialized.`);
   }
 
+  private async showMainWindow() {
+    if (this._quitting) {
+      return;
+    }
+    if (!this._win || this._win.isDestroyed()) {
+      await this.initializeWindow();
+    }
+    const win = this._win;
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+    if (win.isMinimized()) {
+      win.restore();
+    }
+    win.show();
+    win.focus();
+    if (process.platform === "darwin") {
+      await app.dock.show();
+    }
+  }
+
+  private destroyTray() {
+    if (this._tray && !this._tray.isDestroyed()) {
+      this._tray.destroy();
+    }
+    this._tray = null;
+  }
+
   initializeTray() {
-    const that = this;
+    if (this._tray && !this._tray.isDestroyed()) {
+      return;
+    }
     const menu: Array<MenuItemConstructorOptions | MenuItem> = [
       {
         label: "显示主窗口",
-        click: function () {
-          that._win.show();
-          if (process.platform === "darwin") {
-            app.dock.show().then(() => {});
-          }
+        click: () => {
+          this.showMainWindow().catch(error => {
+            Logger.error(
+              `FrpcDesktopApp.showMainWindow`,
+              error instanceof Error ? error : new Error(String(error))
+            );
+          });
         }
       },
       {
         label: "退出",
         click: () => {
-          that._quitting = true;
+          this._quitting = true;
+          this.destroyTray();
           // todo stop frpc process
           const frpcProcessService: FrpcProcessService =
             BeanFactory.getBean("frpcProcessService");
-          frpcProcessService.stopFrpcProcess().finally(() => {
-            app.quit();
-          });
+          frpcProcessService
+            .stopFrpcProcess()
+            .catch(error => {
+              Logger.error(
+                `FrpcDesktopApp.initializeTray`,
+                error instanceof Error ? error : new Error(String(error))
+              );
+            })
+            .finally(() => {
+              app.quit();
+            });
         }
       }
     ];
-    const tray = new Tray(
+    this._tray = new Tray(
       node_path.join(process.env.VITE_PUBLIC, "logo/only/16x16.png")
     );
-    tray.setToolTip(app.getName());
+    this._tray.setToolTip(app.getName());
     const contextMenu = Menu.buildFromTemplate(menu);
-    tray.setContextMenu(contextMenu);
+    this._tray.setContextMenu(contextMenu);
 
     // 托盘双击打开
-    tray.on("double-click", () => {
-      this._win.show();
+    this._tray.on("double-click", () => {
+      this.showMainWindow().catch(error => {
+        Logger.error(
+          `FrpcDesktopApp.showMainWindow`,
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
     });
     Logger.info(`FrpcDesktopApp.initializeTray`, `Tray initialized.`);
   }
@@ -237,37 +285,54 @@ class FrpcDesktopApp {
     app.on("window-all-closed", () => {
       this._win = null;
       if (process.platform !== "darwin") {
+        this._quitting = true;
+        this.destroyTray();
         const frpcProcessService: FrpcProcessService =
           BeanFactory.getBean("frpcProcessService");
-        frpcProcessService.stopFrpcProcess().finally(() => {
-          app.quit();
-        });
+        frpcProcessService
+          .stopFrpcProcess()
+          .catch(error => {
+            Logger.error(
+              `FrpcDesktopApp.window-all-closed`,
+              error instanceof Error ? error : new Error(String(error))
+            );
+          })
+          .finally(() => {
+            app.quit();
+          });
       }
     });
 
     app.on("second-instance", () => {
-      if (this._win) {
-        if (this._win.isMinimized()) this._win.show();
-        if (!this._win.isVisible()) this._win.show();
-        this._win.focus();
-      }
+      this.showMainWindow().catch(error => {
+        Logger.error(
+          `FrpcDesktopApp.showMainWindow`,
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
     });
 
     app.on("activate", () => {
-      const allWindows = BrowserWindow.getAllWindows();
-      if (allWindows.length) {
-        allWindows[0].focus();
-      } else {
-        this.initializeWindow();
-      }
+      this.showMainWindow().catch(error => {
+        Logger.error(
+          `FrpcDesktopApp.showMainWindow`,
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
     });
 
     app.on("before-quit", () => {
       this._quitting = true;
+      this.destroyTray();
       if (BeanFactory.hasBean("frpcProcessService")) {
         const frpcProcessService: FrpcProcessService =
           BeanFactory.getBean("frpcProcessService");
-        frpcProcessService.stopFrpcProcess().finally(() => {});
+        frpcProcessService.stopFrpcProcess().catch(error => {
+          Logger.error(
+            `FrpcDesktopApp.before-quit`,
+            error instanceof Error ? error : new Error(String(error))
+          );
+        });
       }
     });
 
