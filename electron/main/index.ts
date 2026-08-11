@@ -269,6 +269,9 @@ class FrpcDesktopApp {
           versionRepository,
           proxyRepository
         );
+        const frpcProcessService: FrpcProcessService =
+          BeanFactory.getBean("frpcProcessService");
+        void frpcProcessService.restoreExistingProcess();
         this.initializeListeners();
         this.initializeRouters();
         await this.initializeWindow();

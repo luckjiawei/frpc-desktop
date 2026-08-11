@@ -1,4 +1,4 @@
-import { exec, execFile, execSync, spawn } from "child_process";
+import { exec, execFile, spawn } from "child_process";
 import { app, BrowserWindow, Notification } from "electron";
 import fs from "fs";
 import path from "path";
@@ -43,6 +43,8 @@ class FrpcProcessService {
   private _frpcRecoveryChecking = false;
   private _frpcLastRecoveryTime = -1;
   private _stoppingPromise: Promise<void> | null = null;
+  private _existingProcessRestorePromise: Promise<void> | null = null;
+  private _existingProcessRestoreCompleted = false;
 
   constructor() {
     this._serverService = BeanFactory.getBean("serverService");
@@ -122,60 +124,79 @@ class FrpcProcessService {
     );
   }
 
+  private findExistingProcessPid(): Promise<number | null> {
+    const processName =
+      process.platform === "win32"
+        ? PathUtils.getWinFrpFilename()
+        : PathUtils.getFrpcFilename();
+    const command = process.platform === "win32" ? "tasklist" : "pgrep";
+    const args =
+      process.platform === "win32"
+        ? ["/FI", `IMAGENAME eq ${processName}`, "/FO", "CSV", "/NH"]
+        : ["-x", processName];
+
+    return new Promise(resolve => {
+      execFile(command, args, { windowsHide: true }, (error, stdout) => {
+        if (error) {
+          if (!(process.platform !== "win32" && error.code === 1)) {
+            Logger.warn(
+              `FrpcProcessService.findExistingProcessPid`,
+              `Unable to inspect existing frpc processes: ${error.message}`
+            );
+          }
+          resolve(null);
+          return;
+        }
+
+        const pid =
+          process.platform === "win32"
+            ? stdout
+                .split(/\r?\n/)
+                .map(line => line.match(/^"[^"]+","(\d+)"/))
+                .find(Boolean)?.[1]
+            : stdout
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .find(line => /^\d+$/.test(line));
+        const parsedPid = Number(pid);
+        resolve(
+          Number.isInteger(parsedPid) && parsedPid > 0 ? parsedPid : null
+        );
+      });
+    });
+  }
+
+  async restoreExistingProcess(): Promise<void> {
+    if (this._existingProcessRestoreCompleted || this._frpcProcess) {
+      return;
+    }
+    if (this._existingProcessRestorePromise) {
+      return this._existingProcessRestorePromise;
+    }
+
+    this._existingProcessRestorePromise = (async () => {
+      const pid = await this.findExistingProcessPid();
+      if (pid && !this._frpcProcess) {
+        this._frpcProcess = { pid };
+        this._frpcLastStartTime = Date.now();
+        Logger.info(
+          `FrpcProcessService.restoreExistingProcess`,
+          `Existing frpc process restored, pid=${pid}`
+        );
+      }
+    })().finally(() => {
+      this._existingProcessRestoreCompleted = true;
+      this._existingProcessRestorePromise = null;
+    });
+
+    return this._existingProcessRestorePromise;
+  }
+
   isRunning(): boolean {
     if (!this._frpcProcess) {
-      // 尝试在 macOS/Linux 上探测外部已存在的 frpc 进程（应用重启后的残留进程）
-      try {
-        if (process.platform !== "win32") {
-          const processName = PathUtils.getFrpcFilename();
-          const stdout = execSync(`pgrep -x ${processName}`).toString().trim();
-          if (stdout) {
-            const pid = parseInt(stdout.split("\n")[0], 10);
-            if (!Number.isNaN(pid)) {
-              this._frpcProcess = { pid };
-              if (this._frpcLastStartTime === -1) {
-                this._frpcLastStartTime = Date.now();
-              }
-            }
-          }
-        } else {
-          const processName = PathUtils.getWinFrpFilename();
-          const stdout = execSync(
-            `tasklist /FI "IMAGENAME eq ${processName}" /FO CSV`
-          ).toString();
-          const lines = stdout.split("\n").filter(Boolean);
-
-          if (lines.length > 1) {
-            const info = lines[1]
-              .split('","')
-              .map(s => s.replace(/(^"|"$)/g, ""));
-            const pid = parseInt(info[1], 10);
-            if (!Number.isNaN(pid)) {
-              this._frpcProcess = { pid };
-              if (this._frpcLastStartTime === -1) {
-                this._frpcLastStartTime = Date.now();
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // 忽略未找到进程的错误
-      }
-
-      if (!this._frpcProcess) {
-        return false;
-      }
-    }
-    try {
-      process.kill(this._frpcProcess.pid, 0);
-      return true;
-    } catch (err: any) {
-      // EPERM means process exists but we lack permission (e.g. root-owned on macOS)
-      if (err.code === "EPERM") {
-        return true;
-      }
       return false;
     }
+    return this.isProcessAlive(Number(this._frpcProcess.pid));
   }
 
   get frpcLastStartTime(): number {
@@ -279,6 +300,7 @@ class FrpcProcessService {
   }
 
   async startFrpcProcess() {
+    await this.restoreExistingProcess();
     if (this.isRunning()) {
       Logger.info(
         `FrpcProcessService.startFrpcProcess`,
@@ -444,6 +466,7 @@ class FrpcProcessService {
   }
 
   async stopFrpcProcess(): Promise<void> {
+    await this.restoreExistingProcess();
     if (this._stoppingPromise) {
       return this._stoppingPromise;
     }
@@ -517,6 +540,7 @@ class FrpcProcessService {
   }
 
   async reloadFrpcProcess() {
+    await this.restoreExistingProcess();
     if (!this.isRunning()) {
       return;
     }

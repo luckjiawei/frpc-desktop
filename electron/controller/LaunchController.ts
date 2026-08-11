@@ -35,7 +35,8 @@ class LaunchController extends BaseController {
       });
   }
 
-  getStatus(req: ControllerParam) {
+  async getStatus(req: ControllerParam) {
+    await this._frpcProcessService.restoreExistingProcess();
     const running = this._frpcProcessService.isRunning();
     const connectionError = running
       ? this._frpcProcessService.readFrpcConnectionError()
