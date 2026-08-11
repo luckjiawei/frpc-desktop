@@ -114,20 +114,29 @@ class SystemService {
   }
 
   checkInternetConnect() {
-    return new Promise(resolve => {
+    return new Promise<boolean>(resolve => {
       const request = net.request({
         method: "get",
         url: GlobalConstant.INTERNET_CHECK_URL
       });
+      let settled = false;
+      const finish = (connected: boolean) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        resolve(connected);
+      };
       const timeout = setTimeout(() => {
         request.abort();
-        resolve(false);
+        finish(false);
       }, GlobalConstant.INTERNET_CHECK_TIMEOUT * 1000);
       request.on("response", response => {
-        resolve(response.statusCode === 200);
+        finish(response.statusCode === 200);
       });
-      request.on("error", error => {
-        resolve(false);
+      request.on("error", () => {
+        finish(false);
       });
       request.end();
     });

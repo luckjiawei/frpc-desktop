@@ -330,6 +330,7 @@ class FrpcDesktopApp {
       if (BeanFactory.hasBean("frpcProcessService")) {
         const frpcProcessService: FrpcProcessService =
           BeanFactory.getBean("frpcProcessService");
+        frpcProcessService.dispose();
         frpcProcessService.stopFrpcProcess().catch(error => {
           Logger.error(
             `FrpcDesktopApp.before-quit`,

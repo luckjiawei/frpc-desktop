@@ -28,6 +28,7 @@ app
   .$nextTick(() => {
     const frpcDesktopStore = useFrpcDesktopStore();
     frpcDesktopStore.onListenerFrpcProcessRunning();
+    frpcDesktopStore.refreshRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();
