@@ -88,6 +88,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
     launchAtStartup: false,
     silentStartup: false,
     autoConnectOnStartup: false,
+    notifyUpdates: true,
     language: "en-US"
   },
   user: ""
@@ -222,6 +223,13 @@ const rules = reactive<FormRules>({
     {
       required: true,
       message: t("config.form.systemAutoConnectOnStartup.requireMessage"),
+      trigger: "change"
+    }
+  ],
+  "system.notifyUpdates": [
+    {
+      required: true,
+      message: t("config.form.systemNotifyUpdates.requireMessage"),
       trigger: "change"
     }
   ],
@@ -1668,6 +1676,38 @@ onUnmounted(() => {
                 </template>
                 <el-switch
                   v-model="formData.system.autoConnectOnStartup"
+                  :active-text="t('common.yes')"
+                  :inactive-text="t('common.no')"
+                  inline-prompt
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item
+                :label="t('config.form.systemNotifyUpdates.label')"
+                prop="system.notifyUpdates"
+              >
+                <template #label>
+                  <div class="flex items-center mr-1 h-full">
+                    <el-popover placement="top" width="300" trigger="hover">
+                      <template #default>
+                        <div
+                          v-html="t('config.form.systemNotifyUpdates.tips')"
+                        ></div>
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  {{ t("config.form.systemNotifyUpdates.label") }}
+                </template>
+                <el-switch
+                  v-model="formData.system.notifyUpdates"
                   :active-text="t('common.yes')"
                   :inactive-text="t('common.no')"
                   inline-prompt

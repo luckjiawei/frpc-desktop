@@ -48,6 +48,7 @@
 - [x] 支持导入识别frpc.toml
 - [x] tcp、udp协议支持批量端口
 - [x] support multiple languages
+- [x] 可选择是否推送更新通知
 
 
 ## 里程碑

@@ -337,6 +337,7 @@ class NedbMigrationService {
         launchAtStartup: false,
         silentStartup: false,
         autoConnectOnStartup: false,
+        notifyUpdates: true,
         language: "en-US"
       },
       user: ""
@@ -364,6 +365,11 @@ class NedbMigrationService {
         system.autoConnectOnStartup,
         false,
         "server.system.autoConnectOnStartup"
+      ),
+      notifyUpdates: this.boolean(
+        system.notifyUpdates,
+        true,
+        "server.system.notifyUpdates"
       ),
       language: this.string(system.language, "en-US")
     };

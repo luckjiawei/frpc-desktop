@@ -11,6 +11,7 @@ class AppConfigRepository {
     launchAtStartup: false,
     silentStartup: false,
     autoConnectOnStartup: false,
+    notifyUpdates: true,
     language: "en-US"
   };
 
@@ -41,6 +42,10 @@ class AppConfigRepository {
         values.get("auto_connect_on_startup"),
         AppConfigRepository.DESKTOP_DEFAULTS.autoConnectOnStartup
       ),
+      notifyUpdates: this.readBoolean(
+        values.get("notify_updates"),
+        AppConfigRepository.DESKTOP_DEFAULTS.notifyUpdates
+      ),
       language:
         values.get("language") || AppConfigRepository.DESKTOP_DEFAULTS.language
     };
@@ -65,6 +70,12 @@ class AppConfigRepository {
       "auto_connect_on_startup",
       "boolean",
       String(config.autoConnectOnStartup ?? false)
+    );
+    this.upsert(
+      "desktop",
+      "notify_updates",
+      "boolean",
+      String(config.notifyUpdates ?? true)
     );
     this.upsert("desktop", "language", "string", config.language || "en-US");
   }
