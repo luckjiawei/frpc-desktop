@@ -56,7 +56,10 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     },
     onListenerFrpcDesktopGithubLastRelease(sd?: false) {
       on(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, data => {
-        const { manual, version } = data;
+        const { manual, version, skipped } = data;
+        if (skipped || !version) {
+          return;
+        }
         this.lastRelease = version;
         // tagName相对固定
         const tagName = this.lastRelease["tag_name"];

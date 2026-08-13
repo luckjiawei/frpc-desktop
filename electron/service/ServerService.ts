@@ -307,6 +307,7 @@ ${f}`;
             launchAtStartup: false,
             silentStartup: false,
             autoConnectOnStartup: false,
+            notifyUpdates: true,
             language: "en-US"
           },
           user: ""
@@ -832,6 +833,7 @@ ${f}`;
           launchAtStartup: false,
           silentStartup: false,
           autoConnectOnStartup: false,
+          notifyUpdates: true,
           language: language
         },
         user: ""

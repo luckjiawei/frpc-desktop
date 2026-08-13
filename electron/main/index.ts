@@ -420,7 +420,14 @@ class FrpcDesktopApp {
         BeanFactory.getBean("proxyRepository")
       )
     );
-    BeanFactory.setBean("systemController", new SystemController());
+    BeanFactory.setBean(
+      "systemController",
+      new SystemController(
+        BeanFactory.getBean("systemService"),
+        BeanFactory.getBean("gitHubService"),
+        BeanFactory.getBean("appConfigRepository")
+      )
+    );
     Logger.info(`FrpcDesktopApp.initializeBeans`, `Beans initialized.`);
   }
 

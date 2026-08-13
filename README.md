@@ -48,6 +48,7 @@
 - [x] Support importing and recognizing frpc.toml
 - [x] TCP and UDP protocols support batch ports
 - [x] Support multiple languages
+- [x] Optional update notifications
 
 ## Common Issues
 

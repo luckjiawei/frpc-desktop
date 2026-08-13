@@ -139,6 +139,7 @@ flowchart LR
 | `desktop` | `launch_at_startup` | `boolean` | `false` | `system.launchAtStartup` |
 | `desktop` | `silent_startup` | `boolean` | `false` | `system.silentStartup` |
 | `desktop` | `auto_connect_on_startup` | `boolean` | `false` | `system.autoConnectOnStartup` |
+| `desktop` | `notify_updates` | `boolean` | `true` | `system.notifyUpdates` |
 | `desktop` | `language` | `string` | `en-US` | `system.language` |
 
 这些默认记录的 `id` 由应用层生成 UUID。当前 `OpenSourceFrpcDesktopServer.system` 仍保留为 service 和 IPC 层的兼容结构。读取 server 配置时，由 service 查询 `desktop` 命名空间并组装成现有 `system` 对象；保存配置时，在同一事务内分别更新 server 和对应配置项。renderer 不需要感知这一拆分。

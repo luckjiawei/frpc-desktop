@@ -218,6 +218,11 @@ export default {
         requireMessage: "请选择是否开启自动连接",
         tips: " 开启后启动时<span class='font-black text-[#5A3DAA]'>自动连接</span>"
       },
+      systemNotifyUpdates: {
+        label: "更新推送",
+        requireMessage: "请选择是否推送更新",
+        tips: "有新版本时自动推送更新通知；关闭后仍可在关于页面手动检查更新"
+      },
       transportHeartbeatInterval: {
         label: "心跳间隔时间",
         requireMessage: "心跳间隔时间不能为空",

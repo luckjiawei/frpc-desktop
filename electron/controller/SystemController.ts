@@ -5,14 +5,21 @@ import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import Logger from "../core/Logger";
 import GitHubService from "../service/GitHubService";
+import AppConfigRepository from "../repository/AppConfigRepository";
 
 class SystemController {
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
+  private readonly _appConfigRepository: AppConfigRepository;
 
-  constructor() {
-    this._systemService = BeanFactory.getBean("systemService");
-    this._gitHubService = BeanFactory.getBean("gitHubService");
+  constructor(
+    systemService: SystemService,
+    gitHubService: GitHubService,
+    appConfigRepository: AppConfigRepository
+  ) {
+    this._systemService = systemService;
+    this._gitHubService = gitHubService;
+    this._appConfigRepository = appConfigRepository;
   }
 
   openUrl(req: ControllerParam) {
@@ -90,13 +97,26 @@ class SystemController {
   }
 
   getFrpcDesktopGithubLastRelease(req: ControllerParam) {
+    const manual = req.args.manual === true;
+    if (!manual && !this._appConfigRepository.getSystemConfig().notifyUpdates) {
+      req.event.reply(
+        req.channel,
+        ResponseUtils.success({
+          manual,
+          version: null,
+          skipped: true
+        })
+      );
+      return;
+    }
+
     this._gitHubService
       .getGithubLastRelease("luckjiawei/frpc-desktop")
       .then((data: any) => {
         req.event.reply(
           req.channel,
           ResponseUtils.success({
-            manual: req.args.manual,
+            manual,
             version: data
           })
         );

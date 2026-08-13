@@ -219,6 +219,11 @@ export default {
         requireMessage: "Please select whether to enable auto connect",
         tips: "Auto connect to the server when the system starts"
       },
+      systemNotifyUpdates: {
+        label: "Update Notifications",
+        requireMessage: "Please select whether to enable update notifications",
+        tips: "Notify you automatically when a new version is available. You can still check manually on the About page when disabled."
+      },
       transportHeartbeatInterval: {
         label: "Heartbeat Interval",
         requireMessage: "Please enter heartbeat interval",
