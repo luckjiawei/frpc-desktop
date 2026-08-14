@@ -121,7 +121,7 @@
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=luckjiawei/frpc-desktop&type=Date)](https://star-history.com/#luckjiawei/frpc-desktop&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=luckjiawei/frpc-desktop&type=Date)](https://star-history.dera.page/#luckjiawei/frpc-desktop&Date)
 <!-- MARKDOWN LINKS & IMAGES -->
 
 [downloads-shield]: https://img.shields.io/github/downloads/luckjiawei/frpc-desktop/total.svg?style=for-the-badge
