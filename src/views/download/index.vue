@@ -2,7 +2,7 @@
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { on, send } from "@/utils/ipcUtils";
 import { useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox } from "element-plus";
 import moment from "moment";
@@ -34,6 +34,7 @@ const mirrors = ref<Array<GitHubMirror>>([
   }
 ]);
 const frpcDesktopStore = useFrpcDesktopStore();
+const listenerCleanups: Array<() => void> = [];
 
 const getDownloadUrl = (version: FrpcVersion) => {
   const mirror = mirrors.value.find(item => item.id === currMirror.value);
@@ -103,77 +104,85 @@ const getDownloadProgress = (version: FrpcVersion) => {
 onMounted(() => {
   handleLoadAllVersions();
 
-  on(ipcRouters.VERSION.getVersions, data => {
-    versions.value = data.map(m => {
-      m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
-      return m as FrpcVersion;
-    }) as Array<FrpcVersion>;
-    loading.value--;
-  });
+  listenerCleanups.push(
+    on(ipcRouters.VERSION.getVersions, data => {
+      versions.value = data.map(m => {
+        m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
+        return m as FrpcVersion;
+      }) as Array<FrpcVersion>;
+      loading.value--;
+    })
+  );
 
-  on(ipcRouters.VERSION.downloadVersion, data => {
-    const { githubReleaseId, completed, percent } = data;
-    if (completed) {
-      downloading.value.delete(githubReleaseId);
-      const version: FrpcVersion | undefined = versions.value.find(
-        f => f.githubReleaseId === githubReleaseId
-      );
-      if (version) {
-        version.downloaded = true;
-      }
-    } else {
-      downloading.value.set(
-        githubReleaseId,
-        Number(Number(percent * 100).toFixed(2))
-      );
-    }
-    frpcDesktopStore.refreshDownloadedVersion();
-  });
-
-  on(ipcRouters.VERSION.deleteDownloadedVersion, () => {
-    loading.value++;
-    ElMessage({
-      type: "success",
-      message: t("download.message.deleteSuccess")
-    });
-    handleLoadAllVersions();
-    frpcDesktopStore.refreshDownloadedVersion();
-  });
-
-  on(
-    ipcRouters.VERSION.importLocalFrpcVersion,
-    data => {
-      const { canceled } = data;
-      if (!canceled) {
-        loading.value++;
-        ElMessage({
-          type: "success",
-          message: t("download.message.importSuccess")
-        });
-        handleLoadAllVersions();
-        frpcDesktopStore.refreshDownloadedVersion();
-      }
-    },
-    (bizCode: string, message: string) => {
-      if (bizCode === "B1002") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.versionExists"),
-          t("download.alert.importFailed.title")
+  listenerCleanups.push(
+    on(ipcRouters.VERSION.downloadVersion, data => {
+      const { githubReleaseId, completed, percent } = data;
+      if (completed) {
+        downloading.value.delete(githubReleaseId);
+        const version: FrpcVersion | undefined = versions.value.find(
+          f => f.githubReleaseId === githubReleaseId
+        );
+        if (version) {
+          version.downloaded = true;
+        }
+      } else {
+        downloading.value.set(
+          githubReleaseId,
+          Number(Number(percent * 100).toFixed(2))
         );
       }
-      if (bizCode === "B1003") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.architectureNotMatch"),
-          t("download.alert.importFailed.title")
-        );
+      frpcDesktopStore.refreshDownloadedVersion();
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.VERSION.deleteDownloadedVersion, () => {
+      loading.value++;
+      ElMessage({
+        type: "success",
+        message: t("download.message.deleteSuccess")
+      });
+      handleLoadAllVersions();
+      frpcDesktopStore.refreshDownloadedVersion();
+    })
+  );
+
+  listenerCleanups.push(
+    on(
+      ipcRouters.VERSION.importLocalFrpcVersion,
+      data => {
+        const { canceled } = data;
+        if (!canceled) {
+          loading.value++;
+          ElMessage({
+            type: "success",
+            message: t("download.message.importSuccess")
+          });
+          handleLoadAllVersions();
+          frpcDesktopStore.refreshDownloadedVersion();
+        }
+      },
+      (bizCode: string, message: string) => {
+        if (bizCode === "B1002") {
+          ElMessageBox.alert(
+            t("download.alert.importFailed.versionExists"),
+            t("download.alert.importFailed.title")
+          );
+        }
+        if (bizCode === "B1003") {
+          ElMessageBox.alert(
+            t("download.alert.importFailed.architectureNotMatch"),
+            t("download.alert.importFailed.title")
+          );
+        }
+        if (bizCode === "B1004") {
+          ElMessageBox.alert(
+            t("download.alert.importFailed.unrecognizedFile"),
+            t("download.alert.importFailed.title")
+          );
+        }
       }
-      if (bizCode === "B1004") {
-        ElMessageBox.alert(
-          t("download.alert.importFailed.unrecognizedFile"),
-          t("download.alert.importFailed.title")
-        );
-      }
-    }
+    )
   );
 });
 
@@ -191,10 +200,7 @@ const handleImportFrp = () => {
 };
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.VERSION.deleteDownloadedVersion);
-  removeRouterListeners(ipcRouters.VERSION.downloadVersion);
-  removeRouterListeners(ipcRouters.VERSION.getVersions);
-  removeRouterListeners(ipcRouters.VERSION.importLocalFrpcVersion);
+  listenerCleanups.splice(0).forEach(off => off());
 });
 </script>
 <template>

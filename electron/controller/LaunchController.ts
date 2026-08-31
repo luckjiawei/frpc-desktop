@@ -39,7 +39,7 @@ class LaunchController extends BaseController {
     await this._frpcProcessService.restoreExistingProcess();
     const running = this._frpcProcessService.isRunning();
     const connectionError = running
-      ? this._frpcProcessService.readFrpcConnectionError()
+      ? this._frpcProcessService.frpcConnectionError
       : null;
     req.event.reply(
       req.channel,

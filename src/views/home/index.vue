@@ -2,7 +2,7 @@
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import router from "@/router";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessageBox } from "element-plus";
 import {
@@ -21,7 +21,10 @@ defineComponent({
 
 const frpcDesktopStore = useFrpcDesktopStore();
 const loading = ref(false);
+const now = ref(Date.now());
+let uptimeTimer: ReturnType<typeof setInterval> | null = null;
 const { t } = useI18n();
+const listenerCleanups: Array<() => void> = [];
 
 // Three-state status: "running" | "error" | "stopped"
 const frpcStatus = computed(() => {
@@ -48,7 +51,11 @@ const handleButtonClick = useDebounceFn(() => {
 }, 300);
 
 const uptime = computed(() => {
-  const uptime = frpcDesktopStore.frpcProcessUptime / 1000;
+  const lastStartTime = frpcDesktopStore.frpcProcessLastStartTime;
+  const uptime =
+    frpcDesktopStore.frpcProcessRunning && lastStartTime > 0
+      ? Math.max(0, now.value - lastStartTime) / 1000
+      : 0;
   const days = Math.floor(uptime / (24 * 60 * 60));
   const hours = Math.floor((uptime % (24 * 60 * 60)) / (60 * 60));
   const minutes = Math.floor((uptime % (60 * 60)) / 60);
@@ -77,64 +84,74 @@ watch(
 );
 
 onMounted(() => {
-  on(
-    ipcRouters.LAUNCH.launch,
-    () => {
-      frpcDesktopStore.refreshRunning();
-      loading.value = false;
-    },
-    (bizCode: string, message: string) => {
-      console.log("bizCode", bizCode);
-      if (bizCode === "B1001") {
-        ElMessageBox.alert(
-          t("home.alert.configRequired.message"),
-          t("home.alert.configRequired.title"),
-          {
-            confirmButtonText: t("home.alert.configRequired.confirm")
-          }
-        ).then(() => {
-          router.replace({
-            name: "Config"
+  uptimeTimer = setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+  listenerCleanups.push(
+    on(
+      ipcRouters.LAUNCH.launch,
+      () => {
+        frpcDesktopStore.refreshRunning();
+        loading.value = false;
+      },
+      (bizCode: string, message: string) => {
+        console.log("bizCode", bizCode);
+        if (bizCode === "B1001") {
+          ElMessageBox.alert(
+            t("home.alert.configRequired.message"),
+            t("home.alert.configRequired.title"),
+            {
+              confirmButtonText: t("home.alert.configRequired.confirm")
+            }
+          ).then(() => {
+            router.replace({
+              name: "Config"
+            });
           });
-        });
-      } else if (bizCode === "B1005") {
-        ElMessageBox.alert(
-          t("home.alert.versionNotFound.message"),
-          t("home.alert.versionNotFound.title"),
-          {
-            confirmButtonText: t("home.alert.versionNotFound.confirm")
-          }
-        ).then(() => {
-          router.replace({
-            name: "Config"
+        } else if (bizCode === "B1005") {
+          ElMessageBox.alert(
+            t("home.alert.versionNotFound.message"),
+            t("home.alert.versionNotFound.title"),
+            {
+              confirmButtonText: t("home.alert.versionNotFound.confirm")
+            }
+          ).then(() => {
+            router.replace({
+              name: "Config"
+            });
           });
-        });
-      } else if (bizCode === "B1006") {
-        ElMessageBox.alert(
-          t("home.alert.webServerPortInUse.message"),
-          t("home.alert.webServerPortInUse.title"),
-          {
-            confirmButtonText: t("home.alert.webServerPortInUse.confirm")
-          }
-        ).then(() => {
-          router.replace({
-            name: "Config"
+        } else if (bizCode === "B1006") {
+          ElMessageBox.alert(
+            t("home.alert.webServerPortInUse.message"),
+            t("home.alert.webServerPortInUse.title"),
+            {
+              confirmButtonText: t("home.alert.webServerPortInUse.confirm")
+            }
+          ).then(() => {
+            router.replace({
+              name: "Config"
+            });
           });
-        });
+        }
+        loading.value = false;
       }
-      loading.value = false;
-    }
+    )
   );
 
-  on(ipcRouters.LAUNCH.terminate, () => {
-    frpcDesktopStore.refreshRunning();
-    loading.value = false;
-  });
+  listenerCleanups.push(
+    on(ipcRouters.LAUNCH.terminate, () => {
+      frpcDesktopStore.refreshRunning();
+      loading.value = false;
+    })
+  );
 });
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.LAUNCH.launch);
-  removeRouterListeners(ipcRouters.LAUNCH.terminate);
+  if (uptimeTimer) {
+    clearInterval(uptimeTimer);
+    uptimeTimer = null;
+  }
+  listenerCleanups.splice(0).forEach(off => off());
 });
 </script>
 

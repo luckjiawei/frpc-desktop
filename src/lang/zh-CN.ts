@@ -379,6 +379,7 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
+    refresh: "刷新代理列表",
     search: "搜索名称/类型/IP/端口/域名",
     viewMode: {
       card: "卡片",

@@ -360,6 +360,7 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
+    refresh: "Refresh proxies",
     search: "Search by name / type / IP / port / domain",
     viewMode: {
       card: "Card",

@@ -1,5 +1,11 @@
 type FrpcDesktopProxy = FrpcProxyConfig & {};
 
+interface FrpcProcessStatus {
+  running: boolean;
+  connectionError: string | null;
+  lastStartTime?: number;
+}
+
 interface BaseEntity {
   _id: string;
 }

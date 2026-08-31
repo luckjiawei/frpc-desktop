@@ -48,6 +48,7 @@
 - [x] 支持导入识别frpc.toml
 - [x] tcp、udp协议支持批量端口
 - [x] support multiple languages
+- [x] 支持代理快速搜索及卡片/列表分页
 
 
 ## 里程碑

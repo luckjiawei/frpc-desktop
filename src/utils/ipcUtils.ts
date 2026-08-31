@@ -26,7 +26,11 @@ export const on = (
   listerHandler: (data: any) => void,
   errHandler?: (bizCode: string, message: string) => void
 ) => {
-  ipcRenderer.on(`${router.path}:hook`, (event, args: ApiResponse<any>) => {
+  const channel = `${router.path}:hook`;
+  const handler = (
+    _event: Electron.IpcRendererEvent,
+    args: ApiResponse<any>
+  ) => {
     const { bizCode, data, message } = args;
     if (bizCode === "A1000") {
       listerHandler(data);
@@ -42,30 +46,25 @@ export const on = (
       }
       // reject(new Error(message));
     }
-  });
+  };
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
 };
 
 export const onListener = (
   listener: Listener,
   listerHandler: (data: any) => void
 ) => {
-  // return new Promise((resolve, reject) => {
-  ipcRenderer.on(`${listener.channel}`, (event, args: ApiResponse<any>) => {
-    const { bizCode, data, message } = args;
+  const channel = `${listener.channel}`;
+  const handler = (
+    _event: Electron.IpcRendererEvent,
+    args: ApiResponse<any>
+  ) => {
+    const { bizCode, data } = args;
     if (bizCode === "A1000") {
       listerHandler(data);
     }
-  });
-  // });
+  };
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
 };
-
-export const removeRouterListeners = (router: IpcRouter) => {
-  ipcRenderer.removeAllListeners(`${router.path}:hook`);
-};
-
-export const removeRouterListeners2 = (listen: Listener) => {
-  ipcRenderer.removeAllListeners(`${listen.channel}`);
-};
-// export const removeAllListeners = (listen: Listener) => {
-//   ipcRenderer.removeAllListeners(`${listen.channel}:hook`);
-// };
