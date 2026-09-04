@@ -48,7 +48,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-2022, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
         timeout-minutes: 15
 
       - name: Build Windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-2022' }}
         run: npm run build:electron:win
 
       - name: Build macOS
@@ -100,7 +100,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-2022, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
         timeout-minutes: 15
 
       - name: Release Windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-2022' }}
         run: npm run release:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
