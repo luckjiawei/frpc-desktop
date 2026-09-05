@@ -51,6 +51,12 @@
 - [x] 支持代理快速搜索及卡片/列表分页
 
 
+## 常见问题
+
+### macOS universal 构建在 better-sqlite3 预编译文件处失败
+
+使用 electron-builder 26 构建时，请保留 `electron-builder.json5` 中的 `mac.x64ArchFiles` 规则。该规则允许 better-sqlite3 随包携带、在两个架构包中内容相同的 `darwin-x64.node` 和 `darwin-arm64.node` 保留在 universal 应用中，运行时由 better-sqlite3 选择匹配的架构文件。在 macOS 上运行 `npm run build:electron:mac` 重新构建。
+
 ## 里程碑
 
 - 2026-05-21: 发布v1.2.6版本 增加下载代理选择
