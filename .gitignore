@@ -12,6 +12,7 @@ dist
 dist-ssr
 dist-electron
 release
+src-tauri/target
 *.local
 
 # Editor directories and files

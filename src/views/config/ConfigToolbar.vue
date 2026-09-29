@@ -37,7 +37,12 @@ const { t } = useI18n();
     <el-button plain type="primary" @click="emit('export')">
       <IconifyIconOffline icon="file-save-rounded" />
     </el-button>
-    <el-button type="primary" @click="emit('save')">
+    <el-button
+      type="primary"
+      :title="t('config.button.saveWithShortcut')"
+      :aria-label="t('config.button.saveWithShortcut')"
+      @click="emit('save')"
+    >
       <IconifyIconOffline icon="save-rounded" />
     </el-button>
   </Breadcrumb>

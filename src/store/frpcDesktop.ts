@@ -2,7 +2,7 @@ import i18n from "@/lang";
 import { on, onListener, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
-import { ipcRouters, listeners } from "../../electron/core/IpcRouter";
+import { ipcRouters, listeners } from "@/core/IpcRouter";
 import pkg from "../../package.json";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
@@ -62,17 +62,19 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
     },
     onListenerFrpcDesktopGithubLastRelease(sd?: false) {
       on(ipcRouters.SYSTEM.getFrpcDesktopGithubLastRelease, data => {
-        const { manual, version } = data;
+        const { manual, version } = data || {};
         this.lastRelease = version;
+        if (!this.lastRelease) {
+          return;
+        }
         // tagName相对固定
         const tagName = this.lastRelease["tag_name"];
         let lastReleaseVersion = true;
         if (!tagName) {
-          // new
-          lastReleaseVersion = false;
+          return;
         }
         // 最后版本号
-        const lastVersion = tagName.replace("v", "").toString();
+        const lastVersion = (tagName || "").replace("v", "").toString();
         const currVersion = pkg.version;
         lastReleaseVersion = currVersion >= lastVersion;
         // return false;
