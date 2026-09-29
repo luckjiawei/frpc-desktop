@@ -26,6 +26,12 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--silent"]),
         ))
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
             // Determine app data dir
             let base_dir = dirs::data_dir()
@@ -113,6 +119,37 @@ pub fn run() {
                 let _ = tray_builder.icon(icon.clone()).build(app)?;
             } else {
                 let _ = tray_builder.build(app)?;
+            }
+            let is_silent = std::env::args().any(|a| a == "--silent");
+            let state = app.state::<AppState>();
+            if let Ok(server) = db::server_repo::ServerRepository::get_server_config(&state.db.conn()) {
+                use tauri_plugin_autostart::ManagerExt;
+                if server.system.launch_at_startup {
+                    let _ = app.autolaunch().enable();
+                } else {
+                    let _ = app.autolaunch().disable();
+                }
+
+                if !is_silent && !server.system.silent_startup {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+
+                if server.system.auto_connect_on_startup {
+                    let app_handle = app.handle().clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                        let state = app_handle.state::<AppState>();
+                        if let Err((code, msg)) = state.launch_frpc(&app_handle).await {
+                            eprintln!("Auto connect on startup failed: [{}]: {}", code, msg);
+                        }
+                    });
+                }
+            } else if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
             }
 
             Ok(())

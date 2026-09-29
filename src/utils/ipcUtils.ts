@@ -66,7 +66,25 @@ export const on = (
   }
   hookHandlers.get(channel)!.add(handler);
 
+  let unlistenFn: UnlistenFn | null = null;
+  let active = true;
+
+  listen<ApiResponse<any>>(channel, event => {
+    if (!active) return;
+    handler(event.payload);
+  }).then(unlisten => {
+    if (!active) {
+      unlisten();
+    } else {
+      unlistenFn = unlisten;
+    }
+  });
+
   return () => {
+    active = false;
+    if (unlistenFn) {
+      unlistenFn();
+    }
     const set = hookHandlers.get(channel);
     if (set) {
       set.delete(handler);

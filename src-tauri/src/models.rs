@@ -329,20 +329,27 @@ pub struct FrpcVersion {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubAsset {
     pub id: i64,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub size: i64,
+    #[serde(default)]
     pub download_count: i64,
+    #[serde(default)]
     pub created_at: String,
+    #[serde(default)]
     pub browser_download_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubRelease {
     pub id: i64,
+    #[serde(default)]
     pub name: String,
     pub tag_name: Option<String>,
     pub body: Option<String>,
     pub html_url: Option<String>,
+    #[serde(default)]
     pub assets: Vec<GithubAsset>,
 }
 

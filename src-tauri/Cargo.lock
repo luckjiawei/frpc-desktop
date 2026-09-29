@@ -1270,6 +1270,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "flate2",
+ "futures-util",
  "libc",
  "log",
  "md5",
