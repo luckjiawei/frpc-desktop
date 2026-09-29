@@ -30,6 +30,12 @@ pub fn run() {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
+                #[cfg(target_os = "macos")]
+                {
+                    let app = window.app_handle();
+                    let _ = app.set_dock_visibility(false);
+                    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                }
             }
         })
         .setup(|app| {
@@ -78,6 +84,11 @@ pub fn run() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {
+                        #[cfg(target_os = "macos")]
+                        {
+                            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                            let _ = app.set_dock_visibility(true);
+                        }
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.unminimize();
                             let _ = window.show();
@@ -103,6 +114,11 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
+                        #[cfg(target_os = "macos")]
+                        {
+                            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                            let _ = app.set_dock_visibility(true);
+                        }
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.unminimize();
                             let _ = window.show();
@@ -120,9 +136,15 @@ pub fn run() {
             } else {
                 let _ = tray_builder.build(app)?;
             }
+            let server_cfg = {
+                let state = app.state::<AppState>();
+                let conn = state.db.conn();
+                let res = db::server_repo::ServerRepository::get_server_config(&conn).ok();
+                res
+            };
+
             let is_silent = std::env::args().any(|a| a == "--silent");
-            let state = app.state::<AppState>();
-            if let Ok(server) = db::server_repo::ServerRepository::get_server_config(&state.db.conn()) {
+            if let Some(server) = server_cfg {
                 use tauri_plugin_autostart::ManagerExt;
                 if server.system.launch_at_startup {
                     let _ = app.autolaunch().enable();
@@ -131,9 +153,20 @@ pub fn run() {
                 }
 
                 if !is_silent && !server.system.silent_startup {
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                        let _ = app.handle().set_dock_visibility(true);
+                    }
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.show();
                         let _ = window.set_focus();
+                    }
+                } else {
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = app.handle().set_dock_visibility(false);
+                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
                     }
                 }
 
@@ -148,6 +181,11 @@ pub fn run() {
                     });
                 }
             } else if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                    let _ = app.handle().set_dock_visibility(true);
+                }
                 let _ = window.show();
                 let _ = window.set_focus();
             }
