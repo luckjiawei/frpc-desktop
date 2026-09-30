@@ -1,6 +1,6 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "FRP跨平台桌面客户端，基于 Tauri 2 + Vue 3，可视化配置，轻量快速！",
   "repository": "github:luckjiawei/frpc-desktop",
   "author": "刘嘉伟 <8473136@qq.com>",

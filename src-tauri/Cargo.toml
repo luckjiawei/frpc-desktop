@@ -1,6 +1,6 @@
 [package]
 name = "frpc-desktop"
-version = "1.2.7"
+version = "1.2.8"
 description = "FRP Desktop Client"
 authors = ["luckjiawei"]
 edition = "2021"
