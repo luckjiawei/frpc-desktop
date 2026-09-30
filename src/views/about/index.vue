@@ -6,7 +6,7 @@ import { send } from "@/utils/ipcUtils";
 import { Icon } from "@iconify/vue";
 import { computed, defineComponent, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "@/core/IpcRouter";
 import pkg from "../../../package.json";
 
 const frpcDesktopStore = useFrpcDesktopStore();
@@ -25,7 +25,7 @@ const isLastVersion = computed(() => {
     return true;
   }
   // 最后版本号
-  const lastVersion = tagName.replace("v", "").toString();
+  const lastVersion = (tagName || "").replace("v", "").toString();
   const currVersion = pkg.version;
   return currVersion >= lastVersion;
 });

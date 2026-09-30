@@ -162,7 +162,7 @@ onMounted(() => {
             内存
           </p>
           <p class="text-[12px] font-bold">
-            {{ systemUsageStore.systemUsageMemory.used }}MB
+            {{ systemUsageStore.formattedMemory }}
           </p>
         </div>
       </div>

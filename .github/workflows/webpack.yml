@@ -7,12 +7,13 @@ on:
     branches:
       - "**"
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  # 非 main 分支、非 tag：只检测编译是否报错
+  # 非 main 分支、非 tag：检测前端构建与 Rust 编译及测试
   check:
     if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
     runs-on: ubuntu-latest
@@ -32,21 +33,34 @@ jobs:
       - name: Install dependencies
         run: npm ci --verbose
         env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
           npm_config_fetch_retries: 5
           npm_config_fetch_retry_mintimeout: 10000
           npm_config_fetch_retry_maxtimeout: 60000
         timeout-minutes: 15
 
-      - name: Check build
+      - name: Check frontend build
         run: npm run build
 
-  # main 分支：完整打包，不发布
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check Rust and run tests
+        run: |
+          cd src-tauri
+          cargo check
+          cargo test
+
+  # main 分支：多平台打包检测
   build:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2022, macos-latest]
     steps:
@@ -59,46 +73,31 @@ jobs:
           node-version: 22.12.0
           cache: "npm"
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Rewrite SSH git URLs to HTTPS
         run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
       - name: Install dependencies
         run: npm ci --verbose
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-          npm_config_fetch_retries: 5
-          npm_config_fetch_retry_mintimeout: 10000
-          npm_config_fetch_retry_maxtimeout: 60000
         timeout-minutes: 15
 
-      - name: Build Windows
-        if: ${{ matrix.os == 'windows-2022' }}
-        run: npm run build:electron:win
-
-      - name: Build macOS
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: npm run build:electron:mac
-
-      - name: Build Linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: npm run build:electron:linux
+      - name: Build Tauri
+        run: npm run tauri:build
 
   # tag：先创建 Release，再并发打包上传
-  create-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create GitHub Release
-        run: gh release create ${{ github.ref_name }} --draft --title ${{ github.ref_name }} --repo ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   release:
-    needs: create-release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2022, macos-latest]
     steps:
@@ -111,39 +110,28 @@ jobs:
           node-version: 22.12.0
           cache: "npm"
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Rewrite SSH git URLs to HTTPS
         run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
       - name: Install dependencies
         run: npm ci --verbose
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-          npm_config_fetch_retries: 5
-          npm_config_fetch_retry_mintimeout: 10000
-          npm_config_fetch_retry_maxtimeout: 60000
         timeout-minutes: 15
 
-      - name: Release Windows
-        if: ${{ matrix.os == 'windows-2022' }}
-        run: npm run release:win
+      - name: Build and Release Tauri
+        uses: tauri-apps/tauri-action@v0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-          DEBUG: electron-builder
-
-      - name: Release macOS
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: npm run release:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-          DEBUG: electron-builder
-
-      - name: Release Linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: npm run release:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-          DEBUG: electron-builder
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false

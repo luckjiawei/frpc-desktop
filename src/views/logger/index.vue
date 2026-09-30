@@ -5,7 +5,7 @@ import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "@/core/IpcRouter";
 import LogView from "./LogView.vue";
 import { LogLevel, LogRecord } from "./log";
 

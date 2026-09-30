@@ -4,7 +4,6 @@ import { on, send } from "@/utils/ipcUtils";
 import { refDebounced, useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
-import path from "path";
 import {
   computed,
   onActivated,
@@ -15,7 +14,7 @@ import {
   watch
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "@/core/IpcRouter";
 import commonIps from "./commonIp.json";
 import LocalPortDialog from "./LocalPortDialog.vue";
 import ProxyToolbar from "./ProxyToolbar.vue";
@@ -640,7 +639,7 @@ const handleRandomProxyName = () => {
 };
 
 const normalizePath = (filePath: string) => {
-  return path.normalize(filePath).replace(/\\/g, "/");
+  return filePath.replace(/\\/g, "/");
 };
 
 const handleSelectFile = (type: number, ext: string[]) => {
