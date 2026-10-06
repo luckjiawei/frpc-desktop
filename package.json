@@ -25,6 +25,8 @@
     }
   },
   "scripts": {
+    "prepare:windows-service": "node scripts/prepare-windows-service.mjs",
+    "test:windows-service": "node --experimental-strip-types --test tests/windows-service-config.test.mjs",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "npm run build && electron-builder -p never",

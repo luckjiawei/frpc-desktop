@@ -2,10 +2,12 @@ import { dialog } from "electron";
 import fs from "fs";
 import moment from "moment";
 import Logger from "../core/Logger";
+import BeanFactory from "../core/BeanFactory";
 import DatabaseManager from "../database/DatabaseManager";
 import FrpcProcessService from "../service/FrpcProcessService";
 import ServerService from "../service/ServerService";
 import SystemService from "../service/SystemService";
+import WindowsServiceService from "../service/WindowsServiceService";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "./BaseController";
@@ -66,6 +68,17 @@ class ConfigController extends BaseController {
   }
 
   resetAllConfig(req: ControllerParam) {
+    const windowsService: WindowsServiceService = BeanFactory.getBean(
+      "windowsServiceService"
+    );
+    if (windowsService?.installed) {
+      req.event.reply(req.channel, {
+        bizCode: "B1101",
+        data: null,
+        message: "SERVICE_CONFIGURED_RESET_REQUIRED"
+      });
+      return;
+    }
     // await this._serverDao.truncate();
     // await this._proxyDao.truncate();
     // await this._versionDao.truncate();

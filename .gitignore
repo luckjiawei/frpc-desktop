@@ -25,3 +25,6 @@ release
 *.sw?
 
 pnpm-lock.yaml
+
+resources/windows-service/*.exe
+resources/windows-service/*.tmp

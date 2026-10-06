@@ -11,8 +11,10 @@ import VersionRepository from "../repository/VersionRepository";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
+import { encodedPowerShell, psLiteral } from "../utils/WindowsServiceConfig";
 import ServerService from "./ServerService";
 import SystemService from "./SystemService";
+import WindowsServiceService from "./WindowsServiceService";
 
 // Fixed paths with no spaces so sudoers matching is unambiguous
 const MAC_LAUNCHER_PATH = "/usr/local/bin/frpc-desktop-launcher";
@@ -145,21 +147,55 @@ class FrpcProcessService {
     );
   }
 
-  private findExistingProcessPid(): Promise<number | null> {
-    const processName =
-      process.platform === "win32"
-        ? PathUtils.getWinFrpFilename()
-        : PathUtils.getFrpcFilename();
-    const command = process.platform === "win32" ? "tasklist" : "pgrep";
-    const args =
-      process.platform === "win32"
-        ? ["/FI", `IMAGENAME eq ${processName}`, "/FO", "CSV", "/NH"]
-        : ["-x", processName];
+  private async findExistingProcessPid(): Promise<number | null> {
+    if (process.platform === "win32") {
+      const config = await this._serverService.getServerConfig();
+      if (!config) return null;
+      const version = await this._versionRepository.findByGithubReleaseId(
+        config.frpcVersion
+      );
+      if (!version) return null;
+      const binaryPath = path.join(
+        version.localPath,
+        PathUtils.getWinFrpFilename()
+      );
+      const script = `
+$ErrorActionPreference = 'Stop'
+$binary = ${psLiteral(binaryPath)}
+$config = ${psLiteral(PathUtils.getTomlConfigFilePath())}
+Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" | Where-Object { $_.ExecutablePath -eq $binary -and $_.CommandLine -and $_.CommandLine.Contains($config) } | Select-Object -First 1 -ExpandProperty ProcessId
+`;
+      return new Promise(resolve => {
+        execFile(
+          path.join(
+            process.env.SystemRoot || "C:\\Windows",
+            "System32",
+            "WindowsPowerShell",
+            "v1.0",
+            "powershell.exe"
+          ),
+          [
+            "-NoProfile",
+            "-NonInteractive",
+            "-EncodedCommand",
+            encodedPowerShell(script)
+          ],
+          { windowsHide: true, timeout: 15000 },
+          (error, stdout) => {
+            const pid = Number(stdout.trim());
+            resolve(!error && Number.isInteger(pid) && pid > 0 ? pid : null);
+          }
+        );
+      });
+    }
+    const processName = PathUtils.getFrpcFilename();
+    const command = "pgrep";
+    const args = ["-x", processName];
 
     return new Promise(resolve => {
       execFile(command, args, { windowsHide: true }, (error, stdout) => {
         if (error) {
-          if (!(process.platform !== "win32" && error.code === 1)) {
+          if (error.code !== 1) {
             Logger.warn(
               `FrpcProcessService.findExistingProcessPid`,
               `Unable to inspect existing frpc processes: ${error.message}`
@@ -169,16 +205,10 @@ class FrpcProcessService {
           return;
         }
 
-        const pid =
-          process.platform === "win32"
-            ? stdout
-                .split(/\r?\n/)
-                .map(line => line.match(/^"[^"]+","(\d+)"/))
-                .find(Boolean)?.[1]
-            : stdout
-                .split(/\r?\n/)
-                .map(line => line.trim())
-                .find(line => /^\d+$/.test(line));
+        const pid = stdout
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .find(line => /^\d+$/.test(line));
         const parsedPid = Number(pid);
         resolve(
           Number.isInteger(parsedPid) && parsedPid > 0 ? parsedPid : null
@@ -188,6 +218,9 @@ class FrpcProcessService {
   }
 
   async restoreExistingProcess(): Promise<void> {
+    if (this.windowsService?.installed) {
+      return;
+    }
     if (this._existingProcessRestoreCompleted || this._frpcProcess) {
       return;
     }
@@ -218,6 +251,9 @@ class FrpcProcessService {
   }
 
   isRunning(): boolean {
+    if (this.windowsService?.installed) {
+      return this.windowsService.running;
+    }
     if (!this._frpcProcess) {
       return false;
     }
@@ -226,6 +262,14 @@ class FrpcProcessService {
 
   get frpcLastStartTime(): number {
     return this._frpcLastStartTime;
+  }
+
+  private get windowsService(): WindowsServiceService | undefined {
+    return BeanFactory.getBean("windowsServiceService");
+  }
+
+  private get logPath(): string {
+    return this.windowsService?.logPath ?? PathUtils.getFrpcLogFilePath();
   }
 
   get frpcConnectionError(): string | null {
@@ -413,7 +457,7 @@ class FrpcProcessService {
     }
     this._frpcLogReadRunning = true;
     try {
-      const logPath = PathUtils.getFrpcLogFilePath();
+      const logPath = this.logPath;
       let stat: fs.Stats;
       try {
         stat = await fs.promises.stat(logPath);
@@ -529,6 +573,7 @@ class FrpcProcessService {
   }
 
   async startFrpcProcess() {
+    if (this.windowsService?.installed) return;
     await this.restoreExistingProcess();
     if (this._disposed) {
       return;
@@ -769,6 +814,8 @@ class FrpcProcessService {
   }
 
   async reloadFrpcProcess() {
+    // Service snapshots are updated explicitly, with UAC confirmation.
+    if (this.windowsService?.installed) return;
     await this.restoreExistingProcess();
     if (!this.isRunning()) {
       return;
@@ -930,6 +977,12 @@ class FrpcProcessService {
     }
     this._frpcMonitorRunning = true;
     try {
+      if (this.windowsService?.installed) {
+        await this.windowsService.getStatus();
+        if (this.windowsService.running) await this.readIncrementalLogChanges();
+        this.sendProcessStatus(this.windowsService.running);
+        return;
+      }
       const running = this.isRunning();
       if (running) {
         this._notification = -1;
@@ -945,6 +998,11 @@ class FrpcProcessService {
       if (!running) {
         await this.attemptProcessRecovery();
       }
+    } catch (error) {
+      Logger.warn(
+        "FrpcProcessService.monitorFrpcProcess",
+        (error as Error).message
+      );
     } finally {
       this._frpcMonitorRunning = false;
     }

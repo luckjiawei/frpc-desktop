@@ -4,10 +4,16 @@ import BeanFactory from "../core/BeanFactory";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
 import SystemService from "./SystemService";
+import WindowsServiceService from "./WindowsServiceService";
 
 class LogService {
   private readonly _systemService: SystemService;
-  private readonly _logPath: string = PathUtils.getFrpcLogFilePath();
+  private get _logPath(): string {
+    return (
+      BeanFactory.getBean<WindowsServiceService>("windowsServiceService")
+        ?.logPath ?? PathUtils.getFrpcLogFilePath()
+    );
+  }
   private readonly _appPath: string = PathUtils.getAppLogFilePath();
 
   constructor(systemService: SystemService) {

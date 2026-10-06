@@ -86,7 +86,13 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.status === 1;
   }
 
-  async genTomlConfig(outputPath: string) {
+  async genTomlConfig(
+    outputPath: string,
+    options?: {
+      logPath: string;
+      transform: (config: Record<string, any>) => void;
+    }
+  ) {
     if (!outputPath) {
       return;
     }
@@ -140,10 +146,7 @@ remotePort = {{ $v.Second }}
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
           const locations = proxy.locations.filter(l => l !== "");
-          if (
-            proxy.type === "https" &&
-            (proxy.https2http || proxy.tls2raw)
-          ) {
+          if (proxy.type === "https" && (proxy.https2http || proxy.tls2raw)) {
             return {
               name: proxy.name,
               type: proxy.type,
@@ -236,7 +239,7 @@ remotePort = {{ $v.Second }}
 
     const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
-    frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
+    frpcConfig.log.to = options?.logPath ?? PathUtils.getFrpcLogFilePath();
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
 
@@ -244,11 +247,13 @@ remotePort = {{ $v.Second }}
       frpcConfig.auth = null;
     }
 
-    let toml = TOML.stringify({
+    const generatedConfig = {
       ...frpcConfig,
       ...(enabledProxies.length > 0 ? { proxies: enabledProxies } : {}),
       ...(enableVisitors.length > 0 ? { visitors: enableVisitors } : {})
-    });
+    };
+    options?.transform(generatedConfig);
+    let toml = TOML.stringify(generatedConfig);
 
     enabledRangePortProxies.forEach(f => {
       toml += `

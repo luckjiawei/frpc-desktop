@@ -33,6 +33,7 @@ import ProxyService from "../service/ProxyService";
 import ServerService from "../service/ServerService";
 import SystemService from "../service/SystemService";
 import VersionService from "../service/VersionService";
+import WindowsServiceService from "../service/WindowsServiceService";
 
 process.env.DIST_ELECTRON = join(__dirname, "..");
 process.env.DIST = join(process.env.DIST_ELECTRON, "../dist");
@@ -313,6 +314,16 @@ class FrpcDesktopApp {
           proxyRepository
         );
         this.initializeRouters();
+        try {
+          await BeanFactory.getBean<WindowsServiceService>(
+            "windowsServiceService"
+          ).getStatus();
+        } catch (error) {
+          Logger.warn(
+            "FrpcDesktopApp.initializeElectronApp",
+            `Windows service status unavailable: ${(error as Error).message}`
+          );
+        }
         const serverService: ServerService =
           BeanFactory.getBean("serverService");
         const serverConfig = await serverService.getServerConfig();
@@ -428,6 +439,7 @@ class FrpcDesktopApp {
       new LogService(BeanFactory.getBean("systemService"))
     );
     BeanFactory.setBean("frpcProcessService", new FrpcProcessService());
+    BeanFactory.setBean("windowsServiceService", new WindowsServiceService());
     BeanFactory.setBean(
       "proxyService",
       new ProxyService(

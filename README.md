@@ -50,6 +50,18 @@
 - [x] Support multiple languages
 - [x] Fast proxy search with card/list pagination
 
+## Windows 无人值守服务（中文优先）
+
+Windows 客户端可以把 frpc 安装为 `FrpcDesktopService` 系统服务，由 Windows 服务控制管理器在没有用户登录时自动启动。服务使用低权限 `NT AUTHORITY\LocalService` 账户运行，GUI 退出或用户注销不会停止已安装的服务。
+
+在设置页保存配置后，点击 **Install service** 并确认 UAC；随后可以启动、停止、更新服务配置或卸载服务。服务专用配置、证书副本和日志位于 `%ProgramData%\FrpcDesktopService`。更新设置后要再次点击 **Update service config**；卸载不会删除客户端数据库、原始配置或已下载版本。引用的证书和私钥会复制到服务快照，原文件保持不变。
+
+安装、更新和卸载需要管理员确认。程序拒绝覆盖同名服务、链接目录或不安全权限。当前开发环境无法访问隔离 Hyper-V 客机，因此没有在宿主机安装或运行测试服务，也未宣称注销、重启和异常恢复场景已验证。
+
+### Windows unattended service (English supplement)
+
+The Windows client can install `frpc` as `FrpcDesktopService`, running as `NT AUTHORITY\LocalService` so tunnels can start before any user logs in. Settings provides install, start, stop, snapshot update, and uninstall actions. Service data and logs are stored under `%ProgramData%\FrpcDesktopService`; referenced certificates and keys are copied into the service snapshot while the originals remain untouched. Administrator confirmation is required. VM and host service scenarios were not run in this environment and need external verification.
+
 ## Common Issues
 
 ### macOS universal build fails on better-sqlite3 prebuilds

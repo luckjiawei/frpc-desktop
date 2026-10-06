@@ -2,6 +2,8 @@ import Logger from "../core/Logger";
 import FrpcProcessService from "../service/FrpcProcessService";
 import ResponseUtils from "../utils/ResponseUtils";
 import BaseController from "./BaseController";
+import BeanFactory from "../core/BeanFactory";
+import WindowsServiceService from "../service/WindowsServiceService";
 
 class LaunchController extends BaseController {
   private readonly _frpcProcessService: FrpcProcessService;
@@ -12,8 +14,13 @@ class LaunchController extends BaseController {
   }
 
   launch(req: ControllerParam) {
-    this._frpcProcessService
-      .startFrpcProcess()
+    const service: WindowsServiceService = BeanFactory.getBean(
+      "windowsServiceService"
+    );
+    const operation = service.installed
+      ? service.manage("start")
+      : this._frpcProcessService.startFrpcProcess();
+    operation
       .then(r => {
         req.event.reply(req.channel, ResponseUtils.success());
       })
@@ -24,8 +31,13 @@ class LaunchController extends BaseController {
   }
 
   terminate(req: ControllerParam) {
-    this._frpcProcessService
-      .stopFrpcProcess()
+    const service: WindowsServiceService = BeanFactory.getBean(
+      "windowsServiceService"
+    );
+    const operation = service.installed
+      ? service.manage("stop")
+      : this._frpcProcessService.stopFrpcProcess();
+    operation
       .then(r => {
         req.event.reply(req.channel, ResponseUtils.success());
       })
@@ -36,6 +48,10 @@ class LaunchController extends BaseController {
   }
 
   async getStatus(req: ControllerParam) {
+    const service: WindowsServiceService = BeanFactory.getBean(
+      "windowsServiceService"
+    );
+    await service.getStatus();
     await this._frpcProcessService.restoreExistingProcess();
     const running = this._frpcProcessService.isRunning();
     const connectionError = running
