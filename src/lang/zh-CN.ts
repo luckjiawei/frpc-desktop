@@ -157,6 +157,7 @@ export default {
         running: "运行中",
         stopped: "已停止",
         pending: "处理中",
+        cleanupRequired: "等待清理",
         unknown: "无法获取状态"
       },
       actions: {
@@ -190,6 +191,12 @@ export default {
         SERVICE_BUSY: "其他服务操作正在进行，请稍后重试。",
         SERVICE_ASSET_UNREADABLE: "服务证书或私钥不可读，请检查文件后重试。",
         SERVICE_START_FAILED: "服务启动失败，请检查服务日志与配置。",
+        SERVICE_ACCOUNT_MISMATCH:
+          "服务账户不是 LocalService，已拒绝启动，请重新安装服务。",
+        SERVICE_HOST_INTEGRITY_FAILED:
+          "WinSW 服务组件校验失败，未执行管理员操作。",
+        SERVICE_HELPER_INTEGRITY_FAILED:
+          "服务管理脚本校验失败，未执行管理员操作。",
         SERVICE_NOT_INSTALLED: "服务尚未安装，请刷新状态。",
         SERVICE_DELETE_PENDING:
           "Windows 正在删除服务，请关闭服务管理器后重试。",

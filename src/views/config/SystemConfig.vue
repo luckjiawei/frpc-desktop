@@ -217,7 +217,7 @@ const manageService = async (action: WindowsServiceAction) => {
     <el-form-item>
       <div class="flex flex-wrap gap-2">
         <el-button
-          v-if="!service?.installed"
+          v-if="!service?.installed && service?.state !== 'cleanupRequired'"
           type="primary"
           :loading="busy"
           :disabled="busy || statusError"
@@ -227,7 +227,7 @@ const manageService = async (action: WindowsServiceAction) => {
             t("config.windowsService.actions.install")
           }}
         </el-button>
-        <template v-else>
+        <template v-else-if="service?.installed">
           <el-button
             type="primary"
             :loading="busy"
@@ -266,6 +266,17 @@ const manageService = async (action: WindowsServiceAction) => {
             }}
           </el-button>
         </template>
+        <el-button
+          v-else
+          type="danger"
+          plain
+          :disabled="busy || statusError"
+          @click="manageService('uninstall')"
+        >
+          <IconifyIconOffline icon="delete-rounded" class="mr-1" />{{
+            t("config.windowsService.actions.uninstall")
+          }}
+        </el-button>
       </div>
     </el-form-item>
   </el-col>

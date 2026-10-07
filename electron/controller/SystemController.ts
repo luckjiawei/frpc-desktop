@@ -6,7 +6,6 @@ import BeanFactory from "../core/BeanFactory";
 import Logger from "../core/Logger";
 import GitHubService from "../service/GitHubService";
 import WindowsServiceService from "../service/WindowsServiceService";
-import FrpcProcessService from "../service/FrpcProcessService";
 
 class SystemController {
   async getWindowsServiceStatus(req: ControllerParam) {
@@ -18,7 +17,7 @@ class SystemController {
         req.channel,
         ResponseUtils.success(await service.getStatus())
       );
-    } catch (error) {
+    } catch {
       Logger.warn(
         "SystemController.getWindowsServiceStatus",
         "Service query failed"
@@ -39,13 +38,6 @@ class SystemController {
       const service: WindowsServiceService = BeanFactory.getBean(
         "windowsServiceService"
       );
-      const processService: FrpcProcessService =
-        BeanFactory.getBean("frpcProcessService");
-      if (action === "install") {
-        await processService.restoreExistingProcess();
-        if (processService.isRunning())
-          throw new Error("SERVICE_STOP_GUI_FIRST");
-      }
       req.event.reply(
         req.channel,
         ResponseUtils.success(await service.manage(action))

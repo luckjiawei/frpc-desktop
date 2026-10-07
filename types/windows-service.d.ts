@@ -4,6 +4,8 @@ interface WindowsServiceStatus {
   supported: boolean;
   installed: boolean;
   running: boolean;
-  state: "notInstalled" | "running" | "stopped" | "pending";
+  deploymentExists: boolean;
+  lastStartTime: number;
+  state: "notInstalled" | "running" | "stopped" | "pending" | "cleanupRequired";
   directory: string;
 }

@@ -160,6 +160,7 @@ export default {
         running: "Running",
         stopped: "Stopped",
         pending: "Pending",
+        cleanupRequired: "Cleanup required",
         unknown: "Status unavailable"
       },
       actions: {
@@ -201,6 +202,12 @@ export default {
           "A certificate or private key is unreadable. Check the file and retry.",
         SERVICE_START_FAILED:
           "Service startup failed. Check its logs and configuration.",
+        SERVICE_ACCOUNT_MISMATCH:
+          "The service account is not LocalService. Reinstall the service.",
+        SERVICE_HOST_INTEGRITY_FAILED:
+          "WinSW integrity verification failed. No administrator action was executed.",
+        SERVICE_HELPER_INTEGRITY_FAILED:
+          "Service helper integrity verification failed. No administrator action was executed.",
         SERVICE_NOT_INSTALLED:
           "The service is not installed. Refresh its status.",
         SERVICE_DELETE_PENDING:

@@ -10,6 +10,7 @@ import SystemService from "../service/SystemService";
 import WindowsServiceService from "../service/WindowsServiceService";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
+import { frpcLifecycleGuard } from "../utils/FrpcLifecycleGuard";
 import BaseController from "./BaseController";
 
 class ConfigController extends BaseController {
@@ -67,24 +68,25 @@ class ConfigController extends BaseController {
       });
   }
 
-  resetAllConfig(req: ControllerParam) {
-    const windowsService: WindowsServiceService = BeanFactory.getBean(
-      "windowsServiceService"
-    );
-    if (windowsService?.installed) {
-      req.event.reply(req.channel, {
-        bizCode: "B1101",
-        data: null,
-        message: "SERVICE_CONFIGURED_RESET_REQUIRED"
-      });
-      return;
-    }
-    // await this._serverDao.truncate();
-    // await this._proxyDao.truncate();
-    // await this._versionDao.truncate();
-    this._frpcProcessService
-      .stopFrpcProcess()
-      .then(() => {
+  async resetAllConfig(req: ControllerParam) {
+    try {
+      await frpcLifecycleGuard.run(async () => {
+        const windowsService: WindowsServiceService = BeanFactory.getBean(
+          "windowsServiceService"
+        );
+        const status = await windowsService.getStatus();
+        if (status.installed || status.state === "cleanupRequired") {
+          throw new Error("SERVICE_CONFIGURED_RESET_REQUIRED");
+        }
+        // await this._serverDao.truncate();
+        // await this._proxyDao.truncate();
+        // await this._versionDao.truncate();
+        await this._frpcProcessService.stopFrpcProcess();
+        const finalStatus = await windowsService.getStatus();
+        if (finalStatus.installed || finalStatus.state === "cleanupRequired") {
+          throw new Error("SERVICE_CONFIGURED_RESET_REQUIRED");
+        }
+
         this._databaseManager.resetData();
 
         fs.rmSync(PathUtils.getDownloadStoragePath(), {
@@ -102,11 +104,21 @@ class ConfigController extends BaseController {
           force: true
         });
         req.event.reply(req.channel, ResponseUtils.success());
-      })
-      .catch((err: Error) => {
-        Logger.error("ConfigController.resetAllConfig", err);
-        req.event.reply(req.channel, ResponseUtils.fail(err));
       });
+    } catch (error) {
+      const message = (error as Error).message;
+      if (/^SERVICE_[A-Z_]+$/.test(message)) {
+        req.event.reply(req.channel, {
+          bizCode:
+            message === "SERVICE_CONFIGURED_RESET_REQUIRED" ? "B1101" : "B1100",
+          data: null,
+          message
+        });
+      } else {
+        Logger.error("ConfigController.resetAllConfig", error);
+        req.event.reply(req.channel, ResponseUtils.fail(error as Error));
+      }
+    }
   }
 
   exportConfig(req: ControllerParam) {

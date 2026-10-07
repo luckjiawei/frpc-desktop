@@ -16,14 +16,15 @@ const FILE_KEYS = new Set([
 export function copyServiceAssets(
   config: Record<string, any>,
   stagingDirectory: string,
-  deploymentDirectory: string
+  deploymentDirectory: string,
+  sourceDirectory = process.cwd()
 ): void {
   const copies = new Map<string, string>();
   const visit = (value: any): void => {
     if (!value || typeof value !== "object") return;
     for (const [key, child] of Object.entries(value)) {
       if (FILE_KEYS.has(key) && typeof child === "string" && child) {
-        const source = path.resolve(child);
+        const source = path.resolve(sourceDirectory, child);
         if (!fs.statSync(source).isFile()) {
           throw new Error("SERVICE_ASSET_UNREADABLE");
         }

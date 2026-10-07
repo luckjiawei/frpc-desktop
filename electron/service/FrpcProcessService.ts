@@ -11,6 +11,7 @@ import VersionRepository from "../repository/VersionRepository";
 import NetUtils from "../utils/NetUtils";
 import PathUtils from "../utils/PathUtils";
 import ResponseUtils from "../utils/ResponseUtils";
+import { frpcLifecycleGuard } from "../utils/FrpcLifecycleGuard";
 import { encodedPowerShell, psLiteral } from "../utils/WindowsServiceConfig";
 import ServerService from "./ServerService";
 import SystemService from "./SystemService";
@@ -218,7 +219,7 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
   }
 
   async restoreExistingProcess(): Promise<void> {
-    if (this.windowsService?.installed) {
+    if ((await this.windowsService?.getStatus())?.installed) {
       return;
     }
     if (this._existingProcessRestoreCompleted || this._frpcProcess) {
@@ -261,7 +262,19 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
   }
 
   get frpcLastStartTime(): number {
-    return this._frpcLastStartTime;
+    return this.windowsService?.installed
+      ? this.windowsService.lastStartTime
+      : this._frpcLastStartTime;
+  }
+
+  async assertNoGuiProcess(): Promise<void> {
+    if (
+      (this._frpcProcess &&
+        this.isProcessAlive(Number(this._frpcProcess.pid))) ||
+      (await this.findExistingProcessPid())
+    ) {
+      throw new Error("SERVICE_STOP_GUI_FIRST");
+    }
   }
 
   private get windowsService(): WindowsServiceService | undefined {
@@ -573,7 +586,17 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
   }
 
   async startFrpcProcess() {
-    if (this.windowsService?.installed) return;
+    return frpcLifecycleGuard.run(async () => {
+      const status = await this.windowsService?.getStatus();
+      if (status?.installed) {
+        if (!status.running) await this.windowsService.manage("start");
+        return;
+      }
+      await this.startGuiFrpcProcess();
+    });
+  }
+
+  private async startGuiFrpcProcess() {
     await this.restoreExistingProcess();
     if (this._disposed) {
       return;
@@ -740,6 +763,22 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
   }
 
   async stopFrpcProcess(): Promise<void> {
+    // App shutdown must never issue a service stop command.
+    return frpcLifecycleGuard.run(() => this.stopGuiFrpcProcess());
+  }
+
+  async stopConnection(): Promise<void> {
+    return frpcLifecycleGuard.run(async () => {
+      const status = await this.windowsService?.getStatus();
+      if (status?.installed) {
+        if (status.running) await this.windowsService.manage("stop");
+        return;
+      }
+      await this.stopGuiFrpcProcess();
+    });
+  }
+
+  private async stopGuiFrpcProcess(): Promise<void> {
     await this.restoreExistingProcess();
     if (this._stoppingPromise) {
       return this._stoppingPromise;
@@ -814,8 +853,12 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
   }
 
   async reloadFrpcProcess() {
+    return frpcLifecycleGuard.run(() => this.reloadGuiFrpcProcess());
+  }
+
+  private async reloadGuiFrpcProcess() {
     // Service snapshots are updated explicitly, with UAC confirmation.
-    if (this.windowsService?.installed) return;
+    if ((await this.windowsService?.getStatus())?.installed) return;
     await this.restoreExistingProcess();
     if (!this.isRunning()) {
       return;
@@ -887,13 +930,13 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
       this._lastSentConnectionError !== connectionError;
     const startTimeChanged =
       includeLastStartTime &&
-      this._lastSentStartTime !== this._frpcLastStartTime;
+      this._lastSentStartTime !== this.frpcLastStartTime;
     if (!statusChanged && !startTimeChanged) {
       return;
     }
     const status: FrpcProcessStatus = { running, connectionError };
     if (startTimeChanged) {
-      status.lastStartTime = this._frpcLastStartTime;
+      status.lastStartTime = this.frpcLastStartTime;
     }
     const win: BrowserWindow = BeanFactory.getBean("win");
     if (win && !win.isDestroyed()) {
@@ -977,10 +1020,9 @@ Get-CimInstance Win32_Process -Filter "Name='${PathUtils.getWinFrpFilename()}'" 
     }
     this._frpcMonitorRunning = true;
     try {
-      if (this.windowsService?.installed) {
-        await this.windowsService.getStatus();
+      if ((await this.windowsService?.getStatus())?.installed) {
         if (this.windowsService.running) await this.readIncrementalLogChanges();
-        this.sendProcessStatus(this.windowsService.running);
+        this.sendProcessStatus(this.windowsService.running, true);
         return;
       }
       const running = this.isRunning();

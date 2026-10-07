@@ -1,6 +1,7 @@
 import ProxyRepository from "../repository/ProxyRepository";
 import FrpcProcessService from "./FrpcProcessService";
 import { exec } from "child_process";
+import { frpcLifecycleGuard } from "../utils/FrpcLifecycleGuard";
 
 class ProxyService {
   private readonly _proxyDao: ProxyRepository;
@@ -15,25 +16,33 @@ class ProxyService {
   }
 
   async insertProxy(proxy: FrpcProxy) {
-    const proxy2 = await this._proxyDao.insert(proxy);
-    await this._frpcProcessService.reloadFrpcProcess();
-    return proxy2;
+    return frpcLifecycleGuard.run(async () => {
+      const proxy2 = await this._proxyDao.insert(proxy);
+      await this._frpcProcessService.reloadFrpcProcess();
+      return proxy2;
+    });
   }
 
   async updateProxy(proxy: FrpcProxy) {
-    const proxy2 = await this._proxyDao.updateById(proxy._id, proxy);
-    await this._frpcProcessService.reloadFrpcProcess();
-    return proxy2;
+    return frpcLifecycleGuard.run(async () => {
+      const proxy2 = await this._proxyDao.updateById(proxy._id, proxy);
+      await this._frpcProcessService.reloadFrpcProcess();
+      return proxy2;
+    });
   }
 
   async updateProxyStatus(id: string, status: number) {
-    await this._proxyDao.updateProxyStatus(id, status);
-    await this._frpcProcessService.reloadFrpcProcess();
+    await frpcLifecycleGuard.run(async () => {
+      await this._proxyDao.updateProxyStatus(id, status);
+      await this._frpcProcessService.reloadFrpcProcess();
+    });
   }
 
   async deleteProxy(proxyId: string) {
-    await this._proxyDao.deleteById(proxyId);
-    await this._frpcProcessService.reloadFrpcProcess();
+    await frpcLifecycleGuard.run(async () => {
+      await this._proxyDao.deleteById(proxyId);
+      await this._frpcProcessService.reloadFrpcProcess();
+    });
   }
 
   async getLocalPorts(): Promise<Array<LocalPort>> {
