@@ -5,8 +5,56 @@ import { BrowserWindow, dialog } from "electron";
 import BeanFactory from "../core/BeanFactory";
 import Logger from "../core/Logger";
 import GitHubService from "../service/GitHubService";
+import WindowsServiceService from "../service/WindowsServiceService";
 
 class SystemController {
+  async getWindowsServiceStatus(req: ControllerParam) {
+    try {
+      const service: WindowsServiceService = BeanFactory.getBean(
+        "windowsServiceService"
+      );
+      req.event.reply(
+        req.channel,
+        ResponseUtils.success(await service.getStatus())
+      );
+    } catch {
+      Logger.warn(
+        "SystemController.getWindowsServiceStatus",
+        "Service query failed"
+      );
+      req.event.reply(req.channel, {
+        bizCode: "B1100",
+        data: null,
+        message: "SERVICE_STATUS_FAILED"
+      });
+    }
+  }
+
+  async manageWindowsService(req: ControllerParam) {
+    try {
+      const action = req.args?.action;
+      if (!["install", "start", "stop", "sync", "uninstall"].includes(action))
+        throw new Error("SERVICE_INVALID_ACTION");
+      const service: WindowsServiceService = BeanFactory.getBean(
+        "windowsServiceService"
+      );
+      req.event.reply(
+        req.channel,
+        ResponseUtils.success(await service.manage(action))
+      );
+    } catch (error) {
+      const message = (error as Error).message;
+      const code = /^SERVICE_[A-Z_]+$/.test(message)
+        ? message
+        : "SERVICE_CONFIG_FAILED";
+      Logger.warn("SystemController.manageWindowsService", code);
+      req.event.reply(req.channel, {
+        bizCode: "B1100",
+        data: null,
+        message: code
+      });
+    }
+  }
   private readonly _systemService: SystemService;
   private readonly _gitHubService: GitHubService;
 

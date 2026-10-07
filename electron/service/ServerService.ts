@@ -8,6 +8,7 @@ import Logger from "../core/Logger";
 import ProxyRepository from "../repository/ProxyRepository";
 import ServerRepository from "../repository/ServerRepository";
 import PathUtils from "../utils/PathUtils";
+import { frpcLifecycleGuard } from "../utils/FrpcLifecycleGuard";
 import BaseService from "./BaseService";
 
 class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
@@ -28,6 +29,14 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
   }
 
   async saveServerConfig(
+    frpcServer: OpenSourceFrpcDesktopServer
+  ): Promise<OpenSourceFrpcDesktopServer> {
+    return frpcLifecycleGuard.run(() =>
+      this.saveServerConfigUnlocked(frpcServer)
+    );
+  }
+
+  private async saveServerConfigUnlocked(
     frpcServer: OpenSourceFrpcDesktopServer
   ): Promise<OpenSourceFrpcDesktopServer> {
     frpcServer._id = this._serverId;
@@ -86,12 +95,48 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.status === 1;
   }
 
-  async genTomlConfig(outputPath: string) {
+  async captureConfigSnapshot() {
+    // Both SQLite reads execute synchronously when invoked, before yielding.
+    const [server, proxies] = await Promise.all([
+      this.getServerConfig(),
+      this._proxyDao.findAll()
+    ]);
+    return structuredClone({ server, proxies });
+  }
+
+  async genTomlConfig(
+    outputPath: string,
+    options?: {
+      logPath: string;
+      transform: (config: Record<string, any>) => void;
+      snapshot?: {
+        server: OpenSourceFrpcDesktopServer;
+        proxies: FrpcProxy[];
+      };
+    }
+  ) {
+    return frpcLifecycleGuard.run(() =>
+      this.genTomlConfigUnlocked(outputPath, options)
+    );
+  }
+
+  private async genTomlConfigUnlocked(
+    outputPath: string,
+    options?: {
+      logPath: string;
+      transform: (config: Record<string, any>) => void;
+      snapshot?: {
+        server: OpenSourceFrpcDesktopServer;
+        proxies: FrpcProxy[];
+      };
+    }
+  ) {
     if (!outputPath) {
       return;
     }
-    const server = await this.getServerConfig();
-    const proxies = await this._proxyDao.findAll();
+    const { server, proxies } = options?.snapshot
+      ? structuredClone(options.snapshot)
+      : await this.captureConfigSnapshot();
 
     const enabledRangePortProxies = proxies
       .filter(f => this.isEnableProxy(f))
@@ -140,10 +185,7 @@ remotePort = {{ $v.Second }}
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
           const locations = proxy.locations.filter(l => l !== "");
-          if (
-            proxy.type === "https" &&
-            (proxy.https2http || proxy.tls2raw)
-          ) {
+          if (proxy.type === "https" && (proxy.https2http || proxy.tls2raw)) {
             return {
               name: proxy.name,
               type: proxy.type,
@@ -236,7 +278,7 @@ remotePort = {{ $v.Second }}
 
     const { frpcVersion, _id, system, multiuser, ...commonConfig } = server;
     const frpcConfig = { ...commonConfig };
-    frpcConfig.log.to = PathUtils.getFrpcLogFilePath();
+    frpcConfig.log.to = options?.logPath ?? PathUtils.getFrpcLogFilePath();
     frpcConfig.loginFailExit = GlobalConstant.FRPC_LOGIN_FAIL_EXIT;
     frpcConfig.webServer.addr = GlobalConstant.LOCAL_IP;
 
@@ -244,11 +286,13 @@ remotePort = {{ $v.Second }}
       frpcConfig.auth = null;
     }
 
-    let toml = TOML.stringify({
+    const generatedConfig = {
       ...frpcConfig,
       ...(enabledProxies.length > 0 ? { proxies: enabledProxies } : {}),
       ...(enableVisitors.length > 0 ? { visitors: enableVisitors } : {})
-    });
+    };
+    options?.transform(generatedConfig);
+    let toml = TOML.stringify(generatedConfig);
 
     enabledRangePortProxies.forEach(f => {
       toml += `
@@ -553,225 +597,231 @@ ${f}`;
           }
         }
 
-        await this.saveServerConfig(config);
+        await frpcLifecycleGuard.run(async () => {
+          await this.saveServerConfig(config);
 
-        if (sourceConfig && sourceConfig.proxies) {
-          const proxies = (sourceConfig.proxies as any[]).map((proxy: any) => {
-            const proxy2: FrpcProxy = {
-              _id: "",
-              hostHeaderRewrite: "",
-              locations: [""],
-              name: "",
-              type: "http",
-              localIP: "",
-              localPort: "8080",
-              remotePort: "8080",
-              customDomains: [""],
-              visitorsModel: "visitors",
-              serverUser: "",
-              serverName: "",
-              secretKey: "",
-              bindAddr: "",
-              bindPort: null,
-              subdomain: "",
-              basicAuth: false,
-              httpUser: "",
-              httpPassword: "",
-              fallbackTo: "",
-              fallbackTimeoutMs: 500,
-              https2http: false,
-              https2httpCaFile: "",
-              https2httpKeyFile: "",
-              tls2raw: false,
-              tls2rawCaFile: "",
-              tls2rawKeyFile: "",
-              keepTunnelOpen: false,
-              status: 1,
-              transport: {
-                useEncryption: false,
-                useCompression: false,
-                proxyProtocolVersion: ""
-              }
-            };
+          if (sourceConfig && sourceConfig.proxies) {
+            const proxies = (sourceConfig.proxies as any[]).map(
+              (proxy: any) => {
+                const proxy2: FrpcProxy = {
+                  _id: "",
+                  hostHeaderRewrite: "",
+                  locations: [""],
+                  name: "",
+                  type: "http",
+                  localIP: "",
+                  localPort: "8080",
+                  remotePort: "8080",
+                  customDomains: [""],
+                  visitorsModel: "visitors",
+                  serverUser: "",
+                  serverName: "",
+                  secretKey: "",
+                  bindAddr: "",
+                  bindPort: null,
+                  subdomain: "",
+                  basicAuth: false,
+                  httpUser: "",
+                  httpPassword: "",
+                  fallbackTo: "",
+                  fallbackTimeoutMs: 500,
+                  https2http: false,
+                  https2httpCaFile: "",
+                  https2httpKeyFile: "",
+                  tls2raw: false,
+                  tls2rawCaFile: "",
+                  tls2rawKeyFile: "",
+                  keepTunnelOpen: false,
+                  status: 1,
+                  transport: {
+                    useEncryption: false,
+                    useCompression: false,
+                    proxyProtocolVersion: ""
+                  }
+                };
 
-            if (proxy.name !== undefined) {
-              proxy2.name = proxy.name as string;
-            }
-            if (proxy.type !== undefined) {
-              proxy2.type = proxy.type as string;
-            }
-            if (proxy.localIP !== undefined) {
-              proxy2.localIP = proxy.localIP as string;
-            }
-            if (proxy.localPort !== undefined) {
-              proxy2.localPort = proxy.localPort.toString();
-            }
-            if (proxy.remotePort !== undefined) {
-              proxy2.remotePort = proxy.remotePort.toString();
-            }
-            if (proxy.customDomains !== undefined) {
-              proxy2.customDomains = proxy.customDomains as string[];
-            }
-            if (proxy.subdomain !== undefined) {
-              proxy2.subdomain = proxy.subdomain as string;
-            }
-            if (proxy.locations !== undefined) {
-              proxy2.locations = proxy.locations as string[];
-            }
-            if (proxy.hostHeaderRewrite !== undefined) {
-              proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
-            }
-            if (proxy.httpUser !== undefined) {
-              proxy2.httpUser = proxy.httpUser as string;
-            }
-            if (proxy.httpPassword !== undefined) {
-              proxy2.httpPassword = proxy.httpPassword as string;
-            }
-            if (proxy.serverName !== undefined) {
-              proxy2.serverName = proxy.serverName as string;
-            }
-            if (proxy.serverUser !== undefined) {
-              proxy2.serverUser = proxy.serverUser as string;
-            }
-            if (proxy.secretKey !== undefined) {
-              proxy2.secretKey = proxy.secretKey as string;
-            }
-            if (proxy.bindAddr !== undefined) {
-              proxy2.bindAddr = proxy.bindAddr as string;
-            }
-            if (proxy.bindPort !== undefined) {
-              proxy2.bindPort = proxy.bindPort as number;
-            }
-            if (proxy.fallbackTo !== undefined) {
-              proxy2.fallbackTo = proxy.fallbackTo as string;
-            }
-            if (proxy.fallbackTimeoutMs !== undefined) {
-              proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
-            }
-            if (proxy.keepTunnelOpen !== undefined) {
-              proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
-            }
-
-            // 处理 transport 配置
-            if (proxy.transport) {
-              if (proxy.transport.useEncryption !== undefined) {
-                proxy2.transport.useEncryption = proxy.transport
-                  .useEncryption as boolean;
-              }
-              if (proxy.transport.useCompression !== undefined) {
-                proxy2.transport.useCompression = proxy.transport
-                  .useCompression as boolean;
-              }
-              if (proxy.transport.proxyProtocolVersion !== undefined) {
-                proxy2.transport.proxyProtocolVersion = proxy.transport
-                  .proxyProtocolVersion as string;
-              }
-            }
-
-            // 还原 proxy 插件（tls2raw / https2http），使导入的配置可继续编辑
-            if (proxy.plugin) {
-              const pluginType = proxy.plugin.type as string;
-              if (pluginType === "tls2raw") {
-                // tls2raw 可挂 tcp 或 https，类型以导入配置为准
-                proxy2.tls2raw = true;
-                proxy2.tls2rawCaFile = (proxy.plugin.crtPath as string) || "";
-                proxy2.tls2rawKeyFile = (proxy.plugin.keyPath as string) || "";
-              } else if (pluginType === "https2http") {
-                proxy2.https2http = true;
-                proxy2.https2httpCaFile =
-                  (proxy.plugin.crtPath as string) || "";
-                proxy2.https2httpKeyFile =
-                  (proxy.plugin.keyPath as string) || "";
-              }
-            }
-
-            return proxy2;
-          });
-          await this._proxyDao.insertMany(proxies);
-        }
-
-        if (sourceConfig && sourceConfig.visitors) {
-          const visitors = (sourceConfig.visitors as any[]).map(
-            (visitor: any) => {
-              const visitor2: FrpcProxy = {
-                _id: "",
-                hostHeaderRewrite: "",
-                locations: [""],
-                name: "",
-                type: "http",
-                localIP: "",
-                localPort: "8080",
-                remotePort: "8080",
-                customDomains: [""],
-                visitorsModel: "visitors",
-                serverUser: "",
-                serverName: "",
-                secretKey: "",
-                bindAddr: "",
-                bindPort: null,
-                subdomain: "",
-                basicAuth: false,
-                httpUser: "",
-                httpPassword: "",
-                fallbackTo: "",
-                fallbackTimeoutMs: 500,
-                https2http: false,
-                https2httpCaFile: "",
-                https2httpKeyFile: "",
-                tls2raw: false,
-                tls2rawCaFile: "",
-                tls2rawKeyFile: "",
-                keepTunnelOpen: false,
-                status: 1,
-                transport: {
-                  useEncryption: false,
-                  useCompression: false,
-                  proxyProtocolVersion: ""
+                if (proxy.name !== undefined) {
+                  proxy2.name = proxy.name as string;
                 }
-              };
-
-              if (visitor.name !== undefined) {
-                visitor2.name = visitor.name as string;
-              }
-              if (visitor.type !== undefined) {
-                visitor2.type = visitor.type as string;
-              }
-              if (visitor.serverName !== undefined) {
-                visitor2.serverName = visitor.serverName as string;
-              }
-              if (visitor.serverUser !== undefined) {
-                visitor2.serverUser = visitor.serverUser as string;
-              }
-              if (visitor.secretKey !== undefined) {
-                visitor2.secretKey = visitor.secretKey as string;
-              }
-              if (visitor.bindAddr !== undefined) {
-                visitor2.bindAddr = visitor.bindAddr as string;
-              }
-              if (visitor.bindPort !== undefined) {
-                visitor2.bindPort = visitor.bindPort as number;
-              }
-
-              if (visitor.transport) {
-                if (visitor.transport.useEncryption !== undefined) {
-                  visitor2.transport.useEncryption = visitor.transport
-                    .useEncryption as boolean;
+                if (proxy.type !== undefined) {
+                  proxy2.type = proxy.type as string;
                 }
-                if (visitor.transport.useCompression !== undefined) {
-                  visitor2.transport.useCompression = visitor.transport
-                    .useCompression as boolean;
+                if (proxy.localIP !== undefined) {
+                  proxy2.localIP = proxy.localIP as string;
                 }
-                if (visitor.transport.proxyProtocolVersion !== undefined) {
-                  visitor2.transport.proxyProtocolVersion = visitor.transport
-                    .proxyProtocolVersion as string;
+                if (proxy.localPort !== undefined) {
+                  proxy2.localPort = proxy.localPort.toString();
                 }
-              }
+                if (proxy.remotePort !== undefined) {
+                  proxy2.remotePort = proxy.remotePort.toString();
+                }
+                if (proxy.customDomains !== undefined) {
+                  proxy2.customDomains = proxy.customDomains as string[];
+                }
+                if (proxy.subdomain !== undefined) {
+                  proxy2.subdomain = proxy.subdomain as string;
+                }
+                if (proxy.locations !== undefined) {
+                  proxy2.locations = proxy.locations as string[];
+                }
+                if (proxy.hostHeaderRewrite !== undefined) {
+                  proxy2.hostHeaderRewrite = proxy.hostHeaderRewrite as string;
+                }
+                if (proxy.httpUser !== undefined) {
+                  proxy2.httpUser = proxy.httpUser as string;
+                }
+                if (proxy.httpPassword !== undefined) {
+                  proxy2.httpPassword = proxy.httpPassword as string;
+                }
+                if (proxy.serverName !== undefined) {
+                  proxy2.serverName = proxy.serverName as string;
+                }
+                if (proxy.serverUser !== undefined) {
+                  proxy2.serverUser = proxy.serverUser as string;
+                }
+                if (proxy.secretKey !== undefined) {
+                  proxy2.secretKey = proxy.secretKey as string;
+                }
+                if (proxy.bindAddr !== undefined) {
+                  proxy2.bindAddr = proxy.bindAddr as string;
+                }
+                if (proxy.bindPort !== undefined) {
+                  proxy2.bindPort = proxy.bindPort as number;
+                }
+                if (proxy.fallbackTo !== undefined) {
+                  proxy2.fallbackTo = proxy.fallbackTo as string;
+                }
+                if (proxy.fallbackTimeoutMs !== undefined) {
+                  proxy2.fallbackTimeoutMs = proxy.fallbackTimeoutMs as number;
+                }
+                if (proxy.keepTunnelOpen !== undefined) {
+                  proxy2.keepTunnelOpen = proxy.keepTunnelOpen as boolean;
+                }
 
-              return visitor2;
-            }
-          );
-          await this._proxyDao.insertMany(visitors);
-        }
+                // 处理 transport 配置
+                if (proxy.transport) {
+                  if (proxy.transport.useEncryption !== undefined) {
+                    proxy2.transport.useEncryption = proxy.transport
+                      .useEncryption as boolean;
+                  }
+                  if (proxy.transport.useCompression !== undefined) {
+                    proxy2.transport.useCompression = proxy.transport
+                      .useCompression as boolean;
+                  }
+                  if (proxy.transport.proxyProtocolVersion !== undefined) {
+                    proxy2.transport.proxyProtocolVersion = proxy.transport
+                      .proxyProtocolVersion as string;
+                  }
+                }
+
+                // 还原 proxy 插件（tls2raw / https2http），使导入的配置可继续编辑
+                if (proxy.plugin) {
+                  const pluginType = proxy.plugin.type as string;
+                  if (pluginType === "tls2raw") {
+                    // tls2raw 可挂 tcp 或 https，类型以导入配置为准
+                    proxy2.tls2raw = true;
+                    proxy2.tls2rawCaFile =
+                      (proxy.plugin.crtPath as string) || "";
+                    proxy2.tls2rawKeyFile =
+                      (proxy.plugin.keyPath as string) || "";
+                  } else if (pluginType === "https2http") {
+                    proxy2.https2http = true;
+                    proxy2.https2httpCaFile =
+                      (proxy.plugin.crtPath as string) || "";
+                    proxy2.https2httpKeyFile =
+                      (proxy.plugin.keyPath as string) || "";
+                  }
+                }
+
+                return proxy2;
+              }
+            );
+            await this._proxyDao.insertMany(proxies);
+          }
+
+          if (sourceConfig && sourceConfig.visitors) {
+            const visitors = (sourceConfig.visitors as any[]).map(
+              (visitor: any) => {
+                const visitor2: FrpcProxy = {
+                  _id: "",
+                  hostHeaderRewrite: "",
+                  locations: [""],
+                  name: "",
+                  type: "http",
+                  localIP: "",
+                  localPort: "8080",
+                  remotePort: "8080",
+                  customDomains: [""],
+                  visitorsModel: "visitors",
+                  serverUser: "",
+                  serverName: "",
+                  secretKey: "",
+                  bindAddr: "",
+                  bindPort: null,
+                  subdomain: "",
+                  basicAuth: false,
+                  httpUser: "",
+                  httpPassword: "",
+                  fallbackTo: "",
+                  fallbackTimeoutMs: 500,
+                  https2http: false,
+                  https2httpCaFile: "",
+                  https2httpKeyFile: "",
+                  tls2raw: false,
+                  tls2rawCaFile: "",
+                  tls2rawKeyFile: "",
+                  keepTunnelOpen: false,
+                  status: 1,
+                  transport: {
+                    useEncryption: false,
+                    useCompression: false,
+                    proxyProtocolVersion: ""
+                  }
+                };
+
+                if (visitor.name !== undefined) {
+                  visitor2.name = visitor.name as string;
+                }
+                if (visitor.type !== undefined) {
+                  visitor2.type = visitor.type as string;
+                }
+                if (visitor.serverName !== undefined) {
+                  visitor2.serverName = visitor.serverName as string;
+                }
+                if (visitor.serverUser !== undefined) {
+                  visitor2.serverUser = visitor.serverUser as string;
+                }
+                if (visitor.secretKey !== undefined) {
+                  visitor2.secretKey = visitor.secretKey as string;
+                }
+                if (visitor.bindAddr !== undefined) {
+                  visitor2.bindAddr = visitor.bindAddr as string;
+                }
+                if (visitor.bindPort !== undefined) {
+                  visitor2.bindPort = visitor.bindPort as number;
+                }
+
+                if (visitor.transport) {
+                  if (visitor.transport.useEncryption !== undefined) {
+                    visitor2.transport.useEncryption = visitor.transport
+                      .useEncryption as boolean;
+                  }
+                  if (visitor.transport.useCompression !== undefined) {
+                    visitor2.transport.useCompression = visitor.transport
+                      .useCompression as boolean;
+                  }
+                  if (visitor.transport.proxyProtocolVersion !== undefined) {
+                    visitor2.transport.proxyProtocolVersion = visitor.transport
+                      .proxyProtocolVersion as string;
+                  }
+                }
+
+                return visitor2;
+              }
+            );
+            await this._proxyDao.insertMany(visitors);
+          }
+        });
       } else {
         throw new Error(`导入失败，暂不支持 ${fileExtension} 格式文件`);
       }

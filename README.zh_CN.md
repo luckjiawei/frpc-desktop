@@ -50,6 +50,31 @@
 - [x] support multiple languages
 - [x] 支持代理快速搜索及卡片/列表分页
 
+## Windows 无人值守服务
+
+Windows 客户端现在可以把 frpc 安装为 `FrpcDesktopService` 系统服务。服务由 Windows 服务控制管理器启动，使用低权限 `NT AUTHORITY\LocalService` 账户运行，因此即使没有用户登录、GUI 已退出或用户注销，隧道仍可自动启动。
+
+### 使用方法
+
+1. 在“设置”中保存服务端、代理、frp 版本以及证书/私钥配置。
+2. 在“Windows 系统服务”区域点击“安装服务”，确认 UAC 管理员提示。
+3. 使用“启动服务”“停止服务”“更新服务配置”管理服务；更新配置会创建新的快照，失败时保留原快照并尝试恢复。
+4. 不再需要时先停止服务，再点击“卸载服务”。卸载只删除服务专用目录，不删除客户端数据库、原始配置或已下载的 frp 版本。
+
+服务文件和日志放在 Windows 的 `%ProgramData%\FrpcDesktopService`，不是当前用户的 AppData。安装时引用的证书、私钥会复制到服务快照目录并重写配置路径；原始文件不会被移动或删除。保存设置后，必须点击“更新服务配置”才会同步到已安装的服务。
+
+服务管理需要管理员确认；服务账户只获得服务目录的读取权限和日志目录的写入权限。若同名服务、链接目录或权限不符合预期，程序会拒绝覆盖并显示错误。
+
+当前开发环境无法获得 Hyper-V 客机权限，本次未在宿主机安装或运行测试服务，也未验证注销、重启后未登录场景。请在隔离 Windows 客机或目标用户机器上验证安装、异常恢复、卸载和无人值守运行。
+
+### Windows unattended service (English)
+
+The Windows client can install `frpc` as the `FrpcDesktopService` system service. It runs as the low-privilege `NT AUTHORITY\LocalService` account and can start without a logged-in user or the desktop GUI.
+
+Save the configuration first, then use **Install service**, **Start/Stop service**, **Update service config**, and **Uninstall service** in Settings. Service snapshots and logs live under `%ProgramData%\FrpcDesktopService`; certificate and key references are copied into the snapshot and the original files are kept. Updating the desktop settings does not change an installed snapshot until **Update service config** is used.
+
+Service management requires an administrator confirmation. The feature was not exercised on the host machine or in an isolated Windows VM in this development environment; logon, reboot, recovery, and unattended tunnel behavior still require external verification.
+
 
 ## 常见问题
 

@@ -5,6 +5,7 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "priv.liujiawei.frpc.desktop",
   "asar": true,
+  "beforePack": "./scripts/before-pack.cjs",
   "productName": "Frpc-Desktop",
   "directories": {
     "output": "release/${version}"
@@ -21,6 +22,11 @@
       "filter": [
         "**/*.sql"
       ]
+    },
+    {
+      "from": "resources/windows-service",
+      "to": "windows-service",
+      "filter": ["WinSW.NET461.exe", "manage-service.ps1", "LICENSE.WinSW.txt"]
     }
   ],
   "dmg": {

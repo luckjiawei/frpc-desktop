@@ -147,6 +147,63 @@ export default {
     }
   },
   config: {
+    windowsService: {
+      title: "Windows 系统服务",
+      status: "服务状态",
+      refresh: "刷新服务状态",
+      success: "服务操作已完成",
+      states: {
+        notInstalled: "未安装",
+        running: "运行中",
+        stopped: "已停止",
+        pending: "处理中",
+        cleanupRequired: "等待清理",
+        unknown: "无法获取状态"
+      },
+      actions: {
+        install: "安装服务",
+        start: "启动服务",
+        stop: "停止服务",
+        sync: "更新服务配置",
+        uninstall: "卸载服务"
+      },
+      confirm: {
+        install:
+          "将使用已保存的配置安装并启动服务，当前 GUI 连接需要先停止。服务在无人登录或退出客户端后仍会运行，管理操作需要 Windows 管理员确认。是否继续？",
+        sync: "将使用已保存的设置、代理和版本替换服务配置。如果服务正在运行，将短暂中断连接并重启。是否继续？",
+        uninstall:
+          "将停止隧道、卸载服务，并删除服务专用配置、证书副本和日志。客户端原始配置及下载版本不受影响。是否继续？"
+      },
+      errors: {
+        default: "服务操作失败，请检查管理员权限和 Windows 服务事件日志。",
+        SERVICE_STATUS_FAILED:
+          "无法查询服务状态，请检查 Windows WMI 服务和服务名称冲突。",
+        SERVICE_STOP_GUI_FIRST:
+          "请先在启动页断开当前 GUI 连接，再安装系统服务。",
+        SERVICE_ELEVATION_FAILED: "管理员确认被取消或失败，请重试。",
+        SERVICE_CONFIG_FAILED:
+          "无法生成服务配置，请先保存设置、选择已下载的版本，并检查证书文件。",
+        SERVICE_CONFLICT: "同名服务或部署目录已存在，未覆盖任何现有文件。",
+        SERVICE_OWNER_MISMATCH: "只有安装服务的用户可以更新其配置。",
+        SERVICE_ROLLBACK_FAILED:
+          "服务操作和恢复均失败，请在 Windows 服务管理器中检查 FrpcDesktopService。",
+        SERVICE_UNSAFE_PATH: "服务目录包含不安全的链接或权限，操作已取消。",
+        SERVICE_BUSY: "其他服务操作正在进行，请稍后重试。",
+        SERVICE_ASSET_UNREADABLE: "服务证书或私钥不可读，请检查文件后重试。",
+        SERVICE_START_FAILED: "服务启动失败，请检查服务日志与配置。",
+        SERVICE_ACCOUNT_MISMATCH:
+          "服务账户不是 LocalService，已拒绝启动，请重新安装服务。",
+        SERVICE_HOST_INTEGRITY_FAILED:
+          "WinSW 服务组件校验失败，未执行管理员操作。",
+        SERVICE_HELPER_INTEGRITY_FAILED:
+          "服务管理脚本校验失败，未执行管理员操作。",
+        SERVICE_NOT_INSTALLED: "服务尚未安装，请刷新状态。",
+        SERVICE_DELETE_PENDING:
+          "Windows 正在删除服务，请关闭服务管理器后重试。",
+        SERVICE_CONFIGURED_RESET_REQUIRED:
+          "请先卸载 Windows 系统服务，再清空客户端配置。"
+      }
+    },
     form: {
       frpcVerson: {
         label: "Frp版本",
@@ -362,6 +419,7 @@ export default {
     disabled: "已禁用",
     enabled: "已启用",
     close: "关闭",
+    cancel: "取消",
     save: "保存",
     mode: "模式",
     status: "状态",

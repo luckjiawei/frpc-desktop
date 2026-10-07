@@ -446,19 +446,31 @@ onMounted(() => {
   );
 
   listenerCleanups.push(
-    on(ipcRouters.SERVER.resetAllConfig, () => {
-      ElMessageBox.alert(
-        t("config.alert.resetConfigSuccess.message"),
-        t("config.alert.resetConfigSuccess.title"),
-        {
-          closeOnClickModal: false,
-          showClose: false,
-          confirmButtonText: t("config.alert.resetConfigSuccess.confirm")
-        }
-      ).then(() => {
-        send(ipcRouters.SYSTEM.relaunchApp);
-      });
-    })
+    on(
+      ipcRouters.SERVER.resetAllConfig,
+      () => {
+        ElMessageBox.alert(
+          t("config.alert.resetConfigSuccess.message"),
+          t("config.alert.resetConfigSuccess.title"),
+          {
+            closeOnClickModal: false,
+            showClose: false,
+            confirmButtonText: t("config.alert.resetConfigSuccess.confirm")
+          }
+        ).then(() => {
+          send(ipcRouters.SYSTEM.relaunchApp);
+        });
+      },
+      (_code: string, message: string) => {
+        const key = `config.windowsService.errors.${message}`;
+        const translated = t(key);
+        ElMessage.error(
+          translated === key
+            ? t("config.windowsService.errors.default")
+            : translated
+        );
+      }
+    )
   );
 
   listenerCleanups.push(

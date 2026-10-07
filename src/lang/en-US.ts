@@ -150,6 +150,72 @@ export default {
     }
   },
   config: {
+    windowsService: {
+      title: "Windows Service",
+      status: "Service status",
+      refresh: "Refresh service status",
+      success: "Service operation completed",
+      states: {
+        notInstalled: "Not installed",
+        running: "Running",
+        stopped: "Stopped",
+        pending: "Pending",
+        cleanupRequired: "Cleanup required",
+        unknown: "Status unavailable"
+      },
+      actions: {
+        install: "Install service",
+        start: "Start service",
+        stop: "Stop service",
+        sync: "Update service config",
+        uninstall: "Uninstall service"
+      },
+      confirm: {
+        install:
+          "Install and start the service using saved settings? Stop the GUI connection first. The service keeps running without a logged-in user or the desktop app. Management requires Windows administrator confirmation.",
+        sync: "Replace the service snapshot with saved settings, proxies and version? A running service will restart and briefly interrupt tunnels.",
+        uninstall:
+          "Stop tunnels, uninstall the service and delete its config, certificate copies and logs? Original desktop settings and downloaded versions will be kept."
+      },
+      errors: {
+        default:
+          "Service operation failed. Check administrator permissions and Windows service event logs.",
+        SERVICE_STATUS_FAILED:
+          "Cannot query service status. Check Windows WMI and service name conflicts.",
+        SERVICE_STOP_GUI_FIRST:
+          "Stop the current GUI connection on the Launch page before installing the service.",
+        SERVICE_ELEVATION_FAILED:
+          "Administrator confirmation was cancelled or failed. Please retry.",
+        SERVICE_CONFIG_FAILED:
+          "Cannot prepare service config. Save settings, select a downloaded version and check certificate files.",
+        SERVICE_CONFLICT:
+          "The service or deployment directory already exists. Nothing was overwritten.",
+        SERVICE_OWNER_MISMATCH:
+          "Only the user who installed the service can update its configuration.",
+        SERVICE_ROLLBACK_FAILED:
+          "Operation and recovery failed. Check FrpcDesktopService in Windows Services.",
+        SERVICE_UNSAFE_PATH:
+          "Unsafe links or permissions in the service directory. Operation cancelled.",
+        SERVICE_BUSY:
+          "Another service operation is in progress. Please retry later.",
+        SERVICE_ASSET_UNREADABLE:
+          "A certificate or private key is unreadable. Check the file and retry.",
+        SERVICE_START_FAILED:
+          "Service startup failed. Check its logs and configuration.",
+        SERVICE_ACCOUNT_MISMATCH:
+          "The service account is not LocalService. Reinstall the service.",
+        SERVICE_HOST_INTEGRITY_FAILED:
+          "WinSW integrity verification failed. No administrator action was executed.",
+        SERVICE_HELPER_INTEGRITY_FAILED:
+          "Service helper integrity verification failed. No administrator action was executed.",
+        SERVICE_NOT_INSTALLED:
+          "The service is not installed. Refresh its status.",
+        SERVICE_DELETE_PENDING:
+          "Windows is deleting the service. Close the Services console and retry.",
+        SERVICE_CONFIGURED_RESET_REQUIRED:
+          "Uninstall the Windows service before clearing desktop configuration."
+      }
+    },
     form: {
       frpcVerson: {
         label: "Frp Version",
@@ -556,6 +622,7 @@ export default {
     disabled: "Disabled",
     enabled: "Enabled",
     save: "Save",
+    cancel: "Cancel",
     close: "Close",
     mode: "Mode",
     status: "Status",
