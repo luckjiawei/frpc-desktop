@@ -86,10 +86,6 @@ class ServerService extends BaseService<OpenSourceFrpcDesktopServer> {
     return proxy.status === 1;
   }
 
-  private isHttps2http(proxy: FrpcProxy) {
-    return proxy.https2http;
-  }
-
   async genTomlConfig(outputPath: string) {
     if (!outputPath) {
       return;
@@ -129,11 +125,25 @@ remotePort = {{ $v.Second }}
             localIP: proxy.localIP,
             localPort: localPort,
             remotePort: remotePort,
-            transport: proxy.transport
+            transport: proxy.transport,
+            // tls2raw 插件：frpc 侧终结 TLS，把解密后的原始流量转发到本地服务
+            ...(proxy.type === "tcp" && proxy.tls2raw
+              ? {
+                  plugin: {
+                    type: "tls2raw",
+                    localAddr: `${proxy.localIP}:${localPort}`,
+                    crtPath: proxy.tls2rawCaFile,
+                    keyPath: proxy.tls2rawKeyFile
+                  }
+                }
+              : {})
           };
         } else if (proxy.type === "http" || proxy.type === "https") {
           const locations = proxy.locations.filter(l => l !== "");
-          if (this.isHttps2http(proxy) && proxy.type === "https") {
+          if (
+            proxy.type === "https" &&
+            (proxy.https2http || proxy.tls2raw)
+          ) {
             return {
               name: proxy.name,
               type: proxy.type,
@@ -141,16 +151,27 @@ remotePort = {{ $v.Second }}
               subdomain: proxy.subdomain,
               transport: proxy.transport,
               ...(locations.length > 0 ? { locations } : {}),
-              ...(proxy.https2http
+              // https + 插件：https2http（终结 TLS → 转发 HTTP）或
+              // tls2raw（终结 TLS → 转发原始字节，支持 WebSocket 透传）
+              ...(proxy.tls2raw
                 ? {
                     plugin: {
-                      type: "https2http",
+                      type: "tls2raw",
                       localAddr: `${proxy.localIP}:${proxy.localPort}`,
-                      crtPath: proxy.https2httpCaFile,
-                      keyPath: proxy.https2httpKeyFile
+                      crtPath: proxy.tls2rawCaFile,
+                      keyPath: proxy.tls2rawKeyFile
                     }
                   }
-                : {})
+                : proxy.https2http
+                  ? {
+                      plugin: {
+                        type: "https2http",
+                        localAddr: `${proxy.localIP}:${proxy.localPort}`,
+                        crtPath: proxy.https2httpCaFile,
+                        keyPath: proxy.https2httpKeyFile
+                      }
+                    }
+                  : {})
             };
           } else {
             return {
@@ -562,6 +583,9 @@ ${f}`;
               https2http: false,
               https2httpCaFile: "",
               https2httpKeyFile: "",
+              tls2raw: false,
+              tls2rawCaFile: "",
+              tls2rawKeyFile: "",
               keepTunnelOpen: false,
               status: 1,
               transport: {
@@ -645,6 +669,23 @@ ${f}`;
               }
             }
 
+            // 还原 proxy 插件（tls2raw / https2http），使导入的配置可继续编辑
+            if (proxy.plugin) {
+              const pluginType = proxy.plugin.type as string;
+              if (pluginType === "tls2raw") {
+                // tls2raw 可挂 tcp 或 https，类型以导入配置为准
+                proxy2.tls2raw = true;
+                proxy2.tls2rawCaFile = (proxy.plugin.crtPath as string) || "";
+                proxy2.tls2rawKeyFile = (proxy.plugin.keyPath as string) || "";
+              } else if (pluginType === "https2http") {
+                proxy2.https2http = true;
+                proxy2.https2httpCaFile =
+                  (proxy.plugin.crtPath as string) || "";
+                proxy2.https2httpKeyFile =
+                  (proxy.plugin.keyPath as string) || "";
+              }
+            }
+
             return proxy2;
           });
           await this._proxyDao.insertMany(proxies);
@@ -678,6 +719,9 @@ ${f}`;
                 https2http: false,
                 https2httpCaFile: "",
                 https2httpKeyFile: "",
+                tls2raw: false,
+                tls2rawCaFile: "",
+                tls2rawKeyFile: "",
                 keepTunnelOpen: false,
                 status: 1,
                 transport: {

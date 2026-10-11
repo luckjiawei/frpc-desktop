@@ -384,6 +384,7 @@ export default {
     visitorsProvider: "提供者",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
+    refresh: "刷新代理列表",
     search: "搜索名称/类型/IP/端口/域名",
     viewMode: {
       card: "卡片",
@@ -417,6 +418,9 @@ export default {
         customConfig: "自定义配置",
         pluginConfig: "插件配置",
         otherConfig: "其他代理配置"
+      },
+      pluginType: {
+        none: "无插件"
       },
       button: {
         localPort: "本机端口",
@@ -512,6 +516,19 @@ export default {
           label: "密钥文件",
           requireMessage: "请选择密钥文件",
           placeholder: "点击选择密钥文件"
+        },
+        tls2rawCaFile: {
+          label: "证书文件",
+          requireMessage: "请选择证书文件",
+          placeholder: "点击选择证书文件"
+        },
+        tls2rawKeyFile: {
+          label: "密钥文件",
+          requireMessage: "请选择密钥文件",
+          placeholder: "点击选择密钥文件"
+        },
+        pluginType: {
+          label: "插件类型"
         },
         serverName: {
           label: "提供者代理名称",

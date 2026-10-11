@@ -49,8 +49,13 @@
 - [x] TCP and UDP protocols support batch ports
 - [x] Support multiple languages
 - [x] Optional update notifications
+- [x] Fast proxy search with card/list pagination
 
 ## Common Issues
+
+### macOS universal build fails on better-sqlite3 prebuilds
+
+Keep the `mac.x64ArchFiles` rule in `electron-builder.json5` when building with electron-builder 26. It allows the identical `darwin-x64.node` and `darwin-arm64.node` prebuilds shipped by better-sqlite3 to remain in the universal app; better-sqlite3 selects the matching binary at runtime. Run `npm run build:electron:mac` on macOS to rebuild.
 
 ### Mac shows app is damaged
 

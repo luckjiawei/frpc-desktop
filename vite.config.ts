@@ -22,6 +22,31 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
   return {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (
+              id.includes("/node_modules/element-plus/") ||
+              id.includes("/node_modules/@element-plus/") ||
+              id.includes("/node_modules/@popperjs/") ||
+              id.includes("/node_modules/async-validator/")
+            ) {
+              return "vendor-element-plus";
+            }
+            if (
+              id.includes("/node_modules/vue/") ||
+              id.includes("/node_modules/@vue/") ||
+              id.includes("/node_modules/pinia/") ||
+              id.includes("/node_modules/vue-i18n/") ||
+              id.includes("/node_modules/vue-router/")
+            ) {
+              return "vendor-vue";
+            }
+          }
+        }
+      }
+    },
     css: {
       preprocessorOptions: {
         scss: {

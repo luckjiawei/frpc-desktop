@@ -84,6 +84,9 @@ interface FrpcProxyConfig {
   https2http: boolean;
   https2httpCaFile: string;
   https2httpKeyFile: string;
+  tls2raw: boolean;
+  tls2rawCaFile: string;
+  tls2rawKeyFile: string;
   keepTunnelOpen: boolean;
   transport: FrpcProxyTransportConfig;
 }

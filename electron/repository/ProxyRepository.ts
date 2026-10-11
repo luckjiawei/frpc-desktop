@@ -29,6 +29,9 @@ class ProxyRepository extends BaseRepository<FrpcProxy> {
       "https2http",
       "https2http_ca_file",
       "https2http_key_file",
+      "tls2raw",
+      "tls2raw_ca_file",
+      "tls2raw_key_file",
       "keep_tunnel_open",
       "status",
       "transport_json"
@@ -68,6 +71,9 @@ class ProxyRepository extends BaseRepository<FrpcProxy> {
       https2http: proxy.https2http ? 1 : 0,
       https2http_ca_file: proxy.https2httpCaFile ?? "",
       https2http_key_file: proxy.https2httpKeyFile ?? "",
+      tls2raw: proxy.tls2raw ? 1 : 0,
+      tls2raw_ca_file: proxy.tls2rawCaFile ?? "",
+      tls2raw_key_file: proxy.tls2rawKeyFile ?? "",
       keep_tunnel_open: proxy.keepTunnelOpen ? 1 : 0,
       status: proxy.status ?? 1,
       transport_json: JSON.stringify(proxy.transport ?? {})
@@ -100,6 +106,9 @@ class ProxyRepository extends BaseRepository<FrpcProxy> {
       https2http: row.https2http === 1,
       https2httpCaFile: String(row.https2http_ca_file),
       https2httpKeyFile: String(row.https2http_key_file),
+      tls2raw: row.tls2raw === 1,
+      tls2rawCaFile: String(row.tls2raw_ca_file),
+      tls2rawKeyFile: String(row.tls2raw_key_file),
       keepTunnelOpen: row.keep_tunnel_open === 1,
       status: Number(row.status),
       transport: JSON.parse(String(row.transport_json))

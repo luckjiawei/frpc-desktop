@@ -43,6 +43,9 @@
     ]
   },
   "mac": {
+    // better-sqlite3 ships both prebuilds in each app and selects one at runtime.
+    // Keep these identical files when merging the x64 and arm64 apps.
+    "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/prebuilds/darwin-{x64,arm64}.node",
     "target": [
       {
         target: "dmg",

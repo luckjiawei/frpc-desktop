@@ -238,6 +238,9 @@ class NedbMigrationService {
       https2http: this.boolean(source.https2http, false, `${label}.https2http`),
       https2httpCaFile: this.string(source.https2httpCaFile, ""),
       https2httpKeyFile: this.string(source.https2httpKeyFile, ""),
+      tls2raw: this.boolean(source.tls2raw, false, `${label}.tls2raw`),
+      tls2rawCaFile: this.string(source.tls2rawCaFile, ""),
+      tls2rawKeyFile: this.string(source.tls2rawKeyFile, ""),
       keepTunnelOpen: this.boolean(
         source.keepTunnelOpen,
         false,

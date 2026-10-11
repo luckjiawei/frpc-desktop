@@ -4,8 +4,6 @@ import path from "path";
 import { BusinessError, ResponseCode } from "../core/BusinessError";
 import GlobalConstant from "../core/GlobalConstant";
 import Logger from "../core/Logger";
-import frpReleasesJson from "../json/frp-releases.json";
-import frpChecksums from "../json/frp_all_sha256_checksums.json";
 import VersionRepository from "../repository/VersionRepository";
 import FileUtils from "../utils/FileUtils";
 import PathUtils from "../utils/PathUtils";
@@ -137,7 +135,12 @@ class VersionService extends BaseService<FrpcVersion> {
   }
 
   async getFrpVersionByLocalJson(): Promise<Array<FrpcVersion>> {
-    return this.githubRelease2FrpcVersion(frpReleasesJson);
+    const { default: releases } = await import("../json/frp-releases.json");
+    const versions = await this.githubRelease2FrpcVersion(
+      releases as unknown as Array<GithubRelease>
+    );
+    this._versions = versions;
+    return versions;
   }
 
   getFrpVersion() {}
@@ -228,6 +231,9 @@ class VersionService extends BaseService<FrpcVersion> {
       `Importing local file: ${filePath}`
     );
     const checksum = FileUtils.calculateFileChecksum(filePath);
+    const { default: checksumData } =
+      await import("../json/frp_all_sha256_checksums.json");
+    const frpChecksums = checksumData as Record<string, string>;
     const frpName = frpChecksums[checksum];
     if (frpName) {
       if (this._currFrpArch.every(item => frpName.includes(item))) {

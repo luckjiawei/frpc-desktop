@@ -365,6 +365,7 @@ export default {
     visitorsProvider: "Visitors Provider",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
+    refresh: "Refresh proxies",
     search: "Search by name / type / IP / port / domain",
     viewMode: {
       card: "Card",
@@ -397,6 +398,9 @@ export default {
         pluginConfig: "Plugin Configuration",
         otherConfig: "Other Proxy Configuration",
         modifyDialog: "Modify Proxy"
+      },
+      pluginType: {
+        none: "No plugin"
       },
       button: {
         localPort: "Local Port",
@@ -489,6 +493,19 @@ export default {
           label: "Key File",
           requireMessage: "Please select key file",
           placeholder: "Click to select key file"
+        },
+        tls2rawCaFile: {
+          label: "Certificate File",
+          requireMessage: "Please select certificate file",
+          placeholder: "Click to select certificate file"
+        },
+        tls2rawKeyFile: {
+          label: "Key File",
+          requireMessage: "Please select key file",
+          placeholder: "Click to select key file"
+        },
+        pluginType: {
+          label: "Plugin Type"
         },
         serverName: {
           label: "Provider Proxy Name",

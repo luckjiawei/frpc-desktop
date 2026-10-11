@@ -8,7 +8,7 @@ import pkg from "../../package.json";
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   state: () => ({
     running: false,
-    uptime: -1,
+    lastStartTime: -1,
     versions: [],
     lastRelease: null,
     language: null,
@@ -16,30 +16,36 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   }),
   getters: {
     frpcProcessRunning: state => state.running,
-    frpcProcessUptime: state => state.uptime,
+    frpcProcessLastStartTime: state => state.lastStartTime,
     frpcConnectionError: state => state.connectionError,
     downloadedVersions: state => state.versions,
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
   },
   actions: {
+    applyFrpcProcessStatus(data: FrpcProcessStatus) {
+      const { running, lastStartTime, connectionError } = data;
+      if (this.running !== running) {
+        this.running = running;
+      }
+      const nextConnectionError = connectionError ?? null;
+      if (this.connectionError !== nextConnectionError) {
+        this.connectionError = nextConnectionError;
+      }
+      if (lastStartTime !== undefined && this.lastStartTime !== lastStartTime) {
+        this.lastStartTime = lastStartTime;
+      }
+      if (!running && lastStartTime !== undefined) {
+        this.lastStartTime = -1;
+      }
+    },
     onListenerFrpcProcessRunning() {
       onListener(listeners.watchFrpcProcess, data => {
-        const { running, lastStartTime, connectionError } = data;
-        this.running = running;
-        this.connectionError = connectionError ?? null;
-        if (running) {
-          this.uptime = new Date().getTime() - lastStartTime;
-        }
+        this.applyFrpcProcessStatus(data);
       });
 
       on(ipcRouters.LAUNCH.getStatus, data => {
-        const { running, lastStartTime, connectionError } = data;
-        this.running = running;
-        this.connectionError = connectionError ?? null;
-        if (running) {
-          this.uptime = new Date().getTime() - lastStartTime;
-        }
+        this.applyFrpcProcessStatus(data);
       });
     },
 

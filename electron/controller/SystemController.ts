@@ -97,7 +97,7 @@ class SystemController {
   }
 
   getFrpcDesktopGithubLastRelease(req: ControllerParam) {
-    const manual = req.args.manual === true;
+    const manual = req.args?.manual === true;
     if (!manual && !this._appConfigRepository.getSystemConfig().notifyUpdates) {
       req.event.reply(
         req.channel,

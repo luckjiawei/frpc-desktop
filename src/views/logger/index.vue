@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
+import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 import { defineComponent, onMounted, onUnmounted, ref } from "vue";
@@ -22,6 +22,7 @@ const autoRefreshTimer = ref(null);
 const autoRefreshTime = ref(10);
 const activeTabName = ref("app_log");
 const logRecords = ref<Array<LogRecord>>([]);
+const listenerCleanups: Array<() => void> = [];
 
 const openLocalLog = useDebounceFn(() => {
   if (activeTabName.value === "app_log") {
@@ -76,81 +77,84 @@ const handleTabChange = (tab: string) => {
 };
 
 onMounted(() => {
-  on(ipcRouters.LOG.getFrpLogContent, data => {
-    if (data) {
-      logRecords.value = data.split("\n").map(line => {
-        if (line.indexOf("[E]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
-        } else if (line.indexOf("[I]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        } else if (line.indexOf("[D]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-        } else if (line.indexOf("[W]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
-        } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        }
-      });
+  listenerCleanups.push(
+    on(ipcRouters.LOG.getFrpLogContent, data => {
+      if (data) {
+        logRecords.value = data.split("\n").map(line => {
+          if (line.indexOf("[E]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.ERROR };
+          } else if (line.indexOf("[I]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.INFO };
+          } else if (line.indexOf("[D]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.DEBUG };
+          } else if (line.indexOf("[W]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.WARN };
+          } else {
+            return { id: Date.now(), context: line, level: LogLevel.INFO };
+          }
+        });
 
-      logRecords.value = logRecords.value.reverse();
-    }
+        logRecords.value = logRecords.value.reverse();
+      }
 
-    logLoading.value = false;
-    if (refreshStatus.value) {
-      // 刷新逻辑
+      logLoading.value = false;
+      if (refreshStatus.value) {
+        // 刷新逻辑
+        ElMessage({
+          type: "success",
+          message: t("logger.message.refreshSuccess")
+        });
+        refreshStatus.value = false;
+      }
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.LOG.getAppLogContent, data => {
+      if (data) {
+        logRecords.value = data.split("\n").map(line => {
+          if (line.indexOf("[error]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.ERROR };
+          } else if (line.indexOf("[info]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.INFO };
+          } else if (line.indexOf("[debug]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.DEBUG };
+          } else if (line.indexOf("[warn]") !== -1) {
+            return { id: Date.now(), context: line, level: LogLevel.WARN };
+          } else {
+            return { id: Date.now(), context: line, level: LogLevel.INFO };
+          }
+        });
+        logRecords.value = logRecords.value.reverse();
+      }
+
+      logLoading.value = false;
+      if (refreshStatus.value) {
+        // 刷新逻辑
+        ElMessage({
+          type: "success",
+          message: t("logger.message.refreshSuccess")
+        });
+        refreshStatus.value = false;
+      }
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.LOG.openFrpcLogFile, () => {
       ElMessage({
         type: "success",
-        message: t("logger.message.refreshSuccess")
+        message: t("logger.message.openSuccess")
       });
-      refreshStatus.value = false;
-    }
-  });
-
-  on(ipcRouters.LOG.getAppLogContent, data => {
-    if (data) {
-      logRecords.value = data.split("\n").map(line => {
-        if (line.indexOf("[error]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.ERROR };
-        } else if (line.indexOf("[info]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        } else if (line.indexOf("[debug]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-        } else if (line.indexOf("[warn]") !== -1) {
-          return { id: Date.now(), context: line, level: LogLevel.WARN };
-        } else {
-          return { id: Date.now(), context: line, level: LogLevel.INFO };
-        }
-      });
-      logRecords.value = logRecords.value.reverse();
-    }
-
-    logLoading.value = false;
-    if (refreshStatus.value) {
-      // 刷新逻辑
-      ElMessage({
-        type: "success",
-        message: t("logger.message.refreshSuccess")
-      });
-      refreshStatus.value = false;
-    }
-  });
-
-  on(ipcRouters.LOG.openFrpcLogFile, () => {
-    ElMessage({
-      type: "success",
-      message: t("logger.message.openSuccess")
-    });
-  });
+    })
+  );
 
   // send(ipcRouters.LOG.getFrpLogContent);
   send(ipcRouters.LOG.getAppLogContent);
 });
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.LOG.getFrpLogContent);
-  removeRouterListeners(ipcRouters.LOG.getAppLogContent);
-  removeRouterListeners(ipcRouters.LOG.openFrpcLogFile);
-  // removeRouterListeners2(listeners.watchFrpcLog);
+  listenerCleanups.splice(0).forEach(off => off());
   clearInterval(autoRefreshTimer.value);
   autoRefreshTime.value = 10;
 });

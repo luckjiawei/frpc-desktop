@@ -1,25 +1,27 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import { on, removeRouterListeners, send } from "@/utils/ipcUtils";
-import { useClipboard, useDebounceFn } from "@vueuse/core";
+import { on, send } from "@/utils/ipcUtils";
+import { refDebounced, useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
 import path from "path";
 import {
   computed,
-  defineComponent,
+  onActivated,
   onMounted,
   onUnmounted,
   reactive,
-  ref
+  ref,
+  watch
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "../../../electron/core/IpcRouter";
 import commonIps from "./commonIp.json";
+import LocalPortDialog from "./LocalPortDialog.vue";
+import ProxyToolbar from "./ProxyToolbar.vue";
 
-defineComponent({
-  name: "Proxy"
+defineOptions({
+  name: "ProxyPage"
 });
 
 const { t } = useI18n();
@@ -29,9 +31,12 @@ const hostPattern =
 
 const proxys = ref<Array<FrpcProxy>>([]);
 const searchKeyword = ref("");
+const debouncedSearchKeyword = refDebounced(searchKeyword, 150);
 const viewMode = ref<"card" | "list">("card");
+const currentPage = ref(1);
+const pageSize = 30;
 const filteredProxys = computed(() => {
-  const kw = searchKeyword.value.trim().toLowerCase();
+  const kw = debouncedSearchKeyword.value.trim().toLowerCase();
   if (!kw) return proxys.value;
   return proxys.value.filter(p => {
     const domains = [...(p.customDomains ?? []), p.subdomain ?? ""]
@@ -47,6 +52,22 @@ const filteredProxys = computed(() => {
     );
   });
 });
+const paginatedProxys = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredProxys.value.slice(start, start + pageSize);
+});
+
+watch(debouncedSearchKeyword, () => {
+  currentPage.value = 1;
+});
+
+watch(
+  () => filteredProxys.value.length,
+  total => {
+    const lastPage = Math.max(1, Math.ceil(total / pageSize));
+    if (currentPage.value > lastPage) currentPage.value = lastPage;
+  }
+);
 
 const loading = ref({
   list: 1,
@@ -87,6 +108,9 @@ const defaultForm: FrpcProxy = {
   https2http: false,
   https2httpCaFile: "",
   https2httpKeyFile: "",
+  tls2raw: false,
+  tls2rawCaFile: "",
+  tls2rawKeyFile: "",
   keepTunnelOpen: false,
   status: 1,
   transport: {
@@ -100,7 +124,6 @@ const editForm = ref<FrpcProxy>(_.cloneDeep(defaultForm));
 
 const proxyTypes = ref(["http", "https", "tcp", "udp", "stcp", "xtcp", "sudp"]);
 const currSelectLocalFileType = ref();
-const hasPlugin = ref(false);
 
 const visitorsModels = ref([
   {
@@ -264,6 +287,20 @@ const isHttp = computed(() => {
 
 const isHttps = computed(() => {
   return editForm.value.type === "https";
+});
+
+// https 代理的插件类型：none（SNI 透传）/ https2http（终结 TLS→HTTP）/
+// tls2raw（终结 TLS→原始字节，支持 WebSocket 透传）
+const httpsPluginType = computed({
+  get: () => {
+    if (editForm.value.tls2raw) return "tls2raw";
+    if (editForm.value.https2http) return "https2http";
+    return "none";
+  },
+  set: (value: string) => {
+    editForm.value.https2http = value === "https2http";
+    editForm.value.tls2raw = value === "tls2raw";
+  }
 });
 
 const isStcp = computed(() => {
@@ -624,33 +661,48 @@ const handleSelectFile = (type: number, ext: string[]) => {
   // });
 };
 
+const listenerCleanups: Array<() => void> = [];
+let hasActivatedOnce = false;
+
 onMounted(() => {
   handleLoadProxies();
   handleLoadFrpcConfig();
 
-  on(ipcRouters.SERVER.getServerConfig, data => {
-    if (data) {
-      frpcConfig.value = data;
-    }
-  });
-
-  on(ipcRouters.PROXY.getAllProxies, data => {
-    loading.value.list--;
-    proxys.value = data;
-  });
-
-  on(ipcRouters.SYSTEM.selectLocalFile, data => {
-    if (!data.canceled) {
-      switch (currSelectLocalFileType.value) {
-        case 1:
-          editForm.value.https2httpCaFile = data.path as string;
-          break;
-        case 2:
-          editForm.value.https2httpKeyFile = data.path as string;
-          break;
+  listenerCleanups.push(
+    on(ipcRouters.SERVER.getServerConfig, data => {
+      if (data) {
+        frpcConfig.value = data;
       }
-    }
-  });
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.getAllProxies, data => {
+      loading.value.list = 0;
+      proxys.value = data;
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.SYSTEM.selectLocalFile, data => {
+      if (!data.canceled) {
+        switch (currSelectLocalFileType.value) {
+          case 1:
+            editForm.value.https2httpCaFile = data.path as string;
+            break;
+          case 2:
+            editForm.value.https2httpKeyFile = data.path as string;
+            break;
+          case 3:
+            editForm.value.tls2rawCaFile = data.path as string;
+            break;
+          case 4:
+            editForm.value.tls2rawKeyFile = data.path as string;
+            break;
+        }
+      }
+    })
+  );
 
   const insertOrUpdateHook = (message: string) => {
     loading.value.form--;
@@ -666,44 +718,61 @@ onMounted(() => {
     // }
   };
 
-  on(ipcRouters.PROXY.createProxy, data => {
-    insertOrUpdateHook(t("common.createSuccess"));
-  });
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.createProxy, () => {
+      insertOrUpdateHook(t("common.createSuccess"));
+    })
+  );
 
-  on(ipcRouters.PROXY.modifyProxy, data => {
-    insertOrUpdateHook(t("common.modifySuccess"));
-  });
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.modifyProxy, () => {
+      insertOrUpdateHook(t("common.modifySuccess"));
+    })
+  );
 
-  on(ipcRouters.PROXY.deleteProxy, () => {
-    handleLoadProxies();
-    ElMessage({
-      type: "success",
-      message: t("common.deleteSuccess")
-    });
-  });
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.deleteProxy, () => {
+      handleLoadProxies();
+      ElMessage({
+        type: "success",
+        message: t("common.deleteSuccess")
+      });
+    })
+  );
 
-  on(ipcRouters.PROXY.modifyProxyStatus, () => {
-    ElMessage({
-      type: "success",
-      message: t("common.modifySuccess")
-    });
-    // handleResetForm();
-    handleLoadProxies();
-    // edit.value.visible = false;
-  });
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.modifyProxyStatus, () => {
+      ElMessage({
+        type: "success",
+        message: t("common.modifySuccess")
+      });
+      // handleResetForm();
+      handleLoadProxies();
+      // edit.value.visible = false;
+    })
+  );
 
-  on(ipcRouters.PROXY.getLocalPorts, data => {
-    loading.value.localPorts--;
-    localPorts.value = data;
-  });
+  listenerCleanups.push(
+    on(ipcRouters.PROXY.getLocalPorts, data => {
+      loading.value.localPorts = 0;
+      localPorts.value = data;
+    })
+  );
+});
+
+onActivated(() => {
+  if (!hasActivatedOnce) {
+    hasActivatedOnce = true;
+    return;
+  }
+  loading.value.list = 1;
+  handleLoadProxies();
+  handleLoadFrpcConfig();
 });
 
 const handleProxyTypeChange = e => {
-  hasPlugin.value = false;
+  editForm.value.tls2raw = false;
   if (e === "http" || e === "https" || e === "tcp" || e === "udp") {
-    if (e === "https") {
-      hasPlugin.value = true;
-    }
     editForm.value.visitorsModel = "";
   } else {
     if (editForm.value.visitorsModel === "") {
@@ -713,49 +782,23 @@ const handleProxyTypeChange = e => {
 };
 
 onUnmounted(() => {
-  removeRouterListeners(ipcRouters.PROXY.createProxy);
-  removeRouterListeners(ipcRouters.PROXY.modifyProxy);
-  removeRouterListeners(ipcRouters.PROXY.deleteProxy);
-  removeRouterListeners(ipcRouters.PROXY.getAllProxies);
-  removeRouterListeners(ipcRouters.PROXY.modifyProxyStatus);
-  removeRouterListeners(ipcRouters.PROXY.getLocalPorts);
-  removeRouterListeners(ipcRouters.SYSTEM.selectLocalFile);
+  listenerCleanups.splice(0).forEach(off => off());
 });
 </script>
 <template>
   <!--  <coming-soon />-->
   <div class="main">
-    <breadcrumb>
-      <el-input
-        v-model="searchKeyword"
-        :placeholder="t('proxy.search')"
-        clearable
-        class="mr-2 !w-[300px]"
-        size="default"
-      >
-        <template #prefix>
-          <IconifyIconOffline icon="search" />
-        </template>
-      </el-input>
-      <el-radio-group v-model="viewMode" class="mr-2">
-        <el-radio-button value="card">
-          <IconifyIconOffline class="mr-1" icon="dashboard" />
-          {{ t("proxy.viewMode.card") }}
-        </el-radio-button>
-        <el-radio-button value="list">
-          <IconifyIconOffline class="mr-1" icon="table-rows" />
-          {{ t("proxy.viewMode.list") }}
-        </el-radio-button>
-      </el-radio-group>
-      <el-button type="primary" @click="handleOpenInsert">
-        <IconifyIconOffline icon="add" />
-      </el-button>
-    </breadcrumb>
+    <ProxyToolbar
+      v-model:search-keyword="searchKeyword"
+      v-model:view-mode="viewMode"
+      @create="handleOpenInsert"
+      @refresh="handleLoadProxies"
+    />
     <div v-loading="loading.list > 0" class="app-container-breadcrumb">
       <template v-if="filteredProxys && filteredProxys.length > 0">
         <el-row v-if="viewMode === 'card'" :gutter="15">
           <el-col
-            v-for="proxy in filteredProxys"
+            v-for="proxy in paginatedProxys"
             :key="proxy._id"
             :lg="8"
             :md="8"
@@ -765,7 +808,7 @@ onUnmounted(() => {
             class="mb-[15px]"
           >
             <div
-              class="flex justify-between items-center p-4 w-full h-full bg-white rounded drop-shadow left-border animate__animated"
+              class="flex justify-between items-center p-4 w-full h-full bg-white rounded drop-shadow left-border"
             >
               <div class="left">
                 <div class="flex items-center">
@@ -984,7 +1027,7 @@ onUnmounted(() => {
         </el-row>
         <el-table
           v-else
-          :data="filteredProxys"
+          :data="paginatedProxys"
           border
           class="proxy-list-table"
           stripe
@@ -1096,6 +1139,18 @@ onUnmounted(() => {
             </template>
           </el-table-column>
         </el-table>
+        <div
+          v-if="filteredProxys.length > pageSize"
+          class="flex justify-center mt-4"
+        >
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="filteredProxys.length"
+            background
+            layout="prev, pager, next"
+          />
+        </div>
       </template>
       <div
         v-else
@@ -1108,6 +1163,7 @@ onUnmounted(() => {
     <el-drawer
       v-model="edit.visible"
       :title="edit.title"
+      destroy-on-close
       direction="rtl"
       size="60%"
       @close="editForm = _.cloneDeep(defaultForm)"
@@ -1120,6 +1176,7 @@ onUnmounted(() => {
       <!--      @close="editForm = defaultForm"-->
       <!--    >-->
       <el-form
+        v-if="edit.visible"
         ref="editFormRef"
         v-loading="loading.form"
         label-position="top"
@@ -1544,8 +1601,8 @@ onUnmounted(() => {
               </el-form-item>
             </el-col>
           </template>
-          <template v-if="hasPlugin">
-            <el-col v-if="hasPlugin" :span="24">
+          <template v-if="isHttps || isTcp">
+            <el-col :span="24">
               <div class="flex justify-between h3">
                 <div>{{ t("proxy.form.title.pluginConfig") }}</div>
               </div>
@@ -1553,22 +1610,21 @@ onUnmounted(() => {
             <template v-if="isHttps">
               <el-col :span="24">
                 <el-form-item
-                  label="https2http"
-                  prop="https2http"
+                  :label="t('proxy.form.formItem.pluginType.label')"
+                  prop="httpsPluginType"
                   label-position="left"
-                  :rules="[
-                    {
-                      required: true,
-                      trigger: 'blur'
-                    }
-                  ]"
                 >
-                  <el-switch
-                    v-model="editForm.https2http"
-                    :active-text="t('common.yes')"
-                    inline-prompt
-                    :inactive-text="t('common.no')"
-                  />
+                  <el-radio-group v-model="httpsPluginType">
+                    <el-radio :label="'none'" :value="'none'">{{
+                      t("proxy.form.pluginType.none")
+                    }}</el-radio>
+                    <el-radio :label="'https2http'" :value="'https2http'"
+                      >https2http</el-radio
+                    >
+                    <el-radio :label="'tls2raw'" :value="'tls2raw'"
+                      >tls2raw</el-radio
+                    >
+                  </el-radio-group>
                 </el-form-item>
               </el-col>
 
@@ -1646,6 +1702,141 @@ onUnmounted(() => {
                     class="ml-2"
                     type="danger"
                     @click="editForm.https2httpKeyFile = ''"
+                    >{{ t("common.clear") }}
+                  </el-button>
+                </el-form-item>
+              </el-col>
+              <template v-if="editForm.tls2raw">
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('proxy.form.formItem.tls2rawCaFile.label')"
+                    prop="tls2rawCaFile"
+                    label-width="180"
+                    :rules="[
+                      {
+                        required: true,
+                        message: t(
+                          'proxy.form.formItem.tls2rawCaFile.requireMessage'
+                        ),
+                        trigger: 'blur'
+                      }
+                    ]"
+                  >
+                    <el-input
+                      v-model="editForm.tls2rawCaFile"
+                      class="button-input"
+                      :placeholder="
+                        t('proxy.form.formItem.tls2rawCaFile.placeholder')
+                      "
+                      readonly
+                      @click="handleSelectFile(3, ['crt', 'pem'])"
+                    />
+                    <el-button
+                      v-if="editForm.tls2rawCaFile"
+                      class="ml-2"
+                      type="danger"
+                      @click="editForm.tls2rawCaFile = ''"
+                      >{{ t("common.clear") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item
+                    :label="t('proxy.form.formItem.tls2rawKeyFile.label')"
+                    prop="tls2rawKeyFile"
+                    label-width="180"
+                    :rules="[
+                      {
+                        required: true,
+                        message: t(
+                          'proxy.form.formItem.tls2rawKeyFile.requireMessage'
+                        ),
+                        trigger: 'blur'
+                      }
+                    ]"
+                  >
+                    <el-input
+                      v-model="editForm.tls2rawKeyFile"
+                      class="cursor-pointer button-input"
+                      :placeholder="
+                        t('proxy.form.formItem.tls2rawKeyFile.placeholder')
+                      "
+                      readonly
+                      @click="handleSelectFile(4, ['key'])"
+                    />
+                    <el-button
+                      v-if="editForm.tls2rawKeyFile"
+                      class="ml-2"
+                      type="danger"
+                      @click="editForm.tls2rawKeyFile = ''"
+                      >{{ t("common.clear") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+              </template>
+            </template>
+          </template>
+          <template v-if="isTcp">
+            <el-col :span="24">
+              <el-form-item
+                label="tls2raw"
+                prop="tls2raw"
+                label-position="left"
+              >
+                <el-switch
+                  v-model="editForm.tls2raw"
+                  :active-text="t('common.yes')"
+                  inline-prompt
+                  :inactive-text="t('common.no')"
+                />
+              </el-form-item>
+            </el-col>
+
+            <template v-if="editForm.tls2raw">
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('proxy.form.formItem.tls2rawCaFile.label')"
+                  prop="tls2rawCaFile"
+                  label-width="180"
+                >
+                  <el-input
+                    v-model="editForm.tls2rawCaFile"
+                    class="button-input"
+                    :placeholder="
+                      t('proxy.form.formItem.tls2rawCaFile.placeholder')
+                    "
+                    readonly
+                    @click="handleSelectFile(3, ['crt', 'pem'])"
+                  />
+                  <el-button
+                    v-if="editForm.tls2rawCaFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.tls2rawCaFile = ''"
+                    >{{ t("common.clear") }}
+                  </el-button>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item
+                  :label="t('proxy.form.formItem.tls2rawKeyFile.label')"
+                  prop="tls2rawKeyFile"
+                  label-width="180"
+                >
+                  <el-input
+                    v-model="editForm.tls2rawKeyFile"
+                    class="cursor-pointer button-input"
+                    :placeholder="
+                      t('proxy.form.formItem.tls2rawKeyFile.placeholder')
+                    "
+                    readonly
+                    @click="handleSelectFile(4, ['key'])"
+                  />
+                  <el-button
+                    v-if="editForm.tls2rawKeyFile"
+                    class="ml-2"
+                    type="danger"
+                    @click="editForm.tls2rawKeyFile = ''"
                     >{{ t("common.clear") }}
                   </el-button>
                 </el-form-item>
@@ -2115,49 +2306,12 @@ onUnmounted(() => {
     </el-drawer>
     <!--    </el-dialog>-->
 
-    <el-dialog
+    <LocalPortDialog
       v-model="listPortsVisible"
-      :title="t('proxy.dialog.listPorts.title')"
-      width="600"
-      top="5%"
-    >
-      <el-table
-        v-loading="loading.localPorts"
-        :data="localPorts"
-        stripe
-        border
-        height="400"
-      >
-        <el-table-column
-          :label="t('proxy.dialog.listPorts.table.columns.protocol')"
-          :width="100"
-          prop="protocol"
-        />
-        <el-table-column
-          :label="t('proxy.dialog.listPorts.table.columns.ip')"
-          prop="ip"
-        />
-        <el-table-column
-          :label="t('proxy.dialog.listPorts.table.columns.port')"
-          :width="80"
-          prop="port"
-        />
-        <el-table-column :label="t('common.operation')" :width="100">
-          <template #default="scope">
-            <el-button
-              type="text"
-              @click="handleSelectLocalPort(scope.row.port)"
-            >
-              <IconifyIconOffline
-                class="mr-2 cursor-pointer"
-                icon="gesture-select"
-              />
-              {{ t("common.select") }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-dialog>
+      :loading="loading.localPorts > 0"
+      :ports="localPorts"
+      @select="handleSelectLocalPort"
+    />
   </div>
 </template>
 
