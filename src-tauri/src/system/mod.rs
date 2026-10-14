@@ -76,7 +76,7 @@ impl SystemService {
 
     pub async fn check_latest_release() -> Option<serde_json::Value> {
         let client = reqwest::Client::builder()
-            .user_agent("frpc-desktop/1.2.7")
+            .user_agent(concat!("frpc-desktop/", env!("CARGO_PKG_VERSION")))
             .timeout(Duration::from_secs(5))
             .build()
             .ok()?;

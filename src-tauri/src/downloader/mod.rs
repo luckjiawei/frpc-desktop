@@ -58,6 +58,31 @@ impl VersionManager {
         return "frpc";
     }
 
+    /// Electron 1.x stored the binary as md5("frpc") (plus ".exe" on Windows).
+    fn get_legacy_frpc_executable_name() -> String {
+        let name = format!("{:x}", md5::compute("frpc"));
+        if cfg!(target_os = "windows") {
+            format!("{}.exe", name)
+        } else {
+            name
+        }
+    }
+
+    /// Resolve the frpc binary inside a version directory, accepting the
+    /// Electron 1.x file name so upgraded users keep their downloaded versions.
+    pub fn resolve_frpc_binary<P: AsRef<Path>>(version_dir: P) -> Option<PathBuf> {
+        let dir = version_dir.as_ref();
+        let bin = dir.join(Self::get_frpc_executable_name());
+        if bin.is_file() {
+            return Some(bin);
+        }
+        let legacy_bin = dir.join(Self::get_legacy_frpc_executable_name());
+        if legacy_bin.is_file() {
+            return Some(legacy_bin);
+        }
+        None
+    }
+
     pub async fn fetch_github_releases(&self) -> Vec<GithubRelease> {
         // 1. Check cached releases
         {
@@ -72,7 +97,7 @@ impl VersionManager {
         // 2. Fetch online releases from Jwinks proxy or GitHub API
         let client_res = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
-            .user_agent("frpc-desktop/1.2.7")
+            .user_agent(concat!("frpc-desktop/", env!("CARGO_PKG_VERSION")))
             .build();
 
         if let Ok(client) = client_res {
@@ -155,8 +180,7 @@ impl VersionManager {
 
                 if let Some(db_ver) = existing {
                     if let Some(ref path_str) = db_ver.local_path {
-                        let bin = Path::new(path_str).join(Self::get_frpc_executable_name());
-                        if bin.exists() {
+                        if Self::resolve_frpc_binary(path_str).is_some() {
                             is_downloaded = true;
                             local_path = Some(path_str.clone());
                         } else {
@@ -215,7 +239,7 @@ impl VersionManager {
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
-            .user_agent("frpc-desktop/1.2.7")
+            .user_agent(concat!("frpc-desktop/", env!("CARGO_PKG_VERSION")))
             .build()?;
 
         let resp = client.get(&download_url).send().await?;

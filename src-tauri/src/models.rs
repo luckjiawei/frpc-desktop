@@ -108,7 +108,7 @@ pub struct TransportTlsConfig {
     pub trusted_ca_file: String,
     #[serde(default)]
     pub server_name: String,
-    #[serde(default)]
+    #[serde(rename = "disableCustomTLSFirstByte", alias = "disableCustomTlsFirstByte", default)]
     pub disable_custom_tls_first_byte: bool,
 }
 
@@ -127,9 +127,9 @@ pub struct TransportConfig {
     pub tcp_mux_keepalive_interval: i64,
     #[serde(default = "default_protocol")]
     pub protocol: String,
-    #[serde(default)]
+    #[serde(rename = "connectServerLocalIP", alias = "connectServerLocalIp", default)]
     pub connect_server_local_ip: String,
-    #[serde(default)]
+    #[serde(rename = "proxyURL", alias = "proxyUrl", default)]
     pub proxy_url: String,
     #[serde(default)]
     pub tls: TransportTlsConfig,

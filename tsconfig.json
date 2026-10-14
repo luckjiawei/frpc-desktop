@@ -38,7 +38,6 @@
     "src/**/*.vue",
     "types/*.d.ts",
     "package.json",
-    "electron",
     "vite.config.ts"
   ],
   "exclude": [

@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { IconifyIconOffline } from "@/components/IconifyIcon";
+import { ipcRouters } from "@/core/IpcRouter";
 import Intro from "@/intro";
 import router from "@/router";
 import { useSystemUsageStore } from "@/store/systemUsage";
+import { on, send } from "@/utils/ipcUtils";
 import confetti from "canvas-confetti/src/confetti.js";
 import "intro.js/introjs.css";
-import { computed, defineComponent, onMounted, ref } from "vue";
+import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { RouteRecordRaw } from "vue-router";
 import pkg from "../../../package.json";
 
@@ -78,19 +80,38 @@ const handleCompleteGuide: () => boolean = () => {
     spread: 70,
     origin: { y: 0.6 }
   });
-  localStorage.setItem("guide", new Date().getTime().toString());
+  send(ipcRouters.SYSTEM.completeGuide);
   return true; // 确保返回 boolean
 };
+
+let offGuideStatus: (() => void) | undefined;
 
 onMounted(() => {
   routes.value = router.options.routes[0].children?.filter(
     f => !f.meta?.hidden
   ) as Array<RouteRecordRaw>;
 
-  if (!localStorage.getItem("guide")) {
-    // 开始
-    Intro.onBeforeExit(handleCompleteGuide).start();
-  }
+  offGuideStatus = on(
+    ipcRouters.SYSTEM.getGuideStatus,
+    (completed: boolean) => {
+      if (completed) {
+        return;
+      }
+      // 兼容旧版本保存在 localStorage 中的引导状态
+      if (localStorage.getItem("guide")) {
+        send(ipcRouters.SYSTEM.completeGuide);
+        localStorage.removeItem("guide");
+        return;
+      }
+      // 开始
+      Intro.onBeforeExit(handleCompleteGuide).start();
+    }
+  );
+  send(ipcRouters.SYSTEM.getGuideStatus);
+});
+
+onUnmounted(() => {
+  offGuideStatus?.();
 });
 </script>
 

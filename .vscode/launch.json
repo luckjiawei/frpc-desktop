@@ -14,9 +14,9 @@
         },
         {
             "type": "node-terminal",
-            "name": "build electron",
+            "name": "tauri dev",
             "request": "launch",
-            "command": "npm run build:electron",
+            "command": "npm run tauri:dev",
             "cwd": "${workspaceFolder}"
         }
     ]

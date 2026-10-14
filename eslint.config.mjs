@@ -7,9 +7,7 @@ export default ts.config(
   {
     ignores: [
       "**/dist/**",
-      "**/dist-electron/**",
       "**/node_modules/**",
-      "**/release/**",
       "**/*.js",
       "!eslint.config.js",
       "!.prettierrc.js",

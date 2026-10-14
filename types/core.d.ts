@@ -4,19 +4,6 @@ interface ApiResponse<T> {
   message: string;
 }
 
-interface ControllerParam {
-  // win: BrowserWindow;
-  channel: string;
-  event: Electron.IpcMainEvent;
-  args: any;
-}
-
-interface ListenerParam {
-  // win: BrowserWindow;
-  channel: string;
-  args: any[];
-}
-
 type IpcRouter = {
   path: string;
   controller: string;

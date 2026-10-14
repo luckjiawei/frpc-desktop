@@ -50,11 +50,21 @@
 - [x] Support multiple languages
 - [x] Fast proxy search with card/list pagination
 
+## Development
+
+Requirements: Node.js 22.12+, npm, and a stable Rust toolchain ([Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)).
+
+```sh
+npm ci
+npm run tauri:dev    # run the desktop app in development mode
+npm run tauri:build  # build installers for the current platform
+```
+
 ## Common Issues
 
-### macOS universal build fails on better-sqlite3 prebuilds
+### Upgrading from 1.x
 
-Keep the `mac.x64ArchFiles` rule in `electron-builder.json5` when building with electron-builder 26. It allows the identical `darwin-x64.node` and `darwin-arm64.node` prebuilds shipped by better-sqlite3 to remain in the universal app; better-sqlite3 selects the matching binary at runtime. Run `npm run build:electron:mac` on macOS to rebuild.
+Version 2.0 is rebuilt on Tauri and upgrades the 1.x Electron app in place. Your server settings, proxies, desktop settings, and downloaded frpc versions are kept automatically; data still stored in the older NeDB format (1.2.6 and earlier) is imported on first launch and the original files are kept as `*.bak`.
 
 ### Mac shows app is damaged
 

@@ -51,11 +51,11 @@ impl ProxyRepository {
             let transport_json: String = row.get(29)?;
 
             let custom_domains: Vec<String> =
-                serde_json::from_str(&custom_domains_json).unwrap_or_default();
+                crate::db::from_json_lenient(&custom_domains_json);
             let locations: Vec<String> =
-                serde_json::from_str(&locations_json).unwrap_or_default();
+                crate::db::from_json_lenient(&locations_json);
             let transport: FrpcProxyTransportConfig =
-                serde_json::from_str(&transport_json).unwrap_or_default();
+                crate::db::from_json_lenient(&transport_json);
 
             let local_port = if let Ok(num) = local_port_str.parse::<i64>() {
                 serde_json::Value::Number(num.into())
