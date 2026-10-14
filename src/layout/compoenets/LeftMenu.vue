@@ -4,10 +4,12 @@ import { ipcRouters } from "@/core/IpcRouter";
 import Intro from "@/intro";
 import router from "@/router";
 import { useSystemUsageStore } from "@/store/systemUsage";
+import { ThemeMode, useThemeStore } from "@/store/theme";
 import { on, send } from "@/utils/ipcUtils";
 import confetti from "canvas-confetti/src/confetti.js";
 import "intro.js/introjs.css";
 import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { RouteRecordRaw } from "vue-router";
 import pkg from "../../../package.json";
 
@@ -17,6 +19,25 @@ defineComponent({
 
 // const frpcDesktopStore = useFrpcDesktopStore();
 const systemUsageStore = useSystemUsageStore();
+const themeStore = useThemeStore();
+const { t } = useI18n();
+
+// 折叠状态只影响本机界面，保存在 localStorage 即可
+const COLLAPSE_KEY = "frpc-sidebar-collapsed";
+const collapsed = ref(localStorage.getItem(COLLAPSE_KEY) === "true");
+const toggleCollapsed = () => {
+  collapsed.value = !collapsed.value;
+  localStorage.setItem(COLLAPSE_KEY, String(collapsed.value));
+};
+
+const themeOptions: Array<{ mode: ThemeMode; icon: string; label: string }> = [
+  { mode: "light", icon: "light-mode-outline", label: "layout.theme.light" },
+  { mode: "dark", icon: "dark-mode-outline", label: "layout.theme.dark" },
+  { mode: "auto", icon: "brightness-auto-outline", label: "layout.theme.auto" }
+];
+const currentThemeOption = computed(
+  () => themeOptions.find(o => o.mode === themeStore.mode) ?? themeOptions[2]
+);
 const routes = ref<Array<RouteRecordRaw>>([]);
 const guideSteps = ref({
   Home: {
@@ -116,86 +137,107 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="drop-shadow-xl left-menu-container">
-    <div class="logo-container">
-      <!--      <img-->
-      <!--        src="/logo/only/128x128.png"-->
-      <!--        class="logo animate__animated animate__bounceInLeft"-->
-      <!--        alt="Logo"-->
-      <!--      />-->
-      <!--      <el-badge :value="'v1.1.2'" class="logo" type="primary" :offset="[-10, 42]">-->
-      <img src="/logo/only/128x128.png" class="logo" alt="Logo" />
-      <!--      </el-badge>-->
+  <nav
+    class="left-menu-container"
+    :class="{ 'is-collapsed': collapsed }"
+    :aria-label="t('layout.navigation')"
+  >
+    <div class="menu-brand">
+      <img src="/logo/only/128x128.png" alt="" />
+      <span v-show="!collapsed">Frpc Desktop</span>
     </div>
-    <ul class="menu-container">
-      <!--      enter-active-class="animate__animated animate__bounceIn"-->
-      <!--      leave-active-class="animate__animated animate__fadeOut"-->
-      <li
+    <div class="menu-list">
+      <el-tooltip
         v-for="r in routes"
         :key="r.name"
-        :data-step="guideSteps[r.name]?.step"
-        :data-intro="guideSteps[r.name]?.intro"
-        :data-disable-interaction="true"
-        class="menu animate__animated"
-        :class="currentRoute?.name === r.name ? 'menu-selected' : ''"
-        @click="handleMenuChange(r)"
+        :content="t(r.meta?.title as string)"
+        :disabled="!collapsed"
+        placement="right"
       >
-        <IconifyIconOffline
-          class="animate__animated"
-          :icon="r?.meta?.icon as string"
-        ></IconifyIconOffline>
-      </li>
-    </ul>
-    <div class="mb-2 menu-footer">
-      <!--      <el-tag-->
-      <!--        :type="frpcProcessStore.running ? 'primary' : 'warning'"-->
-      <!--        effect="light"-->
-      <!--        size="small"-->
-      <!--        >{{ frpcProcessStore.running ? "运行中" : "已断开" }}-->
-      <!--      </el-tag>-->
-      <!--      <div-->
-      <!--        class="menu animate__animated"-->
-      <!--        @click="handleOpenGitHubReleases"-->
-      <!--        :data-step="guideSteps.Version?.step"-->
-      <!--        :data-intro="guideSteps.Version?.intro"-->
-      <!--        data-position="top"-->
-      <!--      >-->
-      <!--        <IconifyIconOffline-->
-      <!--          class="animate__animated"-->
-      <!--          icon="attach-money-rounded"-->
-      <!--        ></IconifyIconOffline>-->
-      <!--      </div>-->
-      <div
-        class="flex flex-col gap-2 justify-center items-center text-[12px] text-[#6b7280]"
-      >
-        <div class="flex flex-col justify-center items-center w-full">
-          <p class="flex gap-1 items-center font-medium">
-            <IconifyIconOffline icon="memory-rounded" />
-            CPU
-          </p>
-          <p class="text-[12px] font-bold">
-            {{ systemUsageStore.systemUsageCpu }}%
-          </p>
+        <button
+          type="button"
+          class="menu-item"
+          :class="{ 'is-active': currentRoute?.name === r.name }"
+          :aria-current="currentRoute?.name === r.name ? 'page' : undefined"
+          :aria-label="t(r.meta?.title as string)"
+          :data-step="guideSteps[r.name]?.step"
+          :data-intro="guideSteps[r.name]?.intro"
+          :data-disable-interaction="true"
+          @click="handleMenuChange(r)"
+        >
+          <IconifyIconOffline :icon="r?.meta?.icon as string" />
+          <span v-show="!collapsed">{{ t(r.meta?.title as string) }}</span>
+        </button>
+      </el-tooltip>
+    </div>
+    <div class="menu-footer">
+      <div class="menu-usage">
+        <div class="usage-row">
+          <IconifyIconOffline icon="memory-rounded" />
+          <span>CPU</span>
+          <b>{{ systemUsageStore.systemUsageCpu }}%</b>
         </div>
-        <div class="flex flex-col justify-center items-center w-full">
-          <p class="flex gap-1 items-center font-medium">
-            <IconifyIconOffline icon="memory-alt-rounded" />
-            内存
-          </p>
-          <p class="text-[12px] font-bold">
-            {{ systemUsageStore.formattedMemory }}
-          </p>
+        <div class="usage-row">
+          <IconifyIconOffline icon="memory-alt-rounded" />
+          <span v-show="!collapsed">{{ t("layout.memory") }}</span>
+          <b>{{ systemUsageStore.formattedMemory }}</b>
         </div>
       </div>
-      <div
-        class="version animate__animated"
-        :data-step="guideSteps.Version?.step"
-        :data-intro="guideSteps.Version?.intro"
-        data-position="top"
-        @click="handleOpenGitHubReleases"
-      >
-        {{ pkg.version }}
+      <div class="menu-actions">
+        <el-dropdown
+          trigger="click"
+          :placement="collapsed ? 'right-end' : 'top-start'"
+          @command="themeStore.setMode"
+        >
+          <el-button
+            text
+            circle
+            :aria-label="t('layout.theme.title')"
+            :title="t('layout.theme.title')"
+          >
+            <IconifyIconOffline :icon="currentThemeOption.icon" />
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="option in themeOptions"
+                :key="option.mode"
+                :command="option.mode"
+                :class="{ 'is-theme-active': themeStore.mode === option.mode }"
+              >
+                <IconifyIconOffline class="mr-2" :icon="option.icon" />
+                {{ t(option.label) }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button
+          text
+          circle
+          :aria-label="
+            collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')
+          "
+          :title="collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')"
+          @click="toggleCollapsed"
+        >
+          <IconifyIconOffline
+            :icon="
+              collapsed ? 'left-panel-open-outline' : 'left-panel-close-outline'
+            "
+          />
+        </el-button>
+        <button
+          type="button"
+          class="menu-version"
+          :data-step="guideSteps.Version?.step"
+          :data-intro="guideSteps.Version?.intro"
+          data-position="top"
+          :title="t('layout.about')"
+          @click="handleOpenGitHubReleases"
+        >
+          v{{ pkg.version }}
+        </button>
       </div>
     </div>
-  </div>
+  </nav>
 </template>

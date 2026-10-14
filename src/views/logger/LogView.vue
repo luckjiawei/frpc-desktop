@@ -59,11 +59,11 @@ watch(
 
 <template>
   <div
-    class="w-full h-full bg-[#0f0f23] flex flex-col rounded-lg overflow-hidden border border-[#2d3748] shadow-lg"
+    class="w-full h-full bg-[#15141a] flex flex-col rounded-lg overflow-hidden border border-[#2c2a35] shadow-lg"
   >
     <!-- 工具栏插槽 -->
     <div
-      class="flex justify-between w-full bg-gradient-to-r from-[#1a202c] to-[#2d3748] py-2 px-3 items-center gap-3 border-b border-[#4a5568]"
+      class="flex justify-between w-full bg-[#1e1d25] py-2 px-3 items-center gap-3 border-b border-[#2c2a35]"
     >
       <div class="">
         <el-input

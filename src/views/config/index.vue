@@ -751,7 +751,7 @@ onUnmounted(() => {
       @save="handleSubmit"
     />
     <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
-      <div class="p-4 w-full bg-white rounded drop-shadow-lg">
+      <div class="p-4 w-full app-panel">
         <el-form
           ref="formRef"
           :model="formData"
@@ -781,7 +781,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -812,7 +812,7 @@ onUnmounted(() => {
                 </div>
                 <div
                   v-if="detectedVersionInfo"
-                  class="flex items-center mt-1 text-xs text-gray-500 w-full"
+                  class="flex items-center mt-1 text-xs text-text_color_secondary w-full"
                 >
                   <span class="mr-1.5"
                     >{{
@@ -841,7 +841,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -864,7 +864,7 @@ onUnmounted(() => {
                   />
                 </el-select>
                 <div class="flex justify-between items-center w-full mt-1">
-                  <div class="text-xs text-gray-400">
+                  <div class="text-xs text-text_color_secondary">
                     {{ t("config.form.frpcVerson.fallbackTips") }}
                   </div>
                   <div class="flex">
@@ -927,7 +927,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -966,15 +966,13 @@ onUnmounted(() => {
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:
-                        <span class="font-black text-[#5A3DAA]"
-                          >auth.method</span
-                        >
+                        <span class="font-black text-primary">auth.method</span>
                       </template>
                       <template #reference>
-                        <!--                        <IconifyIconOffline class="text-base" color="#5A3DAA" icon="info"/>-->
+                        <!--                        <IconifyIconOffline class="text-base" color="var(--app-primary-text)" icon="info"/>-->
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1009,14 +1007,14 @@ onUnmounted(() => {
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
+                          class="font-black text-primary"
                           >auth.token</span
                         >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1045,7 +1043,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1070,14 +1068,14 @@ onUnmounted(() => {
                     <el-popover placement="top" trigger="hover" width="300">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
+                          class="font-black text-primary"
                           >user</span
                         >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1101,14 +1099,14 @@ onUnmounted(() => {
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
+                          class="font-black text-primary"
                           >metadatas.token</span
                         >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1154,7 +1152,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1182,14 +1180,14 @@ onUnmounted(() => {
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
+                          class="font-black text-primary"
                           >transport.poolCount</span
                         >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1225,7 +1223,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1271,7 +1269,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1317,7 +1315,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1353,7 +1351,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1390,7 +1388,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1430,7 +1428,7 @@ onUnmounted(() => {
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1467,14 +1465,14 @@ onUnmounted(() => {
                     <el-popover width="300" placement="top" trigger="hover">
                       <template #default>
                         {{ t("config.popover.frpParameter") }}:<span
-                          class="font-black text-[#5A3DAA]"
+                          class="font-black text-primary"
                           >transport.proxyURL</span
                         >
                       </template>
                       <template #reference>
                         <IconifyIconOffline
                           class="text-base"
-                          color="#5A3DAA"
+                          color="var(--app-primary-text)"
                           icon="info"
                         />
                       </template>
@@ -1515,14 +1513,14 @@ onUnmounted(() => {
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
+                            class="font-black text-primary"
                             >transport.tls.certFile</span
                           >
                         </template>
                         <template #reference>
                           <IconifyIconOffline
                             class="text-base"
-                            color="#5A3DAA"
+                            color="var(--app-primary-text)"
                             icon="info"
                           />
                         </template>
@@ -1564,14 +1562,14 @@ onUnmounted(() => {
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
+                            class="font-black text-primary"
                             >transport.tls.keyFile</span
                           >
                         </template>
                         <template #reference>
                           <IconifyIconOffline
                             class="text-base"
-                            color="#5A3DAA"
+                            color="var(--app-primary-text)"
                             icon="info"
                           />
                         </template>
@@ -1612,14 +1610,14 @@ onUnmounted(() => {
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
+                            class="font-black text-primary"
                             >transport.tls.trustedCaFile</span
                           >
                         </template>
                         <template #reference>
                           <IconifyIconOffline
                             class="text-base"
-                            color="#5A3DAA"
+                            color="var(--app-primary-text)"
                             icon="info"
                           />
                         </template>
@@ -1660,14 +1658,14 @@ onUnmounted(() => {
                       <el-popover width="300" placement="top" trigger="hover">
                         <template #default>
                           {{ t("config.popover.frpParameter") }}:<span
-                            class="font-black text-[#5A3DAA]"
+                            class="font-black text-primary"
                             >transport.tls.serverName</span
                           >
                         </template>
                         <template #reference>
                           <IconifyIconOffline
                             class="text-base"
-                            color="#5A3DAA"
+                            color="var(--app-primary-text)"
                             icon="info"
                           />
                         </template>

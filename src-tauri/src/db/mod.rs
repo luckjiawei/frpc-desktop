@@ -370,6 +370,21 @@ mod tests {
     }
 
     #[test]
+    fn theme_defaults_to_auto_and_round_trips() {
+        let dir = std::env::temp_dir().join(format!("frpc_theme_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let conn = db.conn();
+        assert_eq!(AppConfigRepository::get_theme(&conn).unwrap(), "auto");
+        AppConfigRepository::save_theme(&conn, "dark").unwrap();
+        assert_eq!(AppConfigRepository::get_theme(&conn).unwrap(), "dark");
+        assert!(!AppConfigRepository::is_valid_theme("purple"));
+
+        drop(conn);
+        drop(db);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn lenient_json_keeps_valid_fields_when_one_is_incompatible() {
         let transport: TransportConfig =
             from_json_lenient(r#"{"poolCount":"many","protocol":"kcp","tls":{"enable":true}}"#);

@@ -6,6 +6,21 @@ interface FrpcProcessStatus {
   lastStartTime?: number;
 }
 
+/** launch/getOverview：启动页仪表盘的只读摘要（不含任何密钥） */
+interface FrpcHomeOverview {
+  serverAddr: string;
+  serverPort: number;
+  protocol: string;
+  tlsEnable: boolean;
+  webServerEnable: boolean;
+  webServerPort: number;
+  frpcVersion: string | null;
+  customFrpcPath: boolean;
+  proxyTotal: number;
+  proxyEnabled: number;
+  recentLogs: string[];
+}
+
 interface BaseEntity {
   _id: string;
 }

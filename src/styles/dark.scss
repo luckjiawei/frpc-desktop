@@ -1,0 +1,10 @@
+// Element Plus dark palette. The brand purple is lifted so filled controls keep
+// white text at >= 4.5:1 and stay visible on dark surfaces.
+@use "element-plus/theme-chalk/src/dark/var.scss" with (
+  $colors: (
+    "primary": (
+      "base": #7c5cd0
+    )
+  )
+);
+@use "element-plus/theme-chalk/src/dark/css-vars.scss";

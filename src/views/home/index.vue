@@ -25,6 +25,24 @@ const now = ref(Date.now());
 let uptimeTimer: ReturnType<typeof setInterval> | null = null;
 const { t } = useI18n();
 const listenerCleanups: Array<() => void> = [];
+const overview = ref<FrpcHomeOverview | null>(null);
+
+const refreshOverview = () => {
+  send(ipcRouters.LAUNCH.getOverview);
+};
+
+const serverText = computed(() => {
+  const o = overview.value;
+  if (!o || !o.serverAddr) return "";
+  return `${o.serverAddr}:${o.serverPort}`;
+});
+
+const frpcVersionText = computed(() => {
+  const o = overview.value;
+  if (!o) return "";
+  if (o.customFrpcPath) return t("home.dashboard.customPath");
+  return o.frpcVersion || t("home.dashboard.notSelected");
+});
 
 // Three-state status: "running" | "error" | "stopped"
 const frpcStatus = computed(() => {
@@ -80,10 +98,18 @@ watch(
   () => frpcDesktopStore.frpcProcessRunning,
   () => {
     loading.value = false;
+    // 日志会在启动/停止后变化，稍等 frpc 写入后再刷新
+    window.setTimeout(refreshOverview, 1500);
   }
 );
 
 onMounted(() => {
+  listenerCleanups.push(
+    on(ipcRouters.LAUNCH.getOverview, (data: FrpcHomeOverview) => {
+      overview.value = data;
+    })
+  );
+  refreshOverview();
   uptimeTimer = setInterval(() => {
     now.value = Date.now();
   }, 1000);
@@ -159,189 +185,297 @@ onUnmounted(() => {
   <div class="main">
     <breadcrumb />
     <div class="app-container-breadcrumb">
-      <div
-        class="flex overflow-y-auto justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
-      >
-        <div class="flex">
-          <div
-            class="w-52 h-52 !border-4 border-[#5A3DAA] text-[#5A3DAA] rounded-full flex justify-center items-center text-[100px] relative"
-          >
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
-              />
-            </transition>
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
-              />
-            </transition>
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
-              />
-            </transition>
-            <div
-              class="flex absolute z-10 justify-center items-center w-full h-full bg-white rounded-full"
+      <div class="flex flex-col gap-3 pr-1 pb-1">
+        <section class="p-5 app-panel status-card" :class="`is-${frpcStatus}`">
+          <div class="status-icon" aria-hidden="true">
+            <IconifyIconOffline
+              :icon="
+                frpcStatus === 'running'
+                  ? 'check-circle-rounded'
+                  : frpcStatus === 'error'
+                    ? 'warningRounded'
+                    : 'power-settings-new-rounded'
+              "
+            />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="status-title">
+              {{
+                $t("home.status.frpcStatus", {
+                  status:
+                    frpcStatus === "running"
+                      ? $t("home.status.running")
+                      : frpcStatus === "error"
+                        ? $t("home.status.connectionError")
+                        : $t("home.status.disconnected")
+                })
+              }}
+            </h2>
+            <p class="mt-1 text-sm truncate text-text_color_secondary">
+              <template v-if="serverText">
+                {{ serverText }} · frpc {{ frpcVersionText }}
+              </template>
+              <template v-else>
+                {{ $t("home.dashboard.notConfigured") }}
+              </template>
+            </p>
+            <p
+              v-if="frpcStatus === 'running'"
+              class="mt-1 text-sm text-text_color_secondary"
             >
-              <IconifyIconOffline icon="rocket-launch-rounded" />
+              {{ $t("home.status.runningTime") }}
+              <span class="font-semibold tabular-nums text-primary">{{
+                uptime
+              }}</span>
+            </p>
+            <p
+              v-else-if="frpcStatus === 'error'"
+              class="mt-1 text-sm break-all line-clamp-2 status-error"
+              :title="frpcDesktopStore.frpcConnectionError ?? ''"
+            >
+              {{ frpcDesktopStore.frpcConnectionError }}
+            </p>
+          </div>
+          <div class="flex gap-2 items-center">
+            <el-button
+              v-if="frpcStatus !== 'stopped'"
+              text
+              @click="$router.push({ name: 'Logger' })"
+            >
+              {{ $t("home.button.viewLog") }}
+            </el-button>
+            <el-button
+              size="large"
+              :type="frpcDesktopStore.frpcProcessRunning ? 'danger' : 'primary'"
+              :plain="frpcDesktopStore.frpcProcessRunning"
+              :loading="loading"
+              @click="handleButtonClick"
+            >
+              <template #icon>
+                <IconifyIconOffline
+                  :icon="
+                    frpcDesktopStore.frpcProcessRunning
+                      ? 'stop-circle-outline'
+                      : 'play-arrow-rounded'
+                  "
+                />
+              </template>
+              {{
+                frpcDesktopStore.frpcProcessRunning
+                  ? $t("home.button.stop")
+                  : $t("home.button.start")
+              }}
+            </el-button>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Proxy' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="cloud" />
+              {{ $t("home.dashboard.proxies") }}
+            </span>
+            <span class="stat-value">{{ overview?.proxyEnabled ?? "-" }}</span>
+            <span class="stat-hint">
+              {{
+                $t("home.dashboard.proxiesValue", {
+                  enabled: overview?.proxyEnabled ?? 0,
+                  total: overview?.proxyTotal ?? 0
+                })
+              }}
+            </span>
+          </button>
+          <div class="stat-card app-panel">
+            <span class="stat-label">
+              <IconifyIconOffline icon="dns-outline" />
+              {{ $t("home.dashboard.server") }}
+            </span>
+            <span class="truncate stat-value is-text" :title="serverText">
+              {{ overview?.serverAddr || "-" }}
+            </span>
+            <span class="stat-hint">
+              {{
+                overview?.serverAddr
+                  ? $t("home.dashboard.port", { port: overview.serverPort })
+                  : ""
+              }}
+            </span>
+          </div>
+          <div class="stat-card app-panel">
+            <span class="stat-label">
+              <IconifyIconOffline icon="lan-outline" />
+              {{ $t("home.dashboard.protocol") }}
+            </span>
+            <span class="uppercase stat-value is-text">
+              {{ overview?.protocol || "-" }}
+            </span>
+            <span class="stat-hint">
+              {{
+                overview?.tlsEnable
+                  ? $t("home.dashboard.tlsOn")
+                  : $t("home.dashboard.tlsOff")
+              }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Download' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="download" />
+              {{ $t("home.dashboard.frpcVersion") }}
+            </span>
+            <span class="truncate stat-value is-text">
+              {{ frpcVersionText || "-" }}
+            </span>
+            <span class="stat-hint">
+              {{ overview?.customFrpcPath ? "" : $t("home.dashboard.manage") }}
+            </span>
+          </button>
+        </section>
+
+        <section class="p-4 app-panel">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-sm font-semibold">
+              {{ $t("home.dashboard.recentLogs") }}
+            </h3>
+            <el-button
+              text
+              type="primary"
+              size="small"
+              @click="$router.push({ name: 'Logger' })"
+            >
+              {{ $t("home.dashboard.viewAll") }}
+              <IconifyIconOffline class="ml-1" icon="arrow-forward-rounded" />
+            </el-button>
+          </div>
+          <div
+            v-if="overview?.recentLogs?.length"
+            class="recent-logs"
+            role="log"
+          >
+            <div
+              v-for="(line, index) in overview.recentLogs"
+              :key="index"
+              class="truncate"
+              :title="line"
+            >
+              {{ line }}
             </div>
           </div>
-          <div class="flex flex-col justify-center items-center">
-            <div class="flex flex-col gap-4 justify-between pl-10 w-96">
-              <transition name="fade">
-                <div
-                  class="flex gap-1 justify-center text-2xl font-bold text-center"
-                >
-                  <IconifyIconOffline
-                    v-if="frpcStatus === 'running'"
-                    class="text-[#7EC050] inline-block relative top-1"
-                    icon="check-circle-rounded"
-                  />
-                  <IconifyIconOffline
-                    v-else-if="frpcStatus === 'error'"
-                    class="text-[#E6A23C] inline-block relative top-1"
-                    icon="warningRounded"
-                  />
-                  <IconifyIconOffline
-                    v-else
-                    class="text-[#E47470] inline-block relative top-1"
-                    icon="error"
-                  />
-                  <span>
-                    {{
-                      $t("home.status.frpcStatus", {
-                        status:
-                          frpcStatus === "running"
-                            ? $t("home.status.running")
-                            : frpcStatus === "error"
-                              ? $t("home.status.connectionError")
-                              : $t("home.status.disconnected")
-                      })
-                    }}
-                  </span>
-                </div>
-              </transition>
-              <div
-                v-if="frpcStatus === 'error'"
-                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
-              >
-                <el-text
-                  class="break-all line-clamp-2 text-primary"
-                  :title="frpcDesktopStore.frpcConnectionError"
-                >
-                  {{ frpcDesktopStore.frpcConnectionError }}
-                </el-text>
-                <div class="mt-1">
-                  <el-link
-                    type="primary"
-                    @click="$router.replace({ name: 'Logger' })"
-                  >
-                    {{ $t("home.button.viewLog") }}
-                  </el-link>
-                </div>
-              </div>
-              <div
-                v-else-if="frpcStatus === 'running'"
-                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
-              >
-                <span class="el-text--success">{{
-                  $t("home.status.runningTime")
-                }}</span>
-                <span class="ml-1 font-bold text-primary">{{ uptime }}</span>
-
-                <div class="justify-center w-full text-center">
-                  <el-link
-                    class="animate__animated animate__fadeIn"
-                    type="primary"
-                    @click="$router.replace({ name: 'Logger' })"
-                    >{{ $t("home.button.viewLog") }}</el-link
-                  >
-                </div>
-              </div>
-
-              <el-button
-                class="mt-4"
-                type="primary"
-                :disabled="loading"
-                @click="handleButtonClick"
-                >{{
-                  frpcDesktopStore.frpcProcessRunning
-                    ? $t("home.button.stop")
-                    : $t("home.button.start")
-                }}
-              </el-button>
-            </div>
-          </div>
-        </div>
+          <p v-else class="py-3 text-sm text-text_color_secondary">
+            {{ $t("home.dashboard.noLogs") }}
+          </p>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-@keyframes rotate {
-  0% {
-    transform: rotate(0deg);
+.status-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .status-icon {
+    width: 52px;
+    height: 52px;
+    flex: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--el-text-color-secondary);
+    background: var(--el-fill-color-light);
   }
-  100% {
-    transform: rotate(360deg);
+
+  &.is-running .status-icon {
+    color: var(--el-color-success);
+    background: var(--el-color-success-light-9);
+  }
+
+  &.is-error .status-icon {
+    color: var(--el-color-warning);
+    background: var(--el-color-warning-light-9);
+  }
+
+  .status-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .status-error {
+    color: var(--el-color-warning);
   }
 }
 
-@keyframes transform-opacity {
-  0% {
-    opacity: 0;
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  color: inherit;
+
+  &.is-clickable {
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
   }
-  100% {
-    opacity: 0.3;
+
+  .stat-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--el-text-color-primary);
+    font-variant-numeric: tabular-nums;
+
+    &.is-text {
+      font-size: 17px;
+    }
+  }
+
+  .stat-hint {
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 }
 
-$offset: 10px;
-
-.animation-rotate-1 {
-  animation: rotate 5s linear infinite;
-}
-
-.animation-rotate-2 {
-  animation: rotate 4s linear infinite;
-}
-
-.animation-rotate-3 {
-  animation: rotate 6s linear infinite;
-}
-
-.top-circle {
-  position: absolute;
-  bottom: $offset;
-  transform-origin: center calc(50% - $offset);
-}
-
-.left-circle {
-  position: absolute;
-  left: $offset;
-  top: $offset;
-  transform-origin: calc(50% + $offset) center;
-}
-
-.right-circle {
-  position: absolute;
-  right: $offset;
-  top: $offset;
-  transform-origin: calc(50% - $offset) center;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.recent-logs {
+  font-family: var(--app-mono);
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  padding: 8px 12px;
+  user-select: text;
+  -webkit-user-select: text;
 }
 </style>

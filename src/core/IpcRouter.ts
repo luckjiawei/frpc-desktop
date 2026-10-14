@@ -27,6 +27,14 @@ export const ipcRouters: IpcRouters = {
     saveLanguage: {
       path: "server/saveLanguage",
       controller: "configController.saveLanguage"
+    },
+    getTheme: {
+      path: "server/getTheme",
+      controller: "configController.getTheme"
+    },
+    saveTheme: {
+      path: "server/saveTheme",
+      controller: "configController.saveTheme"
     }
   },
   LOG: {
@@ -89,6 +97,10 @@ export const ipcRouters: IpcRouters = {
     getStatus: {
       path: "launch/getStatus",
       controller: "launchController.getStatus"
+    },
+    getOverview: {
+      path: "launch/getOverview",
+      controller: "launchController.getOverview"
     }
   },
   PROXY: {

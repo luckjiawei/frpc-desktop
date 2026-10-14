@@ -18,34 +18,39 @@ const { t } = useI18n();
       v-model="searchKeyword"
       :placeholder="t('proxy.search')"
       clearable
-      class="mr-2 !w-[300px]"
+      class="!w-[240px]"
       size="default"
     >
       <template #prefix>
         <IconifyIconOffline icon="search" />
       </template>
     </el-input>
-    <el-radio-group v-model="viewMode" class="mr-2">
+    <el-radio-group v-model="viewMode">
       <el-radio-button value="card">
-        <IconifyIconOffline class="mr-1" icon="dashboard" />
-        {{ t("proxy.viewMode.card") }}
+        <span class="inline-flex gap-1 items-center">
+          <IconifyIconOffline icon="dashboard" />
+          {{ t("proxy.viewMode.card") }}
+        </span>
       </el-radio-button>
       <el-radio-button value="list">
-        <IconifyIconOffline class="mr-1" icon="table-rows" />
-        {{ t("proxy.viewMode.list") }}
+        <span class="inline-flex gap-1 items-center">
+          <IconifyIconOffline icon="table-rows" />
+          {{ t("proxy.viewMode.list") }}
+        </span>
       </el-radio-button>
     </el-radio-group>
     <el-button
       :aria-label="t('proxy.refresh')"
       :title="t('proxy.refresh')"
-      plain
-      type="primary"
       @click="emit('refresh')"
     >
       <IconifyIconOffline icon="refresh-rounded" />
     </el-button>
     <el-button type="primary" @click="emit('create')">
-      <IconifyIconOffline icon="add" />
+      <template #icon>
+        <IconifyIconOffline icon="add" />
+      </template>
+      {{ t("proxy.createTitle") }}
     </el-button>
   </Breadcrumb>
 </template>

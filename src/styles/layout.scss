@@ -1,132 +1,258 @@
-$main-bg: #F3F3F3;
-$primary-color: #5F3BB0;
-$danger-color: #F56C6C;
+$primary-color: var(--app-primary-text);
+$danger-color: #f56c6c;
 
 .main-container {
-  background: $main-bg;
-  width: calc(100% - 60px);
+  background: var(--app-page-bg);
+  flex: 1;
+  min-width: 0;
   height: 100vh;
-  padding: 15px;
+  padding: 16px 18px;
 
-
+  /* 标题栏高度随工具栏换行变化，内容区用 flex 占满剩余空间，避免撑出窗口 */
   .main {
     height: 100%;
     width: 100%;
-    //overflow: hidden;
-  }
-
-  .app-container-breadcrumb {
-    height: calc(100% - 50px);
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .breadcrumb {
-    margin-bottom: 15px;
+    flex: none;
+  }
+
+  .app-container-breadcrumb {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .breadcrumb {
+    min-height: 36px;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
 
     .breadcrumb-left {
-      color: $primary-color;
-      font-size: 36px;
-      height: 32px;
+      gap: 10px;
+      color: var(--el-text-color-primary);
 
-      svg {
-        vertical-align: top;
+      .breadcrumb-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--app-primary-text);
+        background: var(--app-primary-soft);
       }
 
       span {
-        vertical-align: top;
-        color: black;
         font-size: 18px;
-        font-weight: bold;
-        //transform: translateY(5px);
-        display: inline-block;
+        font-weight: 600;
+      }
+    }
 
+    .breadcrumb-right {
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-left: auto;
+
+      .el-button + .el-button {
+        margin-left: 0;
       }
     }
   }
-
-
 }
 
+/* 左侧导航：展开 176px，折叠 64px */
 .left-menu-container {
-  background: #fff;
-  width: 60px;
+  --menu-width: 176px;
+  background: var(--app-sidebar-bg);
+  border-right: 1px solid var(--app-border);
+  width: var(--menu-width);
+  flex: none;
   height: 100vh;
-  display: flex; /* 设置为 flexbox */
-  flex-direction: column; /* 纵向排列子元素 */
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  transition: width 0.2s ease;
+  overflow: hidden;
+
+  &.is-collapsed {
+    --menu-width: 64px;
+  }
+
+  .menu-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 6px;
+    margin-bottom: 14px;
+    white-space: nowrap;
+
+    img {
+      width: 30px;
+      height: 30px;
+      flex: none;
+    }
+
+    span {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* 窗口较矮时菜单区自身滚动，底部的资源占用和设置始终可见 */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: var(--el-text-color-regular);
+    background: transparent;
+    font-size: 14px;
+    white-space: nowrap;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    svg {
+      font-size: 20px;
+      flex: none;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      color: var(--el-text-color-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
+
+    &.is-active {
+      background: var(--app-primary-soft);
+      color: var(--app-primary-text);
+      font-weight: 600;
+    }
+  }
 
   .menu-footer {
+    flex: none;
     margin-top: auto;
-
-  }
-
-  .version {
-    height: 40px;
-    width: 60px;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    color: $primary-color;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--app-border);
   }
 
-  .version:hover {
-    animation: heartBeat 1s;
-  }
+  .menu-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--app-text-secondary);
 
-  .menu-container, .menu-footer {
-
-    .menu {
+    .usage-row {
       display: flex;
-      height: 40px;
-      justify-content: center;
       align-items: center;
-      font-size: 20px;
-      color: #ADADAD;
-      margin-bottom: 10px;
+      gap: 6px;
+      white-space: nowrap;
 
+      b {
+        margin-left: auto;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
 
+  .menu-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .menu-version {
+    margin-left: auto;
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--app-primary-text);
+    background: transparent;
+  }
+
+  &.is-collapsed {
+    .menu-brand {
+      justify-content: center;
+      padding: 0;
     }
 
-
-    .menu-selected {
-      background: #EBE6F7;
-      color: $primary-color;
+    .menu-item {
+      justify-content: center;
+      padding: 0;
     }
 
-    .menu:hover, .menu:focus, .menu:active, {
-      color: $primary-color;
-      cursor: pointer;
+    .menu-usage {
+      align-items: center;
+      padding: 0;
 
-      & > svg {
-        animation: swing 0.5s;
+      .usage-row {
+        flex-direction: column;
+        gap: 0;
+
+        b {
+          margin-left: 0;
+        }
       }
     }
 
+    .menu-actions {
+      flex-direction: column;
+    }
 
+    .menu-version {
+      margin-left: 0;
+      padding: 0;
+    }
   }
 }
-
-.logo-container {
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  .logo {
-    width: 60%;
-  }
-}
-
 
 .primary-text {
   color: $primary-color;
 }
 
 .bg-primary {
-  background:  $primary-color;
+  background: var(--el-color-primary);
 }
 
 .danger-text {

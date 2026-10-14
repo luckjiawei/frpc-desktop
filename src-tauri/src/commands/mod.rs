@@ -346,6 +346,41 @@ async fn handle_ipc_send(
             let status = state.process_mgr.get_status().await;
             ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
         }
+        // Read-only summary for the home dashboard. Deliberately separate from
+        // server/getServerConfig so it does not reach the config page's form
+        // listener, and it never includes tokens or passwords.
+        "launch/getOverview" => {
+            let conn = state.db.conn();
+            let server = match ServerRepository::get_server_config(&conn) {
+                Ok(s) => s,
+                Err(e) => return ApiResponse::internal_error(e.to_string()),
+            };
+            let proxies = ProxyRepository::get_all_proxies(&conn).unwrap_or_default();
+            let frpc_version = if !server.custom_frpc_path.trim().is_empty() {
+                Value::Null
+            } else {
+                server
+                    .frpc_version
+                    .and_then(|id| VersionRepository::find_by_github_release_id(&conn, id).ok())
+                    .flatten()
+                    .map(|v| Value::String(v.name))
+                    .unwrap_or(Value::Null)
+            };
+            let recent_logs = SystemService::read_log_tail(&state.frpc_log_path, 6);
+            ApiResponse::success(serde_json::json!({
+                "serverAddr": server.server_addr,
+                "serverPort": server.server_port,
+                "protocol": server.transport.protocol,
+                "tlsEnable": server.transport.tls.enable,
+                "webServerEnable": server.web_server.enable,
+                "webServerPort": server.web_server.port,
+                "frpcVersion": frpc_version,
+                "customFrpcPath": !server.custom_frpc_path.trim().is_empty(),
+                "proxyTotal": proxies.len(),
+                "proxyEnabled": proxies.iter().filter(|p| p.status == 1).count(),
+                "recentLogs": recent_logs,
+            }))
+        }
         "launch/terminate" => match state.process_mgr.terminate(app.clone()).await {
             Ok(()) => ApiResponse::success_empty(),
             Err(e) => ApiResponse::internal_error(e.to_string()),
@@ -541,6 +576,32 @@ async fn handle_ipc_send(
         }
         "system/relaunchApp" => {
             app.restart();
+        }
+        "server/getTheme" => {
+            let conn = state.db.conn();
+            match AppConfigRepository::get_theme(&conn) {
+                Ok(theme) => ApiResponse::success(Value::String(theme)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "server/saveTheme" => {
+            let theme = match args {
+                Some(Value::String(s)) => s,
+                Some(Value::Object(map)) => map
+                    .get("theme")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                _ => String::new(),
+            };
+            if !AppConfigRepository::is_valid_theme(&theme) {
+                return ApiResponse::fail("B1000", "Invalid theme");
+            }
+            let conn = state.db.conn();
+            match AppConfigRepository::save_theme(&conn, &theme) {
+                Ok(()) => ApiResponse::success(Value::String(theme)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
         }
         "system/getGuideStatus" => {
             let conn = state.db.conn();

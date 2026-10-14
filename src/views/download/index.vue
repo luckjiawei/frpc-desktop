@@ -224,12 +224,16 @@ onUnmounted(() => {
         </el-select>
         <el-radio-group v-model="viewMode" class="mr-2">
           <el-radio-button value="card">
-            <IconifyIconOffline class="mr-1" icon="dashboard" />
-            {{ t("download.viewMode.card") }}
+            <span class="inline-flex gap-1 items-center">
+              <IconifyIconOffline icon="dashboard" />
+              {{ t("download.viewMode.card") }}
+            </span>
           </el-radio-button>
           <el-radio-button value="list">
-            <IconifyIconOffline class="mr-1" icon="table-rows" />
-            {{ t("download.viewMode.list") }}
+            <span class="inline-flex gap-1 items-center">
+              <IconifyIconOffline icon="table-rows" />
+              {{ t("download.viewMode.list") }}
+            </span>
           </el-radio-button>
         </el-radio-group>
         <el-button type="primary" @click="handleImportFrp">
@@ -254,45 +258,33 @@ onUnmounted(() => {
               :xs="12"
               class="mb-[15px]"
             >
-              <div
-                class="flex justify-between items-center p-4 w-full bg-white rounded drop-shadow left-border animate__animated"
-              >
-                <div class="left">
-                  <div class="flex items-center">
-                    <span class="mr-2 font-bold text-primary">{{
-                      version.name
-                    }}</span>
-                  </div>
-                  <div class="mb-1">
-                    <el-tag size="small"> {{ version.size }}</el-tag>
-                  </div>
-                  <div class="text-[12px]">
-                    <span class="">{{
-                      t("download.version.downloadCount")
-                    }}</span>
-                    <span class="font-bold text-primary">{{
-                      version.versionDownloadCount
-                    }}</span>
-                  </div>
-                  <div class="text-[12px]">
-                    {{ t("download.version.publishTime")
-                    }}<span class="font-bold text-primary">{{
-                      version.githubCreatedAt
-                    }}</span>
-                  </div>
-                </div>
-                <div class="flex flex-col gap-1 items-end right">
+              <article class="version-card app-panel">
+                <header class="flex gap-2 items-center">
+                  <h3 class="version-name">{{ version.name }}</h3>
+                  <el-tag
+                    v-if="version.downloaded"
+                    class="ml-auto"
+                    size="small"
+                    type="success"
+                    effect="plain"
+                  >
+                    {{ t("download.version.downloaded") }}
+                  </el-tag>
+                </header>
+                <dl class="version-meta">
+                  <dt>{{ t("download.version.downloadCount") }}</dt>
+                  <dd>{{ version.versionDownloadCount }}</dd>
+                  <dt>{{ t("download.version.publishTime") }}</dt>
+                  <dd>{{ version.githubCreatedAt }}</dd>
+                  <dt>{{ t("download.version.size") }}</dt>
+                  <dd>{{ version.size }}</dd>
+                </dl>
+                <footer class="version-actions">
                   <template v-if="version.downloaded">
-                    <el-button type="text" size="small">
-                      <template #icon>
-                        <IconifyIconOffline icon="check-box" />
-                      </template>
-                      {{ t("download.version.downloaded") }}
-                    </el-button>
                     <el-button
-                      type="text"
+                      text
                       size="small"
-                      class="danger-text"
+                      type="danger"
                       @click="handleDeleteVersion(version)"
                     >
                       <template #icon>
@@ -301,11 +293,10 @@ onUnmounted(() => {
                       {{ t("common.delete") }}
                     </el-button>
                   </template>
-
                   <template v-else>
                     <div
                       v-if="downloading.has(version.githubReleaseId)"
-                      class="w-32"
+                      class="flex-1 px-1"
                     >
                       <el-progress
                         :percentage="downloading.get(version.githubReleaseId)"
@@ -314,8 +305,9 @@ onUnmounted(() => {
                     </div>
                     <el-button
                       v-else
+                      text
                       size="small"
-                      type="text"
+                      type="primary"
                       @click="handleDownload(version)"
                     >
                       <template #icon>
@@ -323,19 +315,20 @@ onUnmounted(() => {
                       </template>
                       {{ t("download.version.download") }}
                     </el-button>
-
                     <el-button
-                      type="text"
+                      text
                       size="small"
+                      class="ml-auto"
                       @click="handleCopyDownloadLink(version)"
                     >
                       <template #icon>
-                        <IconifyIconOffline icon="link" /> </template
-                      >{{ t("download.version.downloadLink") }}
+                        <IconifyIconOffline icon="link" />
+                      </template>
+                      {{ t("download.version.downloadLink") }}
                     </el-button>
                   </template>
-                </div>
-              </div>
+                </footer>
+              </article>
             </el-col>
           </el-row>
           <el-table
@@ -438,7 +431,7 @@ onUnmounted(() => {
         </template>
         <div
           v-else
-          class="flex overflow-hidden justify-center items-center p-2 w-full h-full bg-white rounded drop-shadow-xl"
+          class="flex overflow-hidden justify-center items-center p-2 w-full h-full app-panel"
         >
           <el-empty :description="t('download.version.noVersions')" />
         </div>
@@ -462,5 +455,55 @@ onUnmounted(() => {
 
 .download-mirror-select {
   width: 160px;
+}
+
+.version-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 16px 8px;
+
+  .version-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.version-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 4px;
+  margin: 10px 0;
+  font-size: 12px;
+
+  dt {
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+  }
+
+  dd {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--el-text-color-regular);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.version-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--app-border);
+
+  :deep(.el-button) {
+    margin-left: 0;
+  }
 }
 </style>

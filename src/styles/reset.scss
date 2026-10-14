@@ -29,6 +29,8 @@ textarea{
 }
 
 html {
+  background: var(--app-page-bg);
+  color: var(--el-text-color-primary);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -36,6 +38,8 @@ html {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -43,6 +47,9 @@ body {
   line-height: inherit;
   width: 100%;
   height: 100%;
+  /* 窗口本身不滚动也不回弹，只有右侧内容区（.app-container-breadcrumb）滚动 */
+  overflow: hidden;
+  overscroll-behavior: none;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizelegibility;

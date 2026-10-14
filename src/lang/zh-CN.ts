@@ -23,12 +23,42 @@ export default {
       title: "关于"
     }
   },
+  layout: {
+    navigation: "主导航",
+    memory: "内存",
+    collapseMenu: "收起侧栏",
+    expandMenu: "展开侧栏",
+    about: "关于 Frpc Desktop",
+    theme: {
+      title: "外观",
+      light: "浅色",
+      dark: "深色",
+      auto: "跟随系统"
+    }
+  },
   home: {
     uptime: {
       days: "{days}天",
       hours: "{hours}小时",
       minutes: "{minutes}分钟",
       seconds: "{seconds}秒"
+    },
+    dashboard: {
+      notConfigured: "尚未配置服务端",
+      proxies: "代理",
+      proxiesValue: "{enabled} / {total} 已启用",
+      server: "服务端",
+      protocol: "传输协议",
+      tlsOn: "TLS 已开启",
+      tlsOff: "TLS 未开启",
+      port: "端口 {port}",
+      manage: "管理版本",
+      frpcVersion: "frpc 版本",
+      customPath: "自定义路径",
+      notSelected: "未选择",
+      recentLogs: "最近日志",
+      viewAll: "查看全部",
+      noLogs: "暂无日志，启动 frpc 后会显示在这里。"
     },
     status: {
       running: "已启动",
@@ -38,8 +68,8 @@ export default {
       frpcStatus: "Frpc {status}"
     },
     button: {
-      start: "启 动",
-      stop: "断 开",
+      start: "启动",
+      stop: "断开",
       viewLog: "查看日志"
     },
     alert: {
@@ -96,8 +126,8 @@ export default {
     },
     version: {
       size: "大小",
-      downloadCount: "下载数：",
-      publishTime: "发布时间：",
+      downloadCount: "下载数",
+      publishTime: "发布时间",
       downloaded: "已下载",
       notDownloaded: "未下载",
       download: "下载",
@@ -320,6 +350,10 @@ export default {
       goToDownload: "点击这里去下载",
       clear: "清除",
       import: "导入",
+      openData: "打开数据目录",
+      resetAll: "重置全部配置",
+      importToml: "导入 TOML 配置",
+      exportConfig: "导出配置",
       saveWithShortcut: "保存 (Ctrl+S / ⌘S)"
     },
     alert: {
@@ -398,6 +432,7 @@ export default {
     mappingAddress: "映射地址",
     visitors: "访问者",
     visitorsProvider: "提供者",
+    copyAddress: "复制地址",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
     refresh: "刷新代理列表",

@@ -11,6 +11,7 @@ import i18n from "./lang";
 import { installElementPlus } from "./plugins/elementPlus";
 import router from "./router";
 import { useSystemUsageStore } from "./store/systemUsage";
+import { useThemeStore } from "./store/theme";
 import "./styles/index.scss";
 
 const pinia = createPinia();
@@ -26,6 +27,7 @@ app
   .use(pinia)
   .mount("#app")
   .$nextTick(() => {
+    useThemeStore().init();
     const frpcDesktopStore = useFrpcDesktopStore();
     frpcDesktopStore.onListenerFrpcProcessRunning();
     frpcDesktopStore.refreshRunning();

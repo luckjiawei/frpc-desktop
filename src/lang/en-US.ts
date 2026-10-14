@@ -23,12 +23,42 @@ export default {
       title: "About"
     }
   },
+  layout: {
+    navigation: "Main navigation",
+    memory: "Memory",
+    collapseMenu: "Collapse sidebar",
+    expandMenu: "Expand sidebar",
+    about: "About Frpc Desktop",
+    theme: {
+      title: "Appearance",
+      light: "Light",
+      dark: "Dark",
+      auto: "System"
+    }
+  },
   home: {
     uptime: {
-      days: "{days} days",
-      hours: "{hours} hours",
-      minutes: "{minutes} minutes",
-      seconds: "{seconds} seconds"
+      days: "{days}d ",
+      hours: "{hours}h ",
+      minutes: "{minutes}m ",
+      seconds: "{seconds}s"
+    },
+    dashboard: {
+      notConfigured: "No server configured yet",
+      proxies: "Proxies",
+      proxiesValue: "{enabled} / {total} enabled",
+      server: "Server",
+      protocol: "Protocol",
+      tlsOn: "TLS on",
+      tlsOff: "TLS off",
+      port: "Port {port}",
+      manage: "Manage versions",
+      frpcVersion: "frpc version",
+      customPath: "Custom path",
+      notSelected: "Not selected",
+      recentLogs: "Recent logs",
+      viewAll: "View all",
+      noLogs: "No logs yet. They'll appear here after frpc starts."
     },
     status: {
       running: "Running",
@@ -100,8 +130,8 @@ export default {
     },
     version: {
       size: "Size",
-      downloadCount: "Download count:",
-      publishTime: "Publish time:",
+      downloadCount: "Downloads",
+      publishTime: "Published",
       downloaded: "Downloaded",
       notDownloaded: "Not downloaded",
       delete: "Delete",
@@ -322,6 +352,10 @@ export default {
       goToDownload: "Click here to download",
       clear: "Clear",
       import: "Import",
+      openData: "Open data folder",
+      resetAll: "Reset all settings",
+      importToml: "Import TOML config",
+      exportConfig: "Export config",
       saveWithShortcut: "Save (Ctrl+S / ⌘S)"
     },
     alert: {
@@ -380,6 +414,7 @@ export default {
     mappingAddress: "Mapping Address",
     visitors: "Visitors",
     visitorsProvider: "Visitors Provider",
+    copyAddress: "Copy address",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
     refresh: "Refresh proxies",

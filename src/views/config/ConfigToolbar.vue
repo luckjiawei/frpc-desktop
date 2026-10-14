@@ -19,22 +19,36 @@ const { t } = useI18n();
     <el-button
       :aria-label="t('config.button.manualRefresh')"
       :title="t('config.button.manualRefresh')"
-      plain
-      type="primary"
       @click="emit('refresh')"
     >
       <IconifyIconOffline icon="refresh-rounded" />
     </el-button>
-    <el-button plain type="primary" @click="emit('openData')">
+    <el-button
+      :aria-label="t('config.button.openData')"
+      :title="t('config.button.openData')"
+      @click="emit('openData')"
+    >
       <IconifyIconOffline icon="folder-rounded" />
     </el-button>
-    <el-button plain type="primary" @click="emit('reset')">
+    <el-button
+      :aria-label="t('config.button.resetAll')"
+      :title="t('config.button.resetAll')"
+      @click="emit('reset')"
+    >
       <IconifyIconOffline icon="deviceReset" />
     </el-button>
-    <el-button plain type="primary" @click="emit('import')">
+    <el-button
+      :aria-label="t('config.button.importToml')"
+      :title="t('config.button.importToml')"
+      @click="emit('import')"
+    >
       <IconifyIconOffline icon="file-open-rounded" />
     </el-button>
-    <el-button plain type="primary" @click="emit('export')">
+    <el-button
+      :aria-label="t('config.button.exportConfig')"
+      :title="t('config.button.exportConfig')"
+      @click="emit('export')"
+    >
       <IconifyIconOffline icon="file-save-rounded" />
     </el-button>
     <el-button

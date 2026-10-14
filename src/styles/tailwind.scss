@@ -1,10 +1,15 @@
 @import url("tailwindcss");
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-bg_color: var(--el-bg-color);
-  --color-primary: var(--el-color-primary);
-  --color-primary_light_9: var(--el-color-primary-light-9);
+  --color-primary: var(--app-primary-text);
+  --color-primary_light_9: var(--app-primary-soft);
   --color-text_color_primary: var(--el-text-color-primary);
   --color-text_color_regular: var(--el-text-color-regular);
+  --color-text_color_secondary: var(--el-text-color-secondary);
   --color-text_color_disabled: var(--el-text-color-disabled);
+  --color-surface: var(--app-surface);
+  --color-line: var(--app-border);
 }

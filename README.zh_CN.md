@@ -49,6 +49,7 @@
 - [x] tcp、udp协议支持批量端口
 - [x] support multiple languages
 - [x] 支持代理快速搜索及卡片/列表分页
+- [x] 支持浅色、深色和跟随系统外观
 
 
 ## 开发
