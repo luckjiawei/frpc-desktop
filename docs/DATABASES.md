@@ -11,11 +11,11 @@
 - 支持事务、数据库版本管理以及失败后安全回滚；
 - 为未来多服务端配置预留扩展空间，但本次迁移仍保持单服务端行为。
 
-本文档只定义目标结构与迁移原则，不包含具体 SQLite 驱动选型和实现代码。
+当前实现位于 Tauri Rust 后端：`src-tauri/src/db/`（rusqlite，bundled SQLite）与 `src-tauri/migrations/`。Electron 1.2.7 已使用同一份 SQLite 结构（迁移 001），2.0.0 起由 Tauri 继续读写，兼容规则见第 10 节。
 
-## 2. 当前持久化结构
+## 2. 旧版 NeDB 持久化结构（Electron <= 1.2.6）
 
-当前数据库目录为 Electron `app.getPath("userData")/db`，由 `BaseRepository` 创建以下文件：
+旧版数据库目录为 Electron `app.getPath("userData")/db`，包含以下文件：
 
 | NeDB 文件 | 持久化对象 | 主键与访问特征 |
 | --- | --- | --- |
@@ -40,7 +40,10 @@ server（固定 id = "1"）
 ### 3.1 数据库文件
 
 - 文件名：`frpc-desktop.sqlite3`
-- 路径：`app.getPath("userData")/db/frpc-desktop.sqlite3`
+- 路径：`<系统配置目录>/Frpc-Desktop/db/frpc-desktop.sqlite3`，与 Electron `app.getPath("userData")` 保持一致：
+  - macOS：`~/Library/Application Support/Frpc-Desktop`
+  - Windows：`%APPDATA%\Frpc-Desktop`
+  - Linux：`$XDG_CONFIG_HOME/Frpc-Desktop`（默认 `~/.config/Frpc-Desktop`）
 - 一个应用实例只使用一个数据库连接管理组件；Repository 不应各自创建独立数据库文件。
 - 不手工修改数据库文件、`-wal` 文件或 `-shm` 文件。
 
@@ -59,7 +62,7 @@ PRAGMA busy_timeout = 5000;
 
 - `foreign_keys` 必须按连接开启；
 - WAL 提升异常退出后的恢复能力，并减少读写互相阻塞；
-- 当前 Electron 主进程是唯一数据库写入方，不允许 renderer 直接访问数据库；
+- Tauri Rust 后端是唯一数据库写入方，不允许前端直接访问数据库；
 - 数据库关闭或备份时，需要同时正确处理 WAL checkpoint。
 
 ### 3.3 命名和类型
@@ -309,6 +312,8 @@ flowchart LR
 
 ## 6. NeDB 到 SQLite 的迁移
 
+实现位于 `src-tauri/src/db/nedb_import.rs`，在 schema migration 之后、创建默认配置之前执行。已有 `migration/nedb_v2_imported` 标记（Electron 1.2.7 导入过）时直接跳过。
+
 ### 6.1 触发条件
 
 应用启动且满足以下条件时执行一次迁移：
@@ -366,9 +371,9 @@ flowchart LR
 
 ## 7. 安全、备份与维护
 
-- 数据库仅由 Electron main process 访问，renderer 必须通过现有 IPC 路由调用；
-- main process 必须继续校验 renderer 传入的 ID、路径、端口、状态和下载参数；
-- 数据库目录与备份文件沿用 Electron userData 的用户级权限，不得扩大访问权限；
+- 数据库仅由 Tauri Rust 后端访问，前端必须通过现有 IPC 路由调用；
+- Rust 后端必须继续校验前端传入的 ID、路径、端口、状态和下载参数；
+- 数据库目录与备份文件沿用用户级数据目录权限，不得扩大访问权限；
 - 日志只记录操作类型、记录 ID 和错误码，不记录 token、密码、secret key、代理 URL 或证书内容；
 - “重置全部配置”需要删除 SQLite 主文件及其 `-wal`、`-shm` 文件，或优先通过数据库连接执行事务性清空；
 - 在线备份优先使用 SQLite backup API；直接复制前必须 checkpoint 并关闭连接；
@@ -385,7 +390,7 @@ flowchart LR
 
 ## 9. 实施顺序建议
 
-1. 选定支持 Electron 当前 ABI、事务和参数绑定的 SQLite 驱动；
+1. 选定支持事务和参数绑定的 SQLite 驱动（当前为 rusqlite bundled）；
 2. 新增单例数据库连接和版本化 migration runner；
 3. 实现应用配置 Repository，以及行记录与现有 TypeScript 类型之间的 mapper；
 4. 将现有 3 个 Repository 切换到 SQLite，并保持公共方法签名不变；
@@ -393,3 +398,18 @@ flowchart LR
 6. 实现幂等 NeDB 导入器、备份与完整性校验；
 7. 调整“重置全部配置”以及应用退出时的连接关闭逻辑；
 8. 执行 lint、build，并分别验证全新安装、正常迁移、损坏数据、迁移中断和回滚场景。
+
+## 10. Electron 1.x 升级到 Tauri 2.x 的兼容规则
+
+2.0.0 起应用由 Tauri 实现，必须保证 1.x 用户原地升级后数据不丢失：
+
+- **数据目录**：沿用 Electron `userData` 路径（见 3.1），不得改为 `dirs::data_dir()` 等其他目录；
+- **应用标识**：bundle identifier 保持 `priv.liujiawei.frpc.desktop`，安装包覆盖升级旧版；
+- **migration 历史**：`t_frpcd_schema_migrations` 的版本号沿用 Electron，新迁移只能追加编号。Electron 1.2.7 只发布了 001，记录名为 `initial_schema`（不带编号前缀），002、003 由 Tauri 补齐；Rust 迁移器只按版本号判断，不校验名称；
+- **JSON 字段名**：JSON 列沿用 Electron/前端字段名，非标准 camelCase 的字段需在 Rust 中显式 `serde(rename)`，例如 `proxyURL`、`connectServerLocalIP`、`disableCustomTLSFirstByte`；
+- **JSON 容错**：JSON 列通过 `from_json_lenient` 解码，`null` 回退为字段默认值，单个不兼容字段只丢弃该字段，不得整体重置对象；
+- **frpc 二进制**：Electron 下载的版本以 `md5("frpc")`（Windows 加 `.exe`）命名，`VersionManager::resolve_frpc_binary` 必须同时识别新旧文件名，避免误删版本记录；
+- **新手引导**：完成状态保存在 `t_frpcd_app_config` 的 `onboarding/guide_completed`（不受“重置全部配置”影响）。旧版保存在 webview localStorage，升级后无法读取，因此已有安装（迁移 001 已存在或刚导入 NeDB）启动时自动标记为已完成；
+- **NeDB**：<= 1.2.6 用户的 NeDB 文件按第 6 节导入，成功后改名为 `*.migrated-<时间>.bak` 保留。
+
+修改上述任一规则前，必须补充迁移或回退方案，并更新 `src-tauri/src/db/mod.rs` 中的兼容性测试。

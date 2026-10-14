@@ -71,15 +71,16 @@ impl AppState {
                 Some(p) => PathBuf::from(p),
                 None => return Err(("B1005".to_string(), "未找到版本（本地路径为空）".to_string())),
             };
-            let bin = local_path.join(VersionManager::get_frpc_executable_name());
-            if !bin.exists() {
-                let _ = VersionRepository::delete_by_github_release_id(&conn, release_id);
-                return Err((
-                    "B1005".to_string(),
-                    "未找到版本（可执行文件不存在或已被杀毒软件清除，已清理无效记录，请重新下载或添加信任）".to_string(),
-                ));
+            match VersionManager::resolve_frpc_binary(&local_path) {
+                Some(bin) => bin,
+                None => {
+                    let _ = VersionRepository::delete_by_github_release_id(&conn, release_id);
+                    return Err((
+                        "B1005".to_string(),
+                        "未找到版本（可执行文件不存在或已被杀毒软件清除，已清理无效记录，请重新下载或添加信任）".to_string(),
+                    ));
+                }
             }
-            bin
         } else {
             let detected = FrpcDetector::detect();
             if detected.found {
@@ -540,6 +541,20 @@ async fn handle_ipc_send(
         }
         "system/relaunchApp" => {
             app.restart();
+        }
+        "system/getGuideStatus" => {
+            let conn = state.db.conn();
+            match AppConfigRepository::is_guide_completed(&conn) {
+                Ok(completed) => ApiResponse::success(Value::Bool(completed)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "system/completeGuide" => {
+            let conn = state.db.conn();
+            match AppConfigRepository::save_guide_completed(&conn) {
+                Ok(()) => ApiResponse::success_empty(),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
         }
         "system/openAppData" => {
             let _ = SystemService::open_path(&state.app_data_dir);

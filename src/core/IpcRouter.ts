@@ -126,6 +126,14 @@ export const ipcRouters: IpcRouters = {
       path: "system/relaunchApp",
       controller: "systemController.relaunchApp"
     },
+    getGuideStatus: {
+      path: "system/getGuideStatus",
+      controller: "systemController.getGuideStatus"
+    },
+    completeGuide: {
+      path: "system/completeGuide",
+      controller: "systemController.completeGuide"
+    },
     openAppData: {
       path: "system/openAppData",
       controller: "systemController.openAppData"

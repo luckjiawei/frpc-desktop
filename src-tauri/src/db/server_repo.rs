@@ -64,15 +64,15 @@ impl ServerRepository {
                 let custom_frpc_path: String = row.get(13).unwrap_or_default();
 
                 let auth: AuthConfig =
-                    serde_json::from_str(&auth_json).unwrap_or_default();
+                    crate::db::from_json_lenient(&auth_json);
                 let log: LogConfig =
-                    serde_json::from_str(&log_json).unwrap_or_default();
+                    crate::db::from_json_lenient(&log_json);
                 let web_server: WebServerConfig =
-                    serde_json::from_str(&web_server_json).unwrap_or_default();
+                    crate::db::from_json_lenient(&web_server_json);
                 let transport: TransportConfig =
-                    serde_json::from_str(&transport_json).unwrap_or_default();
+                    crate::db::from_json_lenient(&transport_json);
                 let metadatas: HashMap<String, serde_json::Value> =
-                    serde_json::from_str(&metadatas_json).unwrap_or_default();
+                    crate::db::from_json_lenient(&metadatas_json);
 
                 Ok(OpenSourceFrpcDesktopServer {
                     id,

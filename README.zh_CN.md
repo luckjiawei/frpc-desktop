@@ -51,11 +51,21 @@
 - [x] 支持代理快速搜索及卡片/列表分页
 
 
+## 开发
+
+环境要求：Node.js 22.12+、npm 和稳定版 Rust 工具链（参见 [Tauri 环境准备](https://v2.tauri.app/zh-cn/start/prerequisites/)）。
+
+```sh
+npm ci
+npm run tauri:dev    # 以开发模式运行桌面应用
+npm run tauri:build  # 为当前平台构建安装包
+```
+
 ## 常见问题
 
-### macOS universal 构建在 better-sqlite3 预编译文件处失败
+### 从 1.x 升级
 
-使用 electron-builder 26 构建时，请保留 `electron-builder.json5` 中的 `mac.x64ArchFiles` 规则。该规则允许 better-sqlite3 随包携带、在两个架构包中内容相同的 `darwin-x64.node` 和 `darwin-arm64.node` 保留在 universal 应用中，运行时由 better-sqlite3 选择匹配的架构文件。在 macOS 上运行 `npm run build:electron:mac` 重新构建。
+2.0 版本基于 Tauri 重构，可直接覆盖升级 1.x 的 Electron 版本。服务器配置、代理、系统设置和已下载的 frpc 版本会自动保留；仍为旧 NeDB 格式的数据（1.2.6 及更早版本）会在首次启动时导入，原文件以 `*.bak` 保留。
 
 ## 里程碑
 

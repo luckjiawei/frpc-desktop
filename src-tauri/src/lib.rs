@@ -39,10 +39,11 @@ pub fn run() {
             }
         })
         .setup(|app| {
-            // Determine app data dir
-            let base_dir = dirs::data_dir()
+            // Keep the same data dir as Electron's app.getPath("userData") so
+            // 1.x users keep their SQLite database, logs and downloaded frpc.
+            let base_dir = dirs::config_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
-                .join("frpc-desktop");
+                .join("Frpc-Desktop");
             let _ = fs::create_dir_all(&base_dir);
 
             let db_dir = base_dir.join("db");
