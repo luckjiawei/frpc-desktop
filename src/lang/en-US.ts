@@ -5,7 +5,10 @@ export default {
   },
   router: {
     home: {
-      title: "Launch"
+      title: "Dashboard"
+    },
+    tunnel: {
+      title: "Instances"
     },
     proxy: {
       title: "Proxy"
@@ -14,7 +17,10 @@ export default {
       title: "Download"
     },
     config: {
-      title: "Config"
+      title: "Instance Config"
+    },
+    system: {
+      title: "Settings"
     },
     logger: {
       title: "Logger"
@@ -45,52 +51,126 @@ export default {
     },
     dashboard: {
       notConfigured: "No server configured yet",
+      instances: "Running instances",
+      instancesHint: "{total} in total",
+      errors: "Connection errors",
+      errorsHint: "Check logs on the Instances page",
+      noErrors: "All good",
+      statusTitle: "Instance status",
+      manageInstances: "Manage instances",
+      noInstances: "No instances",
+      status: "Status",
+      instance: "Instance",
       proxies: "Proxies",
       proxiesValue: "{enabled} / {total} enabled",
       server: "Server",
-      protocol: "Protocol",
-      tlsOn: "TLS on",
-      tlsOff: "TLS off",
-      port: "Port {port}",
       manage: "Manage versions",
-      frpcVersion: "frpc version",
-      customPath: "Custom path",
-      notSelected: "Not selected",
-      recentLogs: "Recent logs",
-      viewAll: "View all",
-      noLogs: "No logs yet. They'll appear here after frpc starts."
+      frpcVersion: "frpc version"
     },
     status: {
       running: "Running",
       disconnected: "Disconnected",
       connectionError: "Connection Failed",
-      runningTime: "Running Time",
-      frpcStatus: "Frpc {status}"
+      runningTime: "Running Time"
     },
     button: {
       start: "Start",
-      stop: "Stop",
-      viewLog: "View Log"
+      stop: "Stop"
     },
     alert: {
       configRequired: {
         title: "Prompt",
         message:
-          "Please go to the settings page and modify the configuration before starting",
-        confirm: "Go to Settings"
+          "Please go to the config page and modify the configuration before starting",
+        confirm: "Go to Config"
       },
       versionNotFound: {
         title: "Prompt",
         message:
-          "Please go to the settings page and select the version before starting",
-        confirm: "Go to Settings"
+          "Please go to the config page and select the version before starting",
+        confirm: "Go to Config"
       },
       webServerPortInUse: {
         title: "Prompt",
         message:
-          "The web server port is already in use, please go to the settings page and change the port",
-        confirm: "Go to Settings"
+          "The web server port is already in use, please go to the config page and change the port",
+        confirm: "Go to Config"
+      },
+      visitorPortInUse: {
+        title: "Prompt",
+        message:
+          "A visitor bind port is already in use (possibly by another instance). Change the proxy configuration before starting",
+        confirm: "Go to Proxies"
       }
+    }
+  },
+  system: {
+    title: {
+      data: "Data"
+    },
+    resetAllHint:
+      "Deletes all instances, proxies and system settings. Downloaded frpc versions are kept.",
+    alert: {
+      resetAll: {
+        title: "Reset All Config",
+        message:
+          "All instances are stopped and deleted together with their proxies, and system settings are restored to defaults. This cannot be undone. Continue?",
+        confirm: "Reset",
+        cancel: "Cancel"
+      }
+    }
+  },
+  tunnel: {
+    switcher: "Switch instance",
+    autoStart: "Auto connect on startup",
+    autoStartHint:
+      'Also requires "Auto connect on startup" to be enabled in Settings',
+    defaultHint: "The default instance cannot be deleted",
+    back: "Back to instances",
+    log: {
+      title: "{name} · Logs"
+    },
+    button: {
+      create: "New Instance",
+      startAll: "Start All",
+      stopAll: "Stop All",
+      config: "Config",
+      proxies: "Proxies",
+      logs: "Logs",
+      rename: "Rename",
+      delete: "Delete",
+      more: "More actions"
+    },
+    prompt: {
+      createTitle: "New Instance",
+      renameTitle: "Rename Instance",
+      nameLabel: "Instance name",
+      namePlaceholder: "e.g. Office frps",
+      nameInvalid: "Enter a name of 1-64 characters",
+      confirm: "OK",
+      cancel: "Cancel"
+    },
+    delete: {
+      title: "Delete Instance",
+      message:
+        'Delete instance "{name}"? A running instance is stopped first, and all of its proxies are deleted. This cannot be undone.',
+      confirm: "Delete",
+      cancel: "Cancel"
+    },
+    switchDirty: {
+      title: "Unsaved Changes",
+      message:
+        "Settings of the current instance have not been saved and will be lost if you switch. Continue?",
+      confirm: "Switch",
+      cancel: "Cancel"
+    },
+    message: {
+      createSuccess: "Instance created",
+      renameSuccess: "Instance renamed",
+      deleteSuccess: "Instance deleted",
+      autoStartOn: "Auto connect on startup enabled",
+      autoStartOff: "Auto connect on startup disabled",
+      launchAllFailed: "{count} instance(s) failed to start: {detail}"
     }
   },
   comingSoon: {
@@ -148,16 +228,14 @@ export default {
     content: {
       empty: "No log"
     },
-    tab: {
-      appLog: "App Log",
-      frpcLog: "Frpc Log"
-    },
     search: {
       placeholder: "Search logs..."
     },
     loading: {
       text: "Loading..."
     },
+    refresh: "Refresh logs",
+    openFile: "Open log file",
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"
   },

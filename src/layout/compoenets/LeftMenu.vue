@@ -42,29 +42,32 @@ const routes = ref<Array<RouteRecordRaw>>([]);
 const guideSteps = ref({
   Home: {
     step: "1",
-    intro: "此功能用于控制frpc的连接状态，您可以轻松地断开或重新连接。"
+    intro: "仪表盘汇总了所有实例的运行状态、代理数量和连接异常。"
+  },
+  Tunnel: {
+    step: "2",
+    intro:
+      "在这里管理 frpc 实例：新建、启动或断开连接，进入实例的配置，或查看实例日志。"
   },
   Proxy: {
-    step: "2",
+    step: "3",
     intro:
       "在这里，您可以方便地配置和管理代理设置。无论是添加、修改还是删除代理，您都可以轻松完成。"
   },
   Download: {
-    step: "3",
+    step: "4",
     intro: "通过此功能，您可以快速下载最新版本的frp。"
   },
-  Config: {
-    step: "4",
-    intro:
-      "此功能允许您设置软件的各种配置选项，包括连接方式等。根据您的需求进行个性化设置，以优化使用体验。"
+  System: {
+    step: "5",
+    intro: "在这里设置开机自启、静默启动、启动时自动连接和语言等全局选项。"
   },
   Logger: {
-    step: "5",
-    intro:
-      "在日志查看功能中，您可以实时查看FRP连接的日志信息。这有助于您监控连接状态，及时排查可能出现的问题。"
+    step: "6",
+    intro: "在这里查看应用日志；各实例的 frpc 日志可在实例页面中查看。"
   },
   Version: {
-    step: "6",
+    step: "7",
     intro:
       "通过此功能，您可以查看当前安装的Frpc-Desktop版本，并检查是否有可用更新。"
   }
@@ -72,6 +75,12 @@ const guideSteps = ref({
 const currentRoute = computed(() => {
   return router.currentRoute.value;
 });
+// 隐藏的子页面（如实例配置）通过 meta.activeMenu 高亮所属菜单
+const activeMenuName = computed(
+  () =>
+    (currentRoute.value?.meta?.activeMenu as string | undefined) ??
+    currentRoute.value?.name
+);
 
 /**
  * 菜单切换
@@ -157,8 +166,8 @@ onUnmounted(() => {
         <button
           type="button"
           class="menu-item"
-          :class="{ 'is-active': currentRoute?.name === r.name }"
-          :aria-current="currentRoute?.name === r.name ? 'page' : undefined"
+          :class="{ 'is-active': activeMenuName === r.name }"
+          :aria-current="activeMenuName === r.name ? 'page' : undefined"
           :aria-label="t(r.meta?.title as string)"
           :data-step="guideSteps[r.name]?.step"
           :data-intro="guideSteps[r.name]?.intro"

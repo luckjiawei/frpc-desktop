@@ -7,6 +7,8 @@ import InfoSharp from "@iconify-icons/material-symbols/info-sharp";
 import refreshRounded from "@iconify-icons/material-symbols/refresh-rounded";
 import RocketLaunchRounded from "@iconify-icons/material-symbols/rocket-launch-rounded";
 import Settings from "@iconify-icons/material-symbols/settings";
+import TuneRounded from "@iconify-icons/material-symbols/tune-rounded";
+import ArrowBackRounded from "@iconify-icons/material-symbols/arrow-back-rounded";
 
 import Add from "@iconify-icons/material-symbols/add";
 import attachMoneyRounded from "@iconify-icons/material-symbols/attach-money-rounded";
@@ -67,6 +69,8 @@ addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
 addIcon("download", Download);
 addIcon("settings", Settings);
+addIcon("tune-rounded", TuneRounded);
+addIcon("arrow-back-rounded", ArrowBackRounded);
 addIcon("file-copy-sharp", FileCopySharp);
 addIcon("info-sharp", InfoSharp);
 addIcon("refresh-rounded", refreshRounded);

@@ -1,24 +1,31 @@
 type FrpcDesktopProxy = FrpcProxyConfig & {};
 
-interface FrpcProcessStatus {
-  running: boolean;
-  connectionError: string | null;
-  lastStartTime?: number;
+/** 隧道实例（t_frpcd_tunnels）；默认实例 id 为 "1" */
+interface Tunnel {
+  id: string;
+  name: string;
+  provider: "frpc";
+  autoStart: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-/** launch/getOverview：启动页仪表盘的只读摘要（不含任何密钥） */
-interface FrpcHomeOverview {
+/** tunnel/list：实例列表项（不含任何密钥） */
+interface TunnelSummary extends Tunnel {
   serverAddr: string;
   serverPort: number;
-  protocol: string;
-  tlsEnable: boolean;
-  webServerEnable: boolean;
-  webServerPort: number;
-  frpcVersion: string | null;
-  customFrpcPath: boolean;
   proxyTotal: number;
   proxyEnabled: number;
-  recentLogs: string[];
+}
+
+/** tunnel:status 事件与 launch/getStatus(es) 返回的运行状态 */
+interface TunnelStatus {
+  tunnelId: string;
+  provider: string;
+  running: boolean;
+  connectionError: string | null;
+  lastStartTime: number | null;
 }
 
 interface BaseEntity {
@@ -60,5 +67,7 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
 
 type FrpcProxy = BaseEntity &
   FrpcProxyConfig & {
+    /** 所属隧道实例 id */
+    serverId?: string;
     status: number; // 0: disable 1: enable
   };

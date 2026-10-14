@@ -1,4 +1,5 @@
 use crate::db::app_config_repo::AppConfigRepository;
+use crate::db::tunnel_repo::{TunnelRepository, DEFAULT_TUNNEL_ID};
 use crate::models::{
     AuthConfig, LogConfig, OpenSourceFrpcDesktopServer, TransportConfig, WebServerConfig,
 };
@@ -10,7 +11,7 @@ pub struct ServerRepository;
 impl ServerRepository {
     pub fn create_default_server() -> OpenSourceFrpcDesktopServer {
         let mut server = OpenSourceFrpcDesktopServer::default();
-        server.id = "1".to_string();
+        server.id = DEFAULT_TUNNEL_ID.to_string();
         server.server_port = 7000;
         server.udp_packet_size = 1500;
         server.log = LogConfig {
@@ -38,16 +39,21 @@ impl ServerRepository {
         server
     }
 
-    pub fn get_server_config(conn: &Connection) -> Result<OpenSourceFrpcDesktopServer> {
+    /// Reads the frpc settings of a tunnel plus the global desktop settings.
+    /// Missing frpc settings of an existing tunnel are created with defaults.
+    pub fn get_server_config(
+        conn: &Connection,
+        tunnel_id: &str,
+    ) -> Result<OpenSourceFrpcDesktopServer> {
         let mut stmt = conn.prepare(
             "SELECT id, frpc_version, multiuser, user, server_addr, server_port,
                     login_fail_exit, udp_packet_size, auth_json, log_json,
                     web_server_json, transport_json, metadatas_json, custom_frpc_path
-             FROM t_frpcd_servers WHERE id = '1'",
+             FROM t_frpcd_servers WHERE id = ?1",
         )?;
 
         let server_opt = stmt
-            .query_row([], |row| {
+            .query_row(params![tunnel_id], |row| {
                 let id: String = row.get(0)?;
                 let frpc_version: Option<i64> = row.get(1)?;
                 let multiuser_int: i64 = row.get(2)?;
@@ -97,8 +103,14 @@ impl ServerRepository {
         let mut server = match server_opt {
             Some(s) => s,
             None => {
-                let default_s = Self::create_default_server();
-                Self::save_server_config(conn, &default_s)?;
+                if tunnel_id == DEFAULT_TUNNEL_ID {
+                    TunnelRepository::ensure_default(conn)?;
+                } else if TunnelRepository::find(conn, tunnel_id)?.is_none() {
+                    return Err(rusqlite::Error::QueryReturnedNoRows);
+                }
+                let mut default_s = Self::create_default_server();
+                default_s.id = tunnel_id.to_string();
+                Self::save_frpc_settings(conn, &default_s)?;
                 default_s
             }
         };
@@ -110,7 +122,21 @@ impl ServerRepository {
         Ok(server)
     }
 
+    /// Saves the frpc settings of `server.id` and the global desktop settings.
     pub fn save_server_config(
+        conn: &Connection,
+        server: &OpenSourceFrpcDesktopServer,
+    ) -> Result<()> {
+        if server.id == DEFAULT_TUNNEL_ID {
+            TunnelRepository::ensure_default(conn)?;
+        }
+        Self::save_frpc_settings(conn, server)?;
+        AppConfigRepository::save_system_config(conn, &server.system)?;
+        Ok(())
+    }
+
+    /// Saves only the `t_frpcd_servers` row; the tunnel row must exist.
+    pub fn save_frpc_settings(
         conn: &Connection,
         server: &OpenSourceFrpcDesktopServer,
     ) -> Result<()> {
@@ -129,7 +155,7 @@ impl ServerRepository {
                 login_fail_exit, udp_packet_size, auth_json, log_json,
                 web_server_json, transport_json, metadatas_json, custom_frpc_path
             ) VALUES (
-                '1', ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14
             ) ON CONFLICT(id) DO UPDATE SET
                 frpc_version = excluded.frpc_version,
                 multiuser = excluded.multiuser,
@@ -145,6 +171,7 @@ impl ServerRepository {
                 metadatas_json = excluded.metadatas_json,
                 custom_frpc_path = excluded.custom_frpc_path",
             params![
+                server.id,
                 server.frpc_version,
                 if server.multiuser { 1 } else { 0 },
                 server.user,
@@ -160,12 +187,12 @@ impl ServerRepository {
                 server.custom_frpc_path,
             ],
         )?;
-
-        AppConfigRepository::save_system_config(conn, &server.system)?;
         Ok(())
     }
 
+    /// Removes every tunnel except the default one and resets all settings.
     pub fn reset_all_config(conn: &Connection) -> Result<()> {
+        TunnelRepository::reset(conn)?;
         conn.execute("DELETE FROM t_frpcd_proxies", [])?;
         conn.execute("DELETE FROM t_frpcd_servers", [])?;
         conn.execute(

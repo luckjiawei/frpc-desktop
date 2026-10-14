@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import confetti from "canvas-confetti/src/confetti.js";
@@ -21,7 +23,6 @@ import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import ConfigToolbar from "./ConfigToolbar.vue";
 import LogConfig from "./LogConfig.vue";
-import SystemConfig from "./SystemConfig.vue";
 import WebServerConfig from "./WebServerConfig.vue";
 
 defineOptions({
@@ -216,27 +217,6 @@ const rules = reactive<FormRules>({
       trigger: "blur"
     }
   ],
-  "system.launchAtStartup": [
-    {
-      required: true,
-      message: t("config.form.systemLaunchAtStartup.requireMessage"),
-      trigger: "change"
-    }
-  ],
-  "system.silentStartup": [
-    {
-      required: true,
-      message: t("config.form.systemSilentStartup.requireMessage"),
-      trigger: "change"
-    }
-  ],
-  "system.autoConnectOnStartup": [
-    {
-      required: true,
-      message: t("config.form.systemAutoConnectOnStartup.requireMessage"),
-      trigger: "change"
-    }
-  ],
   "transport.heartbeatInterval": [
     {
       required: true,
@@ -302,13 +282,6 @@ const rules = reactive<FormRules>({
       message: t("config.form.transportTcpMuxKeepaliveInterval.requireMessage"),
       trigger: "change"
     }
-  ],
-  "system.language": [
-    {
-      required: true,
-      message: t("config.form.systemLanguage.requireMessage"),
-      trigger: "change"
-    }
   ]
 });
 const copyServerConfigBase64 = ref();
@@ -319,6 +292,7 @@ const currSelectLocalFileType = ref();
 const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
 const frpcDesktopStore = useFrpcDesktopStore();
+const tunnelStore = useTunnelStore();
 const formDirty = ref(false);
 let hydratingForm = true;
 let hasActivatedOnce = false;
@@ -398,8 +372,36 @@ const checkAndResetVersion = () => {
 
 const handleLoadSavedConfig = () => {
   loading.value = 1;
-  send(ipcRouters.SERVER.getServerConfig);
+  send(ipcRouters.SERVER.getServerConfig, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
 };
+
+const confirmTunnelSwitch = async () => {
+  if (!formDirty.value) return true;
+  try {
+    await ElMessageBox.confirm(
+      t("tunnel.switchDirty.message"),
+      t("tunnel.switchDirty.title"),
+      {
+        type: "warning",
+        confirmButtonText: t("tunnel.switchDirty.confirm"),
+        cancelButtonText: t("tunnel.switchDirty.cancel")
+      }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+watch(
+  () => tunnelStore.currentTunnelId,
+  () => {
+    formDirty.value = false;
+    handleLoadSavedConfig();
+  }
+);
 
 onMounted(() => {
   // handleLoadDownloadedVersion();
@@ -407,6 +409,8 @@ onMounted(() => {
 
   listenerCleanups.push(
     on(ipcRouters.SERVER.getServerConfig, data => {
+      // 其他页面或切换前发出的请求，不覆盖当前实例的表单
+      if (data && data._id !== tunnelStore.currentTunnelId) return;
       hydratingForm = true;
       if (data) {
         formData.value = data;
@@ -446,7 +450,7 @@ onMounted(() => {
       });
       loading.value = 0;
       formDirty.value = false;
-      frpcDesktopStore.getLanguage();
+      tunnelStore.refreshTunnels();
     })
   );
 
@@ -511,22 +515,6 @@ onMounted(() => {
   );
 
   listenerCleanups.push(
-    on(ipcRouters.SERVER.resetAllConfig, () => {
-      ElMessageBox.alert(
-        t("config.alert.resetConfigSuccess.message"),
-        t("config.alert.resetConfigSuccess.title"),
-        {
-          closeOnClickModal: false,
-          showClose: false,
-          confirmButtonText: t("config.alert.resetConfigSuccess.confirm")
-        }
-      ).then(() => {
-        send(ipcRouters.SYSTEM.relaunchApp);
-      });
-    })
-  );
-
-  listenerCleanups.push(
     on(ipcRouters.SERVER.importTomlConfig, data => {
       const { canceled, path } = data;
       if (!canceled) {
@@ -564,26 +552,6 @@ onMounted(() => {
     })
   );
   // ElMessageBox.alert(data, `提示`);
-  listenerCleanups.push(
-    on(ipcRouters.SYSTEM.openAppData, () => {
-      ElMessage({
-        type: "success",
-        message: t("config.message.openAppDataSuccess")
-      });
-    })
-  );
-
-  listenerCleanups.push(
-    on(ipcRouters.SERVER.saveLanguage, () => {
-      ElMessage({
-        type: "success",
-        message: t("config.message.saveSuccess")
-      });
-      loading.value = 0;
-      frpcDesktopStore.getLanguage();
-    })
-  );
-
   window.addEventListener("keydown", handleKeydown);
 });
 
@@ -705,34 +673,14 @@ const handleShowExportDialog = () => {
 };
 
 const handleExportConfig = useDebounceFn(() => {
-  send(ipcRouters.SERVER.exportConfig);
+  send(ipcRouters.SERVER.exportConfig, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
   // visibles.exportConfig = false;
 }, 300);
 
 const handleImportConfig = () => {
   send(ipcRouters.SERVER.importTomlConfig);
-};
-
-const handleResetConfig = () => {
-  ElMessageBox.alert(
-    t("config.alert.resetConfig.message"),
-    t("config.alert.resetConfig.title"),
-    {
-      showCancelButton: true,
-      cancelButtonText: t("config.alert.resetConfig.cancel"),
-      confirmButtonText: t("config.alert.resetConfig.confirm")
-    }
-  ).then(() => {
-    send(ipcRouters.SERVER.resetAllConfig);
-  });
-};
-
-const handleOpenDataFolder = useDebounceFn(() => {
-  send(ipcRouters.SYSTEM.openAppData);
-}, 300);
-
-const handleSystemLanguageChange = e => {
-  send(ipcRouters.SERVER.saveLanguage, e);
 };
 
 onUnmounted(() => {
@@ -745,11 +693,13 @@ onUnmounted(() => {
     <ConfigToolbar
       @export="handleExportConfig"
       @import="handleImportConfig"
-      @open-data="handleOpenDataFolder"
       @refresh="handleLoadSavedConfig"
-      @reset="handleResetConfig"
       @save="handleSubmit"
-    />
+    >
+      <template #title-extra>
+        <TunnelSwitcher always-show :before-change="confirmTunnelSwitch" />
+      </template>
+    </ConfigToolbar>
     <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
       <div class="p-4 w-full app-panel">
         <el-form
@@ -1684,10 +1634,6 @@ onUnmounted(() => {
 
             <WebServerConfig v-model="formData" />
             <LogConfig v-model="formData" />
-            <SystemConfig
-              v-model="formData"
-              @language-change="handleSystemLanguageChange"
-            />
           </el-row>
         </el-form>
       </div>

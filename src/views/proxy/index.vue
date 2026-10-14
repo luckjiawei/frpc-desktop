@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
+import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { refDebounced, useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
@@ -24,6 +26,7 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const tunnelStore = useTunnelStore();
 
 const hostPattern =
   /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
@@ -458,6 +461,7 @@ const handleSubmit = async () => {
       if (data._id) {
         send(ipcRouters.PROXY.modifyProxy, data);
       } else {
+        data.serverId = tunnelStore.currentTunnelId;
         send(ipcRouters.PROXY.createProxy, data);
       }
     }
@@ -481,12 +485,28 @@ const handleDeleteLocation = (index: number) => {
 };
 
 const handleLoadProxies = () => {
-  send(ipcRouters.PROXY.getAllProxies);
+  send(ipcRouters.PROXY.getAllProxies, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
 };
 
 const handleLoadFrpcConfig = () => {
-  send(ipcRouters.SERVER.getServerConfig);
+  send(ipcRouters.SERVER.getServerConfig, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
 };
+
+watch(
+  () => tunnelStore.currentTunnelId,
+  () => {
+    edit.value.visible = false;
+    searchKeyword.value = "";
+    currentPage.value = 1;
+    loading.value.list = 1;
+    handleLoadProxies();
+    handleLoadFrpcConfig();
+  }
+);
 
 const handleDeleteProxy = (proxy: FrpcProxy) => {
   send(ipcRouters.PROXY.deleteProxy, proxy._id);
@@ -669,7 +689,7 @@ onMounted(() => {
 
   listenerCleanups.push(
     on(ipcRouters.SERVER.getServerConfig, data => {
-      if (data) {
+      if (data && data._id === tunnelStore.currentTunnelId) {
         frpcConfig.value = data;
       }
     })
@@ -678,7 +698,11 @@ onMounted(() => {
   listenerCleanups.push(
     on(ipcRouters.PROXY.getAllProxies, data => {
       loading.value.list = 0;
-      proxys.value = data;
+      // 切换实例时丢弃上一个实例迟到的响应
+      proxys.value = (data || []).filter(
+        (p: FrpcProxy) =>
+          !p.serverId || p.serverId === tunnelStore.currentTunnelId
+      );
     })
   );
 
@@ -792,7 +816,11 @@ onUnmounted(() => {
       v-model:view-mode="viewMode"
       @create="handleOpenInsert"
       @refresh="handleLoadProxies"
-    />
+    >
+      <template #title-extra>
+        <TunnelSwitcher />
+      </template>
+    </ProxyToolbar>
     <div v-loading="loading.list > 0" class="app-container-breadcrumb">
       <template v-if="filteredProxys && filteredProxys.length > 0">
         <el-row v-if="viewMode === 'card'" :gutter="15">

@@ -98,9 +98,35 @@ export const ipcRouters: IpcRouters = {
       path: "launch/getStatus",
       controller: "launchController.getStatus"
     },
-    getOverview: {
-      path: "launch/getOverview",
-      controller: "launchController.getOverview"
+    getStatuses: {
+      path: "launch/getStatuses",
+      controller: "launchController.getStatuses"
+    },
+    launchAll: {
+      path: "launch/launchAll",
+      controller: "launchController.launchAll"
+    },
+    terminateAll: {
+      path: "launch/terminateAll",
+      controller: "launchController.terminateAll"
+    }
+  },
+  TUNNEL: {
+    list: {
+      path: "tunnel/list",
+      controller: "tunnelController.list"
+    },
+    create: {
+      path: "tunnel/create",
+      controller: "tunnelController.create"
+    },
+    update: {
+      path: "tunnel/update",
+      controller: "tunnelController.update"
+    },
+    delete: {
+      path: "tunnel/delete",
+      controller: "tunnelController.delete"
     }
   },
   PROXY: {
@@ -130,6 +156,14 @@ export const ipcRouters: IpcRouters = {
     }
   },
   SYSTEM: {
+    getSystemConfig: {
+      path: "system/getSystemConfig",
+      controller: "systemController.getSystemConfig"
+    },
+    saveSystemConfig: {
+      path: "system/saveSystemConfig",
+      controller: "systemController.saveSystemConfig"
+    },
     openUrl: {
       path: "system/openUrl",
       controller: "systemController.openUrl"
@@ -166,9 +200,9 @@ export const listeners: Listeners = {
   //   listenerMethod: "logService.watchFrpcLog",
   //   channel: "log:watchFrpcLog"
   // },
-  watchFrpcProcess: {
-    listenerMethod: "frpcProcessService.watchFrpcProcess",
-    channel: "frpcProcess:watchFrpcLog"
+  watchTunnelStatus: {
+    listenerMethod: "runtimeManager.watchTunnelStatus",
+    channel: "tunnel:status"
   },
   watchSystemUsage: {
     listenerMethod: "systemService.getSystemUsage",

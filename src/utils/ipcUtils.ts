@@ -42,7 +42,7 @@ export const send = (router: IpcRouter, params?: any) => {
 export const on = (
   router: IpcRouter,
   listerHandler: (data: any) => void,
-  errHandler?: (bizCode: string, message: string) => void
+  errHandler?: (bizCode: string, message: string, data?: any) => void
 ) => {
   const channel = `${router.path}:hook`;
   const handler: HookHandler = (args: ApiResponse<any>) => {
@@ -51,7 +51,7 @@ export const on = (
       listerHandler(data);
     } else {
       if (errHandler) {
-        errHandler(bizCode, message);
+        errHandler(bizCode, message, data);
       } else {
         ElMessage({
           message: message,

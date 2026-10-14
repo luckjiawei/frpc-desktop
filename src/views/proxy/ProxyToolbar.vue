@@ -14,6 +14,9 @@ const { t } = useI18n();
 
 <template>
   <Breadcrumb>
+    <template #title-extra>
+      <slot name="title-extra" />
+    </template>
     <el-input
       v-model="searchKeyword"
       :placeholder="t('proxy.search')"

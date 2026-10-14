@@ -5,7 +5,10 @@ export default {
   },
   router: {
     home: {
-      title: "启动"
+      title: "仪表盘"
+    },
+    tunnel: {
+      title: "实例"
     },
     proxy: {
       title: "代理"
@@ -14,6 +17,9 @@ export default {
       title: "下载"
     },
     config: {
+      title: "实例配置"
+    },
+    system: {
       title: "设置"
     },
     logger: {
@@ -45,49 +51,120 @@ export default {
     },
     dashboard: {
       notConfigured: "尚未配置服务端",
+      instances: "运行中实例",
+      instancesHint: "共 {total} 个实例",
+      errors: "连接异常",
+      errorsHint: "请在实例页面查看日志",
+      noErrors: "全部正常",
+      statusTitle: "实例状态",
+      manageInstances: "管理实例",
+      noInstances: "暂无实例",
+      status: "状态",
+      instance: "实例",
       proxies: "代理",
       proxiesValue: "{enabled} / {total} 已启用",
       server: "服务端",
-      protocol: "传输协议",
-      tlsOn: "TLS 已开启",
-      tlsOff: "TLS 未开启",
-      port: "端口 {port}",
       manage: "管理版本",
-      frpcVersion: "frpc 版本",
-      customPath: "自定义路径",
-      notSelected: "未选择",
-      recentLogs: "最近日志",
-      viewAll: "查看全部",
-      noLogs: "暂无日志，启动 frpc 后会显示在这里。"
+      frpcVersion: "frpc 版本"
     },
     status: {
       running: "已启动",
       disconnected: "已断开",
       connectionError: "连接失败",
-      runningTime: "已运行",
-      frpcStatus: "Frpc {status}"
+      runningTime: "已运行"
     },
     button: {
       start: "启动",
-      stop: "断开",
-      viewLog: "查看日志"
+      stop: "断开"
     },
     alert: {
       configRequired: {
         title: "提示",
-        message: "请先前往设置页面，修改配置后再启动",
-        confirm: "去设置"
+        message: "请先前往配置页面，修改配置后再启动",
+        confirm: "去配置"
       },
       versionNotFound: {
         title: "提示",
-        message: "请先前往设置页面，选择版本后再启动",
-        confirm: "去设置"
+        message: "请先前往配置页面，选择版本后再启动",
+        confirm: "去配置"
       },
       webServerPortInUse: {
         title: "提示",
-        message: "Web界面端口已被占用，请前往设置页面更换 Web界面端口后再启动",
-        confirm: "去设置"
+        message: "Web界面端口已被占用，请前往配置页面更换 Web界面端口后再启动",
+        confirm: "去配置"
+      },
+      visitorPortInUse: {
+        title: "提示",
+        message:
+          "Visitor 的本地绑定端口已被占用（可能被其他实例使用），请修改代理配置后再启动",
+        confirm: "去代理"
       }
+    }
+  },
+  system: {
+    title: {
+      data: "数据"
+    },
+    resetAllHint: "删除所有实例、代理和系统设置，已下载的 frpc 版本会保留。",
+    alert: {
+      resetAll: {
+        title: "重置全部配置",
+        message:
+          "将停止并删除所有实例及其代理，并恢复默认的系统设置，且无法恢复。确定继续？",
+        confirm: "重置",
+        cancel: "取消"
+      }
+    }
+  },
+  tunnel: {
+    switcher: "切换实例",
+    autoStart: "启动时自动连接",
+    autoStartHint: "需同时在设置中开启“启动时自动连接”",
+    back: "返回实例",
+    log: {
+      title: "{name} · 日志"
+    },
+    defaultHint: "默认实例不可删除",
+    button: {
+      create: "新建实例",
+      startAll: "全部启动",
+      stopAll: "全部停止",
+      config: "配置",
+      proxies: "代理",
+      logs: "日志",
+      rename: "重命名",
+      delete: "删除",
+      more: "更多操作"
+    },
+    prompt: {
+      createTitle: "新建实例",
+      renameTitle: "重命名实例",
+      nameLabel: "实例名称",
+      namePlaceholder: "例如：公司 frps",
+      nameInvalid: "请输入 1-64 个字符的名称",
+      confirm: "确定",
+      cancel: "取消"
+    },
+    delete: {
+      title: "删除实例",
+      message:
+        "确定删除实例「{name}」吗？运行中的实例会先停止，其下的代理配置会一并删除，且无法恢复。",
+      confirm: "删除",
+      cancel: "取消"
+    },
+    switchDirty: {
+      title: "未保存的修改",
+      message: "当前实例的设置尚未保存，切换后修改将丢失。是否继续？",
+      confirm: "继续切换",
+      cancel: "取消"
+    },
+    message: {
+      createSuccess: "实例已创建",
+      renameSuccess: "实例已重命名",
+      deleteSuccess: "实例已删除",
+      autoStartOn: "已开启启动时自动连接",
+      autoStartOff: "已关闭启动时自动连接",
+      launchAllFailed: "{count} 个实例启动失败：{detail}"
     }
   },
   comingSoon: {
@@ -143,16 +220,14 @@ export default {
     content: {
       empty: "暂无日志"
     },
-    tab: {
-      appLog: "应用日志",
-      frpcLog: "连接日志"
-    },
     search: {
       placeholder: "搜索日志内容..."
     },
     loading: {
       text: "加载中..."
     },
+    refresh: "刷新日志",
+    openFile: "打开日志文件",
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
   },

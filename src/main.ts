@@ -1,4 +1,5 @@
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useTunnelStore } from "@/store/tunnel";
 import "animate.css";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
@@ -28,9 +29,8 @@ app
   .mount("#app")
   .$nextTick(() => {
     useThemeStore().init();
+    useTunnelStore().init();
     const frpcDesktopStore = useFrpcDesktopStore();
-    frpcDesktopStore.onListenerFrpcProcessRunning();
-    frpcDesktopStore.refreshRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();

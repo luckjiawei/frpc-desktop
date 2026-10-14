@@ -1,275 +1,92 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import router from "@/router";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { on, send } from "@/utils/ipcUtils";
-import { useDebounceFn } from "@vueuse/core";
-import { ElMessageBox } from "element-plus";
-import {
-  computed,
-  defineComponent,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch
-} from "vue";
+import { useTunnelStore } from "@/store/tunnel";
+import { computed, defineComponent, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "@/core/IpcRouter";
+import { useBulkLaunch, useTunnelStatus } from "@/views/tunnel/useTunnelStatus";
+
 defineComponent({
   name: "Home"
 });
 
-const frpcDesktopStore = useFrpcDesktopStore();
-const loading = ref(false);
-const now = ref(Date.now());
-let uptimeTimer: ReturnType<typeof setInterval> | null = null;
+// 仪表盘只做全局概览；实例的启停、配置和日志在“实例”页面管理
 const { t } = useI18n();
-const listenerCleanups: Array<() => void> = [];
-const overview = ref<FrpcHomeOverview | null>(null);
+const tunnelStore = useTunnelStore();
+const frpcDesktopStore = useFrpcDesktopStore();
+const { statusKey, statusLabel, uptimeText } = useTunnelStatus();
+const { bulk, startAll, stopAll } = useBulkLaunch();
 
-const refreshOverview = () => {
-  send(ipcRouters.LAUNCH.getOverview);
+const summary = computed(() => {
+  const tunnels = tunnelStore.tunnels;
+  return {
+    total: tunnels.length,
+    running: tunnels.filter(item => statusKey(item.id) !== "stopped").length,
+    errors: tunnels.filter(item => statusKey(item.id) === "error").length,
+    proxyEnabled: tunnels.reduce((sum, item) => sum + item.proxyEnabled, 0),
+    proxyTotal: tunnels.reduce((sum, item) => sum + item.proxyTotal, 0),
+    versions: frpcDesktopStore.downloadedVersions.length
+  };
+});
+
+const statusTagType = (tunnelId: string) => {
+  const key = statusKey(tunnelId);
+  return key === "running" ? "success" : key === "error" ? "warning" : "info";
 };
 
-const serverText = computed(() => {
-  const o = overview.value;
-  if (!o || !o.serverAddr) return "";
-  return `${o.serverAddr}:${o.serverPort}`;
-});
-
-const frpcVersionText = computed(() => {
-  const o = overview.value;
-  if (!o) return "";
-  if (o.customFrpcPath) return t("home.dashboard.customPath");
-  return o.frpcVersion || t("home.dashboard.notSelected");
-});
-
-// Three-state status: "running" | "error" | "stopped"
-const frpcStatus = computed(() => {
-  if (!frpcDesktopStore.frpcProcessRunning) return "stopped";
-  if (frpcDesktopStore.frpcConnectionError) return "error";
-  return "running";
-});
-
-const handleStartFrpc = () => {
-  send(ipcRouters.LAUNCH.launch);
-};
-
-const handleStopFrpc = () => {
-  send(ipcRouters.LAUNCH.terminate);
-};
-
-const handleButtonClick = useDebounceFn(() => {
-  loading.value = true;
-  if (frpcDesktopStore.frpcProcessRunning) {
-    handleStopFrpc();
-  } else {
-    handleStartFrpc();
-  }
-}, 300);
-
-const uptime = computed(() => {
-  const lastStartTime = frpcDesktopStore.frpcProcessLastStartTime;
-  const uptime =
-    frpcDesktopStore.frpcProcessRunning && lastStartTime > 0
-      ? Math.max(0, now.value - lastStartTime) / 1000
-      : 0;
-  const days = Math.floor(uptime / (24 * 60 * 60));
-  const hours = Math.floor((uptime % (24 * 60 * 60)) / (60 * 60));
-  const minutes = Math.floor((uptime % (60 * 60)) / 60);
-  const seconds = Math.ceil(uptime % 60);
-  let result = "";
-  if (days > 0) {
-    result += t("home.uptime.days", { days });
-  }
-  if (hours > 0) {
-    result += t("home.uptime.hours", { hours });
-  }
-  if (minutes > 0) {
-    result += t("home.uptime.minutes", { minutes });
-  }
-  result += t("home.uptime.seconds", { seconds });
-  return result;
-});
-
-// Reset loading whenever the running state changes (covers cases where the IPC
-// reply is delayed or never arrives, e.g. macOS sudo/osascript flow).
-watch(
-  () => frpcDesktopStore.frpcProcessRunning,
-  () => {
-    loading.value = false;
-    // 日志会在启动/停止后变化，稍等 frpc 写入后再刷新
-    window.setTimeout(refreshOverview, 1500);
-  }
+const startLabel = computed(() =>
+  tunnelStore.hasMultiple ? t("tunnel.button.startAll") : t("home.button.start")
+);
+const stopLabel = computed(() =>
+  tunnelStore.hasMultiple ? t("tunnel.button.stopAll") : t("home.button.stop")
 );
 
 onMounted(() => {
-  listenerCleanups.push(
-    on(ipcRouters.LAUNCH.getOverview, (data: FrpcHomeOverview) => {
-      overview.value = data;
-    })
-  );
-  refreshOverview();
-  uptimeTimer = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-  listenerCleanups.push(
-    on(
-      ipcRouters.LAUNCH.launch,
-      () => {
-        frpcDesktopStore.refreshRunning();
-        loading.value = false;
-      },
-      (bizCode: string, message: string) => {
-        console.log("bizCode", bizCode);
-        if (bizCode === "B1001") {
-          ElMessageBox.alert(
-            t("home.alert.configRequired.message"),
-            t("home.alert.configRequired.title"),
-            {
-              confirmButtonText: t("home.alert.configRequired.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        } else if (bizCode === "B1005") {
-          ElMessageBox.alert(
-            t("home.alert.versionNotFound.message"),
-            t("home.alert.versionNotFound.title"),
-            {
-              confirmButtonText: t("home.alert.versionNotFound.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        } else if (bizCode === "B1006") {
-          ElMessageBox.alert(
-            t("home.alert.webServerPortInUse.message"),
-            t("home.alert.webServerPortInUse.title"),
-            {
-              confirmButtonText: t("home.alert.webServerPortInUse.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        }
-        loading.value = false;
-      }
-    )
-  );
-
-  listenerCleanups.push(
-    on(ipcRouters.LAUNCH.terminate, () => {
-      frpcDesktopStore.refreshRunning();
-      loading.value = false;
-    })
-  );
-});
-
-onUnmounted(() => {
-  if (uptimeTimer) {
-    clearInterval(uptimeTimer);
-    uptimeTimer = null;
-  }
-  listenerCleanups.splice(0).forEach(off => off());
+  tunnelStore.refreshTunnels();
+  tunnelStore.refreshStatuses();
+  frpcDesktopStore.refreshDownloadedVersion();
 });
 </script>
 
 <template>
   <div class="main">
-    <breadcrumb />
+    <breadcrumb>
+      <el-button
+        v-if="tunnelStore.anyRunning"
+        type="danger"
+        plain
+        :loading="bulk.stop"
+        @click="stopAll"
+      >
+        <template #icon>
+          <IconifyIconOffline icon="stop-circle-outline" />
+        </template>
+        {{ stopLabel }}
+      </el-button>
+      <el-button v-else type="primary" :loading="bulk.start" @click="startAll">
+        <template #icon>
+          <IconifyIconOffline icon="play-arrow-rounded" />
+        </template>
+        {{ startLabel }}
+      </el-button>
+    </breadcrumb>
     <div class="app-container-breadcrumb">
       <div class="flex flex-col gap-3 pr-1 pb-1">
-        <section class="p-5 app-panel status-card" :class="`is-${frpcStatus}`">
-          <div class="status-icon" aria-hidden="true">
-            <IconifyIconOffline
-              :icon="
-                frpcStatus === 'running'
-                  ? 'check-circle-rounded'
-                  : frpcStatus === 'error'
-                    ? 'warningRounded'
-                    : 'power-settings-new-rounded'
-              "
-            />
-          </div>
-          <div class="flex-1 min-w-0">
-            <h2 class="status-title">
-              {{
-                $t("home.status.frpcStatus", {
-                  status:
-                    frpcStatus === "running"
-                      ? $t("home.status.running")
-                      : frpcStatus === "error"
-                        ? $t("home.status.connectionError")
-                        : $t("home.status.disconnected")
-                })
-              }}
-            </h2>
-            <p class="mt-1 text-sm truncate text-text_color_secondary">
-              <template v-if="serverText">
-                {{ serverText }} · frpc {{ frpcVersionText }}
-              </template>
-              <template v-else>
-                {{ $t("home.dashboard.notConfigured") }}
-              </template>
-            </p>
-            <p
-              v-if="frpcStatus === 'running'"
-              class="mt-1 text-sm text-text_color_secondary"
-            >
-              {{ $t("home.status.runningTime") }}
-              <span class="font-semibold tabular-nums text-primary">{{
-                uptime
-              }}</span>
-            </p>
-            <p
-              v-else-if="frpcStatus === 'error'"
-              class="mt-1 text-sm break-all line-clamp-2 status-error"
-              :title="frpcDesktopStore.frpcConnectionError ?? ''"
-            >
-              {{ frpcDesktopStore.frpcConnectionError }}
-            </p>
-          </div>
-          <div class="flex gap-2 items-center">
-            <el-button
-              v-if="frpcStatus !== 'stopped'"
-              text
-              @click="$router.push({ name: 'Logger' })"
-            >
-              {{ $t("home.button.viewLog") }}
-            </el-button>
-            <el-button
-              size="large"
-              :type="frpcDesktopStore.frpcProcessRunning ? 'danger' : 'primary'"
-              :plain="frpcDesktopStore.frpcProcessRunning"
-              :loading="loading"
-              @click="handleButtonClick"
-            >
-              <template #icon>
-                <IconifyIconOffline
-                  :icon="
-                    frpcDesktopStore.frpcProcessRunning
-                      ? 'stop-circle-outline'
-                      : 'play-arrow-rounded'
-                  "
-                />
-              </template>
-              {{
-                frpcDesktopStore.frpcProcessRunning
-                  ? $t("home.button.stop")
-                  : $t("home.button.start")
-              }}
-            </el-button>
-          </div>
-        </section>
-
         <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Tunnel' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="rocket-launch-rounded" />
+              {{ t("home.dashboard.instances") }}
+            </span>
+            <span class="stat-value">{{ summary.running }}</span>
+            <span class="stat-hint">
+              {{ t("home.dashboard.instancesHint", { total: summary.total }) }}
+            </span>
+          </button>
           <button
             type="button"
             class="text-left stat-card app-panel is-clickable"
@@ -277,50 +94,37 @@ onUnmounted(() => {
           >
             <span class="stat-label">
               <IconifyIconOffline icon="cloud" />
-              {{ $t("home.dashboard.proxies") }}
+              {{ t("home.dashboard.proxies") }}
             </span>
-            <span class="stat-value">{{ overview?.proxyEnabled ?? "-" }}</span>
+            <span class="stat-value">{{ summary.proxyEnabled }}</span>
             <span class="stat-hint">
               {{
-                $t("home.dashboard.proxiesValue", {
-                  enabled: overview?.proxyEnabled ?? 0,
-                  total: overview?.proxyTotal ?? 0
+                t("home.dashboard.proxiesValue", {
+                  enabled: summary.proxyEnabled,
+                  total: summary.proxyTotal
                 })
               }}
             </span>
           </button>
-          <div class="stat-card app-panel">
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            :class="{ 'is-warning': summary.errors > 0 }"
+            @click="$router.push({ name: 'Tunnel' })"
+          >
             <span class="stat-label">
-              <IconifyIconOffline icon="dns-outline" />
-              {{ $t("home.dashboard.server") }}
+              <IconifyIconOffline icon="warningRounded" />
+              {{ t("home.dashboard.errors") }}
             </span>
-            <span class="truncate stat-value is-text" :title="serverText">
-              {{ overview?.serverAddr || "-" }}
-            </span>
+            <span class="stat-value">{{ summary.errors }}</span>
             <span class="stat-hint">
               {{
-                overview?.serverAddr
-                  ? $t("home.dashboard.port", { port: overview.serverPort })
-                  : ""
+                summary.errors > 0
+                  ? t("home.dashboard.errorsHint")
+                  : t("home.dashboard.noErrors")
               }}
             </span>
-          </div>
-          <div class="stat-card app-panel">
-            <span class="stat-label">
-              <IconifyIconOffline icon="lan-outline" />
-              {{ $t("home.dashboard.protocol") }}
-            </span>
-            <span class="uppercase stat-value is-text">
-              {{ overview?.protocol || "-" }}
-            </span>
-            <span class="stat-hint">
-              {{
-                overview?.tlsEnable
-                  ? $t("home.dashboard.tlsOn")
-                  : $t("home.dashboard.tlsOff")
-              }}
-            </span>
-          </div>
+          </button>
           <button
             type="button"
             class="text-left stat-card app-panel is-clickable"
@@ -328,49 +132,95 @@ onUnmounted(() => {
           >
             <span class="stat-label">
               <IconifyIconOffline icon="download" />
-              {{ $t("home.dashboard.frpcVersion") }}
+              {{ t("home.dashboard.frpcVersion") }}
             </span>
-            <span class="truncate stat-value is-text">
-              {{ frpcVersionText || "-" }}
-            </span>
-            <span class="stat-hint">
-              {{ overview?.customFrpcPath ? "" : $t("home.dashboard.manage") }}
-            </span>
+            <span class="stat-value">{{ summary.versions }}</span>
+            <span class="stat-hint">{{ t("home.dashboard.manage") }}</span>
           </button>
         </section>
 
         <section class="p-4 app-panel">
-          <div class="flex justify-between items-center mb-2">
+          <div class="flex justify-between items-center mb-3">
             <h3 class="text-sm font-semibold">
-              {{ $t("home.dashboard.recentLogs") }}
+              {{ t("home.dashboard.statusTitle") }}
             </h3>
             <el-button
               text
               type="primary"
               size="small"
-              @click="$router.push({ name: 'Logger' })"
+              @click="$router.push({ name: 'Tunnel' })"
             >
-              {{ $t("home.dashboard.viewAll") }}
+              {{ t("home.dashboard.manageInstances") }}
               <IconifyIconOffline class="ml-1" icon="arrow-forward-rounded" />
             </el-button>
           </div>
-          <div
-            v-if="overview?.recentLogs?.length"
-            class="recent-logs"
-            role="log"
+          <el-table
+            v-loading="!tunnelStore.loaded"
+            :data="tunnelStore.tunnels"
+            row-key="id"
+            stripe
+            :empty-text="t('home.dashboard.noInstances')"
           >
-            <div
-              v-for="(line, index) in overview.recentLogs"
-              :key="index"
-              class="truncate"
-              :title="line"
+            <el-table-column :label="t('home.dashboard.status')" width="120">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.id)" size="small">
+                  {{ statusLabel(row.id) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.dashboard.instance')"
+              prop="name"
+              min-width="140"
+              show-overflow-tooltip
             >
-              {{ line }}
-            </div>
-          </div>
-          <p v-else class="py-3 text-sm text-text_color_secondary">
-            {{ $t("home.dashboard.noLogs") }}
-          </p>
+              <template #default="{ row }">
+                <span class="font-semibold text-primary">{{ row.name }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.dashboard.server')"
+              min-width="180"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <span v-if="row.serverAddr" class="is-mono">
+                  {{ row.serverAddr }}:{{ row.serverPort }}
+                </span>
+                <span v-else class="text-text_color_secondary">
+                  {{ t("home.dashboard.notConfigured") }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('home.dashboard.proxies')" width="130">
+              <template #default="{ row }">
+                {{
+                  t("home.dashboard.proxiesValue", {
+                    enabled: row.proxyEnabled,
+                    total: row.proxyTotal
+                  })
+                }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.status.runningTime')"
+              min-width="160"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <span v-if="statusKey(row.id) === 'error'" class="status-error">
+                  {{ tunnelStore.statusOf(row.id).connectionError }}
+                </span>
+                <span
+                  v-else-if="statusKey(row.id) === 'running'"
+                  class="tabular-nums"
+                >
+                  {{ uptimeText(row.id) }}
+                </span>
+                <span v-else class="text-text_color_secondary">-</span>
+              </template>
+            </el-table-column>
+          </el-table>
         </section>
       </div>
     </div>
@@ -378,46 +228,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
-.status-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-
-  .status-icon {
-    width: 52px;
-    height: 52px;
-    flex: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    color: var(--el-text-color-secondary);
-    background: var(--el-fill-color-light);
-  }
-
-  &.is-running .status-icon {
-    color: var(--el-color-success);
-    background: var(--el-color-success-light-9);
-  }
-
-  &.is-error .status-icon {
-    color: var(--el-color-warning);
-    background: var(--el-color-warning-light-9);
-  }
-
-  .status-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
-
-  .status-error {
-    color: var(--el-color-warning);
-  }
-}
-
 .stat-card {
   display: flex;
   flex-direction: column;
@@ -467,15 +277,18 @@ onUnmounted(() => {
   }
 }
 
-.recent-logs {
+.stat-card.is-warning {
+  .stat-label,
+  .stat-value {
+    color: var(--el-color-warning);
+  }
+}
+
+.status-error {
+  color: var(--el-color-warning);
+}
+
+.is-mono {
   font-family: var(--app-mono);
-  font-size: 12px;
-  line-height: 1.9;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 8px 12px;
-  user-select: text;
-  -webkit-user-select: text;
 }
 </style>

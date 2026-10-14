@@ -1,14 +1,13 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
+import router from "@/router";
 import { useI18n } from "vue-i18n";
 
 const emit = defineEmits<{
   export: [];
   import: [];
-  openData: [];
   refresh: [];
-  reset: [];
   save: [];
 }>();
 const { t } = useI18n();
@@ -16,26 +15,26 @@ const { t } = useI18n();
 
 <template>
   <Breadcrumb>
+    <template #title-extra>
+      <slot name="title-extra" />
+      <el-button
+        text
+        size="small"
+        :title="t('tunnel.back')"
+        @click="router.push({ name: 'Tunnel' })"
+      >
+        <template #icon>
+          <IconifyIconOffline icon="arrow-back-rounded" />
+        </template>
+        {{ t("tunnel.back") }}
+      </el-button>
+    </template>
     <el-button
       :aria-label="t('config.button.manualRefresh')"
       :title="t('config.button.manualRefresh')"
       @click="emit('refresh')"
     >
       <IconifyIconOffline icon="refresh-rounded" />
-    </el-button>
-    <el-button
-      :aria-label="t('config.button.openData')"
-      :title="t('config.button.openData')"
-      @click="emit('openData')"
-    >
-      <IconifyIconOffline icon="folder-rounded" />
-    </el-button>
-    <el-button
-      :aria-label="t('config.button.resetAll')"
-      :title="t('config.button.resetAll')"
-      @click="emit('reset')"
-    >
-      <IconifyIconOffline icon="deviceReset" />
     </el-button>
     <el-button
       :aria-label="t('config.button.importToml')"

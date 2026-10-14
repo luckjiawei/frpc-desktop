@@ -1,8 +1,14 @@
-use crate::models::{ApiResponse, FrpcProcessStatus};
+//! Tool-agnostic supervision of tunnel processes. Providers (frpc, later
+//! cloudflared, ...) describe *what* to run via [`LaunchSpec`] and how to read
+//! its output via a [`LogClassifier`]; this module owns spawning, log capture,
+//! exit tracking, status events and process-tree termination.
+
+use crate::models::{ApiResponse, TunnelStatus};
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
@@ -10,73 +16,119 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
-#[derive(Clone)]
-pub struct ProcessManager {
-    inner: Arc<Mutex<ProcessState>>,
-    is_running_flag: Arc<AtomicBool>,
+pub const TUNNEL_STATUS_CHANNEL: &str = "tunnel:status";
+
+pub struct LaunchSpec {
+    pub binary: PathBuf,
+    pub args: Vec<OsString>,
+    /// Secrets such as tokens go here instead of `args` so they do not show
+    /// up in process listings.
+    pub envs: Vec<(String, String)>,
+    pub log_path: PathBuf,
 }
 
-struct ProcessState {
+pub enum LogSignal {
+    Connected,
+    Error,
+    None,
+}
+
+pub type LogClassifier = fn(&str) -> LogSignal;
+
+struct InstanceState {
+    provider: String,
     child_pid: Option<u32>,
+    running: bool,
     last_start_time: i64,
     connection_error: Option<String>,
-    log_path: PathBuf,
+    /// Incremented on every start so a late exit of a previous process does
+    /// not overwrite the state of the current one.
+    generation: u64,
 }
 
-impl ProcessManager {
-    pub fn new() -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(ProcessState {
-                child_pid: None,
-                last_start_time: -1,
-                connection_error: None,
-                log_path: PathBuf::new(),
-            })),
-            is_running_flag: Arc::new(AtomicBool::new(false)),
-        }
-    }
-
-    pub async fn is_running(&self) -> bool {
-        self.is_running_flag.load(Ordering::SeqCst)
-    }
-
-    pub async fn get_status(&self) -> FrpcProcessStatus {
-        let state = self.inner.lock().await;
-        FrpcProcessStatus {
-            running: self.is_running_flag.load(Ordering::SeqCst),
-            connection_error: state.connection_error.clone(),
-            last_start_time: if state.last_start_time > 0 {
-                Some(state.last_start_time)
+impl InstanceState {
+    fn to_status(&self, tunnel_id: &str) -> TunnelStatus {
+        TunnelStatus {
+            tunnel_id: tunnel_id.to_string(),
+            provider: self.provider.clone(),
+            running: self.running,
+            connection_error: self.connection_error.clone(),
+            last_start_time: if self.running && self.last_start_time > 0 {
+                Some(self.last_start_time)
             } else {
                 None
             },
         }
     }
+}
+
+#[derive(Clone)]
+pub struct RuntimeManager {
+    instances: Arc<Mutex<HashMap<String, InstanceState>>>,
+}
+
+impl RuntimeManager {
+    pub fn new() -> Self {
+        Self {
+            instances: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub async fn is_running(&self, tunnel_id: &str) -> bool {
+        let instances = self.instances.lock().await;
+        instances.get(tunnel_id).map_or(false, |s| s.running)
+    }
+
+    pub async fn running_ids(&self) -> Vec<String> {
+        let instances = self.instances.lock().await;
+        instances
+            .iter()
+            .filter(|(_, s)| s.running)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    pub async fn get_status(&self, tunnel_id: &str, provider: &str) -> TunnelStatus {
+        let instances = self.instances.lock().await;
+        match instances.get(tunnel_id) {
+            Some(state) => state.to_status(tunnel_id),
+            None => TunnelStatus {
+                tunnel_id: tunnel_id.to_string(),
+                provider: provider.to_string(),
+                running: false,
+                connection_error: None,
+                last_start_time: None,
+            },
+        }
+    }
+
+    pub async fn get_statuses(&self) -> Vec<TunnelStatus> {
+        let instances = self.instances.lock().await;
+        instances.iter().map(|(id, s)| s.to_status(id)).collect()
+    }
 
     pub async fn start(
         &self,
         app: AppHandle,
-        binary_path: &Path,
-        config_path: &Path,
-        log_path: &Path,
-    ) -> anyhow::Result<()> {
-        if self.is_running().await {
-            return Ok(());
+        tunnel_id: &str,
+        provider: &str,
+        spec: LaunchSpec,
+        classify: LogClassifier,
+    ) -> anyhow::Result<TunnelStatus> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as i64;
+
+        // Hold the lock across spawn so two concurrent starts of the same
+        // tunnel cannot both launch a process.
+        let mut instances = self.instances.lock().await;
+        if let Some(state) = instances.get(tunnel_id) {
+            if state.running {
+                return Ok(state.to_status(tunnel_id));
+            }
         }
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
-            .as_millis() as i64;
-
-        {
-            let mut state = self.inner.lock().await;
-            state.connection_error = None;
-            state.last_start_time = now;
-            state.log_path = log_path.to_path_buf();
-        }
-
-        let mut cmd = Command::new(binary_path);
-        cmd.arg("-c").arg(config_path);
+        let mut cmd = Command::new(&spec.binary);
+        cmd.args(&spec.args);
+        cmd.envs(spec.envs.iter().map(|(k, v)| (k.as_str(), v.as_str())));
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
 
@@ -89,153 +141,149 @@ impl ProcessManager {
         let mut child = cmd.spawn()?;
         let pid = child.id().unwrap_or(0);
 
-        {
-            let mut state = self.inner.lock().await;
-            state.child_pid = Some(pid);
-        }
-        self.is_running_flag.store(true, Ordering::SeqCst);
+        let generation = instances.get(tunnel_id).map_or(0, |s| s.generation) + 1;
+        let state = InstanceState {
+            provider: provider.to_string(),
+            child_pid: Some(pid),
+            running: true,
+            last_start_time: now,
+            connection_error: None,
+            generation,
+        };
+        let status = state.to_status(tunnel_id);
+        instances.insert(tunnel_id.to_string(), state);
+        drop(instances);
 
-        // Emit initial started status
-        let initial_status = self.get_status().await;
-        let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(initial_status));
+        let _ = app.emit(TUNNEL_STATUS_CHANNEL, ApiResponse::success(status.clone()));
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
-        let log_file_path = log_path.to_path_buf();
 
-        let inner_clone = self.inner.clone();
-        let running_flag_clone = self.is_running_flag.clone();
-        let app_clone = app.clone();
+        if let Some(stdout) = stdout {
+            self.spawn_log_pump(
+                app.clone(),
+                tunnel_id,
+                generation,
+                spec.log_path.clone(),
+                classify,
+                BufReader::new(stdout).lines(),
+            );
+        }
+        if let Some(stderr) = stderr {
+            self.spawn_log_pump(
+                app.clone(),
+                tunnel_id,
+                generation,
+                spec.log_path.clone(),
+                classify,
+                BufReader::new(stderr).lines(),
+            );
+        }
 
-        // Spawn background task to monitor child exit and logs
+        let instances = self.instances.clone();
+        let id = tunnel_id.to_string();
         tauri::async_runtime::spawn(async move {
-            let log_file_path_stdout = log_file_path.clone();
-            let app_out = app_clone.clone();
-            let inner_out = inner_clone.clone();
+            let exit = child.wait().await;
+            log::info!("tunnel {} process exited: {:?}", id, exit);
+            let is_err_exit = !matches!(&exit, Ok(s) if s.success());
 
-            if let Some(stdout) = stdout {
-                tauri::async_runtime::spawn(async move {
-                    let mut reader = BufReader::new(stdout).lines();
-                    while let Ok(Some(line)) = reader.next_line().await {
-                        Self::write_log_line(&log_file_path_stdout, &line);
-                        Self::inspect_log_line(&inner_out, &app_out, &line).await;
-                    }
-                });
-            }
-
-            let log_file_path_stderr = log_file_path.clone();
-            let app_err = app_clone.clone();
-            let inner_err = inner_clone.clone();
-
-            if let Some(stderr) = stderr {
-                tauri::async_runtime::spawn(async move {
-                    let mut reader = BufReader::new(stderr).lines();
-                    while let Ok(Some(line)) = reader.next_line().await {
-                        Self::write_log_line(&log_file_path_stderr, &line);
-                        Self::inspect_log_line(&inner_err, &app_err, &line).await;
-                    }
-                });
-            }
-
-            let status = child.wait().await;
-            log::info!("frpc process exited: {:?}", status);
-
-            let is_err_exit = match &status {
-                Ok(s) => !s.success(),
-                Err(_) => true,
-            };
-
-            running_flag_clone.store(false, Ordering::SeqCst);
-            let conn_err = {
-                let mut state = inner_clone.lock().await;
+            let status = {
+                let mut instances = instances.lock().await;
+                let Some(state) = instances.get_mut(&id) else {
+                    return;
+                };
+                if state.generation != generation || !state.running {
+                    // Stopped on purpose or already replaced by a new start.
+                    return;
+                }
+                state.running = false;
                 state.child_pid = None;
                 state.last_start_time = -1;
                 if is_err_exit && state.connection_error.is_none() {
-                    state.connection_error = Some("frpc 异常退出，请查看日志".to_string());
+                    state.connection_error = Some("进程异常退出，请查看日志".to_string());
                 }
-                state.connection_error.clone()
+                state.to_status(&id)
             };
-
-            let final_status = FrpcProcessStatus {
-                running: false,
-                connection_error: conn_err,
-                last_start_time: None,
-            };
-            let _ = app_clone.emit("frpcProcess:watchFrpcLog", ApiResponse::success(final_status));
+            let _ = app.emit(TUNNEL_STATUS_CHANNEL, ApiResponse::success(status));
         });
 
-        Ok(())
+        Ok(status)
     }
 
-    pub async fn terminate(&self, app: AppHandle) -> anyhow::Result<()> {
-        let pid = {
-            let state = self.inner.lock().await;
-            state.child_pid
-        };
+    fn spawn_log_pump<R>(
+        &self,
+        app: AppHandle,
+        tunnel_id: &str,
+        generation: u64,
+        log_path: PathBuf,
+        classify: LogClassifier,
+        mut lines: tokio::io::Lines<BufReader<R>>,
+    ) where
+        R: tokio::io::AsyncRead + Unpin + Send + 'static,
+    {
+        let instances = self.instances.clone();
+        let id = tunnel_id.to_string();
+        tauri::async_runtime::spawn(async move {
+            while let Ok(Some(line)) = lines.next_line().await {
+                Self::write_log_line(&log_path, &line);
+                let signal = classify(&line);
+                if matches!(signal, LogSignal::None) {
+                    continue;
+                }
+                let status = {
+                    let mut instances = instances.lock().await;
+                    let Some(state) = instances.get_mut(&id) else {
+                        continue;
+                    };
+                    if state.generation != generation || !state.running {
+                        continue;
+                    }
+                    match signal {
+                        LogSignal::Error => state.connection_error = Some(line.clone()),
+                        LogSignal::Connected if state.connection_error.is_some() => {
+                            state.connection_error = None
+                        }
+                        _ => continue,
+                    }
+                    state.to_status(&id)
+                };
+                let _ = app.emit(TUNNEL_STATUS_CHANNEL, ApiResponse::success(status));
+            }
+        });
+    }
 
-        if let Some(pid) = pid {
-            Self::kill_process_tree(pid);
-        }
-
-        self.is_running_flag.store(false, Ordering::SeqCst);
-        {
-            let mut state = self.inner.lock().await;
-            state.child_pid = None;
+    pub async fn stop(&self, app: &AppHandle, tunnel_id: &str) {
+        let (pid, status) = {
+            let mut instances = self.instances.lock().await;
+            let Some(state) = instances.get_mut(tunnel_id) else {
+                return;
+            };
+            let pid = state.child_pid.take();
+            state.running = false;
             state.last_start_time = -1;
             state.connection_error = None;
-        }
-
-        let final_status = FrpcProcessStatus {
-            running: false,
-            connection_error: None,
-            last_start_time: None,
+            (pid, state.to_status(tunnel_id))
         };
-        let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(final_status));
+        if let Some(pid) = pid {
+            let _ = tokio::task::spawn_blocking(move || Self::kill_process_tree(pid)).await;
+        }
+        let _ = app.emit(TUNNEL_STATUS_CHANNEL, ApiResponse::success(status));
+    }
 
-        Ok(())
+    pub async fn stop_all(&self, app: &AppHandle) {
+        for id in self.running_ids().await {
+            self.stop(app, &id).await;
+        }
+    }
+
+    /// Drops the runtime entry of a deleted tunnel (stop it first).
+    pub async fn forget(&self, tunnel_id: &str) {
+        self.instances.lock().await.remove(tunnel_id);
     }
 
     fn write_log_line(path: &Path, line: &str) {
         if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
             let _ = writeln!(f, "{}", line);
-        }
-    }
-
-    async fn inspect_log_line(
-        inner: &Arc<Mutex<ProcessState>>,
-        app: &AppHandle,
-        line: &str,
-    ) {
-        let is_error = line.contains("connect to server error")
-            || line.contains("login to server failed")
-            || line.contains("address already in use")
-            || line.contains("bind: address already in use")
-            || line.contains("port already in use");
-        let is_success = line.contains("login to server success")
-            || line.contains("start proxy success")
-            || line.contains("proxy added success")
-            || line.contains("proxy added:");
-
-        if is_error {
-            let mut state = inner.lock().await;
-            state.connection_error = Some(line.to_string());
-            let status = FrpcProcessStatus {
-                running: true,
-                connection_error: Some(line.to_string()),
-                last_start_time: Some(state.last_start_time),
-            };
-            let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(status));
-        } else if is_success {
-            let mut state = inner.lock().await;
-            if state.connection_error.is_some() {
-                state.connection_error = None;
-                let status = FrpcProcessStatus {
-                    running: true,
-                    connection_error: None,
-                    last_start_time: Some(state.last_start_time),
-                };
-                let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(status));
-            }
         }
     }
 

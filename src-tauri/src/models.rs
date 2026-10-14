@@ -26,6 +26,15 @@ impl<T> ApiResponse<T> {
         }
     }
 
+    /// A failure that still carries context, e.g. which tunnel failed.
+    pub fn fail_with_data(biz_code: impl Into<String>, message: impl Into<String>, data: T) -> Self {
+        Self {
+            biz_code: biz_code.into(),
+            data: Some(data),
+            message: message.into(),
+        }
+    }
+
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self {
             biz_code: "B1000".to_string(),
@@ -233,6 +242,9 @@ pub struct FrpcProxyTransportConfig {
 pub struct FrpcProxy {
     #[serde(rename = "_id", default)]
     pub id: String,
+    /// Owning tunnel (`t_frpcd_proxies.server_id`).
+    #[serde(default = "default_server_id")]
+    pub server_id: String,
     #[serde(default)]
     pub name: String,
     #[serde(rename = "type")]
@@ -353,9 +365,37 @@ pub struct GithubRelease {
     pub assets: Vec<GithubAsset>,
 }
 
+/// A tunnel instance (`t_frpcd_tunnels`). Provider-specific settings live in
+/// their own tables, e.g. `t_frpcd_servers` for frpc.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FrpcProcessStatus {
+pub struct Tunnel {
+    pub id: String,
+    pub name: String,
+    pub provider: String,
+    pub auto_start: bool,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Tunnel list item for the dashboard; never contains tokens or passwords.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelSummary {
+    #[serde(flatten)]
+    pub tunnel: Tunnel,
+    pub server_addr: String,
+    pub server_port: i64,
+    pub proxy_total: usize,
+    pub proxy_enabled: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelStatus {
+    pub tunnel_id: String,
+    pub provider: String,
     pub running: bool,
     pub connection_error: Option<String>,
     pub last_start_time: Option<i64>,

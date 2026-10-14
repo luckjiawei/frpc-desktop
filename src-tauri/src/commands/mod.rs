@@ -2,13 +2,15 @@ use crate::config_gen::ConfigGenerator;
 use crate::db::app_config_repo::AppConfigRepository;
 use crate::db::proxy_repo::ProxyRepository;
 use crate::db::server_repo::ServerRepository;
+use crate::db::tunnel_repo::{TunnelRepository, DEFAULT_TUNNEL_ID, MAX_TUNNEL_NAME_LEN};
 use crate::db::version_repo::VersionRepository;
 use crate::db::DbManager;
 use crate::downloader::VersionManager;
 use crate::models::{
-    ApiResponse, FrpcProcessStatus, FrpcProxy, OpenSourceFrpcDesktopServer,
+    ApiResponse, FrpcProxy, FrpcSystemConfiguration, OpenSourceFrpcDesktopServer, TunnelStatus,
 };
-use crate::process::ProcessManager;
+use crate::process::RuntimeManager;
+use crate::providers::{provider_for, TunnelContext};
 use crate::system::{FrpcDetector, SystemService};
 use serde_json::Value;
 use std::fs;
@@ -17,101 +19,164 @@ use tauri::{AppHandle, Emitter, State};
 
 pub struct AppState {
     pub db: DbManager,
-    pub process_mgr: ProcessManager,
+    pub runtime: RuntimeManager,
     pub version_mgr: VersionManager,
     pub app_data_dir: PathBuf,
-    pub config_path: PathBuf,
-    pub frpc_log_path: PathBuf,
+    pub config_dir: PathBuf,
+    pub log_dir: PathBuf,
     pub app_log_path: PathBuf,
 }
 
+/// Per-tunnel files. The default tunnel keeps the 1.x/2.0 locations so
+/// existing logs stay visible after the upgrade.
+pub struct TunnelPaths {
+    pub config_path: PathBuf,
+    pub log_path: PathBuf,
+}
+
 impl AppState {
-    pub async fn launch_frpc(&self, app: &AppHandle) -> Result<FrpcProcessStatus, (String, String)> {
-        let (server, proxies) = {
-            let conn = self.db.conn();
-            let server = match ServerRepository::get_server_config(&conn) {
-                Ok(s) => s,
-                Err(e) => return Err(("B1000".to_string(), e.to_string())),
-            };
-
-            if server.server_addr.trim().is_empty() {
-                return Err(("B1001".to_string(), "未配置服务端地址".to_string()));
-            }
-
-            if server.web_server.enable && server.web_server.port > 0 {
-                let bind_addr = format!("127.0.0.1:{}", server.web_server.port);
-                if std::net::TcpListener::bind(&bind_addr).is_err() {
-                    return Err(("B1006".to_string(), "WebServer Port In Use".to_string()));
-                }
-            }
-
-            let proxies = match ProxyRepository::get_all_proxies(&conn) {
-                Ok(p) => p,
-                Err(e) => return Err(("B1000".to_string(), e.to_string())),
-            };
-            (server, proxies)
-        };
-
-        let binary_path = if !server.custom_frpc_path.trim().is_empty() {
-            let resolved = FrpcDetector::resolve_path(&server.custom_frpc_path);
-            if !resolved.exists() || !FrpcDetector::is_executable_binary(&resolved) {
-                return Err((
-                    "B1005".to_string(),
-                    format!("指定的 frpc 二进制文件不存在或不可执行: {}", resolved.display()),
-                ));
-            }
-            resolved
-        } else if let Some(release_id) = server.frpc_version {
-            let conn = self.db.conn();
-            let version = match VersionRepository::find_by_github_release_id(&conn, release_id) {
-                Ok(Some(v)) => v,
-                _ => return Err(("B1005".to_string(), "未找到版本（请在版本管理中重新下载）".to_string())),
-            };
-            let local_path = match version.local_path {
-                Some(p) => PathBuf::from(p),
-                None => return Err(("B1005".to_string(), "未找到版本（本地路径为空）".to_string())),
-            };
-            match VersionManager::resolve_frpc_binary(&local_path) {
-                Some(bin) => bin,
-                None => {
-                    let _ = VersionRepository::delete_by_github_release_id(&conn, release_id);
-                    return Err((
-                        "B1005".to_string(),
-                        "未找到版本（可执行文件不存在或已被杀毒软件清除，已清理无效记录，请重新下载或添加信任）".to_string(),
-                    ));
-                }
+    /// `tunnel_id` must be validated with `TunnelRepository::is_valid_id`.
+    pub fn tunnel_paths(&self, tunnel_id: &str) -> TunnelPaths {
+        if tunnel_id == DEFAULT_TUNNEL_ID {
+            TunnelPaths {
+                config_path: self.config_dir.join("frpc.toml"),
+                log_path: self.log_dir.join("frpc.log"),
             }
         } else {
-            let detected = FrpcDetector::detect();
-            if detected.found {
-                PathBuf::from(detected.path)
-            } else {
-                return Err(("B1005".to_string(), "未配置 frpc 路径或下载版本".to_string()));
+            TunnelPaths {
+                config_path: self.config_dir.join("tunnels").join(tunnel_id).join("frpc.toml"),
+                log_path: self.log_dir.join("tunnels").join(tunnel_id).join("frpc.log"),
             }
-        };
-
-        let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &self.frpc_log_path);
-        if let Err(e) = fs::write(&self.config_path, toml_str) {
-            return Err(("B1000".to_string(), format!("写入配置文件失败: {}", e)));
-        }
-
-        match self
-            .process_mgr
-            .start(
-                app.clone(),
-                &binary_path,
-                &self.config_path,
-                &self.frpc_log_path,
-            )
-            .await
-        {
-            Ok(()) => {
-                let status = self.process_mgr.get_status().await;
-                Ok(status)
-            }
-            Err(e) => Err(("B1000".to_string(), e.to_string())),
         }
     }
+
+    fn remove_tunnel_files(&self, tunnel_id: &str) {
+        if tunnel_id == DEFAULT_TUNNEL_ID || !TunnelRepository::is_valid_id(tunnel_id) {
+            return;
+        }
+        let _ = fs::remove_dir_all(self.config_dir.join("tunnels").join(tunnel_id));
+        let _ = fs::remove_dir_all(self.log_dir.join("tunnels").join(tunnel_id));
+    }
+
+    pub async fn launch_tunnel(
+        &self,
+        app: &AppHandle,
+        tunnel_id: &str,
+    ) -> Result<TunnelStatus, (String, String)> {
+        if !TunnelRepository::is_valid_id(tunnel_id) {
+            return Err(("B1008".to_string(), "Tunnel not found".to_string()));
+        }
+        let tunnel = {
+            let conn = self.db.conn();
+            if tunnel_id == DEFAULT_TUNNEL_ID {
+                TunnelRepository::ensure_default(&conn)
+                    .map_err(|e| ("B1000".to_string(), e.to_string()))?;
+            }
+            TunnelRepository::find(&conn, tunnel_id)
+                .map_err(|e| ("B1000".to_string(), e.to_string()))?
+                .ok_or(("B1008".to_string(), "Tunnel not found".to_string()))?
+        };
+        if self.runtime.is_running(tunnel_id).await {
+            return Ok(self.runtime.get_status(tunnel_id, &tunnel.provider).await);
+        }
+        let provider = provider_for(&tunnel.provider).ok_or((
+            "B1000".to_string(),
+            format!("Unsupported provider: {}", tunnel.provider),
+        ))?;
+        let paths = self.tunnel_paths(tunnel_id);
+        let spec = provider.prepare(&TunnelContext {
+            db: &self.db,
+            tunnel: &tunnel,
+            config_path: &paths.config_path,
+            log_path: &paths.log_path,
+        })?;
+        self.runtime
+            .start(
+                app.clone(),
+                tunnel_id,
+                &tunnel.provider,
+                spec,
+                provider.log_classifier(),
+            )
+            .await
+            .map_err(|e| ("B1000".to_string(), e.to_string()))
+    }
+
+    /// Starts every tunnel (or only those marked `auto_start`); failures are
+    /// reported per tunnel and do not stop the others.
+    pub async fn launch_all(
+        &self,
+        app: &AppHandle,
+        only_auto_start: bool,
+    ) -> Vec<Result<TunnelStatus, (String, String, String)>> {
+        let tunnels = {
+            let conn = self.db.conn();
+            TunnelRepository::list(&conn).unwrap_or_default()
+        };
+        let mut results = Vec::new();
+        for tunnel in tunnels {
+            if only_auto_start && !tunnel.auto_start {
+                continue;
+            }
+            results.push(
+                self.launch_tunnel(app, &tunnel.id)
+                    .await
+                    .map_err(|(code, msg)| (tunnel.id.clone(), code, msg)),
+            );
+        }
+        results
+    }
+
+    pub async fn all_statuses(&self) -> Vec<TunnelStatus> {
+        let tunnels = {
+            let conn = self.db.conn();
+            TunnelRepository::list(&conn).unwrap_or_default()
+        };
+        let mut statuses = Vec::with_capacity(tunnels.len());
+        for tunnel in tunnels {
+            statuses.push(self.runtime.get_status(&tunnel.id, &tunnel.provider).await);
+        }
+        statuses
+    }
+}
+
+/// Reads `tunnelId` from object args, defaulting to the default tunnel so
+/// callers written for the single-server era keep working.
+fn arg_tunnel_id(args: &Option<Value>) -> Result<String, ApiResponse<Value>> {
+    let id = args
+        .as_ref()
+        .and_then(|v| v.get("tunnelId"))
+        .and_then(|v| v.as_str())
+        .unwrap_or(DEFAULT_TUNNEL_ID)
+        .to_string();
+    if TunnelRepository::is_valid_id(&id) {
+        Ok(id)
+    } else {
+        Err(ApiResponse::fail("B1008", "Tunnel not found"))
+    }
+}
+
+fn arg_tunnel_name(args: &Option<Value>) -> Result<Option<String>, ApiResponse<Value>> {
+    match args.as_ref().and_then(|v| v.get("name")).and_then(|v| v.as_str()) {
+        None => Ok(None),
+        Some(raw) => {
+            let name = raw.trim();
+            if name.is_empty() || name.chars().count() > MAX_TUNNEL_NAME_LEN {
+                Err(ApiResponse::fail("B1000", "Invalid tunnel name"))
+            } else {
+                Ok(Some(name.to_string()))
+            }
+        }
+    }
+}
+
+macro_rules! tunnel_id_or_return {
+    ($args:expr) => {
+        match arg_tunnel_id(&$args) {
+            Ok(id) => id,
+            Err(resp) => return resp,
+        }
+    };
 }
 
 #[tauri::command]
@@ -134,28 +199,32 @@ async fn handle_ipc_send(
     match path {
         // --- SERVER ---
         "server/getServerConfig" => {
+            let tunnel_id = tunnel_id_or_return!(args);
             let conn = state.db.conn();
-            match ServerRepository::get_server_config(&conn) {
+            match ServerRepository::get_server_config(&conn, &tunnel_id) {
                 Ok(cfg) => ApiResponse::success(serde_json::to_value(cfg).unwrap_or(Value::Null)),
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
+        // Saves only the tunnel's frpc settings; desktop settings are saved
+        // through system/saveSystemConfig.
         "server/saveConfig" => {
             if let Some(val) = args {
                 match serde_json::from_value::<OpenSourceFrpcDesktopServer>(val) {
-                    Ok(mut server) => {
-                        server.id = "1".to_string();
+                    Ok(server) => {
+                        if !TunnelRepository::is_valid_id(&server.id) {
+                            return ApiResponse::fail("B1008", "Tunnel not found");
+                        }
                         let conn = state.db.conn();
-                        match ServerRepository::save_server_config(&conn, &server) {
-                            Ok(()) => {
-                                use tauri_plugin_autostart::ManagerExt;
-                                if server.system.launch_at_startup {
-                                    let _ = app.autolaunch().enable();
-                                } else {
-                                    let _ = app.autolaunch().disable();
-                                }
-                                ApiResponse::success(serde_json::to_value(&server).unwrap_or(Value::Null))
+                        if server.id == DEFAULT_TUNNEL_ID {
+                            if let Err(e) = TunnelRepository::ensure_default(&conn) {
+                                return ApiResponse::internal_error(e.to_string());
                             }
+                        } else if !matches!(TunnelRepository::find(&conn, &server.id), Ok(Some(_))) {
+                            return ApiResponse::fail("B1008", "Tunnel not found");
+                        }
+                        match ServerRepository::save_frpc_settings(&conn, &server) {
+                            Ok(()) => ApiResponse::success(serde_json::to_value(&server).unwrap_or(Value::Null)),
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -166,26 +235,46 @@ async fn handle_ipc_send(
             }
         }
         "server/resetAllConfig" => {
+            state.runtime.stop_all(app).await;
+            let removed: Vec<String> = {
+                let conn = state.db.conn();
+                TunnelRepository::list(&conn)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|t| t.id)
+                    .filter(|id| id != DEFAULT_TUNNEL_ID)
+                    .collect()
+            };
             let conn = state.db.conn();
             match ServerRepository::reset_all_config(&conn) {
                 Ok(()) => {
-                    let default_server = ServerRepository::get_server_config(&conn).unwrap();
-                    ApiResponse::success(serde_json::to_value(default_server).unwrap_or(Value::Null))
+                    for id in &removed {
+                        state.remove_tunnel_files(id);
+                    }
+                    match ServerRepository::get_server_config(&conn, DEFAULT_TUNNEL_ID) {
+                        Ok(server) => {
+                            ApiResponse::success(serde_json::to_value(server).unwrap_or(Value::Null))
+                        }
+                        Err(e) => ApiResponse::internal_error(e.to_string()),
+                    }
                 }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
         "server/exportConfig" => {
+            let tunnel_id = tunnel_id_or_return!(args);
             let conn = state.db.conn();
-            let server = match ServerRepository::get_server_config(&conn) {
+            let server = match ServerRepository::get_server_config(&conn, &tunnel_id) {
                 Ok(s) => s,
                 Err(e) => return ApiResponse::internal_error(e.to_string()),
             };
-            let proxies = match ProxyRepository::get_all_proxies(&conn) {
+            let proxies = match ProxyRepository::get_proxies_by_server(&conn, &tunnel_id) {
                 Ok(p) => p,
                 Err(e) => return ApiResponse::internal_error(e.to_string()),
             };
-            let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &state.frpc_log_path);
+            drop(conn);
+            let log_path = state.tunnel_paths(&tunnel_id).log_path;
+            let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &log_path);
 
             if let Some(path_buf) = rfd::FileDialog::new()
                 .set_file_name("frpc.toml")
@@ -228,6 +317,38 @@ async fn handle_ipc_send(
                 }))
             }
         }
+        "system/getSystemConfig" => {
+            let conn = state.db.conn();
+            match AppConfigRepository::get_system_config(&conn) {
+                Ok(sys) => ApiResponse::success(serde_json::to_value(sys).unwrap_or(Value::Null)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "system/saveSystemConfig" => {
+            let Some(val) = args else {
+                return ApiResponse::internal_error("Missing arguments for saveSystemConfig");
+            };
+            let config = match serde_json::from_value::<FrpcSystemConfiguration>(val) {
+                Ok(c) => c,
+                Err(e) => return ApiResponse::internal_error(format!("Invalid system payload: {}", e)),
+            };
+            if !matches!(config.language.as_str(), "zh-CN" | "en-US") {
+                return ApiResponse::fail("B1000", "Invalid language");
+            }
+            let conn = state.db.conn();
+            match AppConfigRepository::save_system_config(&conn, &config) {
+                Ok(()) => {
+                    use tauri_plugin_autostart::ManagerExt;
+                    if config.launch_at_startup {
+                        let _ = app.autolaunch().enable();
+                    } else {
+                        let _ = app.autolaunch().disable();
+                    }
+                    ApiResponse::success(serde_json::to_value(&config).unwrap_or(Value::Null))
+                }
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
         "server/getLanguage" => {
             let conn = state.db.conn();
             match AppConfigRepository::get_system_config(&conn) {
@@ -254,8 +375,9 @@ async fn handle_ipc_send(
 
         // --- PROXY ---
         "proxy/getAllProxies" => {
+            let tunnel_id = tunnel_id_or_return!(args);
             let conn = state.db.conn();
-            match ProxyRepository::get_all_proxies(&conn) {
+            match ProxyRepository::get_proxies_by_server(&conn, &tunnel_id) {
                 Ok(list) => ApiResponse::success(serde_json::to_value(list).unwrap_or(Value::Null)),
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
@@ -264,6 +386,9 @@ async fn handle_ipc_send(
             if let Some(val) = args {
                 match serde_json::from_value::<FrpcProxy>(val) {
                     Ok(proxy) => {
+                        if !TunnelRepository::is_valid_id(&proxy.server_id) {
+                            return ApiResponse::fail("B1008", "Tunnel not found");
+                        }
                         let conn = state.db.conn();
                         match ProxyRepository::create_proxy(&conn, proxy) {
                             Ok(created) => {
@@ -341,54 +466,122 @@ async fn handle_ipc_send(
             }
         }
 
+        // --- TUNNEL ---
+        "tunnel/list" => {
+            let conn = state.db.conn();
+            let _ = TunnelRepository::ensure_default(&conn);
+            match TunnelRepository::list_summaries(&conn) {
+                Ok(list) => ApiResponse::success(serde_json::to_value(list).unwrap_or(Value::Null)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "tunnel/create" => {
+            let name = match arg_tunnel_name(&args) {
+                Ok(Some(name)) => name,
+                Ok(None) => return ApiResponse::fail("B1000", "Invalid tunnel name"),
+                Err(resp) => return resp,
+            };
+            let provider = args
+                .as_ref()
+                .and_then(|v| v.get("provider"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(crate::db::tunnel_repo::PROVIDER_FRPC)
+                .to_string();
+            if !TunnelRepository::is_supported_provider(&provider) {
+                return ApiResponse::fail("B1000", format!("Unsupported provider: {}", provider));
+            }
+            let mut conn = state.db.conn();
+            match TunnelRepository::create(&mut conn, &name, &provider) {
+                Ok(tunnel) => ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null)),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "tunnel/update" => {
+            let tunnel_id = tunnel_id_or_return!(args);
+            let name = match arg_tunnel_name(&args) {
+                Ok(name) => name,
+                Err(resp) => return resp,
+            };
+            let auto_start = args
+                .as_ref()
+                .and_then(|v| v.get("autoStart"))
+                .and_then(|v| v.as_bool());
+            let conn = state.db.conn();
+            match TunnelRepository::update(&conn, &tunnel_id, name.as_deref(), auto_start) {
+                Ok(Some(tunnel)) => ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null)),
+                Ok(None) => ApiResponse::fail("B1008", "Tunnel not found"),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "tunnel/delete" => {
+            let tunnel_id = tunnel_id_or_return!(args);
+            if tunnel_id == DEFAULT_TUNNEL_ID {
+                return ApiResponse::fail("B1009", "The default tunnel cannot be deleted");
+            }
+            state.runtime.stop(app, &tunnel_id).await;
+            let deleted = {
+                let conn = state.db.conn();
+                TunnelRepository::delete(&conn, &tunnel_id)
+            };
+            match deleted {
+                Ok(true) => {
+                    state.runtime.forget(&tunnel_id).await;
+                    state.remove_tunnel_files(&tunnel_id);
+                    ApiResponse::success(serde_json::json!({ "tunnelId": tunnel_id }))
+                }
+                Ok(false) => ApiResponse::fail("B1008", "Tunnel not found"),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+
         // --- LAUNCH ---
         "launch/getStatus" => {
-            let status = state.process_mgr.get_status().await;
+            let tunnel_id = tunnel_id_or_return!(args);
+            let provider = {
+                let conn = state.db.conn();
+                TunnelRepository::find(&conn, &tunnel_id)
+                    .ok()
+                    .flatten()
+                    .map(|t| t.provider)
+                    .unwrap_or_else(|| crate::db::tunnel_repo::PROVIDER_FRPC.to_string())
+            };
+            let status = state.runtime.get_status(&tunnel_id, &provider).await;
             ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
         }
-        // Read-only summary for the home dashboard. Deliberately separate from
-        // server/getServerConfig so it does not reach the config page's form
-        // listener, and it never includes tokens or passwords.
-        "launch/getOverview" => {
-            let conn = state.db.conn();
-            let server = match ServerRepository::get_server_config(&conn) {
-                Ok(s) => s,
-                Err(e) => return ApiResponse::internal_error(e.to_string()),
-            };
-            let proxies = ProxyRepository::get_all_proxies(&conn).unwrap_or_default();
-            let frpc_version = if !server.custom_frpc_path.trim().is_empty() {
-                Value::Null
-            } else {
-                server
-                    .frpc_version
-                    .and_then(|id| VersionRepository::find_by_github_release_id(&conn, id).ok())
-                    .flatten()
-                    .map(|v| Value::String(v.name))
-                    .unwrap_or(Value::Null)
-            };
-            let recent_logs = SystemService::read_log_tail(&state.frpc_log_path, 6);
-            ApiResponse::success(serde_json::json!({
-                "serverAddr": server.server_addr,
-                "serverPort": server.server_port,
-                "protocol": server.transport.protocol,
-                "tlsEnable": server.transport.tls.enable,
-                "webServerEnable": server.web_server.enable,
-                "webServerPort": server.web_server.port,
-                "frpcVersion": frpc_version,
-                "customFrpcPath": !server.custom_frpc_path.trim().is_empty(),
-                "proxyTotal": proxies.len(),
-                "proxyEnabled": proxies.iter().filter(|p| p.status == 1).count(),
-                "recentLogs": recent_logs,
-            }))
+        "launch/getStatuses" => {
+            let statuses = state.all_statuses().await;
+            ApiResponse::success(serde_json::to_value(statuses).unwrap_or(Value::Null))
         }
-        "launch/terminate" => match state.process_mgr.terminate(app.clone()).await {
-            Ok(()) => ApiResponse::success_empty(),
-            Err(e) => ApiResponse::internal_error(e.to_string()),
-        },
-        "launch/launch" => match state.launch_frpc(app).await {
-            Ok(status) => ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null)),
-            Err((code, msg)) => ApiResponse::fail(code, msg),
-        },
+        "launch/terminate" => {
+            let tunnel_id = tunnel_id_or_return!(args);
+            state.runtime.stop(app, &tunnel_id).await;
+            ApiResponse::success(serde_json::json!({ "tunnelId": tunnel_id }))
+        }
+        "launch/launch" => {
+            let tunnel_id = tunnel_id_or_return!(args);
+            match state.launch_tunnel(app, &tunnel_id).await {
+                Ok(status) => ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null)),
+                Err((code, msg)) => {
+                    ApiResponse::fail_with_data(code, msg, serde_json::json!({ "tunnelId": tunnel_id }))
+                }
+            }
+        }
+        "launch/launchAll" => {
+            let failures: Vec<Value> = state
+                .launch_all(app, false)
+                .await
+                .into_iter()
+                .filter_map(|r| r.err())
+                .map(|(tunnel_id, code, message)| {
+                    serde_json::json!({ "tunnelId": tunnel_id, "bizCode": code, "message": message })
+                })
+                .collect();
+            ApiResponse::success(serde_json::json!({ "failures": failures }))
+        }
+        "launch/terminateAll" => {
+            state.runtime.stop_all(app).await;
+            ApiResponse::success_empty()
+        }
 
         // --- VERSION ---
         "version/getVersions" => {
@@ -549,7 +742,8 @@ async fn handle_ipc_send(
 
         // --- LOG ---
         "log/getFrpLogContent" => {
-            let lines = SystemService::read_log_tail(&state.frpc_log_path, 500);
+            let tunnel_id = tunnel_id_or_return!(args);
+            let lines = SystemService::read_log_tail(&state.tunnel_paths(&tunnel_id).log_path, 500);
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/getAppLogContent" => {
@@ -557,7 +751,8 @@ async fn handle_ipc_send(
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/openFrpcLogFile" => {
-            let _ = SystemService::open_path(&state.frpc_log_path);
+            let tunnel_id = tunnel_id_or_return!(args);
+            let _ = SystemService::open_path(&state.tunnel_paths(&tunnel_id).log_path);
             ApiResponse::success_empty()
         }
         "log/openAppLogFile" => {

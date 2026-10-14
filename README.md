@@ -50,6 +50,7 @@
 - [x] Support multiple languages
 - [x] Fast proxy search with card/list pagination
 - [x] Light, dark, and system appearance
+- [x] Run multiple frpc instances (different frps servers) at the same time
 
 ## Development
 

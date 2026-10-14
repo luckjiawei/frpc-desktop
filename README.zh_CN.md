@@ -50,6 +50,7 @@
 - [x] support multiple languages
 - [x] 支持代理快速搜索及卡片/列表分页
 - [x] 支持浅色、深色和跟随系统外观
+- [x] 支持同时运行多个 frpc 实例（连接不同的 frps）
 
 
 ## 开发

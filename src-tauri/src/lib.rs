@@ -4,12 +4,13 @@ pub mod db;
 pub mod downloader;
 pub mod models;
 pub mod process;
+pub mod providers;
 pub mod system;
 
 use commands::{ipc_send, AppState};
 use db::DbManager;
 use downloader::VersionManager;
-use process::ProcessManager;
+use process::RuntimeManager;
 use std::fs;
 use std::path::PathBuf;
 use system::SystemService;
@@ -53,20 +54,16 @@ pub fn run() {
             let _ = fs::create_dir_all(&log_dir);
 
             let db = DbManager::init(&db_dir)?;
-            let process_mgr = ProcessManager::new();
             let version_mgr = VersionManager::new(&base_dir);
-
-            let config_path = config_dir.join("frpc.toml");
-            let frpc_log_path = log_dir.join("frpc.log");
             let app_log_path = log_dir.join("main.log");
 
             let app_state = AppState {
                 db,
-                process_mgr: process_mgr.clone(),
+                runtime: RuntimeManager::new(),
                 version_mgr,
                 app_data_dir: base_dir,
-                config_path,
-                frpc_log_path,
+                config_dir,
+                log_dir,
                 app_log_path,
             };
 
@@ -77,8 +74,10 @@ pub fn run() {
 
             // Build Tray
             let show_i = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+            let start_all_i = MenuItem::with_id(app, "startAll", "全部启动", true, None::<&str>)?;
+            let stop_all_i = MenuItem::with_id(app, "stopAll", "全部停止", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&show_i, &start_all_i, &stop_all_i, &quit_i])?;
 
             let tray_builder = TrayIconBuilder::new()
                 .menu(&menu)
@@ -96,12 +95,29 @@ pub fn run() {
                             let _ = window.set_focus();
                         }
                     }
-                    "quit" => {
-                        let state = app.state::<AppState>();
-                        let p_mgr = state.process_mgr.clone();
+                    "startAll" => {
                         let app_handle = app.clone();
                         tauri::async_runtime::spawn(async move {
-                            let _ = p_mgr.terminate(app_handle.clone()).await;
+                            let state = app_handle.state::<AppState>();
+                            for result in state.launch_all(&app_handle, false).await {
+                                if let Err((id, code, msg)) = result {
+                                    log::warn!("Start tunnel {} failed: [{}]: {}", id, code, msg);
+                                }
+                            }
+                        });
+                    }
+                    "stopAll" => {
+                        let runtime = app.state::<AppState>().runtime.clone();
+                        let app_handle = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            runtime.stop_all(&app_handle).await;
+                        });
+                    }
+                    "quit" => {
+                        let runtime = app.state::<AppState>().runtime.clone();
+                        let app_handle = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            runtime.stop_all(&app_handle).await;
                             app_handle.exit(0);
                         });
                     }
@@ -140,7 +156,11 @@ pub fn run() {
             let server_cfg = {
                 let state = app.state::<AppState>();
                 let conn = state.db.conn();
-                let res = db::server_repo::ServerRepository::get_server_config(&conn).ok();
+                let res = db::server_repo::ServerRepository::get_server_config(
+                    &conn,
+                    db::tunnel_repo::DEFAULT_TUNNEL_ID,
+                )
+                .ok();
                 res
             };
 
@@ -176,8 +196,13 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_millis(800)).await;
                         let state = app_handle.state::<AppState>();
-                        if let Err((code, msg)) = state.launch_frpc(&app_handle).await {
-                            eprintln!("Auto connect on startup failed: [{}]: {}", code, msg);
+                        for result in state.launch_all(&app_handle, true).await {
+                            if let Err((id, code, msg)) = result {
+                                eprintln!(
+                                    "Auto connect tunnel {} on startup failed: [{}]: {}",
+                                    id, code, msg
+                                );
+                            }
                         }
                     });
                 }
@@ -198,11 +223,10 @@ pub fn run() {
         .expect("error while running tauri application")
         .run(|app_handle, event| {
             if let tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit = event {
-                let state = app_handle.state::<AppState>();
-                let p_mgr = state.process_mgr.clone();
+                let runtime = app_handle.state::<AppState>().runtime.clone();
                 let app = app_handle.clone();
                 tauri::async_runtime::block_on(async move {
-                    let _ = p_mgr.terminate(app).await;
+                    runtime.stop_all(&app).await;
                 });
             }
         });

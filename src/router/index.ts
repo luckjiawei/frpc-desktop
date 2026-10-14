@@ -14,10 +14,20 @@ const routes: RouteRecordRaw[] = [
         name: "Home",
         meta: {
           title: "router.home.title",
-          icon: "rocket-launch-rounded",
+          icon: "dashboard",
           keepAlive: false
         },
         component: () => import("@/views/home/index.vue")
+      },
+      {
+        path: "/tunnel",
+        name: "Tunnel",
+        meta: {
+          title: "router.tunnel.title",
+          icon: "rocket-launch-rounded",
+          keepAlive: false
+        },
+        component: () => import("@/views/tunnel/index.vue")
       },
       {
         path: "/proxy",
@@ -44,10 +54,23 @@ const routes: RouteRecordRaw[] = [
         name: "Config",
         meta: {
           title: "router.config.title",
-          icon: "settings",
-          keepAlive: true
+          icon: "tune-rounded",
+          keepAlive: true,
+          // 实例配置只从“实例”页面进入，不出现在左侧菜单
+          hidden: true,
+          activeMenu: "Tunnel"
         },
         component: () => import("@/views/config/index.vue")
+      },
+      {
+        path: "/system",
+        name: "System",
+        meta: {
+          title: "router.system.title",
+          icon: "settings",
+          keepAlive: false
+        },
+        component: () => import("@/views/system/index.vue")
       },
       {
         path: "/logger",

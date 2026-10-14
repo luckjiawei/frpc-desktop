@@ -131,6 +131,26 @@ watch(
 </template>
 
 <style lang="scss" scoped>
+/* 工具栏插槽中的自动刷新开关与图标按钮（刷新、打开文件） */
+:slotted(.log-switch) .el-switch__label {
+  color: #a0aec0;
+}
+
+:slotted(.log-switch) .el-switch__label.is-active {
+  color: #e2e8f0;
+}
+
+:slotted(.log-tool) {
+  margin-left: 0;
+  color: #a0aec0;
+
+  &:hover,
+  &:focus-visible {
+    color: #e2e8f0;
+    background: transparent;
+  }
+}
+
 ::-webkit-scrollbar-track-piece {
   background-color: transparent;
 }
