@@ -169,7 +169,7 @@ flowchart LR
 | `log_json` | TEXT | NOT NULL；合法 JSON 对象 | `log` 完整对象 |
 | `web_server_json` | TEXT | NOT NULL；合法 JSON 对象 | `webServer` 完整对象 |
 | `transport_json` | TEXT | NOT NULL；合法 JSON 对象 | `transport` 完整对象，包含 `tls` 子对象 |
-| `metadatas_json` | TEXT | NOT NULL DEFAULT `'{}'`；合法 JSON 对象 | `metadatas` |
+| `custom_frpc_path` | TEXT | NOT NULL DEFAULT `''` | `customFrpcPath`，自定义/自动检测的二进制路径 |
 
 `auth_json`、`web_server_json` 和 `transport_json` 中可能包含 token、密码、证书路径或代理地址，不得将完整 JSON 输出到普通日志或错误上报中。
 

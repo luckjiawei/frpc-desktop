@@ -11,6 +11,7 @@ type AuthConfig = {
 };
 
 type WebServerConfig = {
+  enable?: boolean;
   addr: string;
   port: number;
   user: string;

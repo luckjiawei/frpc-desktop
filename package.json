@@ -1,8 +1,7 @@
 {
   "name": "Frpc-Desktop",
-  "version": "1.2.7",
-  "main": "dist-electron/main/index.js",
-  "description": "FRP跨平台桌面客户端，可视化配置，轻松实现内网穿透！",
+  "version": "1.2.8",
+  "description": "FRP跨平台桌面客户端，基于 Tauri 2 + Vue 3，可视化配置，轻量快速！",
   "repository": "github:luckjiawei/frpc-desktop",
   "author": "刘嘉伟 <8473136@qq.com>",
   "license": "MIT",
@@ -11,7 +10,8 @@
     "frp",
     "frpc",
     "proxy",
-    "electron-app",
+    "tauri",
+    "tauri-app",
     "vue",
     "vue3",
     "vite"
@@ -19,48 +19,48 @@
   "engines": {
     "node": ">= 22.12.0"
   },
-  "debug": {
-    "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
-    }
-  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "build:electron": "npm run build && electron-builder -p never",
-    "build:electron:all": "npm run build && electron-builder --mac --win --linux -p never",
-    "build:electron:mac": "npm run build && electron-builder --mac -p never",
-    "build:electron:win": "npm run build && electron-builder --win -p never",
-    "build:electron:linux": "npm run build && electron-builder --linux -p never",
-    "release": "npm run build && electron-builder --mac --win --linux -p always",
-    "release:mac": "npm run build && electron-builder --mac -p always",
-    "release:win": "npm run build && electron-builder --win -p always",
-    "release:linux": "npm run build && electron-builder --linux -p always",
+    "tauri": "node scripts/run-tauri.mjs",
+    "tauri:dev": "node scripts/run-tauri.mjs dev",
+    "tauri:build": "node scripts/run-tauri.mjs build",
     "preview": "vite preview",
-    "lint": "eslint src/ electron/ --ext .ts,.tsx,.vue",
-    "lint:fix": "eslint src/ electron/ --ext .ts,.tsx,.vue --fix",
-    "electron:generate-icons": "electron-icon-builder --input=./public/logo.png --output=build --flatten"
+    "lint": "eslint src/ --ext .ts,.tsx,.vue",
+    "lint:fix": "eslint src/ --ext .ts,.tsx,.vue --fix"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.0",
+    "@tauri-apps/plugin-dialog": "^2.8.0",
+    "@tauri-apps/plugin-opener": "^2.6.0",
+    "@vueuse/core": "14.2.1",
+    "animate.css": "^4.1.1",
+    "canvas-confetti": "^1.9.4",
+    "element-plus": "2.13.6",
+    "intro.js": "^8.3.2",
+    "js-base64": "^3.7.8",
+    "lodash": "^4.18.1",
+    "moment": "^2.29.4",
+    "pinia": "3.0.4",
+    "vue": "3.5.31",
+    "vue-i18n": "11.3.0",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@iconify-icons/material-symbols": "^1.2.58",
     "@iconify/vue": "^5.0.0",
     "@tailwindcss/postcss": "^4.1.16",
-    "@types/better-sqlite3": "^9.6.0",
-    "@types/nedb": "^1.8.16",
+    "@tauri-apps/cli": "^2.12.0",
     "@types/node": "^24.9.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^7.1.0",
     "autoprefixer": "^10.4.21",
-    "electron": "39.8.10",
-    "electron-builder": "^26.15.3",
-    "electron-builder-squirrel-windows": "^26.0.12",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^10.5.1",
-    "fs-extra": "^11.3.2",
     "postcss": "^8.5.28",
     "postcss-import": "^16.1.1",
     "prettier": "^3.6.2",
@@ -69,51 +69,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
     "vite": "^7.3.6",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6",
     "vue-tsc": "^3.1.2"
-  },
-  "optionalDependencies": {
-    "dmg-license": "^1.0.11"
-  },
-  "overrides": {
-    "minimatch": ">=10.2.3",
-    "@electron/asar": {
-      "minimatch": {
-        ".": "^3.1.2",
-        "brace-expansion": "1.1.18"
-      }
-    },
-    "@xmldom/xmldom": "0.8.15",
-    "browserslist": "4.28.8",
-    "immutable": "5.1.8",
-    "ip-address": "10.4.0",
-    "js-yaml": "4.3.1",
-    "lodash-es": "4.18.1",
-    "tmp": "0.2.6",
-    "underscore": ">=1.13.8"
-  },
-  "dependencies": {
-    "@vueuse/core": "14.2.1",
-    "adm-zip": "^0.6.0",
-    "animate.css": "^4.1.1",
-    "better-sqlite3": "^13.0.3",
-    "canvas-confetti": "^1.9.4",
-    "electron-dl": "^4.0.0",
-    "electron-log": "^5.4.3",
-    "element-plus": "2.13.6",
-    "intro.js": "^8.3.2",
-    "isbinaryfile": "4.0.10",
-    "js-base64": "^3.7.8",
-    "lodash": "^4.18.1",
-    "moment": "^2.29.4",
-    "nedb": "^1.8.0",
-    "pinia": "3.0.4",
-    "smol-toml": "^1.4.2",
-    "tar": "^7.5.22",
-    "tree-kill": "^1.2.2",
-    "vue": "3.5.31",
-    "vue-i18n": "11.3.0",
-    "vue-router": "4.6.4"
   }
 }

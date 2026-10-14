@@ -151,9 +151,24 @@ export default {
   },
   config: {
     form: {
+      customFrpcPath: {
+        label: "frpc Path",
+        placeholder: "Binary path e.g. ~/.local/bin/frpc, or click Auto Detect",
+        tips: "Specify a custom frpc binary file path (e.g. <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>, <span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>) or click Auto Detect. When set, this binary takes precedence.",
+        detectedVersion: "Detected Version",
+        autoDetectSuccess: "Auto-detected frpc:",
+        autoDetectNotFound:
+          "No executable frpc binary was detected. Please ensure it is installed or select a downloaded version below.",
+        invalidPath:
+          "The specified path does not exist or lacks execute permission"
+      },
       frpcVerson: {
-        label: "Frp Version",
-        requireMessage: "Please select Frp version"
+        label: "Downloaded Version",
+        placeholder: "Used when no custom frpc path is specified",
+        requireMessage: "Please select Frp version",
+        requireEitherMessage:
+          "Please configure a custom frpc path or select a downloaded version",
+        fallbackTips: "Used when no custom frpc path is specified"
       },
       serverAddr: {
         label: "Server Address",
@@ -229,6 +244,10 @@ export default {
         requireMessage: "Please enter heartbeat timeout",
         tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatTimeout</span> Heartbeat timeout duration. Unit: <span class='font-black text-[#5A3DAA]'>seconds</span>"
       },
+      webServerEnable: {
+        label: "Web Interface Switch",
+        tips: "Whether to enable the built-in Web management console for frpc"
+      },
       webServerPort: {
         label: "Web Port",
         requireMessage: "Please enter web port",
@@ -297,10 +316,13 @@ export default {
       serverConfiguration: "Server Configuration"
     },
     button: {
+      autoDetect: "Auto Detect",
+      browse: "Browse...",
       manualRefresh: "Manual Refresh",
       goToDownload: "Click here to download",
       clear: "Clear",
-      import: "Import"
+      import: "Import",
+      saveWithShortcut: "Save (Ctrl+S / ⌘S)"
     },
     alert: {
       resetConfig: {

@@ -19,7 +19,8 @@ interface FrpcSystemConfiguration {
 
 type FrpcDesktopServer = BaseEntity &
   FrpcCommonConfig & {
-    frpcVersion: number;
+    frpcVersion: number | null;
+    customFrpcPath?: string;
     multiuser: boolean;
     // system: any;
   };
@@ -42,6 +43,7 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
   system: FrpcSystemConfiguration;
 };
 
-type FrpcProxy = BaseEntity & FrpcProxyConfig & {
-  status: number; // 0: disable 1: enable
-};
+type FrpcProxy = BaseEntity &
+  FrpcProxyConfig & {
+    status: number; // 0: disable 1: enable
+  };

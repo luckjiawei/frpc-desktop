@@ -148,9 +148,23 @@ export default {
   },
   config: {
     form: {
+      customFrpcPath: {
+        label: "frpc 路径",
+        placeholder:
+          "支持输入二进制文件路径，如 ~/.local/bin/frpc，或点击自动检测",
+        tips: "支持手动输入 frpc 二进制文件路径（如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>）或点击自动检测。配置后将优先使用该二进制程序启动。",
+        detectedVersion: "当前识别版本",
+        autoDetectSuccess: "已自动检测到 frpc：",
+        autoDetectNotFound:
+          "未检测到可用的 frpc 二进制文件，请确认已安装或在下方选择下载版本",
+        invalidPath: "指定路径不存在或没有执行权限"
+      },
       frpcVerson: {
-        label: "Frp版本",
-        requireMessage: "请选择Frp版本"
+        label: "下载版本",
+        placeholder: "未指定自定义路径时，将使用此处选择的下载版本",
+        requireMessage: "请选择Frp版本",
+        requireEitherMessage: "请配置自定义 frpc 路径或选择一个下载版本",
+        fallbackTips: "未指定自定义路径时，将使用此处选择的下载版本"
       },
       serverAddr: {
         label: "服务端地址",
@@ -228,6 +242,10 @@ export default {
         requireMessage: "心跳超时时间不能为空",
         tips: "{frpParameter}:<span class='font-black text-[#5A3DAA]'>transport.heartbeatTimeout</span> 心跳超时时间 单位：<span class='font-black text-[#5A3DAA]'>秒</span>"
       },
+      webServerEnable: {
+        label: "Web 界面开关",
+        tips: "是否开启 frpc 内置的 Web 管理控制台"
+      },
       webServerPort: {
         label: "Web端口",
         requireMessage: "web界面端口不能为空",
@@ -296,10 +314,13 @@ export default {
       serverConfiguration: "服务器配置"
     },
     button: {
+      autoDetect: "自动检测",
+      browse: "浏览...",
       manualRefresh: "手动刷新",
       goToDownload: "点击这里去下载",
       clear: "清除",
-      import: "导入"
+      import: "导入",
+      saveWithShortcut: "保存 (Ctrl+S / ⌘S)"
     },
     alert: {
       resetConfig: {

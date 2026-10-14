@@ -10,6 +10,7 @@ import _ from "lodash";
 import {
   nextTick,
   onActivated,
+  onDeactivated,
   onMounted,
   onUnmounted,
   reactive,
@@ -17,7 +18,7 @@ import {
   watch
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "../../../electron/core/IpcRouter";
+import { ipcRouters } from "@/core/IpcRouter";
 import ConfigToolbar from "./ConfigToolbar.vue";
 import LogConfig from "./LogConfig.vue";
 import SystemConfig from "./SystemConfig.vue";
@@ -44,6 +45,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   _id: "",
   multiuser: false,
   frpcVersion: null,
+  customFrpcPath: "",
   loginFailExit: false,
   udpPacketSize: 1500,
   serverAddr: "",
@@ -82,6 +84,7 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
     token: ""
   },
   webServer: {
+    enable: true,
     addr: "127.0.0.1",
     port: 57400,
     user: "",
@@ -101,9 +104,14 @@ const loading = ref(1);
 const rules = reactive<FormRules>({
   frpcVersion: [
     {
-      required: true,
-      message: t("config.form.frpcVerson.requireMessage"),
-      trigger: "blur"
+      validator: (_rule: any, value: any, callback: any) => {
+        if (!value && !formData.value.customFrpcPath?.trim()) {
+          callback(new Error(t("config.form.frpcVerson.requireEitherMessage")));
+        } else {
+          callback();
+        }
+      },
+      trigger: ["blur", "change"]
     }
   ],
   serverAddr: [
@@ -308,6 +316,8 @@ const pasteServerConfigBase64 = ref();
 const formRef = ref<FormInstance>();
 const protocol = ref("frp://");
 const currSelectLocalFileType = ref();
+const detectingPath = ref(false);
+const detectedVersionInfo = ref("");
 const frpcDesktopStore = useFrpcDesktopStore();
 const formDirty = ref(false);
 let hydratingForm = true;
@@ -347,6 +357,13 @@ const handleSubmit = useDebounceFn(() => {
     }
   });
 }, 300);
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+    e.preventDefault();
+    handleSubmit();
+  }
+};
 
 const handleMultiuserChange = e => {
   if (e) {
@@ -394,11 +411,19 @@ onMounted(() => {
       if (data) {
         formData.value = data;
         Object.keys(defaultFormData).forEach(key => {
-          if (!formData.value[key]) {
-            formData.value[key] = defaultFormData[key];
+          if (
+            formData.value[key] === undefined ||
+            formData.value[key] === null
+          ) {
+            if (key !== "frpcVersion") {
+              formData.value[key] = defaultFormData[key];
+            }
           }
         });
         checkAndResetVersion();
+        if (formData.value.customFrpcPath) {
+          handleValidateCustomPath();
+        }
       }
       loading.value = 0;
       formDirty.value = false;
@@ -440,7 +465,47 @@ onMounted(() => {
             formData.value.transport.tls.trustedCaFile = data.path as string;
             // formData.value.tlsConfigTrustedCaFile = data as string;
             break;
+          case 4:
+            formData.value.customFrpcPath = data.path as string;
+            handleValidateCustomPath();
+            break;
         }
+      }
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.VERSION.detectFrpcPath, (data: any) => {
+      detectingPath.value = false;
+      if (data?.found && data.path) {
+        formData.value.customFrpcPath = data.path;
+        if (data.version) {
+          detectedVersionInfo.value = data.version;
+        }
+        ElMessage({
+          type: "success",
+          message:
+            t("config.form.customFrpcPath.autoDetectSuccess") +
+            " " +
+            data.path +
+            (data.version ? ` (${data.version})` : "")
+        });
+        formRef.value?.validateField("frpcVersion");
+      } else {
+        ElMessage({
+          type: "warning",
+          message: t("config.form.customFrpcPath.autoDetectNotFound")
+        });
+      }
+    })
+  );
+
+  listenerCleanups.push(
+    on(ipcRouters.VERSION.validateFrpcPath, (data: any) => {
+      if (data?.valid) {
+        detectedVersionInfo.value = data.version || "OK";
+      } else {
+        detectedVersionInfo.value = "";
       }
     })
   );
@@ -518,14 +583,22 @@ onMounted(() => {
       frpcDesktopStore.getLanguage();
     })
   );
+
+  window.addEventListener("keydown", handleKeydown);
 });
 
 onActivated(() => {
+  window.removeEventListener("keydown", handleKeydown);
+  window.addEventListener("keydown", handleKeydown);
   if (!hasActivatedOnce) {
     hasActivatedOnce = true;
     return;
   }
   if (!formDirty.value) handleLoadSavedConfig();
+});
+
+onDeactivated(() => {
+  window.removeEventListener("keydown", handleKeydown);
 });
 
 const handleSelectFile = (type: number, ext: string[]) => {
@@ -536,6 +609,26 @@ const handleSelectFile = (type: number, ext: string[]) => {
   });
 };
 
+const handleDetectFrpcPath = () => {
+  detectingPath.value = true;
+  send(ipcRouters.VERSION.detectFrpcPath);
+};
+
+const handleSelectCustomFrpcFile = () => {
+  handleSelectFile(4, []);
+};
+
+const handleValidateCustomPath = useDebounceFn(() => {
+  const path = formData.value.customFrpcPath?.trim();
+  if (!path) {
+    detectedVersionInfo.value = "";
+    formRef.value?.validateField("frpcVersion");
+    return;
+  }
+  send(ipcRouters.VERSION.validateFrpcPath, { path });
+  formRef.value?.validateField("frpcVersion");
+}, 300);
+
 /**
  * 分享配置
  */
@@ -543,6 +636,7 @@ const handleCopyServerConfig2Base64 = useDebounceFn(() => {
   const {
     _id,
     frpcVersion,
+    customFrpcPath,
     webServer,
     system,
     log,
@@ -642,6 +736,7 @@ const handleSystemLanguageChange = e => {
 };
 
 onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeydown);
   listenerCleanups.splice(0).forEach(off => off());
 });
 </script>
@@ -672,13 +767,94 @@ onUnmounted(() => {
             </el-col>
             <el-col :span="24">
               <el-form-item
+                :label="t('config.form.customFrpcPath.label')"
+                prop="customFrpcPath"
+              >
+                <template #label>
+                  <div class="flex items-center mr-1 h-full">
+                    <el-popover placement="top" width="320" trigger="hover">
+                      <template #default>
+                        <div
+                          v-html="t('config.form.customFrpcPath.tips')"
+                        ></div>
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  {{ t("config.form.customFrpcPath.label") }}
+                </template>
+                <div class="flex gap-2 w-full items-center">
+                  <el-input
+                    v-model="formData.customFrpcPath"
+                    :placeholder="t('config.form.customFrpcPath.placeholder')"
+                    clearable
+                    @input="handleValidateCustomPath"
+                    @clear="handleValidateCustomPath"
+                  />
+                  <el-button
+                    :loading="detectingPath"
+                    type="primary"
+                    @click="handleDetectFrpcPath"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
+                    {{ t("config.button.autoDetect") }}
+                  </el-button>
+                  <el-button @click="handleSelectCustomFrpcFile">
+                    <IconifyIconOffline class="mr-1" icon="file-open-rounded" />
+                    {{ t("config.button.browse") }}
+                  </el-button>
+                </div>
+                <div
+                  v-if="detectedVersionInfo"
+                  class="flex items-center mt-1 text-xs text-gray-500 w-full"
+                >
+                  <span class="mr-1.5"
+                    >{{
+                      t("config.form.customFrpcPath.detectedVersion")
+                    }}:</span
+                  >
+                  <el-tag size="small" type="success">{{
+                    detectedVersionInfo
+                  }}</el-tag>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item
                 :label="t('config.form.frpcVerson.label')"
                 prop="frpcVersion"
               >
+                <template #label>
+                  <div class="flex items-center mr-1 h-full">
+                    <el-popover placement="top" width="300" trigger="hover">
+                      <template #default>
+                        <div
+                          v-html="t('config.form.frpcVerson.fallbackTips')"
+                        ></div>
+                      </template>
+                      <template #reference>
+                        <IconifyIconOffline
+                          class="text-base"
+                          color="#5A3DAA"
+                          icon="info"
+                        />
+                      </template>
+                    </el-popover>
+                  </div>
+                  {{ t("config.form.frpcVerson.label") }}
+                </template>
                 <el-select
                   v-model="formData.frpcVersion"
                   class="w-full"
                   clearable
+                  :placeholder="t('config.form.frpcVerson.placeholder')"
+                  @change="() => formRef?.validateField('frpcVersion')"
                 >
                   <el-option
                     v-for="v in frpcDesktopStore.downloadedVersions"
@@ -687,22 +863,30 @@ onUnmounted(() => {
                     :value="v.githubReleaseId"
                   />
                 </el-select>
-                <div class="flex justify-end w-full">
-                  <el-link
-                    type="primary"
-                    @click="frpcDesktopStore.refreshDownloadedVersion()"
-                  >
-                    <iconify-icon-offline class="mr-1" icon="refresh-rounded" />
-                    {{ t("config.button.manualRefresh") }}
-                  </el-link>
-                  <el-link
-                    class="ml-2"
-                    type="primary"
-                    @click="$router.replace({ name: 'Download' })"
-                  >
-                    <IconifyIconOffline class="mr-1" icon="download" />
-                    {{ t("config.button.goToDownload") }}
-                  </el-link>
+                <div class="flex justify-between items-center w-full mt-1">
+                  <div class="text-xs text-gray-400">
+                    {{ t("config.form.frpcVerson.fallbackTips") }}
+                  </div>
+                  <div class="flex">
+                    <el-link
+                      type="primary"
+                      @click="frpcDesktopStore.refreshDownloadedVersion()"
+                    >
+                      <iconify-icon-offline
+                        class="mr-1"
+                        icon="refresh-rounded"
+                      />
+                      {{ t("config.button.manualRefresh") }}
+                    </el-link>
+                    <el-link
+                      class="ml-2"
+                      type="primary"
+                      @click="$router.replace({ name: 'Download' })"
+                    >
+                      <IconifyIconOffline class="mr-1" icon="download" />
+                      {{ t("config.button.goToDownload") }}
+                    </el-link>
+                  </div>
                 </div>
               </el-form-item>
             </el-col>
