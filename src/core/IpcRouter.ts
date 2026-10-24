@@ -118,6 +118,14 @@ export const ipcRouters: IpcRouters = {
     }
   },
   SYSTEM: {
+    getWindowsServiceStatus: {
+      path: "system/getWindowsServiceStatus",
+      controller: "systemController.getWindowsServiceStatus"
+    },
+    manageWindowsService: {
+      path: "system/manageWindowsService",
+      controller: "systemController.manageWindowsService"
+    },
     openUrl: {
       path: "system/openUrl",
       controller: "systemController.openUrl"

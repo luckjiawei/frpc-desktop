@@ -55,6 +55,23 @@ jobs:
           cargo check
           cargo test
 
+  # Windows：服务集成编译、快照与资源完整性检测
+  windows-service:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: "npm"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run prepare:windows-service
+      - run: npm run test:windows-service
+      - run: npm run build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml windows_service
+
   # main 分支：多平台打包检测
   build:
     if: ${{ github.ref == 'refs/heads/main' }}

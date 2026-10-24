@@ -20,6 +20,8 @@
     "node": ">= 22.12.0"
   },
   "scripts": {
+    "prepare:windows-service": "node scripts/prepare-windows-service.mjs",
+    "test:windows-service": "node --test tests/windows-service-config.test.mjs",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "tauri": "node scripts/run-tauri.mjs",

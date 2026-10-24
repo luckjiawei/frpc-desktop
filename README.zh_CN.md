@@ -50,6 +50,46 @@
 - [x] support multiple languages
 - [x] 支持代理快速搜索及卡片/列表分页
 
+## Windows 无人值守服务
+
+Windows 客户端现在可以把 frpc 安装为 `FrpcDesktopService` 系统服务。服务由 Windows 服务控制管理器启动，使用低权限 `NT AUTHORITY\LocalService` 账户运行，因此即使没有用户登录、GUI 已退出或用户注销，隧道仍可自动启动。
+
+### 使用方法
+
+1. 在“设置”中保存服务端、代理、frp 版本以及证书/私钥配置。
+2. 在“Windows 系统服务”区域点击“安装服务”，确认 UAC 管理员提示。
+3. 使用“启动服务”“停止服务”“更新服务配置”管理服务；更新配置会创建新的快照，失败时保留原快照并尝试恢复。
+4. 不再需要时先停止服务，再点击“卸载服务”。卸载只删除服务专用目录，不删除客户端数据库、原始配置或已下载的 frp 版本。
+
+服务文件和日志放在 Windows 的 `%ProgramData%\FrpcDesktopService`，不是当前用户的 AppData。安装时引用的证书、私钥会复制到服务快照目录并重写配置路径；原始文件不会被移动或删除。保存设置后，必须点击“更新服务配置”才会同步到已安装的服务。
+
+服务管理需要管理员确认；服务账户只获得服务目录的读取权限和日志目录的写入权限。若同名服务、链接目录或权限不符合预期，程序会拒绝覆盖并显示错误。
+
+服务管理已接入 Tauri 2 后端，兼容已下载版本、Electron 1.x 旧文件名及自定义 frpc 可执行文件。2026-10-20 已在 Windows 本机使用独立配置和回环隧道验证安装、启动/停止、LocalService 身份、会话 0、延迟自动启动设置、目录权限、进程崩溃恢复、失败更新回滚、运行中/停止时更新、卸载清理及损坏 WinSW 拒绝。测试结束后已清除测试服务和部署目录，未改动原有客户端。
+
+Windows x64 Release 安装包已在独立目录安装，安装后的客户端二进制与构建产物一致，WinSW 资源完整性检查通过。用户随后安装服务并重启；2026-10-21（UTC+08:00）日志确认重启后服务以 LocalService 在会话 0 运行，frpc 登录成功且三个代理注册成功。
+
+用户登录早于服务启动，因此注销和重启后未登录时的实际隧道连通性仍未验证，需在隔离 Windows 客机或目标机器上补充验证。代理注册成功不代表所有本地业务端口均可连接；本地业务应用也需要自行配置开机启动。GUI/UAC 完整交互流程尚未系统验证。
+
+可复现的管理员集成测试位于 `tests/windows-service.integration.ps1`。运行前执行 `npm run prepare:windows-service`，并准备包含 `frpc.exe` 和 `frps.exe` 的目录。以管理员 PowerShell 执行以下命令；工作目录必须尚不存在，调用者 SID 应为使用客户端的用户：
+
+```powershell
+.\tests\windows-service.integration.ps1 `
+  -FrpDirectory 'E:\frp-test\frp_0.68.1_windows_amd64' `
+  -WorkDirectory 'E:\frp-test\run-01' `
+  -CallerSid ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+```
+
+脚本拒绝覆盖已有服务及部署目录，仅使用本机回环隧道，结束后卸载测试服务，并在工作目录写入 `integration-result.json`。测试工作目录可整体清理。
+
+### Windows unattended service (English)
+
+The Windows client can install `frpc` as the `FrpcDesktopService` system service. It runs as the low-privilege `NT AUTHORITY\LocalService` account and can start without a logged-in user or the desktop GUI.
+
+Save the configuration first, then use **Install service**, **Start/Stop service**, **Update service config**, and **Uninstall service** in Settings. Service snapshots and logs live under `%ProgramData%\FrpcDesktopService`; certificate and key references are copied into the snapshot and the original files are kept. Updating the desktop settings does not change an installed snapshot until **Update service config** is used.
+
+Service management requires administrator confirmation. A Windows loopback integration test verified installation, LocalService/session 0, ACLs, crash recovery, snapshot updates/rollback and removal on 2026-10-20. The x64 release installer was installed in a separate directory and its binary and WinSW resource were verified. After the user installed the service and rebooted, logs on 2026-10-21 (UTC+08:00) confirmed service startup, frpc login and three successful proxy registrations. Login preceded service startup, so logoff and pre-logon tunnel connectivity remain unverified. Proxy registration does not establish connectivity to every local application; those applications need their own startup configuration. Full GUI/UAC interaction has not been systematically tested. The opt-in administrator harness is `tests/windows-service.integration.ps1`.
+
 
 ## 开发
 

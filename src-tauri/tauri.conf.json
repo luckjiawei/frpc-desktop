@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:3344",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "npm run prepare:windows-service && npm run dev",
+    "beforeBuildCommand": "npm run prepare:windows-service && npm run build"
   },
   "app": {
     "windows": [

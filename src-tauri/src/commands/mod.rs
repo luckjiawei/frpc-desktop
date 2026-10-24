@@ -5,11 +5,12 @@ use crate::db::server_repo::ServerRepository;
 use crate::db::version_repo::VersionRepository;
 use crate::db::DbManager;
 use crate::downloader::VersionManager;
-use crate::models::{
-    ApiResponse, FrpcProcessStatus, FrpcProxy, OpenSourceFrpcDesktopServer,
-};
+use crate::models::{ApiResponse, FrpcProcessStatus, FrpcProxy, OpenSourceFrpcDesktopServer};
 use crate::process::ProcessManager;
 use crate::system::{FrpcDetector, SystemService};
+use crate::windows_service::{
+    ServiceAction, ServiceSnapshot, WindowsServiceManager, WindowsServiceStatus,
+};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
@@ -23,12 +24,55 @@ pub struct AppState {
     pub config_path: PathBuf,
     pub frpc_log_path: PathBuf,
     pub app_log_path: PathBuf,
+    pub windows_service: WindowsServiceManager,
+    pub lifecycle: tokio::sync::Mutex<()>,
 }
 
 impl AppState {
-    pub async fn launch_frpc(&self, app: &AppHandle) -> Result<FrpcProcessStatus, (String, String)> {
+    pub async fn launch_frpc(
+        &self,
+        app: &AppHandle,
+    ) -> Result<FrpcProcessStatus, (String, String)> {
+        let _operation = self.lifecycle.lock().await;
+        let service = self.windows_service.status().await.map_err(service_error)?;
+        if service.installed {
+            return self
+                .windows_service
+                .manage(app, ServiceAction::Start, &self.config_path, None)
+                .await
+                .map(|status| status.process_status())
+                .map_err(service_error);
+        }
+        let snapshot = self.capture_snapshot()?;
+        let server = &snapshot.server;
+        if server.web_server.enable && server.web_server.port > 0 {
+            let bind_addr = format!("127.0.0.1:{}", server.web_server.port);
+            if std::net::TcpListener::bind(&bind_addr).is_err() {
+                return Err(("B1006".into(), "WebServer Port In Use".into()));
+            }
+        }
+        let toml_str =
+            ConfigGenerator::gen_toml_config(server, &snapshot.proxies, &self.frpc_log_path);
+        if let Err(e) = fs::write(&self.config_path, toml_str) {
+            return Err(("B1000".to_string(), format!("写入配置文件失败: {}", e)));
+        }
+        self.process_mgr
+            .start(
+                app.clone(),
+                &snapshot.binary,
+                &self.config_path,
+                &self.frpc_log_path,
+            )
+            .await
+            .map_err(|e| ("B1000".into(), e.to_string()))?;
+        Ok(self.process_mgr.get_status().await)
+    }
+
+    fn capture_snapshot(&self) -> Result<ServiceSnapshot, (String, String)> {
+        // One connection guard covers all reads. Lifecycle-changing IPC writes
+        // also take the async lifecycle lock, released only after deployment.
+        let conn = self.db.conn();
         let (server, proxies) = {
-            let conn = self.db.conn();
             let server = match ServerRepository::get_server_config(&conn) {
                 Ok(s) => s,
                 Err(e) => return Err(("B1000".to_string(), e.to_string())),
@@ -36,13 +80,6 @@ impl AppState {
 
             if server.server_addr.trim().is_empty() {
                 return Err(("B1001".to_string(), "未配置服务端地址".to_string()));
-            }
-
-            if server.web_server.enable && server.web_server.port > 0 {
-                let bind_addr = format!("127.0.0.1:{}", server.web_server.port);
-                if std::net::TcpListener::bind(&bind_addr).is_err() {
-                    return Err(("B1006".to_string(), "WebServer Port In Use".to_string()));
-                }
             }
 
             let proxies = match ProxyRepository::get_all_proxies(&conn) {
@@ -57,19 +94,31 @@ impl AppState {
             if !resolved.exists() || !FrpcDetector::is_executable_binary(&resolved) {
                 return Err((
                     "B1005".to_string(),
-                    format!("指定的 frpc 二进制文件不存在或不可执行: {}", resolved.display()),
+                    format!(
+                        "指定的 frpc 二进制文件不存在或不可执行: {}",
+                        resolved.display()
+                    ),
                 ));
             }
             resolved
         } else if let Some(release_id) = server.frpc_version {
-            let conn = self.db.conn();
             let version = match VersionRepository::find_by_github_release_id(&conn, release_id) {
                 Ok(Some(v)) => v,
-                _ => return Err(("B1005".to_string(), "未找到版本（请在版本管理中重新下载）".to_string())),
+                _ => {
+                    return Err((
+                        "B1005".to_string(),
+                        "未找到版本（请在版本管理中重新下载）".to_string(),
+                    ))
+                }
             };
             let local_path = match version.local_path {
                 Some(p) => PathBuf::from(p),
-                None => return Err(("B1005".to_string(), "未找到版本（本地路径为空）".to_string())),
+                None => {
+                    return Err((
+                        "B1005".to_string(),
+                        "未找到版本（本地路径为空）".to_string(),
+                    ))
+                }
             };
             match VersionManager::resolve_frpc_binary(&local_path) {
                 Some(bin) => bin,
@@ -86,32 +135,109 @@ impl AppState {
             if detected.found {
                 PathBuf::from(detected.path)
             } else {
-                return Err(("B1005".to_string(), "未配置 frpc 路径或下载版本".to_string()));
+                return Err((
+                    "B1005".to_string(),
+                    "未配置 frpc 路径或下载版本".to_string(),
+                ));
             }
         };
 
-        let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &self.frpc_log_path);
-        if let Err(e) = fs::write(&self.config_path, toml_str) {
-            return Err(("B1000".to_string(), format!("写入配置文件失败: {}", e)));
-        }
+        Ok(ServiceSnapshot {
+            server,
+            proxies,
+            binary: binary_path,
+        })
+    }
 
-        match self
-            .process_mgr
-            .start(
-                app.clone(),
-                &binary_path,
-                &self.config_path,
-                &self.frpc_log_path,
-            )
-            .await
-        {
-            Ok(()) => {
-                let status = self.process_mgr.get_status().await;
-                Ok(status)
-            }
-            Err(e) => Err(("B1000".to_string(), e.to_string())),
+    pub async fn process_status(&self) -> Result<FrpcProcessStatus, String> {
+        let service = self.windows_service.status().await?;
+        Ok(if service.installed {
+            service.process_status()
+        } else {
+            self.process_mgr.get_status().await
+        })
+    }
+
+    pub async fn terminate_frpc(&self, app: &AppHandle) -> Result<(), String> {
+        let _operation = self.lifecycle.lock().await;
+        let service = self.windows_service.status().await?;
+        if service.installed {
+            let status = self
+                .windows_service
+                .manage(app, ServiceAction::Stop, &self.config_path, None)
+                .await?;
+            let _ = app.emit(
+                "frpcProcess:watchFrpcLog",
+                ApiResponse::success(status.process_status()),
+            );
+            Ok(())
+        } else {
+            self.process_mgr
+                .terminate(app.clone())
+                .await
+                .map_err(|e| e.to_string())
         }
     }
+
+    async fn manage_windows_service(
+        &self,
+        app: &AppHandle,
+        action: ServiceAction,
+    ) -> Result<WindowsServiceStatus, (String, String)> {
+        let _operation = self.lifecycle.lock().await;
+        if action == ServiceAction::Install && self.process_mgr.is_running().await {
+            return Err(service_error("SERVICE_STOP_GUI_FIRST".into()));
+        }
+        let snapshot = if action.needs_snapshot() {
+            Some(self.capture_snapshot()?)
+        } else {
+            None
+        };
+        let status = self
+            .windows_service
+            .manage(app, action, &self.config_path, snapshot)
+            .await
+            .map_err(service_error)?;
+        let process_status = if status.installed {
+            status.process_status()
+        } else {
+            self.process_mgr.get_status().await
+        };
+        let _ = app.emit(
+            "frpcProcess:watchFrpcLog",
+            ApiResponse::success(process_status),
+        );
+        Ok(status)
+    }
+
+    async fn active_log_path(&self) -> Result<PathBuf, String> {
+        Ok(self
+            .windows_service
+            .status()
+            .await?
+            .log_path()
+            .unwrap_or_else(|| self.frpc_log_path.clone()))
+    }
+}
+
+fn service_error(message: String) -> (String, String) {
+    ("B1101".into(), message)
+}
+
+fn requires_lifecycle(path: &str) -> bool {
+    matches!(
+        path,
+        "server/saveConfig"
+            | "server/resetAllConfig"
+            | "server/importTomlConfig"
+            | "proxy/createProxy"
+            | "proxy/modifyProxy"
+            | "proxy/deleteProxy"
+            | "proxy/modifyProxyStatus"
+            | "version/deleteDownloadedVersion"
+            | "version/downloadVersion"
+            | "version/importLocalFrpcVersion"
+    )
 }
 
 #[tauri::command]
@@ -131,6 +257,11 @@ async fn handle_ipc_send(
     path: &str,
     args: Option<Value>,
 ) -> ApiResponse<Value> {
+    let _operation = if requires_lifecycle(path) {
+        Some(state.lifecycle.lock().await)
+    } else {
+        None
+    };
     match path {
         // --- SERVER ---
         "server/getServerConfig" => {
@@ -154,7 +285,9 @@ async fn handle_ipc_send(
                                 } else {
                                     let _ = app.autolaunch().disable();
                                 }
-                                ApiResponse::success(serde_json::to_value(&server).unwrap_or(Value::Null))
+                                ApiResponse::success(
+                                    serde_json::to_value(&server).unwrap_or(Value::Null),
+                                )
                             }
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
@@ -166,11 +299,18 @@ async fn handle_ipc_send(
             }
         }
         "server/resetAllConfig" => {
+            match state.windows_service.status().await {
+                Ok(status) if !status.blocks_reset() => {}
+                Ok(_) => return ApiResponse::fail("B1101", "SERVICE_CONFIGURED_RESET_REQUIRED"),
+                Err(message) => return ApiResponse::fail("B1101", message),
+            }
             let conn = state.db.conn();
             match ServerRepository::reset_all_config(&conn) {
                 Ok(()) => {
                     let default_server = ServerRepository::get_server_config(&conn).unwrap();
-                    ApiResponse::success(serde_json::to_value(default_server).unwrap_or(Value::Null))
+                    ApiResponse::success(
+                        serde_json::to_value(default_server).unwrap_or(Value::Null),
+                    )
                 }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
@@ -185,7 +325,8 @@ async fn handle_ipc_send(
                 Ok(p) => p,
                 Err(e) => return ApiResponse::internal_error(e.to_string()),
             };
-            let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &state.frpc_log_path);
+            let toml_str =
+                ConfigGenerator::gen_toml_config(&server, &proxies, &state.frpc_log_path);
 
             if let Some(path_buf) = rfd::FileDialog::new()
                 .set_file_name("frpc.toml")
@@ -266,9 +407,9 @@ async fn handle_ipc_send(
                     Ok(proxy) => {
                         let conn = state.db.conn();
                         match ProxyRepository::create_proxy(&conn, proxy) {
-                            Ok(created) => {
-                                ApiResponse::success(serde_json::to_value(created).unwrap_or(Value::Null))
-                            }
+                            Ok(created) => ApiResponse::success(
+                                serde_json::to_value(created).unwrap_or(Value::Null),
+                            ),
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -284,9 +425,9 @@ async fn handle_ipc_send(
                     Ok(proxy) => {
                         let conn = state.db.conn();
                         match ProxyRepository::modify_proxy(&conn, proxy) {
-                            Ok(updated) => {
-                                ApiResponse::success(serde_json::to_value(updated).unwrap_or(Value::Null))
-                            }
+                            Ok(updated) => ApiResponse::success(
+                                serde_json::to_value(updated).unwrap_or(Value::Null),
+                            ),
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -336,17 +477,19 @@ async fn handle_ipc_send(
         "proxy/getLocalPorts" => {
             let conn = state.db.conn();
             match ProxyRepository::get_local_ports(&conn) {
-                Ok(ports) => ApiResponse::success(serde_json::to_value(ports).unwrap_or(Value::Null)),
+                Ok(ports) => {
+                    ApiResponse::success(serde_json::to_value(ports).unwrap_or(Value::Null))
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
 
         // --- LAUNCH ---
-        "launch/getStatus" => {
-            let status = state.process_mgr.get_status().await;
-            ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
-        }
-        "launch/terminate" => match state.process_mgr.terminate(app.clone()).await {
+        "launch/getStatus" => match state.process_status().await {
+            Ok(status) => ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null)),
+            Err(message) => ApiResponse::fail("B1101", message),
+        },
+        "launch/terminate" => match state.terminate_frpc(app).await {
             Ok(()) => ApiResponse::success_empty(),
             Err(e) => ApiResponse::internal_error(e.to_string()),
         },
@@ -460,7 +603,11 @@ async fn handle_ipc_send(
 
             match picked_path {
                 Some(path_buf) => {
-                    match state.version_mgr.import_local_file(&state.db, &path_buf).await {
+                    match state
+                        .version_mgr
+                        .import_local_file(&state.db, &path_buf)
+                        .await
+                    {
                         Ok(_) => ApiResponse::success(serde_json::json!({ "canceled": false })),
                         Err(e) => {
                             let msg = e.to_string();
@@ -514,7 +661,11 @@ async fn handle_ipc_send(
 
         // --- LOG ---
         "log/getFrpLogContent" => {
-            let lines = SystemService::read_log_tail(&state.frpc_log_path, 500);
+            let log_path = match state.active_log_path().await {
+                Ok(path) => path,
+                Err(message) => return ApiResponse::fail("B1101", message),
+            };
+            let lines = SystemService::read_log_tail(&log_path, 500);
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/getAppLogContent" => {
@@ -522,7 +673,11 @@ async fn handle_ipc_send(
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/openFrpcLogFile" => {
-            let _ = SystemService::open_path(&state.frpc_log_path);
+            let log_path = match state.active_log_path().await {
+                Ok(path) => path,
+                Err(message) => return ApiResponse::fail("B1101", message),
+            };
+            let _ = SystemService::open_path(log_path);
             ApiResponse::success_empty()
         }
         "log/openAppLogFile" => {
@@ -531,6 +686,24 @@ async fn handle_ipc_send(
         }
 
         // --- SYSTEM ---
+        "system/getWindowsServiceStatus" => match state.windows_service.status().await {
+            Ok(status) => ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null)),
+            Err(message) => ApiResponse::fail("B1101", message),
+        },
+        "system/manageWindowsService" => {
+            let action = args
+                .and_then(|value| value.get("action").cloned())
+                .and_then(|value| serde_json::from_value::<ServiceAction>(value).ok());
+            match action {
+                Some(action) => match state.manage_windows_service(app, action).await {
+                    Ok(status) => {
+                        ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
+                    }
+                    Err((code, message)) => ApiResponse::fail(code, message),
+                },
+                None => ApiResponse::fail("B1101", "SERVICE_INVALID_ACTION"),
+            }
+        }
         "system/openUrl" => {
             if let Some(Value::Object(map)) = args {
                 if let Some(url) = map.get("url").and_then(|v| v.as_str()) {
@@ -565,8 +738,7 @@ async fn handle_ipc_send(
             if let Some(Value::Object(map)) = args {
                 let name = map.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 if let Some(Value::Array(exts)) = map.get("extensions") {
-                    let ext_strs: Vec<&str> =
-                        exts.iter().filter_map(|e| e.as_str()).collect();
+                    let ext_strs: Vec<&str> = exts.iter().filter_map(|e| e.as_str()).collect();
                     if !ext_strs.is_empty() {
                         dialog = dialog.add_filter(name, &ext_strs);
                     }

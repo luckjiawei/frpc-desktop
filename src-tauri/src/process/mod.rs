@@ -64,9 +64,7 @@ impl ProcessManager {
             return Ok(());
         }
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
-            .as_millis() as i64;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as i64;
 
         {
             let mut state = self.inner.lock().await;
@@ -77,6 +75,9 @@ impl ProcessManager {
 
         let mut cmd = Command::new(binary_path);
         cmd.arg("-c").arg(config_path);
+        if let Some(directory) = binary_path.parent() {
+            cmd.current_dir(directory);
+        }
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
 
@@ -97,7 +98,10 @@ impl ProcessManager {
 
         // Emit initial started status
         let initial_status = self.get_status().await;
-        let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(initial_status));
+        let _ = app.emit(
+            "frpcProcess:watchFrpcLog",
+            ApiResponse::success(initial_status),
+        );
 
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
@@ -161,7 +165,10 @@ impl ProcessManager {
                 connection_error: conn_err,
                 last_start_time: None,
             };
-            let _ = app_clone.emit("frpcProcess:watchFrpcLog", ApiResponse::success(final_status));
+            let _ = app_clone.emit(
+                "frpcProcess:watchFrpcLog",
+                ApiResponse::success(final_status),
+            );
         });
 
         Ok(())
@@ -190,7 +197,10 @@ impl ProcessManager {
             connection_error: None,
             last_start_time: None,
         };
-        let _ = app.emit("frpcProcess:watchFrpcLog", ApiResponse::success(final_status));
+        let _ = app.emit(
+            "frpcProcess:watchFrpcLog",
+            ApiResponse::success(final_status),
+        );
 
         Ok(())
     }
@@ -201,11 +211,7 @@ impl ProcessManager {
         }
     }
 
-    async fn inspect_log_line(
-        inner: &Arc<Mutex<ProcessState>>,
-        app: &AppHandle,
-        line: &str,
-    ) {
+    async fn inspect_log_line(inner: &Arc<Mutex<ProcessState>>, app: &AppHandle, line: &str) {
         let is_error = line.contains("connect to server error")
             || line.contains("login to server failed")
             || line.contains("address already in use")

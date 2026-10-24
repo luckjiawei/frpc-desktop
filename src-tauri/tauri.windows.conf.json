@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "../resources/windows-service/WinSW.NET461.exe": "windows-service/WinSW.NET461.exe"
+    }
+  }
+}

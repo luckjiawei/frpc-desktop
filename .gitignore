@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron
+release
 src-tauri/target
 *.local
 
@@ -24,3 +26,6 @@ src-tauri/target
 *.sw?
 
 pnpm-lock.yaml
+
+resources/windows-service/*.exe
+resources/windows-service/*.tmp

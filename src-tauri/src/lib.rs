@@ -5,6 +5,7 @@ pub mod downloader;
 pub mod models;
 pub mod process;
 pub mod system;
+pub mod windows_service;
 
 use commands::{ipc_send, AppState};
 use db::DbManager;
@@ -68,12 +69,34 @@ pub fn run() {
                 config_path,
                 frpc_log_path,
                 app_log_path,
+                windows_service: windows_service::WindowsServiceManager::default(),
+                lifecycle: tokio::sync::Mutex::new(()),
             };
 
             app.manage(app_state);
 
             // Start background system usage poller
             SystemService::start_usage_poller(app.handle().clone());
+            #[cfg(windows)]
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri::Emitter;
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                        let state = app_handle.state::<AppState>();
+                        let _operation = state.lifecycle.lock().await;
+                        if let Ok(service) = state.windows_service.status().await {
+                            if service.installed {
+                                let _ = app_handle.emit(
+                                    "frpcProcess:watchFrpcLog",
+                                    models::ApiResponse::success(service.process_status()),
+                                );
+                            }
+                        }
+                    }
+                });
+            }
 
             // Build Tray
             let show_i = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
@@ -128,8 +151,9 @@ pub fn run() {
                     }
                 });
 
-            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../../public/logo/only/32x32.png"))
-                .ok();
+            let tray_icon =
+                tauri::image::Image::from_bytes(include_bytes!("../../public/logo/only/32x32.png"))
+                    .ok();
             let icon_ref = tray_icon.as_ref().or_else(|| app.default_window_icon());
 
             if let Some(icon) = icon_ref {
@@ -156,7 +180,9 @@ pub fn run() {
                 if !is_silent && !server.system.silent_startup {
                     #[cfg(target_os = "macos")]
                     {
-                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Regular);
                         let _ = app.handle().set_dock_visibility(true);
                     }
                     if let Some(window) = app.get_webview_window("main") {
@@ -167,7 +193,9 @@ pub fn run() {
                     #[cfg(target_os = "macos")]
                     {
                         let _ = app.handle().set_dock_visibility(false);
-                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
                     }
                 }
 
@@ -184,7 +212,9 @@ pub fn run() {
             } else if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
                 {
-                    let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                    let _ = app
+                        .handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Regular);
                     let _ = app.handle().set_dock_visibility(true);
                 }
                 let _ = window.show();
