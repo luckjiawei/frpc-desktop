@@ -8,7 +8,7 @@ defineComponent({
 <template>
   <div class="main-container">
     <router-view v-slot="{ Component }">
-      <keep-alive :include="['ProxyPage', 'ConfigPage']">
+      <keep-alive :include="['ProxyPage']">
         <component :is="Component" />
       </keep-alive>
     </router-view>

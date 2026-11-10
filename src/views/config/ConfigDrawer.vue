@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
-import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
@@ -9,25 +8,18 @@ import confetti from "canvas-confetti/src/confetti.js";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import { Base64 } from "js-base64";
 import _ from "lodash";
-import {
-  nextTick,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  watch
-} from "vue";
+import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
+import router from "@/router";
 import ConfigToolbar from "./ConfigToolbar.vue";
 import LogConfig from "./LogConfig.vue";
 import WebServerConfig from "./WebServerConfig.vue";
 
-defineOptions({
-  name: "ConfigPage"
-});
+const drawerVisible = defineModel<boolean>({ required: true });
+const props = defineProps<{
+  tunnel: Pick<TunnelSummary, "id" | "name"> | null;
+}>();
 
 // type ShareLinkConfig = {
 //   serverAddr: string;
@@ -100,14 +92,22 @@ const defaultFormData: OpenSourceFrpcDesktopServer = {
   },
   user: ""
 };
-const formData = ref<OpenSourceFrpcDesktopServer>(defaultFormData);
-const loading = ref(1);
+const formData = ref<OpenSourceFrpcDesktopServer>(_.cloneDeep(defaultFormData));
+const loading = ref(0);
 const rules = reactive<FormRules>({
   frpcVersion: [
     {
+      required: true,
+      message: t("config.form.frpcVerson.requireMessage"),
+      trigger: "change"
+    }
+  ],
+  customFrpcPath: [
+    {
+      required: true,
       validator: (_rule: any, value: any, callback: any) => {
-        if (!value && !formData.value.customFrpcPath?.trim()) {
-          callback(new Error(t("config.form.frpcVerson.requireEitherMessage")));
+        if (!value?.trim()) {
+          callback(new Error(t("config.form.customFrpcPath.requireMessage")));
         } else {
           callback();
         }
@@ -294,8 +294,12 @@ const detectedVersionInfo = ref("");
 const frpcDesktopStore = useFrpcDesktopStore();
 const tunnelStore = useTunnelStore();
 const formDirty = ref(false);
+/**
+ * frpc 来源二选一，只是界面状态：保存时清空未选中的一项。
+ * 后端在 customFrpcPath 非空时优先使用它，否则使用 frpcVersion。
+ */
+const frpcSource = ref<"downloaded" | "custom">("downloaded");
 let hydratingForm = true;
-let hasActivatedOnce = false;
 const listenerCleanups: Array<() => void> = [];
 
 watch(
@@ -305,6 +309,11 @@ watch(
   },
   { deep: true }
 );
+
+watch(frpcSource, () => {
+  if (!hydratingForm) formDirty.value = true;
+  formRef.value?.clearValidate(["frpcVersion", "customFrpcPath"]);
+});
 
 watch(
   () => frpcDesktopStore.downloadedVersions,
@@ -327,12 +336,19 @@ const handleSubmit = useDebounceFn(() => {
     if (valid) {
       loading.value = 1;
       const data = _.cloneDeep(formData.value);
+      if (frpcSource.value === "custom") {
+        data.customFrpcPath = data.customFrpcPath.trim();
+        data.frpcVersion = null;
+      } else {
+        data.customFrpcPath = "";
+      }
       send(ipcRouters.SERVER.saveConfig, data);
     }
   });
 }, 300);
 
 const handleKeydown = (e: KeyboardEvent) => {
+  if (!drawerVisible.value) return;
   if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
     e.preventDefault();
     handleSubmit();
@@ -371,46 +387,60 @@ const checkAndResetVersion = () => {
 // };
 
 const handleLoadSavedConfig = () => {
+  if (!props.tunnel) return;
   loading.value = 1;
   send(ipcRouters.SERVER.getServerConfig, {
-    tunnelId: tunnelStore.currentTunnelId
+    tunnelId: props.tunnel.id
   });
 };
 
-const confirmTunnelSwitch = async () => {
-  if (!formDirty.value) return true;
-  try {
-    await ElMessageBox.confirm(
-      t("tunnel.switchDirty.message"),
-      t("tunnel.switchDirty.title"),
-      {
-        type: "warning",
-        confirmButtonText: t("tunnel.switchDirty.confirm"),
-        cancelButtonText: t("tunnel.switchDirty.cancel")
-      }
-    );
-    return true;
-  } catch {
-    return false;
+const handleBeforeClose = (done: () => void) => {
+  if (!formDirty.value) {
+    done();
+    return;
   }
+  ElMessageBox.confirm(
+    t("tunnel.closeDirty.message"),
+    t("tunnel.closeDirty.title"),
+    {
+      type: "warning",
+      confirmButtonText: t("tunnel.closeDirty.confirm"),
+      cancelButtonText: t("tunnel.closeDirty.cancel")
+    }
+  )
+    .then(() => done())
+    .catch(() => {});
+};
+
+const handleGoToDownload = () => {
+  handleBeforeClose(() => {
+    drawerVisible.value = false;
+    router.push({ name: "Download" });
+  });
 };
 
 watch(
-  () => tunnelStore.currentTunnelId,
-  () => {
+  () => [drawerVisible.value, props.tunnel?.id],
+  ([open]) => {
+    hydratingForm = true;
     formDirty.value = false;
-    handleLoadSavedConfig();
+    formRef.value?.clearValidate();
+    detectedVersionInfo.value = "";
+    if (open) {
+      formData.value = _.cloneDeep(defaultFormData);
+      frpcSource.value = "downloaded";
+      handleLoadSavedConfig();
+    }
   }
 );
 
 onMounted(() => {
-  // handleLoadDownloadedVersion();
-  handleLoadSavedConfig();
-
   listenerCleanups.push(
     on(ipcRouters.SERVER.getServerConfig, data => {
-      // 其他页面或切换前发出的请求，不覆盖当前实例的表单
-      if (data && data._id !== tunnelStore.currentTunnelId) return;
+      // 代理页等其他地方发出的请求，或关闭后迟到的响应，不覆盖当前实例的表单
+      if (!drawerVisible.value || (data && data._id !== props.tunnel?.id)) {
+        return;
+      }
       hydratingForm = true;
       if (data) {
         formData.value = data;
@@ -425,6 +455,9 @@ onMounted(() => {
           }
         });
         checkAndResetVersion();
+        frpcSource.value = formData.value.customFrpcPath?.trim()
+          ? "custom"
+          : "downloaded";
         if (formData.value.customFrpcPath) {
           handleValidateCustomPath();
         }
@@ -456,6 +489,8 @@ onMounted(() => {
 
   listenerCleanups.push(
     on(ipcRouters.SYSTEM.selectLocalFile, data => {
+      // 代理页也会选择文件，只处理抽屉打开时发起的选择
+      if (!drawerVisible.value) return;
       if (!data.canceled) {
         switch (currSelectLocalFileType.value) {
           case 1:
@@ -494,7 +529,7 @@ onMounted(() => {
             data.path +
             (data.version ? ` (${data.version})` : "")
         });
-        formRef.value?.validateField("frpcVersion");
+        formRef.value?.validateField("customFrpcPath");
       } else {
         ElMessage({
           type: "warning",
@@ -555,20 +590,6 @@ onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
 });
 
-onActivated(() => {
-  window.removeEventListener("keydown", handleKeydown);
-  window.addEventListener("keydown", handleKeydown);
-  if (!hasActivatedOnce) {
-    hasActivatedOnce = true;
-    return;
-  }
-  if (!formDirty.value) handleLoadSavedConfig();
-});
-
-onDeactivated(() => {
-  window.removeEventListener("keydown", handleKeydown);
-});
-
 const handleSelectFile = (type: number, ext: string[]) => {
   currSelectLocalFileType.value = type;
   send(ipcRouters.SYSTEM.selectLocalFile, {
@@ -590,11 +611,9 @@ const handleValidateCustomPath = useDebounceFn(() => {
   const path = formData.value.customFrpcPath?.trim();
   if (!path) {
     detectedVersionInfo.value = "";
-    formRef.value?.validateField("frpcVersion");
     return;
   }
   send(ipcRouters.VERSION.validateFrpcPath, { path });
-  formRef.value?.validateField("frpcVersion");
 }, 300);
 
 /**
@@ -673,8 +692,9 @@ const handleShowExportDialog = () => {
 };
 
 const handleExportConfig = useDebounceFn(() => {
+  if (!props.tunnel) return;
   send(ipcRouters.SERVER.exportConfig, {
-    tunnelId: tunnelStore.currentTunnelId
+    tunnelId: props.tunnel.id
   });
   // visibles.exportConfig = false;
 }, 300);
@@ -689,19 +709,24 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div class="main">
-    <ConfigToolbar
-      @export="handleExportConfig"
-      @import="handleImportConfig"
-      @refresh="handleLoadSavedConfig"
-      @save="handleSubmit"
-    >
-      <template #title-extra>
-        <TunnelSwitcher always-show :before-change="confirmTunnelSwitch" />
-      </template>
-    </ConfigToolbar>
-    <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
-      <div class="p-4 w-full app-panel">
+  <el-drawer
+    v-model="drawerVisible"
+    size="min(960px, 92%)"
+    class="config-drawer"
+    :before-close="handleBeforeClose"
+  >
+    <template #header="{ titleId, titleClass }">
+      <h2 :id="titleId" :class="titleClass" :title="tunnel?.name ?? ''">
+        {{ t("tunnel.config.title", { name: tunnel?.name ?? "" }) }}
+      </h2>
+      <ConfigToolbar
+        @export="handleExportConfig"
+        @import="handleImportConfig"
+        @refresh="handleLoadSavedConfig"
+      />
+    </template>
+    <div v-loading="loading > 0" class="pr-2">
+      <div class="w-full">
         <el-form
           ref="formRef"
           :model="formData"
@@ -716,6 +741,56 @@ onUnmounted(() => {
               </div>
             </el-col>
             <el-col :span="24">
+              <el-form-item :label="t('config.form.frpcSource.label')">
+                <el-radio-group v-model="frpcSource">
+                  <el-radio-button value="downloaded">
+                    {{ t("config.form.frpcSource.downloaded") }}
+                  </el-radio-button>
+                  <el-radio-button value="custom">
+                    {{ t("config.form.frpcSource.custom") }}
+                  </el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col v-if="frpcSource === 'downloaded'" :span="24">
+              <el-form-item
+                :label="t('config.form.frpcVerson.label')"
+                prop="frpcVersion"
+              >
+                <el-select
+                  v-model="formData.frpcVersion"
+                  class="w-full"
+                  clearable
+                  :placeholder="t('config.form.frpcVerson.placeholder')"
+                  :no-data-text="t('config.form.frpcVerson.empty')"
+                >
+                  <el-option
+                    v-for="v in frpcDesktopStore.downloadedVersions"
+                    :key="v.githubReleaseId"
+                    :label="v.name"
+                    :value="v.githubReleaseId"
+                  />
+                </el-select>
+                <div class="flex justify-end mt-1 w-full">
+                  <el-link
+                    type="primary"
+                    @click="frpcDesktopStore.refreshDownloadedVersion()"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
+                    {{ t("config.button.manualRefresh") }}
+                  </el-link>
+                  <el-link
+                    class="ml-2"
+                    type="primary"
+                    @click="handleGoToDownload"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="download" />
+                    {{ t("config.button.goToDownload") }}
+                  </el-link>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col v-else :span="24">
               <el-form-item
                 :label="t('config.form.customFrpcPath.label')"
                 prop="customFrpcPath"
@@ -739,7 +814,7 @@ onUnmounted(() => {
                   </div>
                   {{ t("config.form.customFrpcPath.label") }}
                 </template>
-                <div class="flex gap-2 w-full items-center">
+                <div class="flex gap-2 items-center w-full">
                   <el-input
                     v-model="formData.customFrpcPath"
                     :placeholder="t('config.form.customFrpcPath.placeholder')"
@@ -762,81 +837,14 @@ onUnmounted(() => {
                 </div>
                 <div
                   v-if="detectedVersionInfo"
-                  class="flex items-center mt-1 text-xs text-text_color_secondary w-full"
+                  class="flex items-center mt-1 w-full text-xs text-text_color_secondary"
                 >
-                  <span class="mr-1.5"
-                    >{{
-                      t("config.form.customFrpcPath.detectedVersion")
-                    }}:</span
-                  >
-                  <el-tag size="small" type="success">{{
-                    detectedVersionInfo
-                  }}</el-tag>
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item
-                :label="t('config.form.frpcVerson.label')"
-                prop="frpcVersion"
-              >
-                <template #label>
-                  <div class="flex items-center mr-1 h-full">
-                    <el-popover placement="top" width="300" trigger="hover">
-                      <template #default>
-                        <div
-                          v-html="t('config.form.frpcVerson.fallbackTips')"
-                        ></div>
-                      </template>
-                      <template #reference>
-                        <IconifyIconOffline
-                          class="text-base"
-                          color="var(--app-primary-text)"
-                          icon="info"
-                        />
-                      </template>
-                    </el-popover>
-                  </div>
-                  {{ t("config.form.frpcVerson.label") }}
-                </template>
-                <el-select
-                  v-model="formData.frpcVersion"
-                  class="w-full"
-                  clearable
-                  :placeholder="t('config.form.frpcVerson.placeholder')"
-                  @change="() => formRef?.validateField('frpcVersion')"
-                >
-                  <el-option
-                    v-for="v in frpcDesktopStore.downloadedVersions"
-                    :key="v.githubReleaseId"
-                    :label="v.name"
-                    :value="v.githubReleaseId"
-                  />
-                </el-select>
-                <div class="flex justify-between items-center w-full mt-1">
-                  <div class="text-xs text-text_color_secondary">
-                    {{ t("config.form.frpcVerson.fallbackTips") }}
-                  </div>
-                  <div class="flex">
-                    <el-link
-                      type="primary"
-                      @click="frpcDesktopStore.refreshDownloadedVersion()"
-                    >
-                      <iconify-icon-offline
-                        class="mr-1"
-                        icon="refresh-rounded"
-                      />
-                      {{ t("config.button.manualRefresh") }}
-                    </el-link>
-                    <el-link
-                      class="ml-2"
-                      type="primary"
-                      @click="$router.replace({ name: 'Download' })"
-                    >
-                      <IconifyIconOffline class="mr-1" icon="download" />
-                      {{ t("config.button.goToDownload") }}
-                    </el-link>
-                  </div>
+                  <span class="mr-1.5">
+                    {{ t("config.form.customFrpcPath.detectedVersion") }}:
+                  </span>
+                  <el-tag size="small" type="success">
+                    {{ detectedVersionInfo }}
+                  </el-tag>
                 </div>
               </el-form-item>
             </el-col>
@@ -1638,10 +1646,25 @@ onUnmounted(() => {
         </el-form>
       </div>
     </div>
+    <template #footer>
+      <el-button @click="handleBeforeClose(() => (drawerVisible = false))">
+        <IconifyIconOffline class="mr-2" icon="cancel-presentation" />
+        {{ t("common.close") }}
+      </el-button>
+      <el-button
+        type="primary"
+        :title="t('config.button.saveWithShortcut')"
+        @click="handleSubmit"
+      >
+        <IconifyIconOffline class="mr-2" icon="save-rounded" />
+        {{ t("common.save") }}
+      </el-button>
+    </template>
     <!--  链接导入服务器  -->
     <el-dialog
       v-model="visible.copyServerConfig"
       class="config-link-dialog"
+      append-to-body
       :title="t('config.dialog.copyLink.title')"
       width="min(720px, calc(100% - 32px))"
       top="5%"
@@ -1663,6 +1686,7 @@ onUnmounted(() => {
     <el-dialog
       v-model="visible.pasteServerConfig"
       class="config-link-dialog"
+      append-to-body
       :title="t('config.dialog.importLink.title')"
       width="min(720px, calc(100% - 32px))"
       top="5%"
@@ -1723,7 +1747,7 @@ onUnmounted(() => {
     <!--        </div>-->
     <!--      </template>-->
     <!--    </el-dialog>-->
-  </div>
+  </el-drawer>
 </template>
 
 <style lang="scss" scoped>
@@ -1731,18 +1755,42 @@ onUnmounted(() => {
   width: calc(100% - 68px);
 }
 
+.config-link-textarea {
+  display: block;
+}
+</style>
+
+<style lang="scss">
+/* 抽屉和链接弹窗挂载到 body，scoped 样式无法作用到它们 */
+.config-drawer {
+  .el-drawer__header {
+    gap: 12px;
+    margin-bottom: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .el-drawer__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .el-drawer__footer {
+    padding-top: 12px;
+    border-top: 1px solid var(--app-border);
+  }
+}
+
 .config-link-dialog {
   display: flex;
   max-height: 90vh;
   flex-direction: column;
 
-  :deep(.el-dialog__body) {
+  .el-dialog__body {
     min-height: 0;
     overflow-y: auto;
   }
-}
-
-.config-link-textarea {
-  display: block;
 }
 </style>

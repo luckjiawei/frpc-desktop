@@ -16,9 +16,6 @@ export default {
     download: {
       title: "Download"
     },
-    config: {
-      title: "Instance Config"
-    },
     system: {
       title: "Settings"
     },
@@ -65,7 +62,9 @@ export default {
       proxiesValue: "{enabled} / {total} enabled",
       server: "Server",
       manage: "Manage versions",
-      frpcVersion: "frpc version"
+      frpcVersion: "frpc version",
+      cloudflareManaged: "Routes managed in Cloudflare",
+      tokenMissing: "No tunnel token yet"
     },
     status: {
       running: "Running",
@@ -126,9 +125,75 @@ export default {
     autoStartHint:
       'Also requires "Auto connect on startup" to be enabled in Settings',
     defaultHint: "The default instance cannot be deleted",
-    back: "Back to instances",
     log: {
       title: "{name} · Logs"
+    },
+    config: {
+      title: "{name} · Config"
+    },
+    provider: {
+      frpc: "frpc",
+      cloudflared: "Cloudflare Tunnel",
+      frpcDescription: "Connect to your own frps server",
+      cloudflaredDescription: "Expose services through Cloudflare's network"
+    },
+    meta: {
+      connector: "Connector",
+      routes: "Routes",
+      tokenConfigured: "Token configured",
+      tokenMissing: "No tunnel token yet",
+      routesInDashboard: "Managed in Cloudflare dashboard"
+    },
+    cloudflared: {
+      section: {
+        binary: "cloudflared",
+        tunnel: "Tunnel",
+        advanced: "Advanced"
+      },
+      intro:
+        'Create a tunnel in the Cloudflare dashboard (Zero Trust → Networks → Tunnels), choose "cloudflared" as the connector, and copy its token. Public hostnames are configured in the dashboard.',
+      openDashboard: "Open Cloudflare dashboard",
+      source: {
+        label: "Source",
+        downloaded: "Downloaded",
+        custom: "Local file"
+      },
+      version: {
+        label: "Version",
+        placeholder: "Select a downloaded version",
+        empty: "No downloaded versions",
+        autoHint:
+          "If left empty, a cloudflared found in PATH (e.g. installed with Homebrew) is used"
+      },
+      customPath: {
+        label: "File path",
+        placeholder: "Path to the cloudflared executable",
+        requireMessage: "Enter the cloudflared path",
+        autoDetectSuccess: "Found cloudflared:",
+        autoDetectNotFound: "cloudflared was not found on this computer",
+        detectedVersion: "Detected version"
+      },
+      token: {
+        label: "Tunnel token",
+        placeholder:
+          "Paste the token, or the whole install command from the dashboard",
+        requireMessage: "Enter the tunnel token",
+        invalidMessage:
+          "This does not look like a tunnel token. Copy it from the connector install command",
+        extracted: "Token extracted from the pasted command"
+      },
+      protocol: {
+        label: "Protocol",
+        auto: "Auto (QUIC, falls back to HTTP/2)",
+        tips: "Choose HTTP/2 if your network blocks UDP traffic on port 7844"
+      },
+      edgeIpVersion: {
+        label: "Edge IP version",
+        auto: "Auto"
+      },
+      logLevel: {
+        label: "Log level"
+      }
     },
     button: {
       create: "New Instance",
@@ -157,12 +222,12 @@ export default {
       confirm: "Delete",
       cancel: "Cancel"
     },
-    switchDirty: {
+    closeDirty: {
       title: "Unsaved Changes",
       message:
-        "Settings of the current instance have not been saved and will be lost if you switch. Continue?",
-      confirm: "Switch",
-      cancel: "Cancel"
+        "Settings of this instance have not been saved and will be lost if you close. Continue?",
+      confirm: "Discard",
+      cancel: "Keep Editing"
     },
     message: {
       createSuccess: "Instance created",
@@ -170,7 +235,8 @@ export default {
       deleteSuccess: "Instance deleted",
       autoStartOn: "Auto connect on startup enabled",
       autoStartOff: "Auto connect on startup disabled",
-      launchAllFailed: "{count} instance(s) failed to start: {detail}"
+      launchAllFailed: "{count} instance(s) failed to start: {detail}",
+      saveSuccess: "Saved. Restart the instance to apply changes"
     }
   },
   comingSoon: {
@@ -187,6 +253,11 @@ export default {
       card: "Card",
       list: "List"
     },
+    provider: {
+      label: "Tool"
+    },
+    cloudflaredUnsupported:
+      "No cloudflared versions available (offline, or no build for this platform). You can install cloudflared yourself and pick the file in the instance config.",
     message: {
       importSuccess: "Import successfully",
       deleteSuccess: "Delete successfully",
@@ -262,21 +333,25 @@ export default {
       customFrpcPath: {
         label: "frpc Path",
         placeholder: "Binary path e.g. ~/.local/bin/frpc, or click Auto Detect",
-        tips: "Specify a custom frpc binary file path (e.g. <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>, <span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>) or click Auto Detect. When set, this binary takes precedence.",
+        tips: "Specify an frpc binary installed on this computer (e.g. <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>, <span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>), or click Auto Detect.",
+        requireMessage: "Please enter the frpc path or click Auto Detect",
         detectedVersion: "Detected Version",
         autoDetectSuccess: "Auto-detected frpc:",
         autoDetectNotFound:
-          "No executable frpc binary was detected. Please ensure it is installed or select a downloaded version below.",
+          "No executable frpc binary was detected. Please ensure it is installed, or switch to a downloaded version.",
         invalidPath:
           "The specified path does not exist or lacks execute permission"
       },
+      frpcSource: {
+        label: "frpc Source",
+        downloaded: "Downloaded Version",
+        custom: "Custom Path"
+      },
       frpcVerson: {
         label: "Downloaded Version",
-        placeholder: "Used when no custom frpc path is specified",
-        requireMessage: "Please select Frp version",
-        requireEitherMessage:
-          "Please configure a custom frpc path or select a downloaded version",
-        fallbackTips: "Used when no custom frpc path is specified"
+        placeholder: "Select a downloaded frpc version",
+        empty: "No downloaded versions yet",
+        requireMessage: "Please select a downloaded frpc version"
       },
       serverAddr: {
         label: "Server Address",
@@ -676,6 +751,7 @@ export default {
     },
     message: {
       copySuccess: "Copy successfully",
+      copyFailed: "Copy failed",
       createSuccess: "Create successfully",
       modifySuccess: "Modify successfully"
     }

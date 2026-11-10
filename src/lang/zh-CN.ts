@@ -16,9 +16,6 @@ export default {
     download: {
       title: "下载"
     },
-    config: {
-      title: "实例配置"
-    },
     system: {
       title: "设置"
     },
@@ -65,7 +62,9 @@ export default {
       proxiesValue: "{enabled} / {total} 已启用",
       server: "服务端",
       manage: "管理版本",
-      frpcVersion: "frpc 版本"
+      frpcVersion: "frpc 版本",
+      cloudflareManaged: "路由在 Cloudflare 中管理",
+      tokenMissing: "尚未配置隧道令牌"
     },
     status: {
       running: "已启动",
@@ -120,11 +119,74 @@ export default {
     switcher: "切换实例",
     autoStart: "启动时自动连接",
     autoStartHint: "需同时在设置中开启“启动时自动连接”",
-    back: "返回实例",
     log: {
       title: "{name} · 日志"
     },
+    config: {
+      title: "{name} · 配置"
+    },
     defaultHint: "默认实例不可删除",
+    provider: {
+      frpc: "frpc",
+      cloudflared: "Cloudflare Tunnel",
+      frpcDescription: "连接到你自己的 frps 服务端",
+      cloudflaredDescription: "通过 Cloudflare 网络暴露服务"
+    },
+    meta: {
+      connector: "连接器",
+      routes: "路由",
+      tokenConfigured: "已配置令牌",
+      tokenMissing: "尚未配置隧道令牌",
+      routesInDashboard: "在 Cloudflare 控制台中管理"
+    },
+    cloudflared: {
+      section: {
+        binary: "cloudflared",
+        tunnel: "隧道",
+        advanced: "高级"
+      },
+      intro:
+        "请先在 Cloudflare 控制台（Zero Trust → 网络 → 隧道）创建隧道，连接器选择 cloudflared，并复制其令牌。公共主机名等路由在控制台中配置。",
+      openDashboard: "打开 Cloudflare 控制台",
+      source: {
+        label: "来源",
+        downloaded: "已下载版本",
+        custom: "本地文件"
+      },
+      version: {
+        label: "版本",
+        placeholder: "请选择已下载的版本",
+        empty: "暂无已下载的版本",
+        autoHint: "留空时使用 PATH 中的 cloudflared（如通过 Homebrew 安装）"
+      },
+      customPath: {
+        label: "文件路径",
+        placeholder: "cloudflared 可执行文件路径",
+        requireMessage: "请输入 cloudflared 路径",
+        autoDetectSuccess: "已找到 cloudflared：",
+        autoDetectNotFound: "未在本机找到 cloudflared",
+        detectedVersion: "检测到的版本"
+      },
+      token: {
+        label: "隧道令牌",
+        placeholder: "粘贴令牌，或直接粘贴控制台中的完整安装命令",
+        requireMessage: "请输入隧道令牌",
+        invalidMessage: "这不像是隧道令牌，请从连接器安装命令中复制",
+        extracted: "已从粘贴的命令中提取令牌"
+      },
+      protocol: {
+        label: "协议",
+        auto: "自动（QUIC，失败时回退到 HTTP/2）",
+        tips: "如果网络屏蔽了 7844 端口的 UDP 流量，请选择 HTTP/2"
+      },
+      edgeIpVersion: {
+        label: "边缘 IP 版本",
+        auto: "自动"
+      },
+      logLevel: {
+        label: "日志级别"
+      }
+    },
     button: {
       create: "新建实例",
       startAll: "全部启动",
@@ -152,11 +214,11 @@ export default {
       confirm: "删除",
       cancel: "取消"
     },
-    switchDirty: {
+    closeDirty: {
       title: "未保存的修改",
-      message: "当前实例的设置尚未保存，切换后修改将丢失。是否继续？",
-      confirm: "继续切换",
-      cancel: "取消"
+      message: "该实例的设置尚未保存，关闭后修改将丢失。是否继续？",
+      confirm: "放弃修改",
+      cancel: "继续编辑"
     },
     message: {
       createSuccess: "实例已创建",
@@ -164,7 +226,8 @@ export default {
       deleteSuccess: "实例已删除",
       autoStartOn: "已开启启动时自动连接",
       autoStartOff: "已关闭启动时自动连接",
-      launchAllFailed: "{count} 个实例启动失败：{detail}"
+      launchAllFailed: "{count} 个实例启动失败：{detail}",
+      saveSuccess: "已保存，重新启动实例后生效"
     }
   },
   comingSoon: {
@@ -181,6 +244,11 @@ export default {
       card: "卡片",
       list: "列表"
     },
+    provider: {
+      label: "工具"
+    },
+    cloudflaredUnsupported:
+      "暂无可用的 cloudflared 版本（网络不可用或当前平台无官方构建），可自行安装后在实例配置中选择文件。",
     message: {
       importSuccess: "导入成功",
       deleteSuccess: "删除成功",
@@ -257,19 +325,24 @@ export default {
         label: "frpc 路径",
         placeholder:
           "支持输入二进制文件路径，如 ~/.local/bin/frpc，或点击自动检测",
-        tips: "支持手动输入 frpc 二进制文件路径（如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>）或点击自动检测。配置后将优先使用该二进制程序启动。",
+        tips: "使用本机已安装的 frpc 二进制文件，可手动输入路径（如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>）或点击自动检测。",
+        requireMessage: "请输入 frpc 路径或点击自动检测",
         detectedVersion: "当前识别版本",
         autoDetectSuccess: "已自动检测到 frpc：",
         autoDetectNotFound:
-          "未检测到可用的 frpc 二进制文件，请确认已安装或在下方选择下载版本",
+          "未检测到可用的 frpc 二进制文件，请确认已安装，或改用已下载版本",
         invalidPath: "指定路径不存在或没有执行权限"
+      },
+      frpcSource: {
+        label: "frpc 来源",
+        downloaded: "已下载版本",
+        custom: "自定义路径"
       },
       frpcVerson: {
         label: "下载版本",
-        placeholder: "未指定自定义路径时，将使用此处选择的下载版本",
-        requireMessage: "请选择Frp版本",
-        requireEitherMessage: "请配置自定义 frpc 路径或选择一个下载版本",
-        fallbackTips: "未指定自定义路径时，将使用此处选择的下载版本"
+        placeholder: "请选择已下载的 frpc 版本",
+        empty: "暂无已下载的版本",
+        requireMessage: "请选择已下载的 frpc 版本"
       },
       serverAddr: {
         label: "服务端地址",
@@ -519,7 +592,8 @@ export default {
     modifyTitle: "编辑代理",
     createTitle: "添加代理",
     message: {
-      copySuccess: "复制成功"
+      copySuccess: "复制成功",
+      copyFailed: "复制失败"
     },
     dialog: {
       listPorts: {

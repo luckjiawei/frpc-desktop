@@ -50,19 +50,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/download/index.vue")
       },
       {
-        path: "/config",
-        name: "Config",
-        meta: {
-          title: "router.config.title",
-          icon: "tune-rounded",
-          keepAlive: true,
-          // 实例配置只从“实例”页面进入，不出现在左侧菜单
-          hidden: true,
-          activeMenu: "Tunnel"
-        },
-        component: () => import("@/views/config/index.vue")
-      },
-      {
         path: "/system",
         name: "System",
         meta: {
