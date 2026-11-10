@@ -3,7 +3,7 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
 import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
-import { refDebounced, useClipboard, useDebounceFn } from "@vueuse/core";
+import { refDebounced, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
 import {
@@ -18,6 +18,7 @@ import {
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import commonIps from "./commonIp.json";
+import CopyableAddress from "./CopyableAddress.vue";
 import LocalPortDialog from "./LocalPortDialog.vue";
 import ProxyToolbar from "./ProxyToolbar.vue";
 
@@ -420,13 +421,6 @@ const getProxyMappingAddress = (proxy: FrpcProxy) => {
   return "";
 };
 
-const handleCopyMappingAddress = (proxy: FrpcProxy) => {
-  const address = getProxyMappingAddress(proxy);
-  if (address) {
-    handleCopyString(address);
-  }
-};
-
 const handleSubmit = async () => {
   if (!editFormRef.value) return;
   editFormRef.value.validate(valid => {
@@ -581,15 +575,6 @@ const handleOpenLocalPortDialog = () => {
 //   }
 //   return true;
 // };
-
-const handleCopyString = (str: string) => {
-  const { copy, copied } = useClipboard();
-  copy(str);
-  ElMessage({
-    type: "success",
-    message: t("proxy.message.copySuccess")
-  });
-};
 
 interface RestaurantItem {
   value: string;
@@ -870,8 +855,8 @@ onUnmounted(() => {
               <dl class="proxy-meta">
                 <template v-if="shouldShowLocalAddress(proxy)">
                   <dt>{{ t("proxy.inner") }}</dt>
-                  <dd class="is-mono" :title="getProxyLocalAddress(proxy)">
-                    {{ getProxyLocalAddress(proxy) }}
+                  <dd>
+                    <CopyableAddress :address="getProxyLocalAddress(proxy)" />
                   </dd>
                 </template>
                 <template v-if="isVisitorProxy(proxy)">
@@ -880,26 +865,15 @@ onUnmounted(() => {
                 </template>
                 <template v-if="getProxyMappingAddress(proxy)">
                   <dt>{{ t("proxy.mappingAddress") }}</dt>
-                  <dd
-                    class="is-mono is-link"
-                    :title="getProxyMappingAddress(proxy)"
-                  >
-                    {{ getProxyMappingAddress(proxy) }}
+                  <dd>
+                    <CopyableAddress
+                      :address="getProxyMappingAddress(proxy)"
+                      link
+                    />
                   </dd>
                 </template>
               </dl>
               <footer class="proxy-card-actions">
-                <el-button
-                  v-if="getProxyMappingAddress(proxy)"
-                  text
-                  size="small"
-                  @click="handleCopyMappingAddress(proxy)"
-                >
-                  <template #icon>
-                    <IconifyIconOffline icon="content-copy" />
-                  </template>
-                  {{ t("proxy.copyAddress") }}
-                </el-button>
                 <el-button text size="small" @click="handleOpenUpdate(proxy)">
                   <template #icon>
                     <IconifyIconOffline icon="edit" />
@@ -963,19 +937,20 @@ onUnmounted(() => {
           </el-table-column>
           <el-table-column :label="t('proxy.inner')" min-width="170">
             <template #default="scope">
-              <span>{{ getProxyLocalAddress(scope.row) }}</span>
+              <CopyableAddress
+                v-if="shouldShowLocalAddress(scope.row)"
+                :address="getProxyLocalAddress(scope.row)"
+              />
+              <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column :label="t('proxy.mappingAddress')" min-width="220">
             <template #default="scope">
-              <el-button
+              <CopyableAddress
                 v-if="getProxyMappingAddress(scope.row)"
+                :address="getProxyMappingAddress(scope.row)"
                 link
-                type="primary"
-                @click="handleCopyMappingAddress(scope.row)"
-              >
-                {{ getProxyMappingAddress(scope.row) }}
-              </el-button>
+              />
               <span v-else>-</span>
             </template>
           </el-table-column>
@@ -2340,14 +2315,6 @@ onUnmounted(() => {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--el-text-color-regular);
-
-    &.is-mono {
-      font-family: var(--app-mono);
-    }
-
-    &.is-link {
-      color: var(--app-primary-text);
-    }
   }
 }
 

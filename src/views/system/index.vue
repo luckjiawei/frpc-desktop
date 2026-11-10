@@ -115,6 +115,7 @@ onUnmounted(() => {
   <div class="main">
     <Breadcrumb>
       <el-button
+        class="toolbar-icon-button"
         :aria-label="t('config.button.manualRefresh')"
         :title="t('config.button.manualRefresh')"
         @click="loadConfig"

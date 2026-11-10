@@ -36,6 +36,7 @@ $danger-color: #f56c6c;
     flex-wrap: wrap;
 
     .breadcrumb-left {
+      flex: none;
       gap: 10px;
       color: var(--el-text-color-primary);
 
@@ -54,11 +55,16 @@ $danger-color: #f56c6c;
       > span {
         font-size: 18px;
         font-weight: 600;
+        white-space: nowrap;
       }
     }
 
+    /* 窗口较窄时整组换到下一行并右对齐，而不是在组内零散折行 */
     .breadcrumb-right {
+      flex: 1 1 auto;
+      min-width: 0;
       flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 8px;
       margin-left: auto;
 
@@ -67,11 +73,102 @@ $danger-color: #f56c6c;
       }
     }
   }
+
+  /* 标题栏下方的筛选栏：搜索在左侧吸收宽度，视图切换等靠右 */
+  .page-filter-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* 标题栏与筛选栏控件：统一 32px 高、8px 圆角 */
+  .breadcrumb,
+  .page-filter-bar {
+    --el-border-radius-base: 8px;
+
+    .el-input__wrapper,
+    .el-select__wrapper {
+      background: var(--app-surface);
+      box-shadow: 0 0 0 1px var(--app-border) inset;
+      transition: box-shadow 0.15s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
+      }
+
+      &.is-focus,
+      &.is-focused {
+        box-shadow:
+          0 0 0 1px var(--el-color-primary) inset,
+          0 0 0 3px var(--app-primary-soft);
+      }
+    }
+
+    /* 分段控件：浅色轨道 + 选中项高亮，替代整块主色填充 */
+    .el-radio-group {
+      flex-wrap: nowrap;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 8px;
+      background: var(--app-surface);
+      box-shadow: 0 0 0 1px var(--app-border) inset;
+
+      .el-radio-button__inner,
+      .el-radio-button:first-child .el-radio-button__inner,
+      .el-radio-button:last-child .el-radio-button__inner {
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border: none;
+        border-radius: 6px;
+        outline: none;
+        background: transparent;
+        box-shadow: none;
+        color: var(--app-text-secondary);
+        font-weight: 500;
+      }
+
+      .el-radio-button__inner:hover {
+        color: var(--el-text-color-primary);
+      }
+
+      .el-radio-button__original-radio:checked + .el-radio-button__inner {
+        background: var(--app-primary-soft);
+        color: var(--app-primary-text);
+        box-shadow: none;
+      }
+
+      .el-radio-button__original-radio:focus-visible + .el-radio-button__inner {
+        outline: 2px solid var(--el-color-primary);
+        outline-offset: -2px;
+      }
+    }
+
+    /* 纯图标的次要操作：无边框，悬浮时出现浅底 */
+    .toolbar-icon-button.el-button {
+      width: 32px;
+      padding: 0;
+      font-size: 18px;
+      color: var(--app-text-secondary);
+      border-color: transparent;
+      background: transparent;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--app-primary-text);
+        background: var(--app-primary-soft);
+      }
+    }
+  }
 }
 
-/* 左侧导航：展开 176px，折叠 64px */
+/* 左侧导航：展开 220px，折叠 64px */
 .left-menu-container {
-  --menu-width: 176px;
+  --menu-width: 220px;
   background: var(--app-sidebar-bg);
   border-right: 1px solid var(--app-border);
   width: var(--menu-width);
@@ -81,7 +178,41 @@ $danger-color: #f56c6c;
   flex-direction: column;
   padding: 12px 10px;
   transition: width 0.2s ease;
-  overflow: hidden;
+  /* 折叠按钮需要伸出右边界，内部各区域自行裁剪溢出 */
+  position: relative;
+  z-index: 10;
+
+  .menu-collapse {
+    position: absolute;
+    top: 24px;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--app-border);
+    border-radius: 50%;
+    font-size: 16px;
+    color: var(--app-text-secondary);
+    background: var(--app-sidebar-bg);
+    box-shadow: var(--app-shadow);
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      color: var(--app-primary-text);
+      border-color: var(--app-primary-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
+  }
 
   &.is-collapsed {
     --menu-width: 64px;
@@ -95,6 +226,7 @@ $danger-color: #f56c6c;
     padding: 0 6px;
     margin-bottom: 14px;
     white-space: nowrap;
+    overflow: hidden;
 
     img {
       width: 30px;
@@ -103,6 +235,9 @@ $danger-color: #f56c6c;
     }
 
     span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
       font-weight: 600;
       font-size: 15px;
       color: var(--el-text-color-primary);
@@ -171,6 +306,7 @@ $danger-color: #f56c6c;
     gap: 8px;
     padding-top: 10px;
     border-top: 1px solid var(--app-border);
+    overflow: hidden;
   }
 
   .menu-usage {

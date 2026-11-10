@@ -75,7 +75,7 @@ const guideSteps = ref({
 const currentRoute = computed(() => {
   return router.currentRoute.value;
 });
-// 隐藏的子页面（如实例配置）通过 meta.activeMenu 高亮所属菜单
+// 隐藏的子页面可通过 meta.activeMenu 高亮所属菜单
 const activeMenuName = computed(
   () =>
     (currentRoute.value?.meta?.activeMenu as string | undefined) ??
@@ -151,6 +151,21 @@ onUnmounted(() => {
     :class="{ 'is-collapsed': collapsed }"
     :aria-label="t('layout.navigation')"
   >
+    <!-- 折叠按钮压在右侧边界线上，与 logo 行对齐 -->
+    <button
+      type="button"
+      class="menu-collapse"
+      :aria-label="
+        collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')
+      "
+      :aria-expanded="!collapsed"
+      :title="collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')"
+      @click="toggleCollapsed"
+    >
+      <IconifyIconOffline
+        :icon="collapsed ? 'chevron-right-rounded' : 'chevron-left-rounded'"
+      />
+    </button>
     <div class="menu-brand">
       <img src="/logo/only/128x128.png" alt="" />
       <span v-show="!collapsed">Frpc Desktop</span>
@@ -220,21 +235,6 @@ onUnmounted(() => {
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-button
-          text
-          circle
-          :aria-label="
-            collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')
-          "
-          :title="collapsed ? t('layout.expandMenu') : t('layout.collapseMenu')"
-          @click="toggleCollapsed"
-        >
-          <IconifyIconOffline
-            :icon="
-              collapsed ? 'left-panel-open-outline' : 'left-panel-close-outline'
-            "
-          />
-        </el-button>
         <button
           type="button"
           class="menu-version"
