@@ -7,6 +7,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
+import CloudflaredConfigDrawer from "@/views/config/CloudflaredConfigDrawer.vue";
+import ConfigDrawer from "@/views/config/ConfigDrawer.vue";
 import TunnelLogDrawer from "./TunnelLogDrawer.vue";
 import { useBulkLaunch, useTunnelStatus } from "./useTunnelStatus";
 
@@ -25,6 +27,15 @@ const logDrawer = reactive({
   visible: false,
   tunnel: null as TunnelSummary | null
 });
+type ConfigTarget = Pick<TunnelSummary, "id" | "name" | "provider">;
+const configDrawer = reactive({
+  visible: false,
+  tunnel: null as ConfigTarget | null
+});
+const cloudflaredDrawer = reactive({
+  visible: false,
+  tunnel: null as ConfigTarget | null
+});
 const lastUpdateAction = ref<"rename" | "autoStartOn" | "autoStartOff">(
   "rename"
 );
@@ -39,9 +50,16 @@ const handleToggle = (tunnel: TunnelSummary) => {
   }
 };
 
-const goTo = (tunnelId: string, name: "Config" | "Proxy") => {
+const goToProxy = (tunnelId: string) => {
   tunnelStore.setCurrentTunnel(tunnelId);
-  router.push({ name });
+  router.push({ name: "Proxy" });
+};
+
+const openConfig = (tunnel: ConfigTarget) => {
+  const drawer =
+    tunnel.provider === "cloudflared" ? cloudflaredDrawer : configDrawer;
+  drawer.tunnel = tunnel;
+  drawer.visible = true;
 };
 
 const openLog = (tunnel: TunnelSummary) => {
@@ -63,9 +81,11 @@ const promptTunnelName = (title: string, inputValue = "") =>
     cancelButtonText: t("tunnel.prompt.cancel")
   }).then(({ value }) => value.trim());
 
-const handleCreate = () => {
-  promptTunnelName(t("tunnel.prompt.createTitle"))
-    .then(name => send(ipcRouters.TUNNEL.create, { name, provider: "frpc" }))
+const handleCreate = (provider: TunnelProvider) => {
+  promptTunnelName(
+    `${t("tunnel.prompt.createTitle")} · ${t(`tunnel.provider.${provider}`)}`
+  )
+    .then(name => send(ipcRouters.TUNNEL.create, { name, provider }))
     .catch(() => {});
 };
 
@@ -110,6 +130,7 @@ const showLaunchError = (
     B1006: { key: "webServerPortInUse", route: "Config" },
     B1007: { key: "visitorPortInUse", route: "Proxy" }
   };
+  const id = tunnelId || tunnelStore.currentTunnelId;
   const hit = target[bizCode];
   if (!hit) {
     ElMessage({ type: "error", message });
@@ -120,7 +141,12 @@ const showLaunchError = (
     t(`home.alert.${hit.key}.title`),
     { confirmButtonText: t(`home.alert.${hit.key}.confirm`) }
   ).then(() => {
-    goTo(tunnelId || tunnelStore.currentTunnelId, hit.route);
+    if (hit.route === "Proxy") {
+      goToProxy(id);
+      return;
+    }
+    const tunnel = tunnelStore.tunnels.find(item => item.id === id);
+    if (tunnel) openConfig(tunnel);
   });
 };
 
@@ -154,8 +180,8 @@ onMounted(() => {
         message: t("tunnel.message.createSuccess")
       });
       tunnelStore.refreshTunnels();
-      // 新实例还没有服务端配置，直接进入它的配置页
-      goTo(data.id, "Config");
+      // 新实例还没有服务端配置，直接打开它的配置
+      openConfig(data);
     })
   );
   listenerCleanups.push(
@@ -209,12 +235,36 @@ onUnmounted(() => {
           {{ t("tunnel.button.stopAll") }}
         </el-button>
       </template>
-      <el-button type="primary" @click="handleCreate">
-        <template #icon>
-          <IconifyIconOffline icon="add" />
+      <el-dropdown trigger="click" @command="handleCreate">
+        <el-button type="primary">
+          <template #icon>
+            <IconifyIconOffline icon="add" />
+          </template>
+          {{ t("tunnel.button.create") }}
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              v-for="provider in ['frpc', 'cloudflared'] as const"
+              :key="provider"
+              :command="provider"
+            >
+              <IconifyIconOffline
+                class="mr-2 text-lg"
+                :icon="provider === 'frpc' ? 'lan-outline' : 'public'"
+              />
+              <span class="flex flex-col py-1 leading-snug">
+                <span class="font-medium">
+                  {{ t(`tunnel.provider.${provider}`) }}
+                </span>
+                <span class="text-xs text-text_color_secondary">
+                  {{ t(`tunnel.provider.${provider}Description`) }}
+                </span>
+              </span>
+            </el-dropdown-item>
+          </el-dropdown-menu>
         </template>
-        {{ t("tunnel.button.create") }}
-      </el-button>
+      </el-dropdown>
     </breadcrumb>
     <div class="app-container-breadcrumb">
       <section
@@ -238,7 +288,7 @@ onUnmounted(() => {
                   {{ tunnel.name }}
                 </h2>
                 <el-tag size="small" type="info" effect="plain">
-                  {{ tunnel.provider }}
+                  {{ t(`tunnel.provider.${tunnel.provider}`) }}
                 </el-tag>
               </div>
               <p class="mt-1 text-sm text-text_color_secondary">
@@ -275,7 +325,19 @@ onUnmounted(() => {
               }}
             </el-button>
           </header>
-          <dl class="tunnel-meta">
+          <dl v-if="tunnel.provider === 'cloudflared'" class="tunnel-meta">
+            <dt>{{ t("tunnel.meta.connector") }}</dt>
+            <dd :class="{ 'text-text_color_secondary': !tunnel.configured }">
+              {{
+                tunnel.configured
+                  ? t("tunnel.meta.tokenConfigured")
+                  : t("tunnel.meta.tokenMissing")
+              }}
+            </dd>
+            <dt>{{ t("tunnel.meta.routes") }}</dt>
+            <dd>{{ t("tunnel.meta.routesInDashboard") }}</dd>
+          </dl>
+          <dl v-else class="tunnel-meta">
             <dt>{{ t("home.dashboard.server") }}</dt>
             <dd
               class="is-mono"
@@ -309,13 +371,18 @@ onUnmounted(() => {
             {{ tunnelStore.statusOf(tunnel.id).connectionError }}
           </p>
           <footer class="tunnel-card-actions">
-            <el-button text size="small" @click="goTo(tunnel.id, 'Config')">
+            <el-button text size="small" @click="openConfig(tunnel)">
               <template #icon>
                 <IconifyIconOffline icon="tune-rounded" />
               </template>
               {{ t("tunnel.button.config") }}
             </el-button>
-            <el-button text size="small" @click="goTo(tunnel.id, 'Proxy')">
+            <el-button
+              v-if="tunnel.provider === 'frpc'"
+              text
+              size="small"
+              @click="goToProxy(tunnel.id)"
+            >
               <template #icon>
                 <IconifyIconOffline icon="cloud" />
               </template>
@@ -377,6 +444,14 @@ onUnmounted(() => {
       </section>
     </div>
     <TunnelLogDrawer v-model="logDrawer.visible" :tunnel="logDrawer.tunnel" />
+    <ConfigDrawer
+      v-model="configDrawer.visible"
+      :tunnel="configDrawer.tunnel"
+    />
+    <CloudflaredConfigDrawer
+      v-model="cloudflaredDrawer.visible"
+      :tunnel="cloudflaredDrawer.tunnel"
+    />
   </div>
 </template>
 

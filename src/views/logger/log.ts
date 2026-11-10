@@ -33,6 +33,16 @@ export const parseFrpcLog = (data: string) =>
     ["[D]", LogLevel.DEBUG]
   ]);
 
+/** cloudflared 日志：`<time> ERR|WRN|INF|DBG <message>` */
+export const parseCloudflaredLog = (data: string) =>
+  toRecords(data, [
+    [" ERR ", LogLevel.ERROR],
+    [" FTL ", LogLevel.ERROR],
+    [" WRN ", LogLevel.WARN],
+    [" INF ", LogLevel.INFO],
+    [" DBG ", LogLevel.DEBUG]
+  ]);
+
 /** 应用日志：[error] / [warn] / [info] / [debug] */
 export const parseAppLog = (data: string) =>
   toRecords(data, [

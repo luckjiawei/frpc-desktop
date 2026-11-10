@@ -3,21 +3,13 @@ import { useTunnelStore } from "@/store/tunnel";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
-const props = defineProps<{
-  /** 返回 false 时取消切换，例如当前表单有未保存的修改 */
-  beforeChange?: (tunnelId: string) => boolean | Promise<boolean>;
-  /** 只有一个实例时也显示，用于标明当前页面属于哪个实例 */
-  alwaysShow?: boolean;
-}>();
-
 const { t } = useI18n();
 const tunnelStore = useTunnelStore();
 
 const selected = computed({
   get: () => tunnelStore.currentTunnelId,
-  set: async (tunnelId: string) => {
+  set: (tunnelId: string) => {
     if (tunnelId === tunnelStore.currentTunnelId) return;
-    if (props.beforeChange && !(await props.beforeChange(tunnelId))) return;
     tunnelStore.setCurrentTunnel(tunnelId);
   }
 });
@@ -39,7 +31,7 @@ const statusText = (tunnelId: string) => {
 
 <template>
   <el-select
-    v-if="alwaysShow || tunnelStore.hasMultiple"
+    v-if="tunnelStore.frpcTunnels.length > 1"
     v-model="selected"
     class="tunnel-switcher"
     :aria-label="t('tunnel.switcher')"
@@ -53,7 +45,7 @@ const statusText = (tunnelId: string) => {
       />
     </template>
     <el-option
-      v-for="tunnel in tunnelStore.tunnels"
+      v-for="tunnel in tunnelStore.frpcTunnels"
       :key="tunnel.id"
       :label="tunnel.name"
       :value="tunnel.id"
@@ -75,7 +67,10 @@ const statusText = (tunnelId: string) => {
 
 <style scoped lang="scss">
 .tunnel-switcher {
+  /* 标题栏空间不足时先收窄选择框，保证工具栏不换行 */
+  flex: 0 1 200px;
   width: 200px;
+  min-width: 120px;
 }
 
 .status-dot {

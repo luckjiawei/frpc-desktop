@@ -6,8 +6,9 @@ import { on, send } from "@/utils/ipcUtils";
 import { useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox } from "element-plus";
 import moment from "moment";
-import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { defineComponent, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import { ipcRouters } from "@/core/IpcRouter";
 
 defineComponent({
@@ -16,6 +17,11 @@ defineComponent({
 
 const { t } = useI18n();
 
+const route = useRoute();
+/** 当前浏览的工具；cloudflared 实例配置中的“去下载”会带上 ?provider=cloudflared */
+const provider = ref<TunnelProvider>(
+  route.query.provider === "cloudflared" ? "cloudflared" : "frpc"
+);
 const versions = ref<Array<FrpcVersion>>([]);
 const loading = ref(1);
 const downloadPercentage = ref(0);
@@ -48,8 +54,14 @@ const getDownloadUrl = (version: FrpcVersion) => {
  * 获取版本
  */
 const handleLoadAllVersions = () => {
-  send(ipcRouters.VERSION.getVersions);
+  send(ipcRouters.VERSION.getVersions, { provider: provider.value });
 };
+
+watch(provider, () => {
+  versions.value = [];
+  loading.value++;
+  handleLoadAllVersions();
+});
 
 /**
  * 下载
@@ -58,7 +70,8 @@ const handleLoadAllVersions = () => {
 const handleDownload = useDebounceFn((version: FrpcVersion) => {
   send(ipcRouters.VERSION.downloadVersion, {
     githubReleaseId: version.githubReleaseId,
-    mirrorId: currMirror.value
+    mirrorId: currMirror.value,
+    provider: version.provider
   });
   downloading.value.set(version.githubReleaseId, 0);
 }, 300);
@@ -105,12 +118,14 @@ onMounted(() => {
   handleLoadAllVersions();
 
   listenerCleanups.push(
-    on(ipcRouters.VERSION.getVersions, data => {
+    on(ipcRouters.VERSION.getVersions, (data: FrpcVersion[]) => {
+      loading.value = Math.max(loading.value - 1, 0);
+      // 切换工具后，之前请求的迟到响应不覆盖当前列表
+      if (data.some(m => (m.provider ?? "frpc") !== provider.value)) return;
       versions.value = data.map(m => {
         m.githubCreatedAt = moment(m.githubCreatedAt).format("YYYY-MM-DD");
         return m as FrpcVersion;
       }) as Array<FrpcVersion>;
-      loading.value--;
     })
   );
 
@@ -206,44 +221,59 @@ onUnmounted(() => {
 <template>
   <div class="main">
     <breadcrumb>
-      <div class="flex flex-wrap gap-2 items-center justify-end">
-        <el-select
-          v-model="currMirror"
-          class="download-mirror-select"
-          :placeholder="t('download.mirror.placeholder')"
-        >
-          <template #prefix>
-            <IconifyIconOffline icon="download" />
-          </template>
-          <el-option
-            v-for="mirror in mirrors"
-            :key="mirror.id"
-            :label="mirror.name"
-            :value="mirror.id"
-          />
-        </el-select>
-        <el-radio-group v-model="viewMode" class="mr-2">
-          <el-radio-button value="card">
-            <span class="inline-flex gap-1 items-center">
-              <IconifyIconOffline icon="dashboard" />
-              {{ t("download.viewMode.card") }}
-            </span>
-          </el-radio-button>
-          <el-radio-button value="list">
-            <span class="inline-flex gap-1 items-center">
-              <IconifyIconOffline icon="table-rows" />
-              {{ t("download.viewMode.list") }}
-            </span>
-          </el-radio-button>
-        </el-radio-group>
-        <el-button type="primary" @click="handleImportFrp">
-          <template #icon>
-            <IconifyIconOffline icon="unarchive" />
-          </template>
-          {{ t("download.button.import") }}
-        </el-button>
-      </div>
+      <el-button
+        v-if="provider === 'frpc'"
+        type="primary"
+        @click="handleImportFrp"
+      >
+        <template #icon>
+          <IconifyIconOffline icon="unarchive" />
+        </template>
+        {{ t("download.button.import") }}
+      </el-button>
     </breadcrumb>
+    <div class="page-filter-bar">
+      <el-radio-group
+        v-model="provider"
+        :aria-label="t('download.provider.label')"
+      >
+        <el-radio-button value="frpc">
+          {{ t("tunnel.provider.frpc") }}
+        </el-radio-button>
+        <el-radio-button value="cloudflared">
+          {{ t("tunnel.provider.cloudflared") }}
+        </el-radio-button>
+      </el-radio-group>
+      <el-select
+        v-model="currMirror"
+        class="download-mirror-select"
+        :placeholder="t('download.mirror.placeholder')"
+      >
+        <template #prefix>
+          <IconifyIconOffline icon="download" />
+        </template>
+        <el-option
+          v-for="mirror in mirrors"
+          :key="mirror.id"
+          :label="mirror.name"
+          :value="mirror.id"
+        />
+      </el-select>
+      <el-radio-group v-model="viewMode" class="ml-auto">
+        <el-radio-button value="card">
+          <span class="inline-flex gap-1 items-center">
+            <IconifyIconOffline icon="dashboard" />
+            {{ t("download.viewMode.card") }}
+          </span>
+        </el-radio-button>
+        <el-radio-button value="list">
+          <span class="inline-flex gap-1 items-center">
+            <IconifyIconOffline icon="table-rows" />
+            {{ t("download.viewMode.list") }}
+          </span>
+        </el-radio-button>
+      </el-radio-group>
+    </div>
     <div v-loading="loading > 0" class="pr-2 app-container-breadcrumb">
       <div class="w-full">
         <template v-if="versions && versions.length > 0">
@@ -339,7 +369,11 @@ onUnmounted(() => {
             stripe
           >
             <el-table-column
-              :label="t('config.form.frpcVerson.label')"
+              :label="
+                provider === 'cloudflared'
+                  ? t('tunnel.cloudflared.version.label')
+                  : t('config.form.frpcVerson.label')
+              "
               min-width="180"
               prop="name"
               show-overflow-tooltip
@@ -433,7 +467,13 @@ onUnmounted(() => {
           v-else
           class="flex overflow-hidden justify-center items-center p-2 w-full h-full app-panel"
         >
-          <el-empty :description="t('download.version.noVersions')" />
+          <el-empty
+            :description="
+              provider === 'cloudflared' && loading === 0
+                ? t('download.cloudflaredUnsupported')
+                : t('download.version.noVersions')
+            "
+          />
         </div>
       </div>
     </div>

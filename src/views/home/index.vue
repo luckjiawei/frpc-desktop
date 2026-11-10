@@ -184,7 +184,15 @@ onMounted(() => {
               show-overflow-tooltip
             >
               <template #default="{ row }">
-                <span v-if="row.serverAddr" class="is-mono">
+                <span v-if="row.provider === 'cloudflared'">
+                  <span v-if="row.configured">
+                    {{ t("home.dashboard.cloudflareManaged") }}
+                  </span>
+                  <span v-else class="text-text_color_secondary">
+                    {{ t("home.dashboard.tokenMissing") }}
+                  </span>
+                </span>
+                <span v-else-if="row.serverAddr" class="is-mono">
                   {{ row.serverAddr }}:{{ row.serverPort }}
                 </span>
                 <span v-else class="text-text_color_secondary">
@@ -194,12 +202,20 @@ onMounted(() => {
             </el-table-column>
             <el-table-column :label="t('home.dashboard.proxies')" width="130">
               <template #default="{ row }">
-                {{
-                  t("home.dashboard.proxiesValue", {
-                    enabled: row.proxyEnabled,
-                    total: row.proxyTotal
-                  })
-                }}
+                <span
+                  v-if="row.provider === 'cloudflared'"
+                  class="text-text_color_secondary"
+                >
+                  -
+                </span>
+                <template v-else>
+                  {{
+                    t("home.dashboard.proxiesValue", {
+                      enabled: row.proxyEnabled,
+                      total: row.proxyTotal
+                    })
+                  }}
+                </template>
               </template>
             </el-table-column>
             <el-table-column

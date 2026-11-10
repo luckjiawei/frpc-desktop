@@ -7,12 +7,16 @@ import pkg from "../../package.json";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   state: () => ({
-    versions: [],
+    versions: [] as FrpcVersion[],
     lastRelease: null,
     language: null
   }),
   getters: {
-    downloadedVersions: state => state.versions,
+    /** 已下载的 frpc 版本（不含 cloudflared） */
+    downloadedVersions: state =>
+      state.versions.filter(v => (v.provider ?? "frpc") === "frpc"),
+    downloadedCloudflaredVersions: state =>
+      state.versions.filter(v => v.provider === "cloudflared"),
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
   },

@@ -27,14 +27,17 @@ export const useTunnelStore = defineStore("tunnel", {
     currentTunnel: state =>
       state.tunnels.find(t => t.id === state.currentTunnelId) ?? null,
     anyRunning: state => Object.values(state.statuses).some(s => s.running),
-    hasMultiple: state => state.tunnels.length > 1
+    hasMultiple: state => state.tunnels.length > 1,
+    /** 代理只属于 frpc 实例 */
+    frpcTunnels: state => state.tunnels.filter(t => t.provider === "frpc")
   },
   actions: {
     statusOf(tunnelId: string): TunnelStatus {
       return (
         this.statuses[tunnelId] ?? {
           tunnelId,
-          provider: "frpc",
+          provider:
+            this.tunnels.find(t => t.id === tunnelId)?.provider ?? "frpc",
           running: false,
           connectionError: null,
           lastStartTime: null
@@ -67,7 +70,8 @@ export const useTunnelStore = defineStore("tunnel", {
         Object.keys(this.statuses).forEach(id => {
           if (!ids.has(id)) delete this.statuses[id];
         });
-        if (!ids.has(this.currentTunnelId)) {
+        const current = this.tunnels.find(t => t.id === this.currentTunnelId);
+        if (!current || current.provider !== "frpc") {
           this.setCurrentTunnel(DEFAULT_TUNNEL_ID);
         }
       });

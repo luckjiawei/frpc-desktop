@@ -6,7 +6,11 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import LogView from "@/views/logger/LogView.vue";
-import { LogRecord, parseFrpcLog } from "@/views/logger/log";
+import {
+  LogRecord,
+  parseCloudflaredLog,
+  parseFrpcLog
+} from "@/views/logger/log";
 import { useLogAutoRefresh } from "@/views/logger/useLogAutoRefresh";
 
 const visible = defineModel<boolean>({ required: true });
@@ -49,7 +53,11 @@ watch(
 onMounted(() => {
   listenerCleanups.push(
     on(ipcRouters.LOG.getFrpLogContent, (data: string) => {
-      records.value = data ? parseFrpcLog(data) : [];
+      const parse =
+        props.tunnel?.provider === "cloudflared"
+          ? parseCloudflaredLog
+          : parseFrpcLog;
+      records.value = data ? parse(data) : [];
       loading.value = false;
     })
   );
