@@ -1,5 +1,5 @@
 use crate::models::FrpcSystemConfiguration;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, OptionalExtension, Result};
 use std::collections::HashMap;
 
 pub struct AppConfigRepository;
@@ -65,6 +65,30 @@ impl AppConfigRepository {
 
     pub fn save_language(conn: &Connection, language: &str) -> Result<()> {
         Self::upsert(conn, "desktop", "language", "string", language)
+    }
+
+    /// Theme preference: "light", "dark" or "auto" (follow the OS).
+    pub fn get_theme(conn: &Connection) -> Result<String> {
+        let theme: Option<String> = conn
+            .query_row(
+                "SELECT config_value FROM t_frpcd_app_config
+                 WHERE scope_type = 'global' AND scope_id IS NULL AND namespace = 'desktop'
+                   AND config_key = 'theme' AND deleted_at IS NULL",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(theme
+            .filter(|t| Self::is_valid_theme(t))
+            .unwrap_or_else(|| "auto".to_string()))
+    }
+
+    pub fn save_theme(conn: &Connection, theme: &str) -> Result<()> {
+        Self::upsert(conn, "desktop", "theme", "string", theme)
+    }
+
+    pub fn is_valid_theme(theme: &str) -> bool {
+        matches!(theme, "light" | "dark" | "auto")
     }
 
     /// Onboarding state lives outside the `desktop` namespace so that

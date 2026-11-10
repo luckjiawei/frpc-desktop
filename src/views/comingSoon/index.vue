@@ -11,7 +11,7 @@ defineComponent({
 
 <template>
   <div
-    class="flex items-center justify-center w-full h-full p-2 overflow-hidden bg-white rounded drop-shadow-xl"
+    class="flex items-center justify-center w-full h-full p-2 overflow-hidden app-panel"
   >
     <el-empty :description="t('comingSoon.description')" />
   </div>

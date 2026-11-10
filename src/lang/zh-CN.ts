@@ -5,7 +5,10 @@ export default {
   },
   router: {
     home: {
-      title: "启动"
+      title: "仪表盘"
+    },
+    tunnel: {
+      title: "实例"
     },
     proxy: {
       title: "代理"
@@ -13,7 +16,7 @@ export default {
     download: {
       title: "下载"
     },
-    config: {
+    system: {
       title: "设置"
     },
     logger: {
@@ -23,6 +26,19 @@ export default {
       title: "关于"
     }
   },
+  layout: {
+    navigation: "主导航",
+    memory: "内存",
+    collapseMenu: "收起侧栏",
+    expandMenu: "展开侧栏",
+    about: "关于 Frpc Desktop",
+    theme: {
+      title: "外观",
+      light: "浅色",
+      dark: "深色",
+      auto: "跟随系统"
+    }
+  },
   home: {
     uptime: {
       days: "{days}天",
@@ -30,34 +46,188 @@ export default {
       minutes: "{minutes}分钟",
       seconds: "{seconds}秒"
     },
+    dashboard: {
+      notConfigured: "尚未配置服务端",
+      instances: "运行中实例",
+      instancesHint: "共 {total} 个实例",
+      errors: "连接异常",
+      errorsHint: "请在实例页面查看日志",
+      noErrors: "全部正常",
+      statusTitle: "实例状态",
+      manageInstances: "管理实例",
+      noInstances: "暂无实例",
+      status: "状态",
+      instance: "实例",
+      proxies: "代理",
+      proxiesValue: "{enabled} / {total} 已启用",
+      server: "服务端",
+      manage: "管理版本",
+      frpcVersion: "frpc 版本",
+      cloudflareManaged: "路由在 Cloudflare 中管理",
+      tokenMissing: "尚未配置隧道令牌"
+    },
     status: {
       running: "已启动",
       disconnected: "已断开",
       connectionError: "连接失败",
-      runningTime: "已运行",
-      frpcStatus: "Frpc {status}"
+      runningTime: "已运行"
     },
     button: {
-      start: "启 动",
-      stop: "断 开",
-      viewLog: "查看日志"
+      start: "启动",
+      stop: "断开"
     },
     alert: {
       configRequired: {
         title: "提示",
-        message: "请先前往设置页面，修改配置后再启动",
-        confirm: "去设置"
+        message: "请先前往配置页面，修改配置后再启动",
+        confirm: "去配置"
       },
       versionNotFound: {
         title: "提示",
-        message: "请先前往设置页面，选择版本后再启动",
-        confirm: "去设置"
+        message: "请先前往配置页面，选择版本后再启动",
+        confirm: "去配置"
       },
       webServerPortInUse: {
         title: "提示",
-        message: "Web界面端口已被占用，请前往设置页面更换 Web界面端口后再启动",
-        confirm: "去设置"
+        message: "Web界面端口已被占用，请前往配置页面更换 Web界面端口后再启动",
+        confirm: "去配置"
+      },
+      visitorPortInUse: {
+        title: "提示",
+        message:
+          "Visitor 的本地绑定端口已被占用（可能被其他实例使用），请修改代理配置后再启动",
+        confirm: "去代理"
       }
+    }
+  },
+  system: {
+    title: {
+      data: "数据"
+    },
+    resetAllHint: "删除所有实例、代理和系统设置，已下载的 frpc 版本会保留。",
+    alert: {
+      resetAll: {
+        title: "重置全部配置",
+        message:
+          "将停止并删除所有实例及其代理，并恢复默认的系统设置，且无法恢复。确定继续？",
+        confirm: "重置",
+        cancel: "取消"
+      }
+    }
+  },
+  tunnel: {
+    switcher: "切换实例",
+    autoStart: "启动时自动连接",
+    autoStartHint: "需同时在设置中开启“启动时自动连接”",
+    log: {
+      title: "{name} · 日志"
+    },
+    config: {
+      title: "{name} · 配置"
+    },
+    defaultHint: "默认实例不可删除",
+    provider: {
+      frpc: "frpc",
+      cloudflared: "Cloudflare Tunnel",
+      frpcDescription: "连接到你自己的 frps 服务端",
+      cloudflaredDescription: "通过 Cloudflare 网络暴露服务"
+    },
+    meta: {
+      connector: "连接器",
+      routes: "路由",
+      tokenConfigured: "已配置令牌",
+      tokenMissing: "尚未配置隧道令牌",
+      routesInDashboard: "在 Cloudflare 控制台中管理"
+    },
+    cloudflared: {
+      section: {
+        binary: "cloudflared",
+        tunnel: "隧道",
+        advanced: "高级"
+      },
+      intro:
+        "请先在 Cloudflare 控制台（Zero Trust → 网络 → 隧道）创建隧道，连接器选择 cloudflared，并复制其令牌。公共主机名等路由在控制台中配置。",
+      openDashboard: "打开 Cloudflare 控制台",
+      source: {
+        label: "来源",
+        downloaded: "已下载版本",
+        custom: "本地文件"
+      },
+      version: {
+        label: "版本",
+        placeholder: "请选择已下载的版本",
+        empty: "暂无已下载的版本",
+        autoHint: "留空时使用 PATH 中的 cloudflared（如通过 Homebrew 安装）"
+      },
+      customPath: {
+        label: "文件路径",
+        placeholder: "cloudflared 可执行文件路径",
+        requireMessage: "请输入 cloudflared 路径",
+        autoDetectSuccess: "已找到 cloudflared：",
+        autoDetectNotFound: "未在本机找到 cloudflared",
+        detectedVersion: "检测到的版本"
+      },
+      token: {
+        label: "隧道令牌",
+        placeholder: "粘贴令牌，或直接粘贴控制台中的完整安装命令",
+        requireMessage: "请输入隧道令牌",
+        invalidMessage: "这不像是隧道令牌，请从连接器安装命令中复制",
+        extracted: "已从粘贴的命令中提取令牌"
+      },
+      protocol: {
+        label: "协议",
+        auto: "自动（QUIC，失败时回退到 HTTP/2）",
+        tips: "如果网络屏蔽了 7844 端口的 UDP 流量，请选择 HTTP/2"
+      },
+      edgeIpVersion: {
+        label: "边缘 IP 版本",
+        auto: "自动"
+      },
+      logLevel: {
+        label: "日志级别"
+      }
+    },
+    button: {
+      create: "新建实例",
+      startAll: "全部启动",
+      stopAll: "全部停止",
+      config: "配置",
+      proxies: "代理",
+      logs: "日志",
+      rename: "重命名",
+      delete: "删除",
+      more: "更多操作"
+    },
+    prompt: {
+      createTitle: "新建实例",
+      renameTitle: "重命名实例",
+      nameLabel: "实例名称",
+      namePlaceholder: "例如：公司 frps",
+      nameInvalid: "请输入 1-64 个字符的名称",
+      confirm: "确定",
+      cancel: "取消"
+    },
+    delete: {
+      title: "删除实例",
+      message:
+        "确定删除实例「{name}」吗？运行中的实例会先停止，其下的代理配置会一并删除，且无法恢复。",
+      confirm: "删除",
+      cancel: "取消"
+    },
+    closeDirty: {
+      title: "未保存的修改",
+      message: "该实例的设置尚未保存，关闭后修改将丢失。是否继续？",
+      confirm: "放弃修改",
+      cancel: "继续编辑"
+    },
+    message: {
+      createSuccess: "实例已创建",
+      renameSuccess: "实例已重命名",
+      deleteSuccess: "实例已删除",
+      autoStartOn: "已开启启动时自动连接",
+      autoStartOff: "已关闭启动时自动连接",
+      launchAllFailed: "{count} 个实例启动失败：{detail}",
+      saveSuccess: "已保存，重新启动实例后生效"
     }
   },
   comingSoon: {
@@ -74,6 +244,11 @@ export default {
       card: "卡片",
       list: "列表"
     },
+    provider: {
+      label: "工具"
+    },
+    cloudflaredUnsupported:
+      "暂无可用的 cloudflared 版本（网络不可用或当前平台无官方构建），可自行安装后在实例配置中选择文件。",
     message: {
       importSuccess: "导入成功",
       deleteSuccess: "删除成功",
@@ -96,8 +271,8 @@ export default {
     },
     version: {
       size: "大小",
-      downloadCount: "下载数：",
-      publishTime: "发布时间：",
+      downloadCount: "下载数",
+      publishTime: "发布时间",
       downloaded: "已下载",
       notDownloaded: "未下载",
       download: "下载",
@@ -113,16 +288,14 @@ export default {
     content: {
       empty: "暂无日志"
     },
-    tab: {
-      appLog: "应用日志",
-      frpcLog: "连接日志"
-    },
     search: {
       placeholder: "搜索日志内容..."
     },
     loading: {
       text: "加载中..."
     },
+    refresh: "刷新日志",
+    openFile: "打开日志文件",
     autoRefresh: "自动刷新",
     autoRefreshTime: "{time}秒 后自动刷新"
   },
@@ -152,19 +325,24 @@ export default {
         label: "frpc 路径",
         placeholder:
           "支持输入二进制文件路径，如 ~/.local/bin/frpc，或点击自动检测",
-        tips: "支持手动输入 frpc 二进制文件路径（如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>）或点击自动检测。配置后将优先使用该二进制程序启动。",
+        tips: "使用本机已安装的 frpc 二进制文件，可手动输入路径（如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>）或点击自动检测。",
+        requireMessage: "请输入 frpc 路径或点击自动检测",
         detectedVersion: "当前识别版本",
         autoDetectSuccess: "已自动检测到 frpc：",
         autoDetectNotFound:
-          "未检测到可用的 frpc 二进制文件，请确认已安装或在下方选择下载版本",
+          "未检测到可用的 frpc 二进制文件，请确认已安装，或改用已下载版本",
         invalidPath: "指定路径不存在或没有执行权限"
+      },
+      frpcSource: {
+        label: "frpc 来源",
+        downloaded: "已下载版本",
+        custom: "自定义路径"
       },
       frpcVerson: {
         label: "下载版本",
-        placeholder: "未指定自定义路径时，将使用此处选择的下载版本",
-        requireMessage: "请选择Frp版本",
-        requireEitherMessage: "请配置自定义 frpc 路径或选择一个下载版本",
-        fallbackTips: "未指定自定义路径时，将使用此处选择的下载版本"
+        placeholder: "请选择已下载的 frpc 版本",
+        empty: "暂无已下载的版本",
+        requireMessage: "请选择已下载的 frpc 版本"
       },
       serverAddr: {
         label: "服务端地址",
@@ -320,6 +498,10 @@ export default {
       goToDownload: "点击这里去下载",
       clear: "清除",
       import: "导入",
+      openData: "打开数据目录",
+      resetAll: "重置全部配置",
+      importToml: "导入 TOML 配置",
+      exportConfig: "导出配置",
       saveWithShortcut: "保存 (Ctrl+S / ⌘S)"
     },
     alert: {
@@ -398,6 +580,7 @@ export default {
     mappingAddress: "映射地址",
     visitors: "访问者",
     visitorsProvider: "提供者",
+    copyAddress: "复制地址",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
     refresh: "刷新代理列表",
@@ -409,7 +592,8 @@ export default {
     modifyTitle: "编辑代理",
     createTitle: "添加代理",
     message: {
-      copySuccess: "复制成功"
+      copySuccess: "复制成功",
+      copyFailed: "复制失败"
     },
     dialog: {
       listPorts: {

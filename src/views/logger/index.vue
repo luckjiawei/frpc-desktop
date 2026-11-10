@@ -7,256 +7,103 @@ import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import LogView from "./LogView.vue";
-import { LogLevel, LogRecord } from "./log";
+import { LogRecord, parseAppLog } from "./log";
+import { useLogAutoRefresh } from "./useLogAutoRefresh";
 
 defineComponent({
   name: "Logger"
 });
 
+// 左侧菜单的日志页只展示应用日志；各实例的 frpc 日志在“实例”页面的日志抽屉中查看
 const { t } = useI18n();
 
-const refreshStatus = ref(false);
+const manualRefresh = ref(false);
 const logLoading = ref(true);
-const autoRefresh = ref(false);
-const autoRefreshTimer = ref(null);
-const autoRefreshTime = ref(10);
-const activeTabName = ref("app_log");
 const logRecords = ref<Array<LogRecord>>([]);
 const listenerCleanups: Array<() => void> = [];
 
-const openLocalLog = useDebounceFn(() => {
-  if (activeTabName.value === "app_log") {
-    send(ipcRouters.LOG.openAppLogFile);
-  } else {
-    send(ipcRouters.LOG.openFrpcLogFile);
-  }
-}, 1000);
+const loadLog = () => {
+  logLoading.value = true;
+  send(ipcRouters.LOG.getAppLogContent);
+};
+
+const { autoRefresh, countdown } = useLogAutoRefresh(loadLog);
 
 const refreshLog = useDebounceFn(() => {
-  // ElMessage({
-  //   type: "warning",
-  //   icon: "<IconifyIconOffline icon=\"file-open-rounded\" />",
-  //   message: "正在刷新日志..."
-  // });
-  refreshStatus.value = true;
-  logLoading.value = true;
-  logRecords.value = [];
-  if (activeTabName.value === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
+  manualRefresh.value = true;
+  loadLog();
 }, 300);
 
-const handleAutoRefreshChange = () => {
-  if (autoRefresh.value) {
-    if (autoRefreshTimer.value) {
-      clearInterval(autoRefreshTimer.value);
-    }
-    autoRefreshTimer.value = setInterval(() => {
-      autoRefreshTime.value--;
-      if (autoRefreshTime.value <= 0) {
-        autoRefreshTime.value = 10;
-        refreshLog();
-      }
-    }, 1000);
-  } else {
-    clearInterval(autoRefreshTimer.value);
-    autoRefreshTime.value = 10;
-  }
-};
-
-const handleTabChange = (tab: string) => {
-  activeTabName.value = tab;
-  logRecords.value = [];
-  if (tab === "app_log") {
-    send(ipcRouters.LOG.getAppLogContent);
-  } else {
-    send(ipcRouters.LOG.getFrpLogContent);
-  }
-};
+const openLocalLog = useDebounceFn(() => {
+  send(ipcRouters.LOG.openAppLogFile);
+}, 1000);
 
 onMounted(() => {
   listenerCleanups.push(
-    on(ipcRouters.LOG.getFrpLogContent, data => {
-      if (data) {
-        logRecords.value = data.split("\n").map(line => {
-          if (line.indexOf("[E]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.ERROR };
-          } else if (line.indexOf("[I]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.INFO };
-          } else if (line.indexOf("[D]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-          } else if (line.indexOf("[W]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.WARN };
-          } else {
-            return { id: Date.now(), context: line, level: LogLevel.INFO };
-          }
-        });
-
-        logRecords.value = logRecords.value.reverse();
-      }
-
+    on(ipcRouters.LOG.getAppLogContent, (data: string) => {
+      logRecords.value = data ? parseAppLog(data) : [];
       logLoading.value = false;
-      if (refreshStatus.value) {
-        // 刷新逻辑
+      if (manualRefresh.value) {
         ElMessage({
           type: "success",
           message: t("logger.message.refreshSuccess")
         });
-        refreshStatus.value = false;
+        manualRefresh.value = false;
       }
     })
   );
-
   listenerCleanups.push(
-    on(ipcRouters.LOG.getAppLogContent, data => {
-      if (data) {
-        logRecords.value = data.split("\n").map(line => {
-          if (line.indexOf("[error]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.ERROR };
-          } else if (line.indexOf("[info]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.INFO };
-          } else if (line.indexOf("[debug]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.DEBUG };
-          } else if (line.indexOf("[warn]") !== -1) {
-            return { id: Date.now(), context: line, level: LogLevel.WARN };
-          } else {
-            return { id: Date.now(), context: line, level: LogLevel.INFO };
-          }
-        });
-        logRecords.value = logRecords.value.reverse();
-      }
-
-      logLoading.value = false;
-      if (refreshStatus.value) {
-        // 刷新逻辑
-        ElMessage({
-          type: "success",
-          message: t("logger.message.refreshSuccess")
-        });
-        refreshStatus.value = false;
-      }
-    })
-  );
-
-  listenerCleanups.push(
-    on(ipcRouters.LOG.openFrpcLogFile, () => {
+    on(ipcRouters.LOG.openAppLogFile, () => {
       ElMessage({
         type: "success",
         message: t("logger.message.openSuccess")
       });
     })
   );
-
-  // send(ipcRouters.LOG.getFrpLogContent);
-  send(ipcRouters.LOG.getAppLogContent);
+  loadLog();
 });
 
 onUnmounted(() => {
   listenerCleanups.splice(0).forEach(off => off());
-  clearInterval(autoRefreshTimer.value);
-  autoRefreshTime.value = 10;
 });
-
-// onDeactivated(() => {
-//   console.log("onDeactivated");
-// });
 </script>
 <template>
   <div class="main">
-    <breadcrumb> </breadcrumb>
+    <breadcrumb />
     <div class="app-container-breadcrumb">
-      <el-tabs
-        v-model="activeTabName"
-        class="log-tabs"
-        @tab-change="handleTabChange"
-      >
-        <el-tab-pane
-          :label="t('logger.tab.appLog')"
-          name="app_log"
-          class="log-container"
-        >
-          <log-view :log-records="logRecords" :loading="logLoading">
-            <template #toolbar>
-              <span
-                v-if="autoRefresh"
-                class="text-sm font-medium text-gray-300"
-                >{{
-                  t("logger.autoRefreshTime", { time: autoRefreshTime })
-                }}</span
-              >
-              <el-switch
-                v-model="autoRefresh"
-                size="small"
-                class="text-gray-300"
-                @change="handleAutoRefreshChange"
-                >{{ t("logger.autoRefresh") }}</el-switch
-              >
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="refresh-rounded"
-                size="small"
-                @click="refreshLog"
-              />
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="file-open-rounded"
-                @click="openLocalLog"
-              />
-            </template>
-          </log-view>
-        </el-tab-pane>
-        <el-tab-pane
-          :label="t('logger.tab.frpcLog')"
-          name="frpc_log"
-          class="log-container"
-        >
-          <log-view :log-records="logRecords" :loading="logLoading">
-            <template #toolbar>
-              <span
-                v-if="autoRefresh"
-                class="text-sm font-medium text-gray-300"
-                >{{
-                  t("logger.autoRefreshTime", { time: autoRefreshTime })
-                }}</span
-              >
-              <el-switch
-                v-model="autoRefresh"
-                size="small"
-                class="text-gray-300"
-                @change="handleAutoRefreshChange"
-                >{{ t("logger.autoRefresh") }}</el-switch
-              >
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="refresh-rounded"
-                size="small"
-                @click="refreshLog"
-              />
-              <IconifyIconOffline
-                class="text-gray-400 transition-colors duration-200 cursor-pointer hover:text-gray-300"
-                icon="file-open-rounded"
-                @click="openLocalLog"
-              />
-            </template>
-          </log-view>
-        </el-tab-pane>
-      </el-tabs>
+      <log-view :log-records="logRecords" :loading="logLoading">
+        <template #toolbar>
+          <span v-if="autoRefresh" class="text-sm font-medium text-gray-300">
+            {{ t("logger.autoRefreshTime", { time: countdown }) }}
+          </span>
+          <el-switch
+            v-model="autoRefresh"
+            size="small"
+            :active-text="t('logger.autoRefresh')"
+            class="log-switch"
+          />
+          <el-button
+            text
+            size="small"
+            class="log-tool"
+            :aria-label="t('logger.refresh')"
+            :title="t('logger.refresh')"
+            @click="refreshLog"
+          >
+            <IconifyIconOffline icon="refresh-rounded" />
+          </el-button>
+          <el-button
+            text
+            size="small"
+            class="log-tool"
+            :aria-label="t('logger.openFile')"
+            :title="t('logger.openFile')"
+            @click="openLocalLog"
+          >
+            <IconifyIconOffline icon="file-open-rounded" />
+          </el-button>
+        </template>
+      </log-view>
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-::-webkit-scrollbar-track-piece {
-  background-color: transparent;
-}
-
-.log-tabs {
-  height: 100%;
-}
-
-.log-container {
-  height: 100%;
-}
-</style>

@@ -103,7 +103,7 @@ defineComponent({
     <breadcrumb />
     <div class="app-container-breadcrumb">
       <div
-        class="flex overflow-y-auto flex-col justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
+        class="flex overflow-y-auto flex-col justify-center items-center p-4 w-full h-full app-panel"
       >
         <img
           src="/logo/pack/1024x1024.png"
@@ -119,7 +119,7 @@ defineComponent({
           </el-link>
           <el-link
             v-if="!isLastVersion && frpcDesktopStore.frpcDesktopLastRelease"
-            class="ml-2 text-[#67C23A] font-bold"
+            class="ml-2 text-[var(--el-color-success)] font-bold"
             type="success"
             @click="handleOpenNewVersion"
             >v{{ frpcDesktopStore.frpcDesktopLastRelease.name }}
@@ -178,6 +178,6 @@ defineComponent({
 
 <style lang="scss" scoped>
 .check-update:hover {
-  color: #5f3bb0;
+  color: var(--app-primary-text);
 }
 </style>

@@ -1,132 +1,394 @@
-$main-bg: #F3F3F3;
-$primary-color: #5F3BB0;
-$danger-color: #F56C6C;
+$primary-color: var(--app-primary-text);
+$danger-color: #f56c6c;
 
 .main-container {
-  background: $main-bg;
-  width: calc(100% - 60px);
+  background: var(--app-page-bg);
+  flex: 1;
+  min-width: 0;
   height: 100vh;
-  padding: 15px;
+  padding: 16px 18px;
 
-
+  /* 标题栏高度随工具栏换行变化，内容区用 flex 占满剩余空间，避免撑出窗口 */
   .main {
     height: 100%;
     width: 100%;
-    //overflow: hidden;
-  }
-
-  .app-container-breadcrumb {
-    height: calc(100% - 50px);
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .breadcrumb {
-    margin-bottom: 15px;
+    flex: none;
+  }
+
+  .app-container-breadcrumb {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .breadcrumb {
+    min-height: 36px;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
 
     .breadcrumb-left {
-      color: $primary-color;
-      font-size: 36px;
-      height: 32px;
+      flex: none;
+      gap: 10px;
+      color: var(--el-text-color-primary);
 
-      svg {
-        vertical-align: top;
+      .breadcrumb-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--app-primary-text);
+        background: var(--app-primary-soft);
       }
 
-      span {
-        vertical-align: top;
-        color: black;
+      > span {
         font-size: 18px;
-        font-weight: bold;
-        //transform: translateY(5px);
-        display: inline-block;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+    }
 
+    /* 窗口较窄时整组换到下一行并右对齐，而不是在组内零散折行 */
+    .breadcrumb-right {
+      flex: 1 1 auto;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-left: auto;
+
+      .el-button + .el-button {
+        margin-left: 0;
       }
     }
   }
 
+  /* 标题栏下方的筛选栏：搜索在左侧吸收宽度，视图切换等靠右 */
+  .page-filter-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
 
+  /* 标题栏与筛选栏控件：统一 32px 高、8px 圆角 */
+  .breadcrumb,
+  .page-filter-bar {
+    --el-border-radius-base: 8px;
+
+    .el-input__wrapper,
+    .el-select__wrapper {
+      background: var(--app-surface);
+      box-shadow: 0 0 0 1px var(--app-border) inset;
+      transition: box-shadow 0.15s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
+      }
+
+      &.is-focus,
+      &.is-focused {
+        box-shadow:
+          0 0 0 1px var(--el-color-primary) inset,
+          0 0 0 3px var(--app-primary-soft);
+      }
+    }
+
+    /* 分段控件：浅色轨道 + 选中项高亮，替代整块主色填充 */
+    .el-radio-group {
+      flex-wrap: nowrap;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 8px;
+      background: var(--app-surface);
+      box-shadow: 0 0 0 1px var(--app-border) inset;
+
+      .el-radio-button__inner,
+      .el-radio-button:first-child .el-radio-button__inner,
+      .el-radio-button:last-child .el-radio-button__inner {
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border: none;
+        border-radius: 6px;
+        outline: none;
+        background: transparent;
+        box-shadow: none;
+        color: var(--app-text-secondary);
+        font-weight: 500;
+      }
+
+      .el-radio-button__inner:hover {
+        color: var(--el-text-color-primary);
+      }
+
+      .el-radio-button__original-radio:checked + .el-radio-button__inner {
+        background: var(--app-primary-soft);
+        color: var(--app-primary-text);
+        box-shadow: none;
+      }
+
+      .el-radio-button__original-radio:focus-visible + .el-radio-button__inner {
+        outline: 2px solid var(--el-color-primary);
+        outline-offset: -2px;
+      }
+    }
+
+    /* 纯图标的次要操作：无边框，悬浮时出现浅底 */
+    .toolbar-icon-button.el-button {
+      width: 32px;
+      padding: 0;
+      font-size: 18px;
+      color: var(--app-text-secondary);
+      border-color: transparent;
+      background: transparent;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--app-primary-text);
+        background: var(--app-primary-soft);
+      }
+    }
+  }
 }
 
+/* 左侧导航：展开 220px，折叠 64px */
 .left-menu-container {
-  background: #fff;
-  width: 60px;
+  --menu-width: 220px;
+  background: var(--app-sidebar-bg);
+  border-right: 1px solid var(--app-border);
+  width: var(--menu-width);
+  flex: none;
   height: 100vh;
-  display: flex; /* 设置为 flexbox */
-  flex-direction: column; /* 纵向排列子元素 */
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  transition: width 0.2s ease;
+  /* 折叠按钮需要伸出右边界，内部各区域自行裁剪溢出 */
+  position: relative;
+  z-index: 10;
+
+  .menu-collapse {
+    position: absolute;
+    top: 24px;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--app-border);
+    border-radius: 50%;
+    font-size: 16px;
+    color: var(--app-text-secondary);
+    background: var(--app-sidebar-bg);
+    box-shadow: var(--app-shadow);
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      color: var(--app-primary-text);
+      border-color: var(--app-primary-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  &.is-collapsed {
+    --menu-width: 64px;
+  }
+
+  .menu-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 6px;
+    margin-bottom: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+
+    img {
+      width: 30px;
+      height: 30px;
+      flex: none;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* 窗口较矮时菜单区自身滚动，底部的资源占用和设置始终可见 */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: var(--el-text-color-regular);
+    background: transparent;
+    font-size: 14px;
+    white-space: nowrap;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    svg {
+      font-size: 20px;
+      flex: none;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      color: var(--el-text-color-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
+
+    &.is-active {
+      background: var(--app-primary-soft);
+      color: var(--app-primary-text);
+      font-weight: 600;
+    }
+  }
 
   .menu-footer {
+    flex: none;
     margin-top: auto;
-
-  }
-
-  .version {
-    height: 40px;
-    width: 60px;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    color: $primary-color;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--app-border);
+    overflow: hidden;
   }
 
-  .version:hover {
-    animation: heartBeat 1s;
-  }
+  .menu-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--app-text-secondary);
 
-  .menu-container, .menu-footer {
-
-    .menu {
+    .usage-row {
       display: flex;
-      height: 40px;
-      justify-content: center;
       align-items: center;
-      font-size: 20px;
-      color: #ADADAD;
-      margin-bottom: 10px;
+      gap: 6px;
+      white-space: nowrap;
 
+      b {
+        margin-left: auto;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
 
+  .menu-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .menu-version {
+    margin-left: auto;
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--app-primary-text);
+    background: transparent;
+  }
+
+  &.is-collapsed {
+    .menu-brand {
+      justify-content: center;
+      padding: 0;
     }
 
-
-    .menu-selected {
-      background: #EBE6F7;
-      color: $primary-color;
+    .menu-item {
+      justify-content: center;
+      padding: 0;
     }
 
-    .menu:hover, .menu:focus, .menu:active, {
-      color: $primary-color;
-      cursor: pointer;
+    .menu-usage {
+      align-items: center;
+      padding: 0;
 
-      & > svg {
-        animation: swing 0.5s;
+      .usage-row {
+        flex-direction: column;
+        gap: 0;
+
+        b {
+          margin-left: 0;
+        }
       }
     }
 
+    .menu-actions {
+      flex-direction: column;
+    }
 
+    .menu-version {
+      margin-left: 0;
+      padding: 0;
+    }
   }
 }
-
-.logo-container {
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  .logo {
-    width: 60%;
-  }
-}
-
 
 .primary-text {
   color: $primary-color;
 }
 
 .bg-primary {
-  background:  $primary-color;
+  background: var(--el-color-primary);
 }
 
 .danger-text {

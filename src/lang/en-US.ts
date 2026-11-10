@@ -5,7 +5,10 @@ export default {
   },
   router: {
     home: {
-      title: "Launch"
+      title: "Dashboard"
+    },
+    tunnel: {
+      title: "Instances"
     },
     proxy: {
       title: "Proxy"
@@ -13,8 +16,8 @@ export default {
     download: {
       title: "Download"
     },
-    config: {
-      title: "Config"
+    system: {
+      title: "Settings"
     },
     logger: {
       title: "Logger"
@@ -23,44 +26,217 @@ export default {
       title: "About"
     }
   },
+  layout: {
+    navigation: "Main navigation",
+    memory: "Memory",
+    collapseMenu: "Collapse sidebar",
+    expandMenu: "Expand sidebar",
+    about: "About Frpc Desktop",
+    theme: {
+      title: "Appearance",
+      light: "Light",
+      dark: "Dark",
+      auto: "System"
+    }
+  },
   home: {
     uptime: {
-      days: "{days} days",
-      hours: "{hours} hours",
-      minutes: "{minutes} minutes",
-      seconds: "{seconds} seconds"
+      days: "{days}d ",
+      hours: "{hours}h ",
+      minutes: "{minutes}m ",
+      seconds: "{seconds}s"
+    },
+    dashboard: {
+      notConfigured: "No server configured yet",
+      instances: "Running instances",
+      instancesHint: "{total} in total",
+      errors: "Connection errors",
+      errorsHint: "Check logs on the Instances page",
+      noErrors: "All good",
+      statusTitle: "Instance status",
+      manageInstances: "Manage instances",
+      noInstances: "No instances",
+      status: "Status",
+      instance: "Instance",
+      proxies: "Proxies",
+      proxiesValue: "{enabled} / {total} enabled",
+      server: "Server",
+      manage: "Manage versions",
+      frpcVersion: "frpc version",
+      cloudflareManaged: "Routes managed in Cloudflare",
+      tokenMissing: "No tunnel token yet"
     },
     status: {
       running: "Running",
       disconnected: "Disconnected",
       connectionError: "Connection Failed",
-      runningTime: "Running Time",
-      frpcStatus: "Frpc {status}"
+      runningTime: "Running Time"
     },
     button: {
       start: "Start",
-      stop: "Stop",
-      viewLog: "View Log"
+      stop: "Stop"
     },
     alert: {
       configRequired: {
         title: "Prompt",
         message:
-          "Please go to the settings page and modify the configuration before starting",
-        confirm: "Go to Settings"
+          "Please go to the config page and modify the configuration before starting",
+        confirm: "Go to Config"
       },
       versionNotFound: {
         title: "Prompt",
         message:
-          "Please go to the settings page and select the version before starting",
-        confirm: "Go to Settings"
+          "Please go to the config page and select the version before starting",
+        confirm: "Go to Config"
       },
       webServerPortInUse: {
         title: "Prompt",
         message:
-          "The web server port is already in use, please go to the settings page and change the port",
-        confirm: "Go to Settings"
+          "The web server port is already in use, please go to the config page and change the port",
+        confirm: "Go to Config"
+      },
+      visitorPortInUse: {
+        title: "Prompt",
+        message:
+          "A visitor bind port is already in use (possibly by another instance). Change the proxy configuration before starting",
+        confirm: "Go to Proxies"
       }
+    }
+  },
+  system: {
+    title: {
+      data: "Data"
+    },
+    resetAllHint:
+      "Deletes all instances, proxies and system settings. Downloaded frpc versions are kept.",
+    alert: {
+      resetAll: {
+        title: "Reset All Config",
+        message:
+          "All instances are stopped and deleted together with their proxies, and system settings are restored to defaults. This cannot be undone. Continue?",
+        confirm: "Reset",
+        cancel: "Cancel"
+      }
+    }
+  },
+  tunnel: {
+    switcher: "Switch instance",
+    autoStart: "Auto connect on startup",
+    autoStartHint:
+      'Also requires "Auto connect on startup" to be enabled in Settings',
+    defaultHint: "The default instance cannot be deleted",
+    log: {
+      title: "{name} · Logs"
+    },
+    config: {
+      title: "{name} · Config"
+    },
+    provider: {
+      frpc: "frpc",
+      cloudflared: "Cloudflare Tunnel",
+      frpcDescription: "Connect to your own frps server",
+      cloudflaredDescription: "Expose services through Cloudflare's network"
+    },
+    meta: {
+      connector: "Connector",
+      routes: "Routes",
+      tokenConfigured: "Token configured",
+      tokenMissing: "No tunnel token yet",
+      routesInDashboard: "Managed in Cloudflare dashboard"
+    },
+    cloudflared: {
+      section: {
+        binary: "cloudflared",
+        tunnel: "Tunnel",
+        advanced: "Advanced"
+      },
+      intro:
+        'Create a tunnel in the Cloudflare dashboard (Zero Trust → Networks → Tunnels), choose "cloudflared" as the connector, and copy its token. Public hostnames are configured in the dashboard.',
+      openDashboard: "Open Cloudflare dashboard",
+      source: {
+        label: "Source",
+        downloaded: "Downloaded",
+        custom: "Local file"
+      },
+      version: {
+        label: "Version",
+        placeholder: "Select a downloaded version",
+        empty: "No downloaded versions",
+        autoHint:
+          "If left empty, a cloudflared found in PATH (e.g. installed with Homebrew) is used"
+      },
+      customPath: {
+        label: "File path",
+        placeholder: "Path to the cloudflared executable",
+        requireMessage: "Enter the cloudflared path",
+        autoDetectSuccess: "Found cloudflared:",
+        autoDetectNotFound: "cloudflared was not found on this computer",
+        detectedVersion: "Detected version"
+      },
+      token: {
+        label: "Tunnel token",
+        placeholder:
+          "Paste the token, or the whole install command from the dashboard",
+        requireMessage: "Enter the tunnel token",
+        invalidMessage:
+          "This does not look like a tunnel token. Copy it from the connector install command",
+        extracted: "Token extracted from the pasted command"
+      },
+      protocol: {
+        label: "Protocol",
+        auto: "Auto (QUIC, falls back to HTTP/2)",
+        tips: "Choose HTTP/2 if your network blocks UDP traffic on port 7844"
+      },
+      edgeIpVersion: {
+        label: "Edge IP version",
+        auto: "Auto"
+      },
+      logLevel: {
+        label: "Log level"
+      }
+    },
+    button: {
+      create: "New Instance",
+      startAll: "Start All",
+      stopAll: "Stop All",
+      config: "Config",
+      proxies: "Proxies",
+      logs: "Logs",
+      rename: "Rename",
+      delete: "Delete",
+      more: "More actions"
+    },
+    prompt: {
+      createTitle: "New Instance",
+      renameTitle: "Rename Instance",
+      nameLabel: "Instance name",
+      namePlaceholder: "e.g. Office frps",
+      nameInvalid: "Enter a name of 1-64 characters",
+      confirm: "OK",
+      cancel: "Cancel"
+    },
+    delete: {
+      title: "Delete Instance",
+      message:
+        'Delete instance "{name}"? A running instance is stopped first, and all of its proxies are deleted. This cannot be undone.',
+      confirm: "Delete",
+      cancel: "Cancel"
+    },
+    closeDirty: {
+      title: "Unsaved Changes",
+      message:
+        "Settings of this instance have not been saved and will be lost if you close. Continue?",
+      confirm: "Discard",
+      cancel: "Keep Editing"
+    },
+    message: {
+      createSuccess: "Instance created",
+      renameSuccess: "Instance renamed",
+      deleteSuccess: "Instance deleted",
+      autoStartOn: "Auto connect on startup enabled",
+      autoStartOff: "Auto connect on startup disabled",
+      launchAllFailed: "{count} instance(s) failed to start: {detail}",
+      saveSuccess: "Saved. Restart the instance to apply changes"
     }
   },
   comingSoon: {
@@ -77,6 +253,11 @@ export default {
       card: "Card",
       list: "List"
     },
+    provider: {
+      label: "Tool"
+    },
+    cloudflaredUnsupported:
+      "No cloudflared versions available (offline, or no build for this platform). You can install cloudflared yourself and pick the file in the instance config.",
     message: {
       importSuccess: "Import successfully",
       deleteSuccess: "Delete successfully",
@@ -100,8 +281,8 @@ export default {
     },
     version: {
       size: "Size",
-      downloadCount: "Download count:",
-      publishTime: "Publish time:",
+      downloadCount: "Downloads",
+      publishTime: "Published",
       downloaded: "Downloaded",
       notDownloaded: "Not downloaded",
       delete: "Delete",
@@ -118,16 +299,14 @@ export default {
     content: {
       empty: "No log"
     },
-    tab: {
-      appLog: "App Log",
-      frpcLog: "Frpc Log"
-    },
     search: {
       placeholder: "Search logs..."
     },
     loading: {
       text: "Loading..."
     },
+    refresh: "Refresh logs",
+    openFile: "Open log file",
     autoRefresh: "Auto Refresh",
     autoRefreshTime: "{time}s after auto refresh"
   },
@@ -154,21 +333,25 @@ export default {
       customFrpcPath: {
         label: "frpc Path",
         placeholder: "Binary path e.g. ~/.local/bin/frpc, or click Auto Detect",
-        tips: "Specify a custom frpc binary file path (e.g. <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>, <span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>) or click Auto Detect. When set, this binary takes precedence.",
+        tips: "Specify an frpc binary installed on this computer (e.g. <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>, <span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>), or click Auto Detect.",
+        requireMessage: "Please enter the frpc path or click Auto Detect",
         detectedVersion: "Detected Version",
         autoDetectSuccess: "Auto-detected frpc:",
         autoDetectNotFound:
-          "No executable frpc binary was detected. Please ensure it is installed or select a downloaded version below.",
+          "No executable frpc binary was detected. Please ensure it is installed, or switch to a downloaded version.",
         invalidPath:
           "The specified path does not exist or lacks execute permission"
       },
+      frpcSource: {
+        label: "frpc Source",
+        downloaded: "Downloaded Version",
+        custom: "Custom Path"
+      },
       frpcVerson: {
         label: "Downloaded Version",
-        placeholder: "Used when no custom frpc path is specified",
-        requireMessage: "Please select Frp version",
-        requireEitherMessage:
-          "Please configure a custom frpc path or select a downloaded version",
-        fallbackTips: "Used when no custom frpc path is specified"
+        placeholder: "Select a downloaded frpc version",
+        empty: "No downloaded versions yet",
+        requireMessage: "Please select a downloaded frpc version"
       },
       serverAddr: {
         label: "Server Address",
@@ -322,6 +505,10 @@ export default {
       goToDownload: "Click here to download",
       clear: "Clear",
       import: "Import",
+      openData: "Open data folder",
+      resetAll: "Reset all settings",
+      importToml: "Import TOML config",
+      exportConfig: "Export config",
       saveWithShortcut: "Save (Ctrl+S / ⌘S)"
     },
     alert: {
@@ -380,6 +567,7 @@ export default {
     mappingAddress: "Mapping Address",
     visitors: "Visitors",
     visitorsProvider: "Visitors Provider",
+    copyAddress: "Copy address",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
     refresh: "Refresh proxies",
@@ -563,6 +751,7 @@ export default {
     },
     message: {
       copySuccess: "Copy successfully",
+      copyFailed: "Copy failed",
       createSuccess: "Create successfully",
       modifySuccess: "Modify successfully"
     }

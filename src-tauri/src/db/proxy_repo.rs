@@ -6,6 +6,14 @@ pub struct ProxyRepository;
 
 impl ProxyRepository {
     pub fn get_all_proxies(conn: &Connection) -> Result<Vec<FrpcProxy>> {
+        Self::query_proxies(conn, None)
+    }
+
+    pub fn get_proxies_by_server(conn: &Connection, server_id: &str) -> Result<Vec<FrpcProxy>> {
+        Self::query_proxies(conn, Some(server_id))
+    }
+
+    fn query_proxies(conn: &Connection, server_id: Option<&str>) -> Result<Vec<FrpcProxy>> {
         let mut stmt = conn.prepare(
             "SELECT id, name, type, local_ip, local_port, remote_port,
                     custom_domains_json, locations_json, host_header_rewrite,
@@ -14,11 +22,12 @@ impl ProxyRepository {
                     http_password, fallback_to, fallback_timeout_ms, https2http,
                     https2http_ca_file, https2http_key_file, tls2raw,
                     tls2raw_ca_file, tls2raw_key_file, keep_tunnel_open,
-                    status, transport_json
-             FROM t_frpcd_proxies",
+                    status, transport_json, server_id
+             FROM t_frpcd_proxies
+             WHERE ?1 IS NULL OR server_id = ?1",
         )?;
 
-        let rows = stmt.query_map([], |row| {
+        let rows = stmt.query_map(params![server_id], |row| {
             let id: String = row.get(0)?;
             let name: String = row.get(1)?;
             let proxy_type: String = row.get(2)?;
@@ -49,6 +58,7 @@ impl ProxyRepository {
             let keep_tunnel_open_int: i64 = row.get(27)?;
             let status: i64 = row.get(28)?;
             let transport_json: String = row.get(29)?;
+            let server_id: String = row.get(30)?;
 
             let custom_domains: Vec<String> =
                 crate::db::from_json_lenient(&custom_domains_json);
@@ -71,6 +81,7 @@ impl ProxyRepository {
 
             Ok(FrpcProxy {
                 id,
+                server_id,
                 name,
                 proxy_type,
                 local_ip,
@@ -184,7 +195,7 @@ impl ProxyRepository {
                 tls2raw_ca_file, tls2raw_key_file, keep_tunnel_open,
                 status, transport_json
             ) VALUES (
-                ?1, '1', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+                ?1, ?31, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
                 ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25,
                 ?26, ?27, ?28, ?29, ?30
             ) ON CONFLICT(id) DO UPDATE SET
@@ -248,6 +259,7 @@ impl ProxyRepository {
                 if proxy.keep_tunnel_open { 1 } else { 0 },
                 proxy.status,
                 transport_json,
+                proxy.server_id,
             ],
         )?;
         Ok(())

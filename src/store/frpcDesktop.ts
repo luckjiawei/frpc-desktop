@@ -1,61 +1,30 @@
 import i18n from "@/lang";
-import { on, onListener, send } from "@/utils/ipcUtils";
+import { on, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
-import { ipcRouters, listeners } from "@/core/IpcRouter";
+import { ipcRouters } from "@/core/IpcRouter";
 import pkg from "../../package.json";
 
 export const useFrpcDesktopStore = defineStore("frpcDesktop", {
   state: () => ({
-    running: false,
-    lastStartTime: -1,
-    versions: [],
+    versions: [] as FrpcVersion[],
     lastRelease: null,
-    language: null,
-    connectionError: null as string | null
+    language: null
   }),
   getters: {
-    frpcProcessRunning: state => state.running,
-    frpcProcessLastStartTime: state => state.lastStartTime,
-    frpcConnectionError: state => state.connectionError,
-    downloadedVersions: state => state.versions,
+    /** 已下载的 frpc 版本（不含 cloudflared） */
+    downloadedVersions: state =>
+      state.versions.filter(v => (v.provider ?? "frpc") === "frpc"),
+    downloadedCloudflaredVersions: state =>
+      state.versions.filter(v => v.provider === "cloudflared"),
     frpcDesktopLastRelease: state => state.lastRelease,
     frpcDesktopLanguage: state => state.language
   },
   actions: {
-    applyFrpcProcessStatus(data: FrpcProcessStatus) {
-      const { running, lastStartTime, connectionError } = data;
-      if (this.running !== running) {
-        this.running = running;
-      }
-      const nextConnectionError = connectionError ?? null;
-      if (this.connectionError !== nextConnectionError) {
-        this.connectionError = nextConnectionError;
-      }
-      if (lastStartTime !== undefined && this.lastStartTime !== lastStartTime) {
-        this.lastStartTime = lastStartTime;
-      }
-      if (!running && lastStartTime !== undefined) {
-        this.lastStartTime = -1;
-      }
-    },
-    onListenerFrpcProcessRunning() {
-      onListener(listeners.watchFrpcProcess, data => {
-        this.applyFrpcProcessStatus(data);
-      });
-
-      on(ipcRouters.LAUNCH.getStatus, data => {
-        this.applyFrpcProcessStatus(data);
-      });
-    },
-
     onListenerDownloadedVersion() {
       on(ipcRouters.VERSION.getDownloadedVersions, data => {
         this.versions = data;
       });
-    },
-    refreshRunning() {
-      send(ipcRouters.LAUNCH.getStatus);
     },
     refreshDownloadedVersion() {
       send(ipcRouters.VERSION.getDownloadedVersions);

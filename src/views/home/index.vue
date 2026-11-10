@@ -1,347 +1,310 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
-import router from "@/router";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
-import { on, send } from "@/utils/ipcUtils";
-import { useDebounceFn } from "@vueuse/core";
-import { ElMessageBox } from "element-plus";
-import {
-  computed,
-  defineComponent,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch
-} from "vue";
+import { useTunnelStore } from "@/store/tunnel";
+import { computed, defineComponent, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { ipcRouters } from "@/core/IpcRouter";
+import { useBulkLaunch, useTunnelStatus } from "@/views/tunnel/useTunnelStatus";
+
 defineComponent({
   name: "Home"
 });
 
-const frpcDesktopStore = useFrpcDesktopStore();
-const loading = ref(false);
-const now = ref(Date.now());
-let uptimeTimer: ReturnType<typeof setInterval> | null = null;
+// 仪表盘只做全局概览；实例的启停、配置和日志在“实例”页面管理
 const { t } = useI18n();
-const listenerCleanups: Array<() => void> = [];
+const tunnelStore = useTunnelStore();
+const frpcDesktopStore = useFrpcDesktopStore();
+const { statusKey, statusLabel, uptimeText } = useTunnelStatus();
+const { bulk, startAll, stopAll } = useBulkLaunch();
 
-// Three-state status: "running" | "error" | "stopped"
-const frpcStatus = computed(() => {
-  if (!frpcDesktopStore.frpcProcessRunning) return "stopped";
-  if (frpcDesktopStore.frpcConnectionError) return "error";
-  return "running";
+const summary = computed(() => {
+  const tunnels = tunnelStore.tunnels;
+  return {
+    total: tunnels.length,
+    running: tunnels.filter(item => statusKey(item.id) !== "stopped").length,
+    errors: tunnels.filter(item => statusKey(item.id) === "error").length,
+    proxyEnabled: tunnels.reduce((sum, item) => sum + item.proxyEnabled, 0),
+    proxyTotal: tunnels.reduce((sum, item) => sum + item.proxyTotal, 0),
+    versions: frpcDesktopStore.downloadedVersions.length
+  };
 });
 
-const handleStartFrpc = () => {
-  send(ipcRouters.LAUNCH.launch);
+const statusTagType = (tunnelId: string) => {
+  const key = statusKey(tunnelId);
+  return key === "running" ? "success" : key === "error" ? "warning" : "info";
 };
 
-const handleStopFrpc = () => {
-  send(ipcRouters.LAUNCH.terminate);
-};
-
-const handleButtonClick = useDebounceFn(() => {
-  loading.value = true;
-  if (frpcDesktopStore.frpcProcessRunning) {
-    handleStopFrpc();
-  } else {
-    handleStartFrpc();
-  }
-}, 300);
-
-const uptime = computed(() => {
-  const lastStartTime = frpcDesktopStore.frpcProcessLastStartTime;
-  const uptime =
-    frpcDesktopStore.frpcProcessRunning && lastStartTime > 0
-      ? Math.max(0, now.value - lastStartTime) / 1000
-      : 0;
-  const days = Math.floor(uptime / (24 * 60 * 60));
-  const hours = Math.floor((uptime % (24 * 60 * 60)) / (60 * 60));
-  const minutes = Math.floor((uptime % (60 * 60)) / 60);
-  const seconds = Math.ceil(uptime % 60);
-  let result = "";
-  if (days > 0) {
-    result += t("home.uptime.days", { days });
-  }
-  if (hours > 0) {
-    result += t("home.uptime.hours", { hours });
-  }
-  if (minutes > 0) {
-    result += t("home.uptime.minutes", { minutes });
-  }
-  result += t("home.uptime.seconds", { seconds });
-  return result;
-});
-
-// Reset loading whenever the running state changes (covers cases where the IPC
-// reply is delayed or never arrives, e.g. macOS sudo/osascript flow).
-watch(
-  () => frpcDesktopStore.frpcProcessRunning,
-  () => {
-    loading.value = false;
-  }
+const startLabel = computed(() =>
+  tunnelStore.hasMultiple ? t("tunnel.button.startAll") : t("home.button.start")
+);
+const stopLabel = computed(() =>
+  tunnelStore.hasMultiple ? t("tunnel.button.stopAll") : t("home.button.stop")
 );
 
 onMounted(() => {
-  uptimeTimer = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-  listenerCleanups.push(
-    on(
-      ipcRouters.LAUNCH.launch,
-      () => {
-        frpcDesktopStore.refreshRunning();
-        loading.value = false;
-      },
-      (bizCode: string, message: string) => {
-        console.log("bizCode", bizCode);
-        if (bizCode === "B1001") {
-          ElMessageBox.alert(
-            t("home.alert.configRequired.message"),
-            t("home.alert.configRequired.title"),
-            {
-              confirmButtonText: t("home.alert.configRequired.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        } else if (bizCode === "B1005") {
-          ElMessageBox.alert(
-            t("home.alert.versionNotFound.message"),
-            t("home.alert.versionNotFound.title"),
-            {
-              confirmButtonText: t("home.alert.versionNotFound.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        } else if (bizCode === "B1006") {
-          ElMessageBox.alert(
-            t("home.alert.webServerPortInUse.message"),
-            t("home.alert.webServerPortInUse.title"),
-            {
-              confirmButtonText: t("home.alert.webServerPortInUse.confirm")
-            }
-          ).then(() => {
-            router.replace({
-              name: "Config"
-            });
-          });
-        }
-        loading.value = false;
-      }
-    )
-  );
-
-  listenerCleanups.push(
-    on(ipcRouters.LAUNCH.terminate, () => {
-      frpcDesktopStore.refreshRunning();
-      loading.value = false;
-    })
-  );
-});
-
-onUnmounted(() => {
-  if (uptimeTimer) {
-    clearInterval(uptimeTimer);
-    uptimeTimer = null;
-  }
-  listenerCleanups.splice(0).forEach(off => off());
+  tunnelStore.refreshTunnels();
+  tunnelStore.refreshStatuses();
+  frpcDesktopStore.refreshDownloadedVersion();
 });
 </script>
 
 <template>
   <div class="main">
-    <breadcrumb />
-    <div class="app-container-breadcrumb">
-      <div
-        class="flex overflow-y-auto justify-center items-center p-4 w-full h-full bg-white rounded drop-shadow-lg"
+    <breadcrumb>
+      <el-button
+        v-if="tunnelStore.anyRunning"
+        type="danger"
+        plain
+        :loading="bulk.stop"
+        @click="stopAll"
       >
-        <div class="flex">
-          <div
-            class="w-52 h-52 !border-4 border-[#5A3DAA] text-[#5A3DAA] rounded-full flex justify-center items-center text-[100px] relative"
+        <template #icon>
+          <IconifyIconOffline icon="stop-circle-outline" />
+        </template>
+        {{ stopLabel }}
+      </el-button>
+      <el-button v-else type="primary" :loading="bulk.start" @click="startAll">
+        <template #icon>
+          <IconifyIconOffline icon="play-arrow-rounded" />
+        </template>
+        {{ startLabel }}
+      </el-button>
+    </breadcrumb>
+    <div class="app-container-breadcrumb">
+      <div class="flex flex-col gap-3 pr-1 pb-1">
+        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Tunnel' })"
           >
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 left-circle bg-[#5A3DAA] w-full h-full animation-rotate-1"
-              />
-            </transition>
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 right-circle top-[10px] bg-[#5A3DAA] w-full h-full animation-rotate-2"
-              />
-            </transition>
-            <transition name="fade">
-              <div
-                v-show="frpcDesktopStore.frpcProcessRunning"
-                class="z-0 rounded-full opacity-20 top-circle bg-[#5A3DAA] w-full h-full animation-rotate-3"
-              />
-            </transition>
-            <div
-              class="flex absolute z-10 justify-center items-center w-full h-full bg-white rounded-full"
-            >
+            <span class="stat-label">
               <IconifyIconOffline icon="rocket-launch-rounded" />
-            </div>
+              {{ t("home.dashboard.instances") }}
+            </span>
+            <span class="stat-value">{{ summary.running }}</span>
+            <span class="stat-hint">
+              {{ t("home.dashboard.instancesHint", { total: summary.total }) }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Proxy' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="cloud" />
+              {{ t("home.dashboard.proxies") }}
+            </span>
+            <span class="stat-value">{{ summary.proxyEnabled }}</span>
+            <span class="stat-hint">
+              {{
+                t("home.dashboard.proxiesValue", {
+                  enabled: summary.proxyEnabled,
+                  total: summary.proxyTotal
+                })
+              }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            :class="{ 'is-warning': summary.errors > 0 }"
+            @click="$router.push({ name: 'Tunnel' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="warningRounded" />
+              {{ t("home.dashboard.errors") }}
+            </span>
+            <span class="stat-value">{{ summary.errors }}</span>
+            <span class="stat-hint">
+              {{
+                summary.errors > 0
+                  ? t("home.dashboard.errorsHint")
+                  : t("home.dashboard.noErrors")
+              }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="text-left stat-card app-panel is-clickable"
+            @click="$router.push({ name: 'Download' })"
+          >
+            <span class="stat-label">
+              <IconifyIconOffline icon="download" />
+              {{ t("home.dashboard.frpcVersion") }}
+            </span>
+            <span class="stat-value">{{ summary.versions }}</span>
+            <span class="stat-hint">{{ t("home.dashboard.manage") }}</span>
+          </button>
+        </section>
+
+        <section class="p-4 app-panel">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold">
+              {{ t("home.dashboard.statusTitle") }}
+            </h3>
+            <el-button
+              text
+              type="primary"
+              size="small"
+              @click="$router.push({ name: 'Tunnel' })"
+            >
+              {{ t("home.dashboard.manageInstances") }}
+              <IconifyIconOffline class="ml-1" icon="arrow-forward-rounded" />
+            </el-button>
           </div>
-          <div class="flex flex-col justify-center items-center">
-            <div class="flex flex-col gap-4 justify-between pl-10 w-96">
-              <transition name="fade">
-                <div
-                  class="flex gap-1 justify-center text-2xl font-bold text-center"
-                >
-                  <IconifyIconOffline
-                    v-if="frpcStatus === 'running'"
-                    class="text-[#7EC050] inline-block relative top-1"
-                    icon="check-circle-rounded"
-                  />
-                  <IconifyIconOffline
-                    v-else-if="frpcStatus === 'error'"
-                    class="text-[#E6A23C] inline-block relative top-1"
-                    icon="warningRounded"
-                  />
-                  <IconifyIconOffline
-                    v-else
-                    class="text-[#E47470] inline-block relative top-1"
-                    icon="error"
-                  />
-                  <span>
-                    {{
-                      $t("home.status.frpcStatus", {
-                        status:
-                          frpcStatus === "running"
-                            ? $t("home.status.running")
-                            : frpcStatus === "error"
-                              ? $t("home.status.connectionError")
-                              : $t("home.status.disconnected")
-                      })
-                    }}
+          <el-table
+            v-loading="!tunnelStore.loaded"
+            :data="tunnelStore.tunnels"
+            row-key="id"
+            stripe
+            :empty-text="t('home.dashboard.noInstances')"
+          >
+            <el-table-column :label="t('home.dashboard.status')" width="120">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.id)" size="small">
+                  {{ statusLabel(row.id) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.dashboard.instance')"
+              prop="name"
+              min-width="140"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <span class="font-semibold text-primary">{{ row.name }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.dashboard.server')"
+              min-width="180"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <span v-if="row.provider === 'cloudflared'">
+                  <span v-if="row.configured">
+                    {{ t("home.dashboard.cloudflareManaged") }}
                   </span>
-                </div>
-              </transition>
-              <div
-                v-if="frpcStatus === 'error'"
-                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
-              >
-                <el-text
-                  class="break-all line-clamp-2 text-primary"
-                  :title="frpcDesktopStore.frpcConnectionError"
+                  <span v-else class="text-text_color_secondary">
+                    {{ t("home.dashboard.tokenMissing") }}
+                  </span>
+                </span>
+                <span v-else-if="row.serverAddr" class="is-mono">
+                  {{ row.serverAddr }}:{{ row.serverPort }}
+                </span>
+                <span v-else class="text-text_color_secondary">
+                  {{ t("home.dashboard.notConfigured") }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('home.dashboard.proxies')" width="130">
+              <template #default="{ row }">
+                <span
+                  v-if="row.provider === 'cloudflared'"
+                  class="text-text_color_secondary"
                 >
-                  {{ frpcDesktopStore.frpcConnectionError }}
-                </el-text>
-                <div class="mt-1">
-                  <el-link
-                    type="primary"
-                    @click="$router.replace({ name: 'Logger' })"
-                  >
-                    {{ $t("home.button.viewLog") }}
-                  </el-link>
-                </div>
-              </div>
-              <div
-                v-else-if="frpcStatus === 'running'"
-                class="justify-center w-full text-sm text-center animate__animated animate__fadeIn"
-              >
-                <span class="el-text--success">{{
-                  $t("home.status.runningTime")
-                }}</span>
-                <span class="ml-1 font-bold text-primary">{{ uptime }}</span>
-
-                <div class="justify-center w-full text-center">
-                  <el-link
-                    class="animate__animated animate__fadeIn"
-                    type="primary"
-                    @click="$router.replace({ name: 'Logger' })"
-                    >{{ $t("home.button.viewLog") }}</el-link
-                  >
-                </div>
-              </div>
-
-              <el-button
-                class="mt-4"
-                type="primary"
-                :disabled="loading"
-                @click="handleButtonClick"
-                >{{
-                  frpcDesktopStore.frpcProcessRunning
-                    ? $t("home.button.stop")
-                    : $t("home.button.start")
-                }}
-              </el-button>
-            </div>
-          </div>
-        </div>
+                  -
+                </span>
+                <template v-else>
+                  {{
+                    t("home.dashboard.proxiesValue", {
+                      enabled: row.proxyEnabled,
+                      total: row.proxyTotal
+                    })
+                  }}
+                </template>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('home.status.runningTime')"
+              min-width="160"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <span v-if="statusKey(row.id) === 'error'" class="status-error">
+                  {{ tunnelStore.statusOf(row.id).connectionError }}
+                </span>
+                <span
+                  v-else-if="statusKey(row.id) === 'running'"
+                  class="tabular-nums"
+                >
+                  {{ uptimeText(row.id) }}
+                </span>
+                <span v-else class="text-text_color_secondary">-</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-@keyframes rotate {
-  0% {
-    transform: rotate(0deg);
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  color: inherit;
+
+  &.is-clickable {
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 1px;
+    }
   }
-  100% {
-    transform: rotate(360deg);
+
+  .stat-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--el-text-color-primary);
+    font-variant-numeric: tabular-nums;
+
+    &.is-text {
+      font-size: 17px;
+    }
+  }
+
+  .stat-hint {
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 }
 
-@keyframes transform-opacity {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0.3;
+.stat-card.is-warning {
+  .stat-label,
+  .stat-value {
+    color: var(--el-color-warning);
   }
 }
 
-$offset: 10px;
-
-.animation-rotate-1 {
-  animation: rotate 5s linear infinite;
+.status-error {
+  color: var(--el-color-warning);
 }
 
-.animation-rotate-2 {
-  animation: rotate 4s linear infinite;
-}
-
-.animation-rotate-3 {
-  animation: rotate 6s linear infinite;
-}
-
-.top-circle {
-  position: absolute;
-  bottom: $offset;
-  transform-origin: center calc(50% - $offset);
-}
-
-.left-circle {
-  position: absolute;
-  left: $offset;
-  top: $offset;
-  transform-origin: calc(50% + $offset) center;
-}
-
-.right-circle {
-  position: absolute;
-  right: $offset;
-  top: $offset;
-  transform-origin: calc(50% - $offset) center;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.is-mono {
+  font-family: var(--app-mono);
 }
 </style>

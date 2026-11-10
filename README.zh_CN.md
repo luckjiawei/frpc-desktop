@@ -49,6 +49,9 @@
 - [x] tcp、udp协议支持批量端口
 - [x] support multiple languages
 - [x] 支持代理快速搜索及卡片/列表分页
+- [x] 支持浅色、深色和跟随系统外观
+- [x] 支持同时运行多个 frpc 实例（连接不同的 frps）
+- [x] 支持 Cloudflare Tunnel（cloudflared）实例，可与 frpc 同时运行
 
 
 ## 开发
@@ -66,6 +69,14 @@ npm run tauri:build  # 为当前平台构建安装包
 ### 从 1.x 升级
 
 2.0 版本基于 Tauri 重构，可直接覆盖升级 1.x 的 Electron 版本。服务器配置、代理、系统设置和已下载的 frpc 版本会自动保留；仍为旧 NeDB 格式的数据（1.2.6 及更早版本）会在首次启动时导入，原文件以 `*.bak` 保留。
+
+### 使用 Cloudflare Tunnel
+
+1. 在 Cloudflare 控制台进入 Zero Trust → 网络 → 隧道，创建连接器为 cloudflared 的隧道，并在控制台中添加公共主机名。
+2. 在 Frpc-Desktop 中打开“实例 → 新建实例 → Cloudflare Tunnel”，在实例配置中粘贴令牌（也可以直接粘贴控制台给出的完整安装命令）。
+3. 在“下载”页切换到 Cloudflare Tunnel 下载 cloudflared，或选择本机已安装的文件；未选择版本时会使用 `PATH` 中的 cloudflared。
+
+应用会为 cloudflared 生成独立的最小配置，这些实例不会读取你的 `~/.cloudflared/config.yml`。
 
 ## 里程碑
 

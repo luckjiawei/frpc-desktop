@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
+import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
+import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
-import { refDebounced, useClipboard, useDebounceFn } from "@vueuse/core";
+import { refDebounced, useDebounceFn } from "@vueuse/core";
 import { ElMessage, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
 import {
@@ -16,6 +18,7 @@ import {
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import commonIps from "./commonIp.json";
+import CopyableAddress from "./CopyableAddress.vue";
 import LocalPortDialog from "./LocalPortDialog.vue";
 import ProxyToolbar from "./ProxyToolbar.vue";
 
@@ -24,6 +27,7 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const tunnelStore = useTunnelStore();
 
 const hostPattern =
   /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
@@ -411,17 +415,10 @@ const getProxyMappingAddress = (proxy: FrpcProxy) => {
       proxy.customDomains[0]
     }`;
   }
-  if (isVisitorProxy(proxy)) {
-    return `${proxy.bindAddr}:${proxy.bindPort}`;
+  if (isVisitorProxy(proxy) && proxy.bindPort) {
+    return `${proxy.bindAddr || "127.0.0.1"}:${proxy.bindPort}`;
   }
   return "";
-};
-
-const handleCopyMappingAddress = (proxy: FrpcProxy) => {
-  const address = getProxyMappingAddress(proxy);
-  if (address) {
-    handleCopyString(address);
-  }
 };
 
 const handleSubmit = async () => {
@@ -458,6 +455,7 @@ const handleSubmit = async () => {
       if (data._id) {
         send(ipcRouters.PROXY.modifyProxy, data);
       } else {
+        data.serverId = tunnelStore.currentTunnelId;
         send(ipcRouters.PROXY.createProxy, data);
       }
     }
@@ -481,12 +479,28 @@ const handleDeleteLocation = (index: number) => {
 };
 
 const handleLoadProxies = () => {
-  send(ipcRouters.PROXY.getAllProxies);
+  send(ipcRouters.PROXY.getAllProxies, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
 };
 
 const handleLoadFrpcConfig = () => {
-  send(ipcRouters.SERVER.getServerConfig);
+  send(ipcRouters.SERVER.getServerConfig, {
+    tunnelId: tunnelStore.currentTunnelId
+  });
 };
+
+watch(
+  () => tunnelStore.currentTunnelId,
+  () => {
+    edit.value.visible = false;
+    searchKeyword.value = "";
+    currentPage.value = 1;
+    loading.value.list = 1;
+    handleLoadProxies();
+    handleLoadFrpcConfig();
+  }
+);
 
 const handleDeleteProxy = (proxy: FrpcProxy) => {
   send(ipcRouters.PROXY.deleteProxy, proxy._id);
@@ -561,15 +575,6 @@ const handleOpenLocalPortDialog = () => {
 //   }
 //   return true;
 // };
-
-const handleCopyString = (str: string) => {
-  const { copy, copied } = useClipboard();
-  copy(str);
-  ElMessage({
-    type: "success",
-    message: t("proxy.message.copySuccess")
-  });
-};
 
 interface RestaurantItem {
   value: string;
@@ -669,7 +674,7 @@ onMounted(() => {
 
   listenerCleanups.push(
     on(ipcRouters.SERVER.getServerConfig, data => {
-      if (data) {
+      if (data && data._id === tunnelStore.currentTunnelId) {
         frpcConfig.value = data;
       }
     })
@@ -678,7 +683,11 @@ onMounted(() => {
   listenerCleanups.push(
     on(ipcRouters.PROXY.getAllProxies, data => {
       loading.value.list = 0;
-      proxys.value = data;
+      // 切换实例时丢弃上一个实例迟到的响应
+      proxys.value = (data || []).filter(
+        (p: FrpcProxy) =>
+          !p.serverId || p.serverId === tunnelStore.currentTunnelId
+      );
     })
   );
 
@@ -792,7 +801,11 @@ onUnmounted(() => {
       v-model:view-mode="viewMode"
       @create="handleOpenInsert"
       @refresh="handleLoadProxies"
-    />
+    >
+      <template #title-extra>
+        <TunnelSwitcher />
+      </template>
+    </ProxyToolbar>
     <div v-loading="loading.list > 0" class="app-container-breadcrumb">
       <template v-if="filteredProxys && filteredProxys.length > 0">
         <el-row v-if="viewMode === 'card'" :gutter="15">
@@ -806,222 +819,90 @@ onUnmounted(() => {
             :xs="12"
             class="mb-[15px]"
           >
-            <div
-              class="flex justify-between items-center p-4 w-full h-full bg-white rounded drop-shadow left-border"
+            <article
+              class="proxy-card app-panel"
+              :class="{ 'is-disabled': proxy.status === 0 }"
             >
-              <div class="left">
-                <div class="flex items-center">
-                  <span class="mr-2 font-bold text-primary">{{
-                    proxy.name
-                  }}</span>
-                </div>
-                <div class="mb-1">
-                  <el-tag size="small">{{ proxy.type }}</el-tag>
-                  <el-tag
-                    v-if="
-                      (proxy.type === 'stcp' ||
-                        proxy.type === 'xtcp' ||
-                        proxy.type === 'sudp') &&
-                      proxy.visitorsModel === 'visitors'
-                    "
-                    class="ml-2"
-                    size="small"
-                  >
-                    {{ t("proxy.visitors") }}
-                  </el-tag>
-                  <el-tag
-                    v-if="
-                      (proxy.type === 'stcp' ||
-                        proxy.type === 'xtcp' ||
-                        proxy.type === 'sudp') &&
-                      proxy.visitorsModel === 'visitorsProvider'
-                    "
-                    size="small"
-                    class="ml-2"
-                    >{{ t("proxy.visitorsProvider") }}
-                  </el-tag>
-                  <el-tag
-                    v-if="proxy.status === 0"
-                    class="ml-2"
-                    type="danger"
-                    size="small"
-                    >{{ t("common.disabled") }}
-                  </el-tag>
-                </div>
-                <div class="h-[36px]">
-                  <!--
-                <div
-                  class="text-[12px]"
-                  v-if="
-                    (proxy.type !== 'stcp' &&
-                      proxy.type !== 'xtcp' &&
-                      proxy.type !== 'sudp') ||
-                    proxy.visitorsModel !== 'visitors'
-                  "
+              <header class="flex gap-2 items-center min-w-0">
+                <h3 class="proxy-name" :title="proxy.name">
+                  {{ proxy.name }}
+                </h3>
+                <el-switch
+                  v-model="proxy.status"
+                  class="ml-auto"
+                  :active-value="1"
+                  :inactive-value="0"
+                  :aria-label="`${t('common.enable')} ${proxy.name}`"
+                  @change="handleProxyStatusChange(proxy)"
+                />
+              </header>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <el-tag size="small" effect="plain" class="uppercase">
+                  {{ proxy.type }}
+                </el-tag>
+                <el-tag
+                  v-if="getProxyModeLabel(proxy)"
+                  size="small"
+                  type="info"
+                  effect="plain"
                 >
-                  <span>内网地址：</span>
-                  <span class="font-bold text-primary">{{
-                    proxy.localIP
-                  }}</span>
-                </div>
-                -->
-                  <!--
-                <div class="text-[12px]" v-if="proxy.type === 'tcp'">
-                  <span>外网端口：</span>
-                  <span class="font-bold text-primary">{{
-                    proxy.remotePort
-                  }}</span>
-                </div>
-                -->
-                  <div
-                    v-if="
-                      (proxy.type !== 'stcp' &&
-                        proxy.type !== 'xtcp' &&
-                        proxy.type !== 'sudp') ||
-                      proxy.visitorsModel !== 'visitors'
-                    "
-                    class="text-[12px]"
-                  >
-                    <span>{{ t("proxy.inner") }}：</span>
-                    <span class="font-bold text-primary">
-                      {{ proxy.localIP }}:{{ proxy.localPort }}
-                    </span>
-                  </div>
-
-                  <div
-                    v-if="proxy.type === 'tcp' || proxy.type === 'udp'"
-                    class="text-[12px] cursor-pointer"
-                  >
-                    <span>{{ t("proxy.mappingAddress") }}：</span>
-                    <span
-                      class="font-bold underline cursor-pointer text-primary"
-                      @click="
-                        handleCopyString(
-                          `${frpcConfig?.serverAddr}:${proxy.remotePort}`
-                        )
-                      "
-                    >
-                      {{ frpcConfig?.serverAddr }}:{{ proxy.remotePort }}
-                    </span>
-                  </div>
-                  <div
-                    v-if="
-                      (proxy.type === 'http' || proxy.type === 'https') &&
-                      proxy.customDomains &&
-                      proxy.customDomains.length > 0 &&
-                      proxy.customDomains[0]
-                    "
-                    class="text-[12px]"
-                  >
-                    <span>{{ t("proxy.mappingAddress") }}：</span>
-                    <span
-                      class="font-bold underline cursor-pointer text-primary"
-                      @click="
-                        handleCopyString(
-                          `${proxy.type === 'http' ? 'http://' : 'https://'}${
-                            proxy.customDomains[0]
-                          }`
-                        )
-                      "
-                      >{{ proxy.type === "http" ? "http://" : "https://" }}
-                      {{ proxy.customDomains[0] }}</span
-                    >
-                  </div>
-                  <div
-                    v-if="
-                      (proxy.type === 'stcp' ||
-                        proxy.type === 'xtcp' ||
-                        proxy.type === 'sudp') &&
-                      proxy.visitorsModel === 'visitors'
-                    "
-                    class="text-[12px]"
-                  >
-                    <span>{{ t("proxy.visitorsName") }}：</span>
-                    <span class="font-bold text-primary">{{
-                      proxy.serverName
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="
-                      (proxy.type === 'stcp' ||
-                        proxy.type === 'xtcp' ||
-                        proxy.type === 'sudp') &&
-                      proxy.visitorsModel === 'visitors'
-                    "
-                    class="text-[12px]"
-                  >
-                    <span>{{ t("proxy.mappingAddress") }}：</span>
-                    <span
-                      class="font-bold underline cursor-pointer text-primary"
-                      @click="
-                        handleCopyString(`${proxy.bindAddr}:${proxy.bindPort}`)
-                      "
-                      >{{ proxy.bindAddr }}:{{ proxy.bindPort }}</span
-                    >
-                  </div>
-                  <!--
-                <div
-                  class="text-[12px]"
-                  v-if="
-                    (proxy.type === 'stcp' ||
-                      proxy.type === 'xtcp' ||
-                      proxy.type === 'sudp') &&
-                    proxy.visitorsModel === 'visitors'
-                  "
-                >
-                  <span>绑定端口：</span>
-                  <span class="font-bold text-primary">{{
-                    proxy.bindPort
-                  }}</span>
-                </div>
-                  -->
-                </div>
+                  {{ getProxyModeLabel(proxy) }}
+                </el-tag>
+                <el-tag v-if="proxy.status === 0" size="small" type="info">
+                  {{ t("common.disabled") }}
+                </el-tag>
               </div>
-
-              <div class="right">
-                <div class="flex flex-col gap-1 items-center">
-                  <el-switch
-                    v-model="proxy.status"
-                    :active-text="t('common.enable')"
-                    :active-value="1"
-                    :inactive-text="t('common.disable')"
-                    :inactive-value="0"
-                    :width="70"
-                    inline-prompt
-                    @change="handleProxyStatusChange(proxy)"
-                  />
+              <dl class="proxy-meta">
+                <template v-if="shouldShowLocalAddress(proxy)">
+                  <dt>{{ t("proxy.inner") }}</dt>
+                  <dd>
+                    <CopyableAddress :address="getProxyLocalAddress(proxy)" />
+                  </dd>
+                </template>
+                <template v-if="isVisitorProxy(proxy)">
+                  <dt>{{ t("proxy.visitorsName") }}</dt>
+                  <dd :title="proxy.serverName">{{ proxy.serverName }}</dd>
+                </template>
+                <template v-if="getProxyMappingAddress(proxy)">
+                  <dt>{{ t("proxy.mappingAddress") }}</dt>
+                  <dd>
+                    <CopyableAddress
+                      :address="getProxyMappingAddress(proxy)"
+                      link
+                    />
+                  </dd>
+                </template>
+              </dl>
+              <footer class="proxy-card-actions">
+                <el-button text size="small" @click="handleOpenUpdate(proxy)">
+                  <template #icon>
+                    <IconifyIconOffline icon="edit" />
+                  </template>
+                  {{ t("common.modify") }}
+                </el-button>
+                <el-dropdown class="ml-auto" trigger="click">
                   <el-button
-                    type="text"
+                    text
                     size="small"
-                    @click="handleOpenUpdate(proxy)"
+                    :aria-label="t('common.more')"
+                    :title="t('common.more')"
                   >
-                    <template #icon>
-                      <IconifyIconOffline icon="edit" />
-                    </template>
-                    {{ t("common.modify") }}
+                    <IconifyIconOffline icon="more-horiz" />
                   </el-button>
-                  <el-dropdown>
-                    <el-button type="text" size="small">
-                      <template #icon>
-                        <IconifyIconOffline icon="more-horiz" />
-                      </template>
-                      {{ t("common.more") }}
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item @click="handleDeleteProxy(proxy)">
-                          <IconifyIconOffline
-                            class="mr-1"
-                            icon="delete-rounded"
-                          />
-                          {{ t("common.delete") }}
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </div>
-              </div>
-            </div>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="handleDeleteProxy(proxy)">
+                        <IconifyIconOffline
+                          class="mr-1"
+                          icon="delete-rounded"
+                        />
+                        {{ t("common.delete") }}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </footer>
+            </article>
           </el-col>
         </el-row>
         <el-table
@@ -1056,19 +937,20 @@ onUnmounted(() => {
           </el-table-column>
           <el-table-column :label="t('proxy.inner')" min-width="170">
             <template #default="scope">
-              <span>{{ getProxyLocalAddress(scope.row) }}</span>
+              <CopyableAddress
+                v-if="shouldShowLocalAddress(scope.row)"
+                :address="getProxyLocalAddress(scope.row)"
+              />
+              <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column :label="t('proxy.mappingAddress')" min-width="220">
             <template #default="scope">
-              <el-button
+              <CopyableAddress
                 v-if="getProxyMappingAddress(scope.row)"
+                :address="getProxyMappingAddress(scope.row)"
                 link
-                type="primary"
-                @click="handleCopyMappingAddress(scope.row)"
-              >
-                {{ getProxyMappingAddress(scope.row) }}
-              </el-button>
+              />
               <span v-else>-</span>
             </template>
           </el-table-column>
@@ -1153,9 +1035,16 @@ onUnmounted(() => {
       </template>
       <div
         v-else
-        class="flex overflow-hidden justify-center items-center p-2 w-full h-full bg-white rounded drop-shadow-xl"
+        class="flex overflow-hidden justify-center items-center p-2 w-full h-full app-panel"
       >
-        <el-empty :description="t('proxy.noProxy')" />
+        <el-empty :description="t('proxy.noProxy')">
+          <el-button type="primary" @click="handleOpenInsert">
+            <template #icon>
+              <IconifyIconOffline icon="add" />
+            </template>
+            {{ t("proxy.createTitle") }}
+          </el-button>
+        </el-empty>
       </div>
     </div>
 
@@ -1234,7 +1123,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >secretKey</span
                             >
                             {{ t("proxy.form.formItem.secretKey.description") }}
@@ -1242,7 +1131,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1382,14 +1271,14 @@ onUnmounted(() => {
                         >
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >subdomain</span
                             >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1439,14 +1328,14 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >customDomains</span
                             >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1511,14 +1400,14 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >locations</span
                             >
                           </template>
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1855,7 +1744,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >serverUser</span
                             >
                             {{
@@ -1865,7 +1754,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1906,7 +1795,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >bindAddr</span
                             >
                             <div
@@ -1918,7 +1807,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1947,7 +1836,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >bindAddr</span
                             >
                             <div
@@ -1959,7 +1848,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -1998,7 +1887,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >fallbackTo</span
                             >
                             {{
@@ -2008,7 +1897,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2037,7 +1926,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >fallbackTimeoutMs</span
                             >
                             <div
@@ -2051,7 +1940,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2092,7 +1981,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >keepTunnelOpen</span
                             >
                             {{
@@ -2104,7 +1993,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2144,7 +2033,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >transport.useCompression</span
                             >
                             {{
@@ -2156,7 +2045,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2189,7 +2078,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="300">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >transport.useEncryption</span
                             >
                             {{
@@ -2201,7 +2090,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2236,7 +2125,7 @@ onUnmounted(() => {
                         <el-popover placement="top" trigger="hover" width="350">
                           <template #default>
                             {{ t("common.frpParameter") }}:
-                            <span class="font-black text-[#5A3DAA]"
+                            <span class="font-black text-primary"
                               >transport.proxyProtocolVersion</span
                             >
                             {{
@@ -2248,7 +2137,7 @@ onUnmounted(() => {
                           <template #reference>
                             <IconifyIconOffline
                               class="text-base"
-                              color="#5A3DAA"
+                              color="var(--app-primary-text)"
                               icon="info"
                             />
                           </template>
@@ -2378,6 +2267,68 @@ onUnmounted(() => {
 
 .button-input {
   width: calc(100% - 68px);
+}
+
+.proxy-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 16px 8px;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+  }
+
+  &.is-disabled .proxy-name,
+  &.is-disabled .proxy-meta dd {
+    color: var(--el-text-color-secondary);
+  }
+
+  .proxy-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.proxy-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 4px;
+  margin: 12px 0 10px;
+  font-size: 12px;
+
+  dt {
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+  }
+
+  dd {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--el-text-color-regular);
+  }
+}
+
+.proxy-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--app-border);
+
+  :deep(.el-button) {
+    margin-left: 0;
+  }
 }
 
 .proxy-table-actions {

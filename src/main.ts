@@ -1,4 +1,5 @@
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { useTunnelStore } from "@/store/tunnel";
 import "animate.css";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
@@ -11,6 +12,7 @@ import i18n from "./lang";
 import { installElementPlus } from "./plugins/elementPlus";
 import router from "./router";
 import { useSystemUsageStore } from "./store/systemUsage";
+import { useThemeStore } from "./store/theme";
 import "./styles/index.scss";
 
 const pinia = createPinia();
@@ -26,9 +28,9 @@ app
   .use(pinia)
   .mount("#app")
   .$nextTick(() => {
+    useThemeStore().init();
+    useTunnelStore().init();
     const frpcDesktopStore = useFrpcDesktopStore();
-    frpcDesktopStore.onListenerFrpcProcessRunning();
-    frpcDesktopStore.refreshRunning();
     frpcDesktopStore.onListenerDownloadedVersion();
     frpcDesktopStore.onListenerFrpcDesktopGithubLastRelease();
     frpcDesktopStore.refreshDownloadedVersion();

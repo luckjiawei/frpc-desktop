@@ -9,7 +9,7 @@
 - 保留现有 `_id`、字段含义和默认值，兼容已有用户数据；
 - 为布尔值、状态、唯一标识等字段增加明确约束；
 - 支持事务、数据库版本管理以及失败后安全回滚；
-- 为未来多服务端配置预留扩展空间，但本次迁移仍保持单服务端行为。
+- 为未来多服务端配置预留扩展空间，但本次迁移仍保持单服务端行为（迁移 004 已启用多隧道实例，见第 11 节）。
 
 当前实现位于 Tauri Rust 后端：`src-tauri/src/db/`（rusqlite，bundled SQLite）与 `src-tauri/migrations/`。Electron 1.2.7 已使用同一份 SQLite 结构（迁移 001），2.0.0 起由 Tauri 继续读写，兼容规则见第 10 节。
 
@@ -84,15 +84,17 @@ PRAGMA busy_timeout = 5000;
 flowchart LR
   migrations["t_frpcd_schema_migrations<br/>数据库迁移记录"]
   appConfig["t_frpcd_app_config<br/>桌面应用配置"]
+  tunnels["t_frpcd_tunnels<br/>隧道实例"]
   servers["t_frpcd_servers<br/>frpc 服务端配置"]
   proxies["t_frpcd_proxies<br/>代理与 Visitor 配置"]
   versions["t_frpcd_versions<br/>本地 frpc 版本"]
 
+  servers -->|"FK: id → id<br/>ON DELETE CASCADE"| tunnels
   proxies -->|"FK: server_id → id<br/>ON DELETE CASCADE"| servers
   servers -.->|"逻辑引用: frpc_version → github_release_id<br/>不建立外键"| versions
 ```
 
-- f实线表示数据库外键，删除 server 时级联删除其 proxy；
+- 实线表示数据库外键，删除 tunnel 时级联删除其 server，删除 server 时级联删除其 proxy；
 - 虚线表示业务层逻辑引用，不由 SQLite 强制约束；
 - `t_frpcd_app_config` 的作用域是多态设计，当前没有 user、project 实体表，因此 `scope_id` 不建立外键；
 - `t_frpcd_schema_migrations` 是独立的数据库管理表，不与业务表关联。
@@ -156,11 +158,11 @@ flowchart LR
 
 ### 4.4 `t_frpcd_servers`
 
-保存 frpc 公共配置和服务端连接配置。桌面应用设置统一存放在 `t_frpcd_app_config`。当前版本只允许一条 `id = "1"` 的记录。
+保存 frpc 公共配置和服务端连接配置，是 `provider = 'frpc'` 的隧道实例的明细表（迁移 004 起）。桌面应用设置统一存放在 `t_frpcd_app_config`。`id` 与 `t_frpcd_tunnels.id` 一一对应；迁移 004 之前只允许一条 `id = "1"` 的记录。
 
 | 字段 | 类型 | 约束/默认值 | 对应属性 |
 | --- | --- | --- | --- |
-| `id` | TEXT | PRIMARY KEY；当前固定为 `"1"` | `_id` |
+| `id` | TEXT | PRIMARY KEY；外键引用 `t_frpcd_tunnels.id`（默认实例为 `"1"`） | `_id` |
 | `frpc_version` | INTEGER | NULL | `frpcVersion` |
 | `multiuser` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `multiuser` |
 | `user` | TEXT | NOT NULL DEFAULT `''` | `user` |
@@ -215,7 +217,7 @@ flowchart LR
 
 ### 4.6 `t_frpcd_versions`
 
-只保存已经下载并解压到本地的 frpc 版本。远程版本列表来自 GitHub 或内置 JSON，不应全部写入数据库。
+只保存已经下载并解压到本地的 frpc / cloudflared 版本。远程版本列表来自 GitHub 或内置 JSON（cloudflared 无内置列表），不应全部写入数据库。
 
 | 字段 | 类型 | 约束/默认值 | 对应属性 |
 | --- | --- | --- | --- |
@@ -231,6 +233,7 @@ flowchart LR
 | `downloaded` | INTEGER | NOT NULL DEFAULT 1；布尔检查 | `downloaded` |
 | `local_path` | TEXT | NULL | `localPath` |
 | `size` | TEXT | NOT NULL DEFAULT `''` | `size` |
+| `provider` | TEXT | NOT NULL DEFAULT `'frpc'`；CHECK `frpc`/`cloudflared`（迁移 005） | `provider` |
 
 `size` 保持 `TEXT` 是为了兼容当前 `FileUtils.formatBytes` 生成的展示字符串。若未来需要按字节排序，应新增 `size_bytes INTEGER`，而不是改变现有字段语义。
 
@@ -240,6 +243,7 @@ flowchart LR
 
 | 外键名称 | 子表与字段 | 父表与字段 | 更新策略 | 删除策略 | 说明 |
 | --- | --- | --- | --- | --- | --- |
+| `fk_t_frpcd_servers_tunnel` | `t_frpcd_servers.id` | `t_frpcd_tunnels.id` | CASCADE | CASCADE | frpc 配置属于一个隧道实例；删除实例时同步删除其配置（并经 proxy 外键继续级联） |
 | `fk_t_frpcd_proxies_server` | `t_frpcd_proxies.server_id` | `t_frpcd_servers.id` | CASCADE | CASCADE | proxy 必须属于一个 server；server ID 更新或 server 删除时同步处理所属 proxy |
 
 以下字段仅为逻辑引用，不建立数据库外键：
@@ -259,6 +263,8 @@ flowchart LR
 | `pk_t_frpcd_app_config` | `t_frpcd_app_config` | PRIMARY KEY | `id` | 按 UUID 定位配置记录 |
 | `uq_t_frpcd_app_config_active` | `t_frpcd_app_config` | UNIQUE PARTIAL | `scope_type, COALESCE(scope_id, ''), namespace, config_key`；条件：`deleted_at IS NULL` | 保证同一作用域和命名空间中只存在一条有效同名配置，同时允许软删除后重新创建 |
 | `idx_t_frpcd_app_config_lookup` | `t_frpcd_app_config` | INDEX | `scope_type, scope_id, namespace, deleted_at` | 加速按作用域和命名空间批量读取有效配置 |
+| `pk_t_frpcd_tunnels` | `t_frpcd_tunnels` | PRIMARY KEY | `id` | 按实例 ID 定位隧道 |
+| `idx_t_frpcd_tunnels_sort` | `t_frpcd_tunnels` | INDEX | `sort_order, created_at` | 按显示顺序列出实例 |
 | `pk_t_frpcd_servers` | `t_frpcd_servers` | PRIMARY KEY | `id` | 按 server ID 定位服务端配置 |
 | `pk_t_frpcd_proxies` | `t_frpcd_proxies` | PRIMARY KEY | `id` | 按 UUID 定位 proxy |
 | `idx_t_frpcd_proxies_server_status` | `t_frpcd_proxies` | INDEX | `server_id, status` | 加速 server 下全部 proxy、启用 proxy 查询以及外键级联定位；其最左列可支持仅按 `server_id` 查询，无需重复单列索引 |
@@ -384,7 +390,7 @@ flowchart LR
 - 不修改 renderer、IPC 请求或响应的数据结构；
 - 不将日志文件、frpc 二进制、下载压缩包或 TOML 文件存入 SQLite；
 - 不对 token、密码做不可逆哈希，因为运行 frpc 时仍需要读取原值；如后续加密，应使用操作系统凭据存储并设计独立迁移；
-- 不立即启用多 server UI；`server_id` 只是为数据归属和未来扩展预留；
+- 不立即启用多 server UI；`server_id` 只是为数据归属和未来扩展预留（已由迁移 004 启用，见第 11 节）；
 - 不增加代理名称唯一约束，不自动合并当前可能存在的重复记录；
 - 不在本次迁移中改变 `FrpcVersion.size` 的展示字符串格式。
 
@@ -413,3 +419,80 @@ flowchart LR
 - **NeDB**：<= 1.2.6 用户的 NeDB 文件按第 6 节导入，成功后改名为 `*.migrated-<时间>.bak` 保留。
 
 修改上述任一规则前，必须补充迁移或回退方案，并更新 `src-tauri/src/db/mod.rs` 中的兼容性测试。
+
+## 11. 迁移 004：多隧道实例
+
+迁移 004（`004_multi_tunnel.sql`）引入与具体工具无关的“隧道实例”，frpc 是第一种 provider，其他工具以新 provider + 独立明细表的方式接入（cloudflared 见第 12 节）：
+
+```text
+t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
+ ├── provider = frpc        → t_frpcd_servers（id 相同）→ t_frpcd_proxies（server_id）
+ └── provider = cloudflared → t_frpcd_cloudflared_tunnels（id 相同，迁移 005）
+```
+
+### 11.1 `t_frpcd_tunnels`
+
+| 字段 | 类型 | 约束/默认值 | 对应属性 |
+| --- | --- | --- | --- |
+| `id` | TEXT | PRIMARY KEY；默认实例为 `"1"`，其余为小写连字符 UUID | `id` |
+| `name` | TEXT | NOT NULL；应用层限制 1–64 字符 | `name` |
+| `provider` | TEXT | NOT NULL DEFAULT `'frpc'`；CHECK 限定已支持的 provider | `provider` |
+| `auto_start` | INTEGER | NOT NULL DEFAULT 0；布尔检查 | `autoStart` |
+| `sort_order` | INTEGER | NOT NULL DEFAULT 0 | `sortOrder` |
+| `created_at` / `updated_at` | TEXT | NOT NULL；UTC ISO 8601 | `createdAt` / `updatedAt` |
+
+新增 provider 时需要新迁移重建该表的 `provider` CHECK（同 11.2 的重建流程），并新增对应明细表。
+
+### 11.2 迁移步骤与执行方式
+
+1. 创建 `t_frpcd_tunnels`，以 `INSERT OR IGNORE` 写入默认实例 `"1"`：名称按当前语言为“默认”/“Default”，`auto_start = 1`，使全局“启动时自动连接”的行为与迁移前一致；
+2. 按 SQLite 官方 12 步流程重建 `t_frpcd_servers`：去掉 `CHECK (id = '1')`，增加 `fk_t_frpcd_servers_tunnel`，复制数据后删除旧表并改名；`t_frpcd_proxies` 按表名引用，改名后自动指向新表；
+3. 由于 SQLite 在事务内忽略 `PRAGMA foreign_keys`，迁移器（`DbManager::run_table_rebuild_migration`）先关闭外键，在单个事务内执行 SQL，执行 `foreign_key_check` 无违规后再写入迁移记录并提交，最后重新开启外键；任一步失败整体回滚。
+
+### 11.3 运行规则
+
+- 全局开关 `desktop/auto_connect_on_startup` 仍是总开关，开启时只启动 `auto_start = 1` 的实例；
+- `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 只写 `t_frpcd_servers`，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
+- 默认实例 `"1"` 不可删除，以保证不带 `tunnelId` 的 IPC 调用和旧版本仍可工作；“重置全部配置”删除其他实例并重置默认实例；
+- 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除实例时一并删除这两个目录；
+- 新建 frpc 实例时自动分配未被其他实例占用的 `webServer.port`（从 57400 起递增）；
+- 修改代理不会改变其 `server_id`，代理不能在实例之间移动。
+
+### 11.4 回退兼容
+
+- 迁移后降级到 1.2.7 / 2.0.0：旧版本按 `id = '1'` 读写 server，默认实例仍然可用；但旧版本的代理查询不按 `server_id` 过滤，会把其他实例的代理一起显示并写入同一份 frpc 配置。降级前应删除额外实例。
+
+## 12. 迁移 005：Cloudflare Tunnel（cloudflared）
+
+迁移 005（`005_cloudflared_tunnel.sql`）增加第二种 provider `cloudflared`，与 004 一样由 `DbManager::run_table_rebuild_migration` 在关闭外键的单个事务中执行：
+
+1. 按 12 步流程重建 `t_frpcd_tunnels`，把 `provider` CHECK 放宽为 `('frpc', 'cloudflared')`，复制全部行后改名并重建 `idx_t_frpcd_tunnels_sort`；`t_frpcd_servers` 按表名引用，改名后自动指向新表；
+2. 新建明细表 `t_frpcd_cloudflared_tunnels`；
+3. `t_frpcd_versions` 通过 `ALTER TABLE ADD COLUMN` 增加 `provider`，已有行默认为 `frpc`。
+
+### 12.1 `t_frpcd_cloudflared_tunnels`
+
+只支持远程管理（令牌）模式：公共主机名、ingress 等路由在 Cloudflare 控制台配置，本地只保存连接器令牌和传输参数。
+
+| 字段 | 类型 | 约束/默认值 | 对应属性 |
+| --- | --- | --- | --- |
+| `id` | TEXT | PRIMARY KEY；外键 `t_frpcd_tunnels.id`，`ON DELETE CASCADE` | `tunnelId` |
+| `cloudflared_version` | INTEGER | NULL；`t_frpcd_versions.github_release_id`（`provider = 'cloudflared'`） | `cloudflaredVersion` |
+| `custom_cloudflared_path` | TEXT | NOT NULL DEFAULT `''`；非空时优先于 `cloudflared_version` | `customCloudflaredPath` |
+| `token` | TEXT | NOT NULL DEFAULT `''`；应用层只接受 32–4096 位 base64/base64url 字符 | `token` |
+| `protocol` | TEXT | NOT NULL DEFAULT `'auto'`；CHECK `auto`/`quic`/`http2` | `protocol` |
+| `edge_ip_version` | TEXT | NOT NULL DEFAULT `'auto'`；CHECK `auto`/`4`/`6` | `edgeIpVersion` |
+| `log_level` | TEXT | NOT NULL DEFAULT `'info'`；CHECK `debug`/`info`/`warn`/`error` | `logLevel` |
+
+### 12.2 运行规则
+
+- `TunnelRepository::create` 为 cloudflared 实例同时创建默认明细行；`ServerRepository::get_server_config` 不会为非 frpc 实例补建 `t_frpcd_servers` 行；
+- `token` 与 frpc 的 `auth.token` 一样以明文保存（运行时需要原值），不得写入日志；启动时通过环境变量 `TUNNEL_TOKEN` 传给进程，不出现在命令行参数中；
+- 二进制解析顺序：`custom_cloudflared_path` → `cloudflared_version` 对应的下载目录 → PATH 与常见安装目录自动检测；
+- 下载的 cloudflared 保存在 `versions/cloudflared/<md5(版本名)>/cloudflared[.exe]`，与 frpc 版本目录分开；
+- 实例文件：`config/tunnels/<id>/cloudflared.yml`（每次启动重写的隔离配置，见 `docs/MULTI_TUNNEL.md`）和 `log/tunnels/<id>/cloudflared.log`，删除实例时一并删除；
+- “重置全部配置”删除所有非默认实例，cloudflared 明细行随之级联删除。
+
+### 12.3 回退兼容
+
+- 迁移后降级到不认识 005 的版本：旧版本不读取 cloudflared 明细表和 `t_frpcd_versions.provider`，frpc 数据不受影响；但实例列表会出现 provider 为 `cloudflared` 的行，旧版本按 frpc 处理会为其补建 `t_frpcd_servers` 行。降级前应删除 Cloudflare Tunnel 实例。

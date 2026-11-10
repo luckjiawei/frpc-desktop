@@ -26,6 +26,15 @@ impl<T> ApiResponse<T> {
         }
     }
 
+    /// A failure that still carries context, e.g. which tunnel failed.
+    pub fn fail_with_data(biz_code: impl Into<String>, message: impl Into<String>, data: T) -> Self {
+        Self {
+            biz_code: biz_code.into(),
+            data: Some(data),
+            message: message.into(),
+        }
+    }
+
     pub fn internal_error(message: impl Into<String>) -> Self {
         Self {
             biz_code: "B1000".to_string(),
@@ -233,6 +242,9 @@ pub struct FrpcProxyTransportConfig {
 pub struct FrpcProxy {
     #[serde(rename = "_id", default)]
     pub id: String,
+    /// Owning tunnel (`t_frpcd_proxies.server_id`).
+    #[serde(default = "default_server_id")]
+    pub server_id: String,
     #[serde(default)]
     pub name: String,
     #[serde(rename = "type")]
@@ -324,6 +336,13 @@ pub struct FrpcVersion {
     pub local_path: Option<String>,
     #[serde(default)]
     pub size: String,
+    /// `frpc` or `cloudflared`; rows written before migration 005 are frpc.
+    #[serde(default = "default_provider")]
+    pub provider: String,
+}
+
+fn default_provider() -> String {
+    "frpc".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -350,12 +369,87 @@ pub struct GithubRelease {
     pub body: Option<String>,
     pub html_url: Option<String>,
     #[serde(default)]
+    pub draft: bool,
+    #[serde(default)]
+    pub prerelease: bool,
+    #[serde(default)]
     pub assets: Vec<GithubAsset>,
+}
+
+/// A tunnel instance (`t_frpcd_tunnels`). Provider-specific settings live in
+/// their own tables, e.g. `t_frpcd_servers` for frpc.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Tunnel {
+    pub id: String,
+    pub name: String,
+    pub provider: String,
+    pub auto_start: bool,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Tunnel list item for the dashboard; never contains tokens or passwords.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelSummary {
+    #[serde(flatten)]
+    pub tunnel: Tunnel,
+    /// Whether the required provider settings are filled in (frpc server
+    /// address, cloudflared token).
+    pub configured: bool,
+    pub server_addr: String,
+    pub server_port: i64,
+    pub proxy_total: usize,
+    pub proxy_enabled: usize,
+}
+
+/// cloudflared settings of a tunnel (`t_frpcd_cloudflared_tunnels`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudflaredSettings {
+    pub tunnel_id: String,
+    #[serde(default)]
+    pub cloudflared_version: Option<i64>,
+    #[serde(default)]
+    pub custom_cloudflared_path: String,
+    #[serde(default)]
+    pub token: String,
+    #[serde(default = "default_cloudflared_protocol")]
+    pub protocol: String,
+    #[serde(default = "default_cloudflared_edge_ip_version")]
+    pub edge_ip_version: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
+}
+
+fn default_cloudflared_protocol() -> String {
+    "auto".to_string()
+}
+fn default_cloudflared_edge_ip_version() -> String {
+    "auto".to_string()
+}
+
+impl CloudflaredSettings {
+    pub fn new(tunnel_id: &str) -> Self {
+        Self {
+            tunnel_id: tunnel_id.to_string(),
+            cloudflared_version: None,
+            custom_cloudflared_path: String::new(),
+            token: String::new(),
+            protocol: default_cloudflared_protocol(),
+            edge_ip_version: default_cloudflared_edge_ip_version(),
+            log_level: default_log_level(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FrpcProcessStatus {
+pub struct TunnelStatus {
+    pub tunnel_id: String,
+    pub provider: String,
     pub running: bool,
     pub connection_error: Option<String>,
     pub last_start_time: Option<i64>,

@@ -59,11 +59,11 @@ watch(
 
 <template>
   <div
-    class="w-full h-full bg-[#0f0f23] flex flex-col rounded-lg overflow-hidden border border-[#2d3748] shadow-lg"
+    class="w-full h-full bg-[#15141a] flex flex-col rounded-lg overflow-hidden border border-[#2c2a35] shadow-lg"
   >
     <!-- 工具栏插槽 -->
     <div
-      class="flex justify-between w-full bg-gradient-to-r from-[#1a202c] to-[#2d3748] py-2 px-3 items-center gap-3 border-b border-[#4a5568]"
+      class="flex justify-between w-full bg-[#1e1d25] py-2 px-3 items-center gap-3 border-b border-[#2c2a35]"
     >
       <div class="">
         <el-input
@@ -131,6 +131,26 @@ watch(
 </template>
 
 <style lang="scss" scoped>
+/* 工具栏插槽中的自动刷新开关与图标按钮（刷新、打开文件） */
+:slotted(.log-switch) .el-switch__label {
+  color: #a0aec0;
+}
+
+:slotted(.log-switch) .el-switch__label.is-active {
+  color: #e2e8f0;
+}
+
+:slotted(.log-tool) {
+  margin-left: 0;
+  color: #a0aec0;
+
+  &:hover,
+  &:focus-visible {
+    color: #e2e8f0;
+    background: transparent;
+  }
+}
+
 ::-webkit-scrollbar-track-piece {
   background-color: transparent;
 }

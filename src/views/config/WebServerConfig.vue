@@ -24,7 +24,7 @@ const { t } = useI18n();
             <template #reference>
               <IconifyIconOffline
                 class="text-base"
-                color="#5A3DAA"
+                color="var(--app-primary-text)"
                 icon="info"
               />
             </template>
@@ -60,7 +60,7 @@ const { t } = useI18n();
             <template #reference>
               <IconifyIconOffline
                 class="text-base"
-                color="#5A3DAA"
+                color="var(--app-primary-text)"
                 icon="info"
               />
             </template>

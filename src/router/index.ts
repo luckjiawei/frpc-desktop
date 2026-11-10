@@ -14,10 +14,20 @@ const routes: RouteRecordRaw[] = [
         name: "Home",
         meta: {
           title: "router.home.title",
-          icon: "rocket-launch-rounded",
+          icon: "dashboard",
           keepAlive: false
         },
         component: () => import("@/views/home/index.vue")
+      },
+      {
+        path: "/tunnel",
+        name: "Tunnel",
+        meta: {
+          title: "router.tunnel.title",
+          icon: "rocket-launch-rounded",
+          keepAlive: false
+        },
+        component: () => import("@/views/tunnel/index.vue")
       },
       {
         path: "/proxy",
@@ -40,14 +50,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/download/index.vue")
       },
       {
-        path: "/config",
-        name: "Config",
+        path: "/system",
+        name: "System",
         meta: {
-          title: "router.config.title",
+          title: "router.system.title",
           icon: "settings",
-          keepAlive: true
+          keepAlive: false
         },
-        component: () => import("@/views/config/index.vue")
+        component: () => import("@/views/system/index.vue")
       },
       {
         path: "/logger",

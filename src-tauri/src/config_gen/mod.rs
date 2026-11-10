@@ -17,13 +17,13 @@ impl ConfigGenerator {
         local_port_str.contains('-') || local_port_str.contains(',')
     }
 
-    fn is_visitor(proxy: &FrpcProxy) -> bool {
+    pub fn is_visitor(proxy: &FrpcProxy) -> bool {
         let p_type = proxy.proxy_type.as_str();
         (p_type == "stcp" || p_type == "sudp" || p_type == "xtcp")
             && proxy.visitors_model == "visitors"
     }
 
-    fn is_enabled(proxy: &FrpcProxy) -> bool {
+    pub fn is_enabled(proxy: &FrpcProxy) -> bool {
         proxy.status == 1
     }
 
