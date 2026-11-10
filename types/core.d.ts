@@ -20,6 +20,7 @@ enum IpcRouterKeys {
   VERSION = "VERSION",
   LAUNCH = "LAUNCH",
   TUNNEL = "TUNNEL",
+  CLOUDFLARED = "CLOUDFLARED",
   PROXY = "PROXY",
   SYSTEM = "SYSTEM",
 }

@@ -15,10 +15,18 @@ pub const EMBEDDED_RELEASES_JSON: &str = include_str!("../../json/frp-releases.j
 pub const EMBEDDED_CHECKSUMS_JSON: &str =
     include_str!("../../json/frp_all_sha256_checksums.json");
 
+pub const PROVIDER_FRPC: &str = crate::db::tunnel_repo::PROVIDER_FRPC;
+pub const PROVIDER_CLOUDFLARED: &str = crate::db::tunnel_repo::PROVIDER_CLOUDFLARED;
+
+/// Only the most recent cloudflared releases are offered; Cloudflare supports
+/// connector versions for about a year.
+const CLOUDFLARED_RELEASES_LIMIT: usize = 20;
+
 #[derive(Clone)]
 pub struct VersionManager {
     versions_storage_dir: PathBuf,
     releases_cache: Arc<RwLock<Option<Vec<GithubRelease>>>>,
+    cloudflared_releases_cache: Arc<RwLock<Option<Vec<GithubRelease>>>>,
 }
 
 impl VersionManager {
@@ -28,6 +36,7 @@ impl VersionManager {
         Self {
             versions_storage_dir,
             releases_cache: Arc::new(RwLock::new(None)),
+            cloudflared_releases_cache: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -83,6 +92,74 @@ impl VersionManager {
         None
     }
 
+    pub fn get_cloudflared_executable_name() -> &'static str {
+        #[cfg(target_os = "windows")]
+        return "cloudflared.exe";
+        #[cfg(not(target_os = "windows"))]
+        return "cloudflared";
+    }
+
+    pub fn resolve_cloudflared_binary<P: AsRef<Path>>(version_dir: P) -> Option<PathBuf> {
+        let bin = version_dir
+            .as_ref()
+            .join(Self::get_cloudflared_executable_name());
+        bin.is_file().then_some(bin)
+    }
+
+    fn resolve_binary(provider: &str, version_dir: &str) -> Option<PathBuf> {
+        if provider == PROVIDER_CLOUDFLARED {
+            Self::resolve_cloudflared_binary(version_dir)
+        } else {
+            Self::resolve_frpc_binary(version_dir)
+        }
+    }
+
+    /// cloudflared publishes one asset per platform: a `.tgz` on macOS, an
+    /// `.exe` on Windows and a bare binary on Linux. Windows on ARM has none.
+    pub fn get_cloudflared_asset_name() -> Option<String> {
+        let (os, arch) = Self::get_arch_patterns();
+        let suffix = match os {
+            "darwin" if arch == "amd64" || arch == "arm64" => ".tgz",
+            "windows" if arch == "amd64" || arch == "386" => ".exe",
+            "linux" => "",
+            _ => return None,
+        };
+        Some(format!("cloudflared-{}-{}{}", os, arch, suffix))
+    }
+
+    /// Lists releases of `repo` through the Jwinks mirror, then GitHub.
+    async fn fetch_online_releases(repo: &str, per_page: usize) -> Option<Vec<GithubRelease>> {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent(concat!("frpc-desktop/", env!("CARGO_PKG_VERSION")))
+            .build()
+            .ok()?;
+        let urls = [
+            format!(
+                "https://gh.jwinks.com/api/repos/{}/releases?page=1&per_page={}",
+                repo, per_page
+            ),
+            format!(
+                "https://api.github.com/repos/{}/releases?page=1&per_page={}",
+                repo, per_page
+            ),
+        ];
+        for url in urls {
+            let Ok(resp) = client.get(&url).send().await else {
+                continue;
+            };
+            if !resp.status().is_success() {
+                continue;
+            }
+            if let Ok(releases) = resp.json::<Vec<GithubRelease>>().await {
+                if !releases.is_empty() {
+                    return Some(releases);
+                }
+            }
+        }
+        None
+    }
+
     pub async fn fetch_github_releases(&self) -> Vec<GithubRelease> {
         // 1. Check cached releases
         {
@@ -95,51 +172,124 @@ impl VersionManager {
         }
 
         // 2. Fetch online releases from Jwinks proxy or GitHub API
-        let client_res = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .user_agent(concat!("frpc-desktop/", env!("CARGO_PKG_VERSION")))
-            .build();
-
-        if let Ok(client) = client_res {
-            // First try Jwinks mirror
-            if let Ok(resp) = client
-                .get("https://gh.jwinks.com/api/repos/fatedier/frp/releases?page=1&per_page=1000")
-                .send()
-                .await
-            {
-                if resp.status().is_success() {
-                    if let Ok(releases) = resp.json::<Vec<GithubRelease>>().await {
-                        if !releases.is_empty() {
-                            let mut cache = self.releases_cache.write().await;
-                            *cache = Some(releases.clone());
-                            return releases;
-                        }
-                    }
-                }
-            }
-
-            // Fallback: direct GitHub API
-            if let Ok(resp) = client
-                .get("https://api.github.com/repos/fatedier/frp/releases?page=1&per_page=1000")
-                .send()
-                .await
-            {
-                if resp.status().is_success() {
-                    if let Ok(releases) = resp.json::<Vec<GithubRelease>>().await {
-                        if !releases.is_empty() {
-                            let mut cache = self.releases_cache.write().await;
-                            *cache = Some(releases.clone());
-                            return releases;
-                        }
-                    }
-                }
-            }
+        if let Some(releases) = Self::fetch_online_releases("fatedier/frp", 1000).await {
+            let mut cache = self.releases_cache.write().await;
+            *cache = Some(releases.clone());
+            return releases;
         }
 
         // 3. Fallback to embedded releases JSON
         let releases: Vec<GithubRelease> =
             serde_json::from_str(EMBEDDED_RELEASES_JSON).unwrap_or_default();
         releases
+    }
+
+    /// cloudflared releases have no embedded fallback; offline users can
+    /// still point a tunnel at a locally installed binary.
+    pub async fn fetch_cloudflared_releases(&self) -> Vec<GithubRelease> {
+        {
+            let cache = self.cloudflared_releases_cache.read().await;
+            if let Some(ref releases) = *cache {
+                return releases.clone();
+            }
+        }
+        let releases = Self::fetch_online_releases("cloudflare/cloudflared", 50)
+            .await
+            .unwrap_or_default();
+        if !releases.is_empty() {
+            let mut cache = self.cloudflared_releases_cache.write().await;
+            *cache = Some(releases.clone());
+        }
+        releases
+    }
+
+    pub async fn get_catalog_versions(
+        &self,
+        db: &crate::db::DbManager,
+        provider: &str,
+    ) -> Vec<FrpcVersion> {
+        if provider == PROVIDER_CLOUDFLARED {
+            let releases = self.fetch_cloudflared_releases().await;
+            let conn = db.conn();
+            self.cloudflared_catalog_from_releases(&conn, &releases)
+        } else {
+            self.get_all_catalog_versions(db).await
+        }
+    }
+
+    fn cloudflared_catalog_from_releases(
+        &self,
+        conn: &Connection,
+        releases: &[GithubRelease],
+    ) -> Vec<FrpcVersion> {
+        let Some(asset_name) = Self::get_cloudflared_asset_name() else {
+            return Vec::new();
+        };
+        let downloaded =
+            VersionRepository::get_downloaded_versions_by_provider(conn, PROVIDER_CLOUDFLARED)
+                .unwrap_or_default();
+        let downloaded_map: HashMap<i64, FrpcVersion> =
+            downloaded.into_iter().map(|v| (v.github_release_id, v)).collect();
+
+        releases
+            .iter()
+            .filter(|r| !r.draft && !r.prerelease)
+            .filter_map(|release| {
+                let asset = release.assets.iter().find(|a| a.name == asset_name)?;
+                Some(self.catalog_entry(
+                    conn,
+                    PROVIDER_CLOUDFLARED,
+                    release,
+                    asset,
+                    downloaded_map.get(&release.id),
+                ))
+            })
+            .take(CLOUDFLARED_RELEASES_LIMIT)
+            .collect()
+    }
+
+    /// Builds a catalog item and drops a stale download record whose binary
+    /// is gone (e.g. removed by antivirus or deleted by hand).
+    fn catalog_entry(
+        &self,
+        conn: &Connection,
+        provider: &str,
+        release: &GithubRelease,
+        asset: &crate::models::GithubAsset,
+        existing: Option<&FrpcVersion>,
+    ) -> FrpcVersion {
+        let mut is_downloaded = false;
+        let mut local_path = None;
+        if let Some(db_ver) = existing {
+            if let Some(ref path_str) = db_ver.local_path {
+                if Self::resolve_binary(provider, path_str).is_some() {
+                    is_downloaded = true;
+                    local_path = Some(path_str.clone());
+                } else {
+                    let _ = VersionRepository::delete_by_github_release_id(conn, release.id);
+                }
+            }
+        }
+
+        FrpcVersion {
+            id: existing.map(|e| e.id.clone()).unwrap_or_default(),
+            github_release_id: release.id,
+            github_asset_id: asset.id,
+            github_created_at: asset.created_at.clone(),
+            name: if release.name.trim().is_empty() {
+                release.tag_name.clone().unwrap_or_default()
+            } else {
+                release.name.clone()
+            },
+            asset_name: asset.name.clone(),
+            version_download_count: release.assets.iter().map(|a| a.download_count).sum(),
+            asset_download_count: asset.download_count,
+            browser_download_url: asset.browser_download_url.clone(),
+            downloaded: is_downloaded,
+            local_path,
+            size: Self::format_bytes(asset.size),
+            provider: provider.to_string(),
+        }
     }
 
     pub async fn get_all_catalog_versions(&self, db: &crate::db::DbManager) -> Vec<FrpcVersion> {
@@ -156,8 +306,8 @@ impl VersionManager {
 
     fn catalog_from_releases(&self, conn: &Connection, releases: &[GithubRelease]) -> Vec<FrpcVersion> {
         let (os_pattern, arch_pattern) = Self::get_arch_patterns();
-        let downloaded =
-            VersionRepository::get_downloaded_versions(conn).unwrap_or_default();
+        let downloaded = VersionRepository::get_downloaded_versions_by_provider(conn, PROVIDER_FRPC)
+            .unwrap_or_default();
         let downloaded_map: HashMap<i64, FrpcVersion> =
             downloaded.into_iter().map(|v| (v.github_release_id, v)).collect();
 
@@ -173,40 +323,13 @@ impl VersionManager {
             });
 
             if let Some(asset) = matching_asset {
-                let release_id = release.id;
-                let existing = downloaded_map.get(&release_id);
-                let mut is_downloaded = false;
-                let mut local_path = None;
-
-                if let Some(db_ver) = existing {
-                    if let Some(ref path_str) = db_ver.local_path {
-                        if Self::resolve_frpc_binary(path_str).is_some() {
-                            is_downloaded = true;
-                            local_path = Some(path_str.clone());
-                        } else {
-                            // stale DB record (e.g. removed by antivirus or deleted)
-                            let _ = VersionRepository::delete_by_github_release_id(conn, release_id);
-                        }
-                    }
-                }
-
-                let total_downloads: i64 = release.assets.iter().map(|a| a.download_count).sum();
-                let size_formatted = Self::format_bytes(asset.size);
-
-                result.push(FrpcVersion {
-                    id: existing.map(|e| e.id.clone()).unwrap_or_default(),
-                    github_release_id: release.id,
-                    github_asset_id: asset.id,
-                    github_created_at: asset.created_at.clone(),
-                    name: release.name.clone(),
-                    asset_name: asset.name.clone(),
-                    version_download_count: total_downloads,
-                    asset_download_count: asset.download_count,
-                    browser_download_url: asset.browser_download_url.clone(),
-                    downloaded: is_downloaded,
-                    local_path,
-                    size: size_formatted,
-                });
+                result.push(self.catalog_entry(
+                    conn,
+                    PROVIDER_FRPC,
+                    release,
+                    asset,
+                    downloaded_map.get(&release.id),
+                ));
             }
         }
         result
@@ -215,6 +338,7 @@ impl VersionManager {
     pub async fn download_version<F>(
         &self,
         db: &crate::db::DbManager,
+        provider: &str,
         github_release_id: i64,
         mirror_id: Option<String>,
         progress_cb: F,
@@ -223,7 +347,7 @@ impl VersionManager {
         F: Fn(f64) + Send + Sync,
     {
         let version_info = {
-            let catalog = self.get_all_catalog_versions(db).await;
+            let catalog = self.get_catalog_versions(db, provider).await;
             catalog
                 .into_iter()
                 .find(|v| v.github_release_id == github_release_id)
@@ -270,13 +394,23 @@ impl VersionManager {
 
         // Extract to target directory
         let version_dir_name = format!("{:x}", md5::compute(version_info.name.as_bytes()));
-        let dest_dir = self.versions_storage_dir.join(&version_dir_name);
+        let dest_dir = if provider == PROVIDER_CLOUDFLARED {
+            self.versions_storage_dir
+                .join(PROVIDER_CLOUDFLARED)
+                .join(&version_dir_name)
+        } else {
+            self.versions_storage_dir.join(&version_dir_name)
+        };
         if dest_dir.exists() {
             let _ = fs::remove_dir_all(&dest_dir);
         }
         fs::create_dir_all(&dest_dir)?;
 
-        Self::extract_archive(&buffer, &version_info.asset_name, &dest_dir)?;
+        if provider == PROVIDER_CLOUDFLARED {
+            Self::install_cloudflared(&buffer, &version_info.asset_name, &dest_dir)?;
+        } else {
+            Self::extract_archive(&buffer, &version_info.asset_name, &dest_dir)?;
+        }
 
         let local_path = dest_dir.to_str().unwrap_or("").to_string();
         let mut saved = version_info.clone();
@@ -358,6 +492,47 @@ impl VersionManager {
             VersionRepository::save_version(&conn, saved)?
         };
         Ok(final_version)
+    }
+
+    /// Writes the cloudflared binary into `dest_dir`; macOS assets are a
+    /// `.tgz` containing it, other platforms ship the bare executable.
+    fn install_cloudflared(data: &[u8], asset_name: &str, dest_dir: &Path) -> anyhow::Result<()> {
+        let out_path = dest_dir.join(Self::get_cloudflared_executable_name());
+        if asset_name.ends_with(".tgz") {
+            let mut archive = tar::Archive::new(GzDecoder::new(data));
+            let mut found = false;
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let path = entry.path()?.to_path_buf();
+                if path.file_name().and_then(|n| n.to_str()) == Some("cloudflared") {
+                    let mut out = File::create(&out_path)?;
+                    std::io::copy(&mut entry, &mut out)?;
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                anyhow::bail!("cloudflared not found in {}", asset_name);
+            }
+        } else {
+            fs::write(&out_path, data)?;
+        }
+        Self::mark_executable(&out_path);
+        Ok(())
+    }
+
+    fn mark_executable(path: &Path) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(path, fs::Permissions::from_mode(0o755));
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("xattr").arg("-c").arg(path).output();
+        }
+        #[cfg(not(unix))]
+        let _ = path;
     }
 
     fn extract_archive(data: &[u8], asset_name: &str, dest_dir: &Path) -> anyhow::Result<()> {
@@ -450,6 +625,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_download_cloudflared() {
+        let Some(asset_name) = VersionManager::get_cloudflared_asset_name() else {
+            return;
+        };
+        let temp_dir = std::env::temp_dir().join("frpc_test_cloudflared_e2e");
+        let _ = fs::remove_dir_all(&temp_dir);
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let db = crate::db::DbManager::init(&temp_dir.join("db")).unwrap();
+        let mgr = VersionManager::new(&temp_dir);
+        let catalog = mgr.get_catalog_versions(&db, PROVIDER_CLOUDFLARED).await;
+        assert!(!catalog.is_empty());
+        assert!(catalog.len() <= CLOUDFLARED_RELEASES_LIMIT);
+        assert!(catalog.iter().all(|v| v.asset_name == asset_name));
+
+        let target = catalog[0].clone();
+        let ver = mgr
+            .download_version(&db, PROVIDER_CLOUDFLARED, target.github_release_id, None, |_| {})
+            .await
+            .expect("cloudflared download should succeed");
+        assert_eq!(ver.provider, PROVIDER_CLOUDFLARED);
+        let bin = VersionManager::resolve_cloudflared_binary(ver.local_path.unwrap())
+            .expect("cloudflared binary must be installed");
+        assert!(crate::system::FrpcDetector::get_cloudflared_version(&bin)
+            .unwrap()
+            .contains("cloudflared"));
+        println!("cloudflared installed at {}", bin.display());
+
+        // Listed as downloaded for cloudflared only, never as an frpc version.
+        let conn = db.conn();
+        assert_eq!(
+            VersionRepository::get_downloaded_versions_by_provider(&conn, PROVIDER_CLOUDFLARED)
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(
+            VersionRepository::get_downloaded_versions_by_provider(&conn, PROVIDER_FRPC)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[tokio::test]
     async fn test_download_version() {
         let temp_dir = std::env::temp_dir().join("frpc_test_download_e2e");
         let _ = fs::remove_dir_all(&temp_dir);
@@ -465,6 +684,7 @@ mod tests {
 
         let downloaded = mgr.download_version(
             &db,
+            PROVIDER_FRPC,
             target_release.github_release_id,
             Some("gh-jwinks".to_string()),
             |pct| {

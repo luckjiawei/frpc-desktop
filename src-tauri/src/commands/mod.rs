@@ -1,13 +1,17 @@
 use crate::config_gen::ConfigGenerator;
 use crate::db::app_config_repo::AppConfigRepository;
+use crate::db::cloudflared_repo::CloudflaredRepository;
 use crate::db::proxy_repo::ProxyRepository;
 use crate::db::server_repo::ServerRepository;
-use crate::db::tunnel_repo::{TunnelRepository, DEFAULT_TUNNEL_ID, MAX_TUNNEL_NAME_LEN};
+use crate::db::tunnel_repo::{
+    TunnelRepository, DEFAULT_TUNNEL_ID, MAX_TUNNEL_NAME_LEN, PROVIDER_CLOUDFLARED, PROVIDER_FRPC,
+};
 use crate::db::version_repo::VersionRepository;
 use crate::db::DbManager;
 use crate::downloader::VersionManager;
 use crate::models::{
-    ApiResponse, FrpcProxy, FrpcSystemConfiguration, OpenSourceFrpcDesktopServer, TunnelStatus,
+    ApiResponse, CloudflaredSettings, FrpcProxy, FrpcSystemConfiguration,
+    OpenSourceFrpcDesktopServer, TunnelStatus,
 };
 use crate::process::RuntimeManager;
 use crate::providers::{provider_for, TunnelContext};
@@ -28,7 +32,8 @@ pub struct AppState {
 }
 
 /// Per-tunnel files. The default tunnel keeps the 1.x/2.0 locations so
-/// existing logs stay visible after the upgrade.
+/// existing logs stay visible after the upgrade; file names follow the
+/// provider (`frpc.toml`/`frpc.log`, `cloudflared.log`).
 pub struct TunnelPaths {
     pub config_path: PathBuf,
     pub log_path: PathBuf,
@@ -36,18 +41,39 @@ pub struct TunnelPaths {
 
 impl AppState {
     /// `tunnel_id` must be validated with `TunnelRepository::is_valid_id`.
-    pub fn tunnel_paths(&self, tunnel_id: &str) -> TunnelPaths {
+    pub fn tunnel_paths(&self, tunnel_id: &str, provider: &str) -> TunnelPaths {
         if tunnel_id == DEFAULT_TUNNEL_ID {
-            TunnelPaths {
+            return TunnelPaths {
                 config_path: self.config_dir.join("frpc.toml"),
                 log_path: self.log_dir.join("frpc.log"),
+            };
+        }
+        let config_dir = self.config_dir.join("tunnels").join(tunnel_id);
+        let log_dir = self.log_dir.join("tunnels").join(tunnel_id);
+        if provider == PROVIDER_CLOUDFLARED {
+            TunnelPaths {
+                config_path: config_dir.join("cloudflared.yml"),
+                log_path: log_dir.join("cloudflared.log"),
             }
         } else {
             TunnelPaths {
-                config_path: self.config_dir.join("tunnels").join(tunnel_id).join("frpc.toml"),
-                log_path: self.log_dir.join("tunnels").join(tunnel_id).join("frpc.log"),
+                config_path: config_dir.join("frpc.toml"),
+                log_path: log_dir.join("frpc.log"),
             }
         }
+    }
+
+    /// Paths of a stored tunnel, looking up its provider (frpc if unknown).
+    fn stored_tunnel_paths(&self, tunnel_id: &str) -> TunnelPaths {
+        let provider = {
+            let conn = self.db.conn();
+            TunnelRepository::find(&conn, tunnel_id)
+                .ok()
+                .flatten()
+                .map(|t| t.provider)
+                .unwrap_or_else(|| PROVIDER_FRPC.to_string())
+        };
+        self.tunnel_paths(tunnel_id, &provider)
     }
 
     fn remove_tunnel_files(&self, tunnel_id: &str) {
@@ -83,7 +109,7 @@ impl AppState {
             "B1000".to_string(),
             format!("Unsupported provider: {}", tunnel.provider),
         ))?;
-        let paths = self.tunnel_paths(tunnel_id);
+        let paths = self.tunnel_paths(tunnel_id, &tunnel.provider);
         let spec = provider.prepare(&TunnelContext {
             db: &self.db,
             tunnel: &tunnel,
@@ -167,6 +193,33 @@ fn arg_tunnel_name(args: &Option<Value>) -> Result<Option<String>, ApiResponse<V
                 Ok(Some(name.to_string()))
             }
         }
+    }
+}
+
+/// Reads the binary `provider` of version routes (defaults to frpc).
+fn arg_provider(args: &Option<Value>) -> Result<String, ApiResponse<Value>> {
+    let provider = args
+        .as_ref()
+        .and_then(|v| v.get("provider"))
+        .and_then(|v| v.as_str())
+        .unwrap_or(PROVIDER_FRPC);
+    if TunnelRepository::is_supported_provider(provider) {
+        Ok(provider.to_string())
+    } else {
+        Err(ApiResponse::fail("B1000", format!("Unsupported provider: {}", provider)))
+    }
+}
+
+/// Reads a `path` argument given as a string or `{ path }`.
+fn arg_path(args: &Option<Value>) -> String {
+    match args {
+        Some(Value::Object(map)) => map
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        Some(Value::String(s)) => s.clone(),
+        _ => String::new(),
     }
 }
 
@@ -273,7 +326,7 @@ async fn handle_ipc_send(
                 Err(e) => return ApiResponse::internal_error(e.to_string()),
             };
             drop(conn);
-            let log_path = state.tunnel_paths(&tunnel_id).log_path;
+            let log_path = state.tunnel_paths(&tunnel_id, PROVIDER_FRPC).log_path;
             let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &log_path);
 
             if let Some(path_buf) = rfd::FileDialog::new()
@@ -481,15 +534,10 @@ async fn handle_ipc_send(
                 Ok(None) => return ApiResponse::fail("B1000", "Invalid tunnel name"),
                 Err(resp) => return resp,
             };
-            let provider = args
-                .as_ref()
-                .and_then(|v| v.get("provider"))
-                .and_then(|v| v.as_str())
-                .unwrap_or(crate::db::tunnel_repo::PROVIDER_FRPC)
-                .to_string();
-            if !TunnelRepository::is_supported_provider(&provider) {
-                return ApiResponse::fail("B1000", format!("Unsupported provider: {}", provider));
-            }
+            let provider = match arg_provider(&args) {
+                Ok(provider) => provider,
+                Err(resp) => return resp,
+            };
             let mut conn = state.db.conn();
             match TunnelRepository::create(&mut conn, &name, &provider) {
                 Ok(tunnel) => ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null)),
@@ -534,6 +582,62 @@ async fn handle_ipc_send(
             }
         }
 
+        // --- CLOUDFLARED ---
+        "cloudflared/getConfig" => {
+            let tunnel_id = tunnel_id_or_return!(args);
+            let conn = state.db.conn();
+            match CloudflaredRepository::get(&conn, &tunnel_id) {
+                Ok(Some(settings)) => {
+                    ApiResponse::success(serde_json::to_value(settings).unwrap_or(Value::Null))
+                }
+                Ok(None) => ApiResponse::fail("B1008", "Tunnel not found"),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "cloudflared/saveConfig" => {
+            let Some(val) = args else {
+                return ApiResponse::internal_error("Missing arguments for cloudflared/saveConfig");
+            };
+            let mut settings = match serde_json::from_value::<CloudflaredSettings>(val) {
+                Ok(s) => s,
+                Err(e) => {
+                    return ApiResponse::internal_error(format!("Invalid cloudflared payload: {}", e))
+                }
+            };
+            if !TunnelRepository::is_valid_id(&settings.tunnel_id) {
+                return ApiResponse::fail("B1008", "Tunnel not found");
+            }
+            settings.token = settings.token.trim().to_string();
+            settings.custom_cloudflared_path = settings.custom_cloudflared_path.trim().to_string();
+            if let Err(field) = CloudflaredRepository::validate(&settings) {
+                return ApiResponse::fail("B1000", format!("Invalid {}", field));
+            }
+            let conn = state.db.conn();
+            match TunnelRepository::find(&conn, &settings.tunnel_id) {
+                Ok(Some(t)) if t.provider == PROVIDER_CLOUDFLARED => {}
+                Ok(_) => return ApiResponse::fail("B1008", "Tunnel not found"),
+                Err(e) => return ApiResponse::internal_error(e.to_string()),
+            }
+            match CloudflaredRepository::save(&conn, &settings) {
+                Ok(()) => ApiResponse::success(serde_json::json!({ "tunnelId": settings.tunnel_id })),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "cloudflared/detectPath" => {
+            let res = FrpcDetector::detect_cloudflared();
+            ApiResponse::success(serde_json::to_value(res).unwrap_or(Value::Null))
+        }
+        "cloudflared/validatePath" => {
+            let path_str = arg_path(&args);
+            if path_str.trim().is_empty() {
+                return ApiResponse::success(serde_json::json!({ "valid": false, "error": "路径为空" }));
+            }
+            match FrpcDetector::validate_cloudflared_path(&path_str) {
+                Ok(ver) => ApiResponse::success(serde_json::json!({ "valid": true, "version": ver })),
+                Err(e) => ApiResponse::success(serde_json::json!({ "valid": false, "error": e })),
+            }
+        }
+
         // --- LAUNCH ---
         "launch/getStatus" => {
             let tunnel_id = tunnel_id_or_return!(args);
@@ -543,7 +647,7 @@ async fn handle_ipc_send(
                     .ok()
                     .flatten()
                     .map(|t| t.provider)
-                    .unwrap_or_else(|| crate::db::tunnel_repo::PROVIDER_FRPC.to_string())
+                    .unwrap_or_else(|| PROVIDER_FRPC.to_string())
             };
             let status = state.runtime.get_status(&tunnel_id, &provider).await;
             ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
@@ -585,7 +689,11 @@ async fn handle_ipc_send(
 
         // --- VERSION ---
         "version/getVersions" => {
-            let versions = state.version_mgr.get_all_catalog_versions(&state.db).await;
+            let provider = match arg_provider(&args) {
+                Ok(provider) => provider,
+                Err(resp) => return resp,
+            };
+            let versions = state.version_mgr.get_catalog_versions(&state.db, &provider).await;
             ApiResponse::success(serde_json::to_value(versions).unwrap_or(Value::Null))
         }
         "version/getDownloadedVersions" => {
@@ -596,6 +704,10 @@ async fn handle_ipc_send(
             }
         }
         "version/downloadVersion" => {
+            let provider = match arg_provider(&args) {
+                Ok(provider) => provider,
+                Err(resp) => return resp,
+            };
             let (rel_id, mirror) = match args {
                 Some(Value::Object(ref map)) => {
                     let id = map
@@ -620,7 +732,7 @@ async fn handle_ipc_send(
             let app_handle = app.clone();
             let res = state
                 .version_mgr
-                .download_version(&state.db, rel_id, mirror, move |percent| {
+                .download_version(&state.db, &provider, rel_id, mirror, move |percent| {
                     let _ = app_handle.emit(
                         "version/downloadVersion:hook",
                         ApiResponse::success(serde_json::json!({
@@ -637,7 +749,8 @@ async fn handle_ipc_send(
                     let resp_payload = serde_json::json!({
                         "completed": true,
                         "percent": 1.0,
-                        "githubReleaseId": rel_id
+                        "githubReleaseId": rel_id,
+                        "provider": provider
                     });
                     let _ = app.emit(
                         "version/downloadVersion:hook",
@@ -712,15 +825,7 @@ async fn handle_ipc_send(
             ApiResponse::success(serde_json::to_value(res).unwrap_or(Value::Null))
         }
         "version/validateFrpcPath" => {
-            let path_str = match args {
-                Some(Value::Object(map)) => map
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                Some(Value::String(s)) => s,
-                _ => String::new(),
-            };
+            let path_str = arg_path(&args);
             if path_str.trim().is_empty() {
                 ApiResponse::success(serde_json::json!({
                     "valid": false,
@@ -743,7 +848,7 @@ async fn handle_ipc_send(
         // --- LOG ---
         "log/getFrpLogContent" => {
             let tunnel_id = tunnel_id_or_return!(args);
-            let lines = SystemService::read_log_tail(&state.tunnel_paths(&tunnel_id).log_path, 500);
+            let lines = SystemService::read_log_tail(&state.stored_tunnel_paths(&tunnel_id).log_path, 500);
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/getAppLogContent" => {
@@ -752,7 +857,7 @@ async fn handle_ipc_send(
         }
         "log/openFrpcLogFile" => {
             let tunnel_id = tunnel_id_or_return!(args);
-            let _ = SystemService::open_path(&state.tunnel_paths(&tunnel_id).log_path);
+            let _ = SystemService::open_path(&state.stored_tunnel_paths(&tunnel_id).log_path);
             ApiResponse::success_empty()
         }
         "log/openAppLogFile" => {

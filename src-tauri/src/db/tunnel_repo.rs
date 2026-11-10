@@ -1,6 +1,7 @@
+use crate::db::cloudflared_repo::CloudflaredRepository;
 use crate::db::proxy_repo::ProxyRepository;
 use crate::db::server_repo::ServerRepository;
-use crate::models::{Tunnel, TunnelSummary};
+use crate::models::{CloudflaredSettings, Tunnel, TunnelSummary};
 use rusqlite::{params, Connection, OptionalExtension, Result, Row};
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -11,6 +12,7 @@ use uuid::Uuid;
 pub const DEFAULT_TUNNEL_ID: &str = "1";
 
 pub const PROVIDER_FRPC: &str = "frpc";
+pub const PROVIDER_CLOUDFLARED: &str = "cloudflared";
 
 const DEFAULT_WEB_SERVER_PORT: i64 = 57400;
 pub const MAX_TUNNEL_NAME_LEN: usize = 64;
@@ -26,7 +28,7 @@ impl TunnelRepository {
     }
 
     pub fn is_supported_provider(provider: &str) -> bool {
-        provider == PROVIDER_FRPC
+        provider == PROVIDER_FRPC || provider == PROVIDER_CLOUDFLARED
     }
 
     fn map_row(row: &Row) -> Result<Tunnel> {
@@ -63,9 +65,22 @@ impl TunnelRepository {
     pub fn list_summaries(conn: &Connection) -> Result<Vec<TunnelSummary>> {
         let mut summaries = Vec::new();
         for tunnel in Self::list(conn)? {
+            if tunnel.provider == PROVIDER_CLOUDFLARED {
+                let settings = CloudflaredRepository::get(conn, &tunnel.id)?;
+                summaries.push(TunnelSummary {
+                    configured: settings.map_or(false, |s| !s.token.is_empty()),
+                    server_addr: String::new(),
+                    server_port: 0,
+                    proxy_total: 0,
+                    proxy_enabled: 0,
+                    tunnel,
+                });
+                continue;
+            }
             let server = ServerRepository::get_server_config(conn, &tunnel.id)?;
             let proxies = ProxyRepository::get_proxies_by_server(conn, &tunnel.id)?;
             summaries.push(TunnelSummary {
+                configured: !server.server_addr.trim().is_empty(),
                 server_addr: server.server_addr,
                 server_port: server.server_port,
                 proxy_total: proxies.len(),
@@ -107,6 +122,8 @@ impl TunnelRepository {
             server.id = id.clone();
             server.web_server.port = Self::next_free_web_server_port(&tx)?;
             ServerRepository::save_frpc_settings(&tx, &server)?;
+        } else if provider == PROVIDER_CLOUDFLARED {
+            CloudflaredRepository::save(&tx, &CloudflaredSettings::new(&id))?;
         }
 
         let tunnel = Self::find(&tx, &id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
@@ -131,7 +148,7 @@ impl TunnelRepository {
         Self::find(conn, id)
     }
 
-    /// Deletes a non-default tunnel; servers and proxies cascade.
+    /// Deletes a non-default tunnel; provider settings and proxies cascade.
     pub fn delete(conn: &Connection, id: &str) -> Result<bool> {
         if id == DEFAULT_TUNNEL_ID {
             return Ok(false);

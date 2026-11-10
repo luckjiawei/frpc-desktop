@@ -1,4 +1,5 @@
 pub mod app_config_repo;
+pub mod cloudflared_repo;
 pub mod nedb_import;
 pub mod proxy_repo;
 pub mod server_repo;
@@ -18,6 +19,7 @@ pub const MIGRATION_001: &str = include_str!("../../migrations/001_initial_schem
 pub const MIGRATION_002: &str = include_str!("../../migrations/002_tls2raw_plugin.sql");
 pub const MIGRATION_003: &str = include_str!("../../migrations/003_custom_frpc_path.sql");
 pub const MIGRATION_004: &str = include_str!("../../migrations/004_multi_tunnel.sql");
+pub const MIGRATION_005: &str = include_str!("../../migrations/005_cloudflared_tunnel.sql");
 
 /// Decode a JSON column without discarding the whole object when one field
 /// has an unexpected shape (e.g. `null` or a value written by Electron 1.x).
@@ -130,6 +132,15 @@ impl DbManager {
 
         if !applied_versions.contains(&4) {
             Self::run_table_rebuild_migration(&mut conn, 4, "004_multi_tunnel", MIGRATION_004)?;
+        }
+
+        if !applied_versions.contains(&5) {
+            Self::run_table_rebuild_migration(
+                &mut conn,
+                5,
+                "005_cloudflared_tunnel",
+                MIGRATION_005,
+            )?;
         }
 
         // Electron <= 1.2.6 stored data in NeDB; keep the files on failure so
@@ -320,7 +331,7 @@ mod tests {
         let applied: i64 = conn
             .query_row("SELECT COUNT(*) FROM t_frpcd_schema_migrations", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(applied, 4);
+        assert_eq!(applied, 5);
 
         // Migration 004 turned the single server into the default tunnel and
         // kept the proxy attached to it.
@@ -518,6 +529,151 @@ mod tests {
             ServerRepository::get_server_config(&conn, "1").unwrap().server_addr,
             ""
         );
+
+        drop(conn);
+        drop(db);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn cloudflared_tunnels_keep_their_own_settings() {
+        use crate::db::cloudflared_repo::CloudflaredRepository;
+
+        let dir = std::env::temp_dir().join(format!("frpc_cloudflared_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let mut conn = db.conn();
+
+        let cf = TunnelRepository::create(&mut conn, "Cloudflare", "cloudflared").unwrap();
+        assert_eq!(cf.provider, "cloudflared");
+        let mut settings = CloudflaredRepository::get(&conn, &cf.id).unwrap().unwrap();
+        assert_eq!(settings.protocol, "auto");
+        assert!(settings.token.is_empty());
+        // No frpc settings are created for (or leaked into) a cloudflared tunnel.
+        assert!(ServerRepository::get_server_config(&conn, &cf.id).is_err());
+        let servers: i64 = conn
+            .query_row("SELECT COUNT(*) FROM t_frpcd_servers WHERE id = ?1", [&cf.id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(servers, 0);
+        assert!(CloudflaredRepository::get(&conn, "1").unwrap().is_none());
+
+        let summary = TunnelRepository::list_summaries(&conn)
+            .unwrap()
+            .into_iter()
+            .find(|s| s.tunnel.id == cf.id)
+            .unwrap();
+        assert!(!summary.configured);
+
+        settings.token = "eyJhIjoiYWNjb3VudCIsInQiOiJ0dW5uZWwiLCJzIjoic2VjcmV0In0=".to_string();
+        settings.protocol = "http2".to_string();
+        assert!(CloudflaredRepository::validate(&settings).is_ok());
+        CloudflaredRepository::save(&conn, &settings).unwrap();
+        let saved = CloudflaredRepository::get(&conn, &cf.id).unwrap().unwrap();
+        assert_eq!(saved.protocol, "http2");
+        assert!(TunnelRepository::list_summaries(&conn)
+            .unwrap()
+            .iter()
+            .any(|s| s.tunnel.id == cf.id && s.configured));
+
+        // Enum columns and token are validated before saving.
+        let mut bad = saved.clone();
+        bad.protocol = "tcp".to_string();
+        assert_eq!(CloudflaredRepository::validate(&bad), Err("protocol"));
+        bad = saved.clone();
+        bad.token = "abc --url http://evil".to_string();
+        assert_eq!(CloudflaredRepository::validate(&bad), Err("token"));
+        bad.protocol = "tcp".to_string();
+        assert!(CloudflaredRepository::save(&conn, &bad).is_err());
+
+        assert!(TunnelRepository::delete(&conn, &cf.id).unwrap());
+        assert!(CloudflaredRepository::get(&conn, &cf.id).unwrap().is_none());
+
+        TunnelRepository::create(&mut conn, "Cloudflare 2", "cloudflared").unwrap();
+        ServerRepository::reset_all_config(&conn).unwrap();
+        let rows: i64 = conn
+            .query_row("SELECT COUNT(*) FROM t_frpcd_cloudflared_tunnels", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rows, 0);
+
+        drop(conn);
+        drop(db);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// A database at migration 004 (multi-tunnel frpc only) keeps its tunnels,
+    /// servers, proxies and downloaded versions when 005 rebuilds the tunnel table.
+    #[test]
+    fn migration_005_keeps_existing_tunnels() {
+        let dir = std::env::temp_dir().join(format!("frpc_mig005_{}", uuid::Uuid::new_v4()));
+        let db_dir = dir.join("db");
+        fs::create_dir_all(&db_dir).unwrap();
+        let second_id = uuid::Uuid::new_v4().to_string();
+        {
+            let mut conn = Connection::open(db_dir.join("frpc-desktop.sqlite3")).unwrap();
+            conn.execute_batch(MIGRATION_001).unwrap();
+            conn.execute_batch(MIGRATION_002).unwrap();
+            conn.execute_batch(MIGRATION_003).unwrap();
+            conn.execute_batch(
+                "INSERT INTO t_frpcd_schema_migrations VALUES
+                   (1, '001_initial_schema', '2026-01-01T00:00:00.000Z'),
+                   (2, '002_tls2raw_plugin', '2026-01-01T00:00:00.000Z'),
+                   (3, '003_custom_frpc_path', '2026-01-01T00:00:00.000Z');",
+            )
+            .unwrap();
+            DbManager::run_table_rebuild_migration(&mut conn, 4, "004_multi_tunnel", MIGRATION_004)
+                .unwrap();
+            conn.execute(
+                "INSERT INTO t_frpcd_tunnels (id, name, provider, auto_start, sort_order)
+                 VALUES (?1, 'Office', 'frpc', 1, 1)",
+                [&second_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO t_frpcd_servers (id, server_addr, auth_json, log_json,
+                   web_server_json, transport_json)
+                 VALUES (?1, 'office.example.com', '{}', '{}', '{}', '{}')",
+                [&second_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO t_frpcd_proxies (id, server_id, name, type, transport_json)
+                 VALUES ('p1', ?1, 'rdp', 'tcp', '{}')",
+                [&second_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO t_frpcd_versions (id, github_release_id, github_asset_id,
+                   github_created_at, name, asset_name, browser_download_url)
+                 VALUES ('v1', 1, 1, '2026-01-01T00:00:00Z', 'v0.61.0', 'frp.tar.gz', 'https://example.com')",
+                [],
+            )
+            .unwrap();
+        }
+
+        let db = DbManager::init(&db_dir).unwrap();
+        let mut conn = db.conn();
+        let tunnels = TunnelRepository::list(&conn).unwrap();
+        assert_eq!(tunnels.len(), 2);
+        let office = tunnels.iter().find(|t| t.id == second_id).unwrap();
+        assert_eq!(office.name, "Office");
+        assert!(office.auto_start);
+        assert_eq!(
+            ServerRepository::get_server_config(&conn, &second_id).unwrap().server_addr,
+            "office.example.com"
+        );
+        assert_eq!(ProxyRepository::get_proxies_by_server(&conn, &second_id).unwrap().len(), 1);
+        let version = VersionRepository::find_by_github_release_id(&conn, 1).unwrap().unwrap();
+        assert_eq!(version.provider, "frpc");
+
+        // The rebuilt table still cascades to frpc settings and proxies.
+        assert!(TunnelRepository::delete(&conn, &second_id).unwrap());
+        assert!(ProxyRepository::get_proxies_by_server(&conn, &second_id).unwrap().is_empty());
+        assert!(TunnelRepository::create(&mut conn, "CF", "cloudflared").is_ok());
+        assert!(TunnelRepository::create(&mut conn, "Other", "ngrok").is_err());
+
+        let fk_violations: i64 = conn
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(fk_violations, 0);
 
         drop(conn);
         drop(db);

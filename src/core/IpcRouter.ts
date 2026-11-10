@@ -129,6 +129,24 @@ export const ipcRouters: IpcRouters = {
       controller: "tunnelController.delete"
     }
   },
+  CLOUDFLARED: {
+    getConfig: {
+      path: "cloudflared/getConfig",
+      controller: "cloudflaredController.getConfig"
+    },
+    saveConfig: {
+      path: "cloudflared/saveConfig",
+      controller: "cloudflaredController.saveConfig"
+    },
+    detectPath: {
+      path: "cloudflared/detectPath",
+      controller: "cloudflaredController.detectPath"
+    },
+    validatePath: {
+      path: "cloudflared/validatePath",
+      controller: "cloudflaredController.validatePath"
+    }
+  },
   PROXY: {
     createProxy: {
       path: "proxy/createProxy",

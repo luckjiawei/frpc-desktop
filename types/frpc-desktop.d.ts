@@ -1,10 +1,12 @@
 type FrpcDesktopProxy = FrpcProxyConfig & {};
 
-/** 隧道实例（t_frpcd_tunnels）；默认实例 id 为 "1" */
+type TunnelProvider = "frpc" | "cloudflared";
+
+/** 隧道实例（t_frpcd_tunnels）；默认实例 id 为 "1"，始终是 frpc */
 interface Tunnel {
   id: string;
   name: string;
-  provider: "frpc";
+  provider: TunnelProvider;
   autoStart: boolean;
   sortOrder: number;
   createdAt: string;
@@ -13,6 +15,9 @@ interface Tunnel {
 
 /** tunnel/list：实例列表项（不含任何密钥） */
 interface TunnelSummary extends Tunnel {
+  /** 必填配置是否已填写（frpc 服务端地址 / cloudflared 令牌） */
+  configured: boolean;
+  /** 仅 frpc；cloudflared 实例为空 */
   serverAddr: string;
   serverPort: number;
   proxyTotal: number;
@@ -26,6 +31,17 @@ interface TunnelStatus {
   running: boolean;
   connectionError: string | null;
   lastStartTime: number | null;
+}
+
+/** cloudflared 实例配置（t_frpcd_cloudflared_tunnels），远程管理（令牌）模式 */
+interface CloudflaredSettings {
+  tunnelId: string;
+  cloudflaredVersion: number | null;
+  customCloudflaredPath: string;
+  token: string;
+  protocol: "auto" | "quic" | "http2";
+  edgeIpVersion: "auto" | "4" | "6";
+  logLevel: "debug" | "info" | "warn" | "error";
 }
 
 interface BaseEntity {
@@ -59,6 +75,7 @@ type FrpcVersion = BaseEntity & {
   downloaded: boolean;
   localPath: string;
   size: string;
+  provider: TunnelProvider;
 };
 
 type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {

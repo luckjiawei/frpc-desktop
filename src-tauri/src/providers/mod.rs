@@ -3,6 +3,7 @@
 //! (e.g. cloudflared) means adding a provider here plus its settings table;
 //! process supervision, status events and the tray stay unchanged.
 
+pub mod cloudflared;
 pub mod frpc;
 
 use crate::db::DbManager;
@@ -13,7 +14,8 @@ use std::path::Path;
 pub struct TunnelContext<'a> {
     pub db: &'a DbManager,
     pub tunnel: &'a Tunnel,
-    /// Generated configuration file for this tunnel.
+    /// Generated configuration file for this tunnel (unused by providers
+    /// that take no config file, such as cloudflared in token mode).
     pub config_path: &'a Path,
     /// Log file shown in the logger page for this tunnel.
     pub log_path: &'a Path,
@@ -30,6 +32,7 @@ pub trait TunnelProvider: Sync {
 pub fn provider_for(provider: &str) -> Option<&'static dyn TunnelProvider> {
     match provider {
         crate::db::tunnel_repo::PROVIDER_FRPC => Some(&frpc::FrpcProvider),
+        crate::db::tunnel_repo::PROVIDER_CLOUDFLARED => Some(&cloudflared::CloudflaredProvider),
         _ => None,
     }
 }

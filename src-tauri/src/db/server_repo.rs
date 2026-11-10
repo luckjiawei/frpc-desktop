@@ -1,5 +1,5 @@
 use crate::db::app_config_repo::AppConfigRepository;
-use crate::db::tunnel_repo::{TunnelRepository, DEFAULT_TUNNEL_ID};
+use crate::db::tunnel_repo::{TunnelRepository, DEFAULT_TUNNEL_ID, PROVIDER_FRPC};
 use crate::models::{
     AuthConfig, LogConfig, OpenSourceFrpcDesktopServer, TransportConfig, WebServerConfig,
 };
@@ -105,7 +105,11 @@ impl ServerRepository {
             None => {
                 if tunnel_id == DEFAULT_TUNNEL_ID {
                     TunnelRepository::ensure_default(conn)?;
-                } else if TunnelRepository::find(conn, tunnel_id)?.is_none() {
+                } else if !matches!(
+                    TunnelRepository::find(conn, tunnel_id)?,
+                    Some(t) if t.provider == PROVIDER_FRPC
+                ) {
+                    // Missing, or a tunnel of another provider.
                     return Err(rusqlite::Error::QueryReturnedNoRows);
                 }
                 let mut default_s = Self::create_default_server();
