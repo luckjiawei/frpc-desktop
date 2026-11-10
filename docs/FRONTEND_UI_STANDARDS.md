@@ -24,7 +24,7 @@
 - 应用骨架与导航：`src/layout/`、`src/styles/layout.scss`；
 - 全局主题与章节标题：`src/styles/index.scss`、`src/styles/element.scss`；
 - 状态型主页：`src/views/home/index.vue`；
-- 长表单页面：`src/views/config/index.vue`；
+- 长表单抽屉：`src/views/config/ConfigDrawer.vue`；
 - 卡片/表格双视图和编辑抽屉：`src/views/proxy/index.vue`；
 - 列表、进度与空状态：`src/views/download/index.vue`；
 - 特殊深色内容区：`src/views/logger/LogView.vue`。
@@ -129,6 +129,8 @@
 
 - 所有普通路由页必须复用 `Breadcrumb`，标题和图标来自路由元数据；
 - 页面级主要操作放在 Breadcrumb 右侧插槽，按“筛选/视图切换 → 次要操作 → 主要操作”排列；
+- 标题栏只放标题附属控件（如隧道切换）、次要图标操作和主要操作；搜索、来源/镜像筛选和视图切换放在标题栏下方的 `.page-filter-bar`：搜索在左侧吸收宽度，视图切换用 `ml-auto` 靠右；
+- 标题栏与筛选栏中的 `el-radio-group` 自动呈现为分段控件，纯图标次要操作使用 `class="toolbar-icon-button"`（无边框，悬浮浅底），控件统一 32px 高、8px 圆角；
 - 工具栏允许换行，窗口变窄时不得互相遮挡或溢出；
 - `app-container-breadcrumb` 是默认滚动容器，避免页面内出现多个争抢滚轮的纵向滚动区；
 - 内容区右侧需要为滚动条保留空间时，沿用 `pr-2`；

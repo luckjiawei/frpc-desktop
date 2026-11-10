@@ -51,6 +51,7 @@
 - [x] Fast proxy search with card/list pagination
 - [x] Light, dark, and system appearance
 - [x] Run multiple frpc instances (different frps servers) at the same time
+- [x] Cloudflare Tunnel (cloudflared) instances alongside frpc
 
 ## Development
 
@@ -67,6 +68,14 @@ npm run tauri:build  # build installers for the current platform
 ### Upgrading from 1.x
 
 Version 2.0 is rebuilt on Tauri and upgrades the 1.x Electron app in place. Your server settings, proxies, desktop settings, and downloaded frpc versions are kept automatically; data still stored in the older NeDB format (1.2.6 and earlier) is imported on first launch and the original files are kept as `*.bak`.
+
+### Using Cloudflare Tunnel
+
+1. In the Cloudflare dashboard, go to Zero Trust → Networks → Tunnels, create a tunnel with the "cloudflared" connector, and add its public hostnames there.
+2. In Frpc-Desktop, open Instances → New Instance → Cloudflare Tunnel, then paste the token (or the whole install command shown in the dashboard) into the instance config.
+3. Download cloudflared on the Download page (switch to "Cloudflare Tunnel"), or pick a locally installed binary. If no version is selected, a cloudflared found in `PATH` is used.
+
+The app runs cloudflared with its own minimal config, so your `~/.cloudflared/config.yml` is never used by these instances.
 
 ### Mac shows app is damaged
 

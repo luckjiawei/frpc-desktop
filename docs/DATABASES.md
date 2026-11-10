@@ -217,7 +217,7 @@ flowchart LR
 
 ### 4.6 `t_frpcd_versions`
 
-只保存已经下载并解压到本地的 frpc 版本。远程版本列表来自 GitHub 或内置 JSON，不应全部写入数据库。
+只保存已经下载并解压到本地的 frpc / cloudflared 版本。远程版本列表来自 GitHub 或内置 JSON（cloudflared 无内置列表），不应全部写入数据库。
 
 | 字段 | 类型 | 约束/默认值 | 对应属性 |
 | --- | --- | --- | --- |
@@ -233,6 +233,7 @@ flowchart LR
 | `downloaded` | INTEGER | NOT NULL DEFAULT 1；布尔检查 | `downloaded` |
 | `local_path` | TEXT | NULL | `localPath` |
 | `size` | TEXT | NOT NULL DEFAULT `''` | `size` |
+| `provider` | TEXT | NOT NULL DEFAULT `'frpc'`；CHECK `frpc`/`cloudflared`（迁移 005） | `provider` |
 
 `size` 保持 `TEXT` 是为了兼容当前 `FileUtils.formatBytes` 生成的展示字符串。若未来需要按字节排序，应新增 `size_bytes INTEGER`，而不是改变现有字段语义。
 
@@ -421,12 +422,12 @@ flowchart LR
 
 ## 11. 迁移 004：多隧道实例
 
-迁移 004（`004_multi_tunnel.sql`）引入与具体工具无关的“隧道实例”，frpc 是第一种 provider，后续 cloudflared 等工具以新 provider + 独立明细表的方式接入：
+迁移 004（`004_multi_tunnel.sql`）引入与具体工具无关的“隧道实例”，frpc 是第一种 provider，其他工具以新 provider + 独立明细表的方式接入（cloudflared 见第 12 节）：
 
 ```text
 t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
  ├── provider = frpc        → t_frpcd_servers（id 相同）→ t_frpcd_proxies（server_id）
- └── provider = cloudflared → 未来新增独立明细表
+ └── provider = cloudflared → t_frpcd_cloudflared_tunnels（id 相同，迁移 005）
 ```
 
 ### 11.1 `t_frpcd_tunnels`
@@ -461,3 +462,37 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 
 - 迁移后降级到 1.2.7 / 2.0.0：旧版本按 `id = '1'` 读写 server，默认实例仍然可用；但旧版本的代理查询不按 `server_id` 过滤，会把其他实例的代理一起显示并写入同一份 frpc 配置。降级前应删除额外实例。
 
+## 12. 迁移 005：Cloudflare Tunnel（cloudflared）
+
+迁移 005（`005_cloudflared_tunnel.sql`）增加第二种 provider `cloudflared`，与 004 一样由 `DbManager::run_table_rebuild_migration` 在关闭外键的单个事务中执行：
+
+1. 按 12 步流程重建 `t_frpcd_tunnels`，把 `provider` CHECK 放宽为 `('frpc', 'cloudflared')`，复制全部行后改名并重建 `idx_t_frpcd_tunnels_sort`；`t_frpcd_servers` 按表名引用，改名后自动指向新表；
+2. 新建明细表 `t_frpcd_cloudflared_tunnels`；
+3. `t_frpcd_versions` 通过 `ALTER TABLE ADD COLUMN` 增加 `provider`，已有行默认为 `frpc`。
+
+### 12.1 `t_frpcd_cloudflared_tunnels`
+
+只支持远程管理（令牌）模式：公共主机名、ingress 等路由在 Cloudflare 控制台配置，本地只保存连接器令牌和传输参数。
+
+| 字段 | 类型 | 约束/默认值 | 对应属性 |
+| --- | --- | --- | --- |
+| `id` | TEXT | PRIMARY KEY；外键 `t_frpcd_tunnels.id`，`ON DELETE CASCADE` | `tunnelId` |
+| `cloudflared_version` | INTEGER | NULL；`t_frpcd_versions.github_release_id`（`provider = 'cloudflared'`） | `cloudflaredVersion` |
+| `custom_cloudflared_path` | TEXT | NOT NULL DEFAULT `''`；非空时优先于 `cloudflared_version` | `customCloudflaredPath` |
+| `token` | TEXT | NOT NULL DEFAULT `''`；应用层只接受 32–4096 位 base64/base64url 字符 | `token` |
+| `protocol` | TEXT | NOT NULL DEFAULT `'auto'`；CHECK `auto`/`quic`/`http2` | `protocol` |
+| `edge_ip_version` | TEXT | NOT NULL DEFAULT `'auto'`；CHECK `auto`/`4`/`6` | `edgeIpVersion` |
+| `log_level` | TEXT | NOT NULL DEFAULT `'info'`；CHECK `debug`/`info`/`warn`/`error` | `logLevel` |
+
+### 12.2 运行规则
+
+- `TunnelRepository::create` 为 cloudflared 实例同时创建默认明细行；`ServerRepository::get_server_config` 不会为非 frpc 实例补建 `t_frpcd_servers` 行；
+- `token` 与 frpc 的 `auth.token` 一样以明文保存（运行时需要原值），不得写入日志；启动时通过环境变量 `TUNNEL_TOKEN` 传给进程，不出现在命令行参数中；
+- 二进制解析顺序：`custom_cloudflared_path` → `cloudflared_version` 对应的下载目录 → PATH 与常见安装目录自动检测；
+- 下载的 cloudflared 保存在 `versions/cloudflared/<md5(版本名)>/cloudflared[.exe]`，与 frpc 版本目录分开；
+- 实例文件：`config/tunnels/<id>/cloudflared.yml`（每次启动重写的隔离配置，见 `docs/MULTI_TUNNEL.md`）和 `log/tunnels/<id>/cloudflared.log`，删除实例时一并删除；
+- “重置全部配置”删除所有非默认实例，cloudflared 明细行随之级联删除。
+
+### 12.3 回退兼容
+
+- 迁移后降级到不认识 005 的版本：旧版本不读取 cloudflared 明细表和 `t_frpcd_versions.provider`，frpc 数据不受影响；但实例列表会出现 provider 为 `cloudflared` 的行，旧版本按 frpc 处理会为其补建 `t_frpcd_servers` 行。降级前应删除 Cloudflare Tunnel 实例。
