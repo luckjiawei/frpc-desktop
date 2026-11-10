@@ -138,8 +138,12 @@ impl RuntimeManager {
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
 
-        let mut child = cmd.spawn()?;
+        let mut child = cmd.spawn().map_err(|e| {
+            log::error!("tunnel {} ({}) failed to spawn: {}", tunnel_id, provider, e);
+            e
+        })?;
         let pid = child.id().unwrap_or(0);
+        log::info!("tunnel {} ({}) started, pid {}", tunnel_id, provider, pid);
 
         let generation = instances.get(tunnel_id).map_or(0, |s| s.generation) + 1;
         let state = InstanceState {
@@ -265,6 +269,7 @@ impl RuntimeManager {
             (pid, state.to_status(tunnel_id))
         };
         if let Some(pid) = pid {
+            log::info!("tunnel {} stopping, pid {}", tunnel_id, pid);
             let _ = tokio::task::spawn_blocking(move || Self::kill_process_tree(pid)).await;
         }
         let _ = app.emit(TUNNEL_STATUS_CHANNEL, ApiResponse::success(status));

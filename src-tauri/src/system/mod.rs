@@ -1,4 +1,5 @@
 pub mod detector;
+pub mod logger;
 pub use detector::{DetectFrpcResult, FrpcDetector};
 
 use crate::models::{ApiResponse, SystemMemoryUsage, SystemUsage};

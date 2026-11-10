@@ -53,9 +53,12 @@ pub fn run() {
             let _ = fs::create_dir_all(&config_dir);
             let _ = fs::create_dir_all(&log_dir);
 
+            let app_log_path = log_dir.join("main.log");
+            system::logger::init(&app_log_path);
+            log::info!("Frpc-Desktop v{} starting", env!("CARGO_PKG_VERSION"));
+
             let db = DbManager::init(&db_dir)?;
             let version_mgr = VersionManager::new(&base_dir);
-            let app_log_path = log_dir.join("main.log");
 
             let app_state = AppState {
                 db,
@@ -198,7 +201,7 @@ pub fn run() {
                         let state = app_handle.state::<AppState>();
                         for result in state.launch_all(&app_handle, true).await {
                             if let Err((id, code, msg)) = result {
-                                eprintln!(
+                                log::warn!(
                                     "Auto connect tunnel {} on startup failed: [{}]: {}",
                                     id, code, msg
                                 );
