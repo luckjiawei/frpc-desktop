@@ -1,5 +1,6 @@
 import i18n from "@/lang";
 import { on, send } from "@/utils/ipcUtils";
+import { isNewerVersion } from "@/utils/version";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
 import { ipcRouters } from "@/core/IpcRouter";
@@ -38,16 +39,13 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         }
         // tagName相对固定
         const tagName = this.lastRelease["tag_name"];
-        let lastReleaseVersion = true;
         if (!tagName) {
           return;
         }
         // 最后版本号
         const lastVersion = (tagName || "").replace("v", "").toString();
         const currVersion = pkg.version;
-        lastReleaseVersion = currVersion >= lastVersion;
-        // return false;
-        if (!lastReleaseVersion) {
+        if (isNewerVersion(lastVersion, currVersion)) {
           let content = this.lastRelease.body;
           content = content.replaceAll("\n", "<br/>");
           ElMessageBox.alert(

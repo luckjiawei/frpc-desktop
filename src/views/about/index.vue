@@ -3,6 +3,7 @@ import gitcodeIcon from "@/assets/GitCode.svg";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
 import { send } from "@/utils/ipcUtils";
+import { isNewerVersion } from "@/utils/version";
 import { Icon } from "@iconify/vue";
 import { computed, defineComponent, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
@@ -26,8 +27,7 @@ const isLastVersion = computed(() => {
   }
   // 最后版本号
   const lastVersion = (tagName || "").replace("v", "").toString();
-  const currVersion = pkg.version;
-  return currVersion >= lastVersion;
+  return !isNewerVersion(lastVersion, pkg.version);
 });
 
 /**
