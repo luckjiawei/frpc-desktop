@@ -62,7 +62,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
+        include:
+          - os: ubuntu-latest
+          - os: windows-2022
+          - os: macos-latest
+            args: "--target universal-apple-darwin"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,6 +79,10 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Intel macOS target
+        if: matrix.os == 'macos-latest'
+        run: rustup target add x86_64-apple-darwin
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -90,7 +98,7 @@ jobs:
         timeout-minutes: 15
 
       - name: Build Tauri
-        run: npm run tauri:build
+        run: npm run tauri:build -- ${{ matrix.args }}
 
   # tag：先创建 Release，再并发打包上传
   release:
@@ -99,7 +107,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
+        include:
+          - os: ubuntu-latest
+          - os: windows-2022
+          - os: macos-latest
+            args: "--target universal-apple-darwin"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,6 +124,10 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Intel macOS target
+        if: matrix.os == 'macos-latest'
+        run: rustup target add x86_64-apple-darwin
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -135,3 +151,4 @@ jobs:
           releaseName: ${{ github.ref_name }}
           releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}

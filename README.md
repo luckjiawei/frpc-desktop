@@ -109,7 +109,6 @@ Run command: `sudo xattr -cr Frpc-Desktop.app`
 ## Milestones
 
 - 2026-11-11: Released v2.0.0 Rebuilt on Tauri 2, multiple instances, Cloudflare Tunnel, dashboard and dark mode
-- 2026-09-30: Released v1.2.8 Migrated the app to Tauri 2
 - 2026-09-04: Released v1.2.7 SQLite storage, pagination and performance improvements
 - 2026-05-21: Released v1.2.6 Added download proxy selection
 - 2026-03-26: Released v1.2.5 Fixed known bugs
