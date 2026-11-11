@@ -52,12 +52,14 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
           content = content.replaceAll("\n", "<br/>");
           ElMessageBox.alert(
             content,
-            `🎉 发现新版本 ${this.lastRelease.name}`,
+            i18n.global.t("about.update.newVersion", {
+              version: this.lastRelease.name
+            }),
             {
               showCancelButton: true,
-              cancelButtonText: "关闭",
+              cancelButtonText: i18n.global.t("common.close"),
               dangerouslyUseHTMLString: true,
-              confirmButtonText: "去下载"
+              confirmButtonText: i18n.global.t("about.update.download")
             }
           ).then(() => {
             send(ipcRouters.SYSTEM.openUrl, {
@@ -67,7 +69,7 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         } else {
           if (manual) {
             ElMessage({
-              message: "当前已是最新版本",
+              message: i18n.global.t("about.tips.latestVersion"),
               type: "success"
             });
           }

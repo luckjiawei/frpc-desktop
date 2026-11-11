@@ -397,6 +397,7 @@ async fn handle_ipc_send(
                     } else {
                         let _ = app.autolaunch().disable();
                     }
+                    let _ = crate::refresh_tray_menu(app, &config.language);
                     ApiResponse::success(serde_json::to_value(&config).unwrap_or(Value::Null))
                 }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
@@ -421,7 +422,10 @@ async fn handle_ipc_send(
             };
             let conn = state.db.conn();
             match AppConfigRepository::save_language(&conn, &lang) {
-                Ok(()) => ApiResponse::success_empty(),
+                Ok(()) => {
+                    let _ = crate::refresh_tray_menu(app, &lang);
+                    ApiResponse::success_empty()
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }

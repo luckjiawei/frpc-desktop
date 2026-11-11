@@ -33,6 +33,23 @@ export default {
     collapseMenu: "Collapse sidebar",
     expandMenu: "Expand sidebar",
     about: "About Frpc Desktop",
+    guide: {
+      home: "The dashboard summarizes the running state, proxy count and connection errors of every instance.",
+      tunnel:
+        "Manage frpc instances here: create, start or disconnect, open an instance's config, or view its logs.",
+      proxy:
+        "Configure and manage proxies here. Adding, editing and deleting proxies can all be done on this page.",
+      download: "Download the latest frp versions from here.",
+      system:
+        "Global options such as launch at startup, silent startup, auto connect and language live here.",
+      logger:
+        "Application logs live here; each instance's frpc log is on the instance page.",
+      version:
+        "See the installed Frpc-Desktop version and check for updates here.",
+      next: "Next",
+      prev: "Previous",
+      done: "🎉 Get Started"
+    },
     theme: {
       title: "Appearance",
       light: "Light",
@@ -278,6 +295,12 @@ export default {
         architectureNotMatch:
           "The selected frp architecture does not match the operating system",
         unrecognizedFile: "Unable to recognize the file"
+      },
+      importTip: {
+        title: "Import Prompt",
+        message:
+          'Only frp versions above <span class="font-bold text-primary">v0.52.0</span> and up to <span class="font-bold text-primary">v0.68.0</span> can be imported.<div class="font-bold text-primary">Do not unzip the file before importing!</div>',
+        confirm: "Got it"
       }
     },
     version: {
@@ -327,6 +350,13 @@ export default {
       "FRP cross-platform desktop client, visual configuration, easy to implement intranet penetration!",
     version: {
       latest: "Latest Version"
+    },
+    tips: {
+      latestVersion: "You are on the latest version"
+    },
+    update: {
+      newVersion: "🎉 New version {version}",
+      download: "Download"
     }
   },
   config: {
@@ -762,6 +792,8 @@ export default {
     message: {
       copySuccess: "Copy successfully",
       copyFailed: "Copy failed",
+      portCountMismatch:
+        "Make sure the number of local ports matches the number of remote ports",
       createSuccess: "Create successfully",
       modifySuccess: "Modify successfully"
     }

@@ -4,10 +4,6 @@ import "intro.js/introjs.css";
 const intro = introJs.tour();
 // 更多配置参数请到官方文档查看
 intro.setOptions({
-  nextLabel: "下一个", // 下一个按钮文字
-  prevLabel: "上一个", // 上一个按钮文字
-  // skipLabel: '跳过',    // 跳过按钮文字
-  doneLabel: "🎉 立即体验", // 完成按钮文字
   autoPosition: false,
   tooltipPosition: "right",
   exitOnOverlayClick: false

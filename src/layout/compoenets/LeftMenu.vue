@@ -39,39 +39,36 @@ const currentThemeOption = computed(
   () => themeOptions.find(o => o.mode === themeStore.mode) ?? themeOptions[2]
 );
 const routes = ref<Array<RouteRecordRaw>>([]);
-const guideSteps = ref({
+const guideSteps = computed(() => ({
   Home: {
     step: "1",
-    intro: "仪表盘汇总了所有实例的运行状态、代理数量和连接异常。"
+    intro: t("layout.guide.home")
   },
   Tunnel: {
     step: "2",
-    intro:
-      "在这里管理 frpc 实例：新建、启动或断开连接，进入实例的配置，或查看实例日志。"
+    intro: t("layout.guide.tunnel")
   },
   Proxy: {
     step: "3",
-    intro:
-      "在这里，您可以方便地配置和管理代理设置。无论是添加、修改还是删除代理，您都可以轻松完成。"
+    intro: t("layout.guide.proxy")
   },
   Download: {
     step: "4",
-    intro: "通过此功能，您可以快速下载最新版本的frp。"
+    intro: t("layout.guide.download")
   },
   System: {
     step: "5",
-    intro: "在这里设置开机自启、静默启动、启动时自动连接和语言等全局选项。"
+    intro: t("layout.guide.system")
   },
   Logger: {
     step: "6",
-    intro: "在这里查看应用日志；各实例的 frpc 日志可在实例页面中查看。"
+    intro: t("layout.guide.logger")
   },
   Version: {
     step: "7",
-    intro:
-      "通过此功能，您可以查看当前安装的Frpc-Desktop版本，并检查是否有可用更新。"
+    intro: t("layout.guide.version")
   }
-});
+}));
 const currentRoute = computed(() => {
   return router.currentRoute.value;
 });
@@ -134,7 +131,13 @@ onMounted(() => {
         return;
       }
       // 开始
-      Intro.onBeforeExit(handleCompleteGuide).start();
+      Intro.setOptions({
+        nextLabel: t("layout.guide.next"),
+        prevLabel: t("layout.guide.prev"),
+        doneLabel: t("layout.guide.done")
+      })
+        .onBeforeExit(handleCompleteGuide)
+        .start();
     }
   );
   send(ipcRouters.SYSTEM.getGuideStatus);

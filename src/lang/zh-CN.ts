@@ -32,6 +32,21 @@ export default {
     collapseMenu: "收起侧栏",
     expandMenu: "展开侧栏",
     about: "关于 Frpc Desktop",
+    guide: {
+      home: "仪表盘汇总了所有实例的运行状态、代理数量和连接异常。",
+      tunnel:
+        "在这里管理 frpc 实例：新建、启动或断开连接，进入实例的配置，或查看实例日志。",
+      proxy:
+        "在这里，您可以方便地配置和管理代理设置。无论是添加、修改还是删除代理，您都可以轻松完成。",
+      download: "通过此功能，您可以快速下载最新版本的frp。",
+      system: "在这里设置开机自启、静默启动、启动时自动连接和语言等全局选项。",
+      logger: "在这里查看应用日志；各实例的 frpc 日志可在实例页面中查看。",
+      version:
+        "通过此功能，您可以查看当前安装的Frpc-Desktop版本，并检查是否有可用更新。",
+      next: "下一个",
+      prev: "上一个",
+      done: "🎉 立即体验"
+    },
     theme: {
       title: "外观",
       light: "浅色",
@@ -267,6 +282,12 @@ export default {
         versionExists: "版本已存在",
         architectureNotMatch: "所选 frp 架构与操作系统不符",
         unrecognizedFile: "无法识别文件"
+      },
+      importTip: {
+        title: "导入提示",
+        message:
+          '仅支持导入 <span class="font-bold text-primary">v0.52.0</span> 以上、<span class="font-bold text-primary">v0.68.0</span> 及以下的版本。<div class="font-bold text-primary">导入文件不要解压！！！</div>',
+        confirm: "知道了"
       }
     },
     version: {
@@ -317,6 +338,10 @@ export default {
     },
     tips: {
       latestVersion: "当前已是最新版本"
+    },
+    update: {
+      newVersion: "🎉 发现新版本 {version}",
+      download: "去下载"
     }
   },
   config: {
@@ -595,7 +620,8 @@ export default {
     createTitle: "添加代理",
     message: {
       copySuccess: "复制成功",
-      copyFailed: "复制失败"
+      copyFailed: "复制失败",
+      portCountMismatch: "请确保内网端口和外网端口数量一致"
     },
     dialog: {
       listPorts: {

@@ -429,7 +429,7 @@ const handleSubmit = async () => {
         if (lc !== rc) {
           ElMessage({
             type: "warning",
-            message: "请确保内网端口和外网端口数量一致"
+            message: t("proxy.message.portCountMismatch")
           });
           return;
         }

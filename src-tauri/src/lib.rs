@@ -18,6 +18,29 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Manager;
 
+/// Tray menu labels follow the language saved in the app config.
+fn tray_labels(language: &str) -> (&'static str, &'static str, &'static str, &'static str) {
+    if language == "zh-CN" {
+        ("显示主窗口", "全部启动", "全部停止", "退出")
+    } else {
+        ("Show Window", "Start All", "Stop All", "Quit")
+    }
+}
+
+/// Rebuild the tray menu so its labels match `language`.
+pub fn refresh_tray_menu(app: &tauri::AppHandle, language: &str) -> tauri::Result<()> {
+    let (show, start_all, stop_all, quit) = tray_labels(language);
+    let show_i = MenuItem::with_id(app, "show", show, true, None::<&str>)?;
+    let start_all_i = MenuItem::with_id(app, "startAll", start_all, true, None::<&str>)?;
+    let stop_all_i = MenuItem::with_id(app, "stopAll", stop_all, true, None::<&str>)?;
+    let quit_i = MenuItem::with_id(app, "quit", quit, true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_i, &start_all_i, &stop_all_i, &quit_i])?;
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(menu))?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -75,14 +98,22 @@ pub fn run() {
             // Start background system usage poller
             SystemService::start_usage_poller(app.handle().clone());
 
-            // Build Tray
-            let show_i = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
-            let start_all_i = MenuItem::with_id(app, "startAll", "全部启动", true, None::<&str>)?;
-            let stop_all_i = MenuItem::with_id(app, "stopAll", "全部停止", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            // Build Tray: labels follow the language saved in the app config
+            let language = {
+                let state = app.state::<AppState>();
+                let conn = state.db.conn();
+                db::app_config_repo::AppConfigRepository::get_system_config(&conn)
+                    .map(|config| config.language)
+                    .unwrap_or_else(|_| "en-US".to_string())
+            };
+            let (show, start_all, stop_all, quit) = tray_labels(&language);
+            let show_i = MenuItem::with_id(app, "show", show, true, None::<&str>)?;
+            let start_all_i = MenuItem::with_id(app, "startAll", start_all, true, None::<&str>)?;
+            let stop_all_i = MenuItem::with_id(app, "stopAll", stop_all, true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", quit, true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &start_all_i, &stop_all_i, &quit_i])?;
 
-            let tray_builder = TrayIconBuilder::new()
+            let tray_builder = TrayIconBuilder::with_id("main")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
