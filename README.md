@@ -2,6 +2,7 @@
 
 <!-- PROJECT SHIELDS -->
 [![Downloads][downloads-shield]][downloads-url]
+[![Release][release-shield]][releases-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
@@ -19,7 +20,7 @@
   <p align="center">
     🎉 Cross-platform desktop client for FRP, visual configuration, easily achieve intranet penetration!
     <br />
-    Support all frp versions / Auto-start / Visual configuration / Free and open source
+    All frp versions / Multiple instances / Cloudflare Tunnel / Light &amp; dark theme / Free and open source
   </p>
 
   <p>🎊 <strong>10,000+ Downloads Milestone!</strong> Thank you for your support!</p>
@@ -32,6 +33,28 @@
 
 > 💡 If you prefer a **web UI**, try [Podux](https://github.com/luckjiawei/podux) —
 > the browser-based frpc manager from the same author.
+
+## Download
+
+Get the latest installer from [Releases](https://github.com/luckjiawei/frpc-desktop/releases/latest):
+
+| Platform | Packages |
+| --- | --- |
+| Windows | `.msi` and `.exe` installers |
+| macOS | `.dmg` (Apple Silicon and Intel) |
+| Linux | `.AppImage`, `.deb`, `.rpm` |
+
+> 2.0 is a full rebuild on Tauri 2 — installers are much smaller than the 1.x Electron builds.
+
+## What's New in 2.0
+
+- **Rebuilt on Tauri 2** — smaller downloads and lower memory usage than the Electron version.
+- **Multiple instances** — run several frpc tunnels to different frps servers at the same time.
+- **Cloudflare Tunnel** — manage cloudflared instances next to your frpc instances.
+- **New dashboard** — a read-only overview of running instances, proxies, connection errors, and bulk start/stop.
+- **Refreshed UI** — light, dark, and system themes, collapsible sidebar, and copyable addresses.
+- **Drawer configuration** — edit each instance's config and view its logs in a side drawer without leaving the page.
+- **SQLite storage** — automatic, backup-safe import of existing 1.x data.
 
 ## TODO
 
@@ -69,6 +92,8 @@ npm run tauri:build  # build installers for the current platform
 
 Version 2.0 is rebuilt on Tauri and upgrades the 1.x Electron app in place. Your server settings, proxies, desktop settings, and downloaded frpc versions are kept automatically; data still stored in the older NeDB format (1.2.6 and earlier) is imported on first launch and the original files are kept as `*.bak`.
 
+Multi-instance support migrates your existing single server into a default instance (`id = "1"`) that cannot be deleted. All existing proxies belong to it, so nothing changes unless you create additional instances.
+
 ### Using Cloudflare Tunnel
 
 1. In the Cloudflare dashboard, go to Zero Trust → Networks → Tunnels, create a tunnel with the "cloudflared" connector, and add its public hostnames there.
@@ -83,6 +108,9 @@ Run command: `sudo xattr -cr Frpc-Desktop.app`
 
 ## Milestones
 
+- 2026-11-11: Released v2.0.0 Rebuilt on Tauri 2, multiple instances, Cloudflare Tunnel, dashboard and dark mode
+- 2026-09-30: Released v1.2.8 Migrated the app to Tauri 2
+- 2026-09-04: Released v1.2.7 SQLite storage, pagination and performance improvements
 - 2026-05-21: Released v1.2.6 Added download proxy selection
 - 2026-03-26: Released v1.2.5 Fixed known bugs
 - 2025-09-10: Released v1.2.3 Fixed known bugs, Supports proxy protocol, Optimize performance
@@ -159,6 +187,10 @@ No advertisements allowed!!!
 [downloads-shield]: https://img.shields.io/github/downloads/luckjiawei/frpc-desktop/total.svg?style=for-the-badge
 
 [downloads-url]: https://github.com/luckjiawei/frpc-desktop/releases
+
+[release-shield]: https://img.shields.io/github/v/release/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
+[releases-url]: https://github.com/luckjiawei/frpc-desktop/releases
 
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 

@@ -2,6 +2,7 @@
 
 <!-- PROJECT SHIELDS -->
 [![Downloads][downloads-shield]][downloads-url]
+[![Release][release-shield]][releases-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
@@ -19,12 +20,12 @@
   <p align="center">
     🎉 FRP跨平台桌面客户端，可视化配置，轻松实现内网穿透！
     <br />
-    支持所有frp版本 / 开机自启 / 可视化配置 / 免费开源
+    支持所有frp版本 / 多实例并发 / Cloudflare Tunnel / 浅色与深色主题 / 免费开源
   </p>
 
   <p>🎊 <strong>下载量突破 10,000！感谢大家的支持！</strong></p>
 
-  <p><a href="https://jwinks.com/p/frp/">📖 文档</a> &nbsp; <a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a></p>
+  <p><a href="https://jwinks.com/p/frp/">📖 文档</a> &nbsp; <a href="https://jwinks.com/p/frpc-desktop-faq/">常见问题</a> &nbsp; <a href="README.md">English</a></p>
 
 <a href="https://trendshift.io/repositories/12489" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12489" alt="luckjiawei%2Ffrpc-desktop | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://hellogithub.com/repository/b0dc116e9f2e4b8188da5a6d3e1bd8a4" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=b0dc116e9f2e4b8188da5a6d3e1bd8a4&claim_uid=8ZMOhz30mGJAHpa" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
@@ -32,6 +33,28 @@
 
 > 💡 如果你更喜欢 **Web 界面**，试试 [Podux](https://github.com/luckjiawei/podux) —
 > 基于浏览器的 frpc 可视化管理工具。
+
+## 下载
+
+前往 [Releases](https://github.com/luckjiawei/frpc-desktop/releases/latest) 下载最新安装包：
+
+| 平台 | 安装包 |
+| --- | --- |
+| Windows | `.msi` 与 `.exe` 安装包 |
+| macOS | `.dmg`（支持 Apple Silicon 与 Intel） |
+| Linux | `.AppImage`、`.deb`、`.rpm` |
+
+> 2.0 基于 Tauri 2 全面重构，安装包体积比 1.x 的 Electron 版本小很多。
+
+## 2.0 新特性
+
+- **基于 Tauri 2 重构**：安装包更小，内存占用更低。
+- **多实例**：可同时运行多个 frpc 实例，连接不同的 frps 服务端。
+- **Cloudflare Tunnel**：与 frpc 实例一起管理 cloudflared 实例。
+- **全新仪表盘**：只读展示运行中实例、代理数量、连接异常，并支持一键全部启动/停止。
+- **界面焕新**：浅色、深色和跟随系统主题，侧边栏可收起，地址可一键复制。
+- **抽屉式配置**：在实例页以右侧抽屉编辑配置、查看日志，无需跳转页面。
+- **SQLite 存储**：自动安全导入 1.x 的现有数据。
 
 ## TODO
 
@@ -70,6 +93,8 @@ npm run tauri:build  # 为当前平台构建安装包
 
 2.0 版本基于 Tauri 重构，可直接覆盖升级 1.x 的 Electron 版本。服务器配置、代理、系统设置和已下载的 frpc 版本会自动保留；仍为旧 NeDB 格式的数据（1.2.6 及更早版本）会在首次启动时导入，原文件以 `*.bak` 保留。
 
+启用多实例后，原有的单个服务端会迁移为默认实例（`id = "1"`），且不可删除。现有代理都归属于该实例，不新建实例时使用方式与之前完全一致。
+
 ### 使用 Cloudflare Tunnel
 
 1. 在 Cloudflare 控制台进入 Zero Trust → 网络 → 隧道，创建连接器为 cloudflared 的隧道，并在控制台中添加公共主机名。
@@ -80,6 +105,9 @@ npm run tauri:build  # 为当前平台构建安装包
 
 ## 里程碑
 
+- 2026-11-11: 发布v2.0.0版本 基于 Tauri 2 重构，支持多实例、Cloudflare Tunnel、仪表盘和深色主题
+- 2026-09-30: 发布v1.2.8版本 迁移至 Tauri 2
+- 2026-09-04: 发布v1.2.7版本 迁移至 SQLite 存储，增加分页，优化性能
 - 2026-05-21: 发布v1.2.6版本 增加下载代理选择
 - 2026-03-26: 发布v1.2.5版本 修复已知BUG
 - 2025-09-10: 发布v1.2.3版本 修复已知BUG，支持代理协议，优化性能
@@ -155,6 +183,10 @@ npm run tauri:build  # 为当前平台构建安装包
 [downloads-shield]: https://img.shields.io/github/downloads/luckjiawei/frpc-desktop/total.svg?style=for-the-badge
 
 [downloads-url]: https://github.com/luckjiawei/frpc-desktop/releases
+
+[release-shield]: https://img.shields.io/github/v/release/luckjiawei/frpc-desktop.svg?style=for-the-badge
+
+[releases-url]: https://github.com/luckjiawei/frpc-desktop/releases
 
 [forks-shield]: https://img.shields.io/github/forks/luckjiawei/frpc-desktop.svg?style=for-the-badge
 
