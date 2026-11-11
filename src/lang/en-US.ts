@@ -1,7 +1,8 @@
 export default {
   app: {
     title: "Frpc Desktop",
-    description: "开机自启 / 可视化配置 / 免费开源，提供便捷的使用体验。"
+    description:
+      "Auto start on boot / Visual configuration / Free and open source, for a better experience."
   },
   router: {
     home: {
@@ -240,7 +241,7 @@ export default {
     }
   },
   comingSoon: {
-    description: "敬请期待"
+    description: "Coming soon"
   },
   download: {
     button: {
@@ -365,7 +366,8 @@ export default {
       },
       user: {
         label: "User",
-        requireMessage: "Please enter user"
+        requireMessage: "Please enter user",
+        placeholder: "Please enter user"
       },
       multiuser: {
         label: "Multi-user",
@@ -373,7 +375,8 @@ export default {
       },
       metadatasToken: {
         label: "User Token",
-        requireMessage: "Please enter user token"
+        requireMessage: "Please enter user token",
+        placeholder: "Please enter user token"
       },
       authMethod: {
         label: "Auth Method",
@@ -616,6 +619,9 @@ export default {
           label: "Proxy Type",
           requireMessage: "Please select proxy type"
         },
+        visitorsModel: {
+          requireMessage: "Please select a mode"
+        },
         name: {
           label: "Proxy Name",
           requireMessage: "Please enter proxy name",
@@ -628,11 +634,13 @@ export default {
         },
         localPort: {
           label: "Local Port",
-          requireMessage: "Please enter local port"
+          requireMessage: "Please enter local port",
+          patternMessage: "Please enter a valid local port"
         },
         remotePort: {
           label: "Remote Port",
-          requireMessage: "Please enter remote port"
+          requireMessage: "Please enter remote port",
+          patternMessage: "Please enter a valid remote port"
         },
         subdomain: {
           label: "Subdomain",
@@ -663,6 +671,7 @@ export default {
         bindPort: {
           label: "Bind Port",
           requireMessage: "Please enter bind port",
+          patternMessage: "Please enter a valid bind port",
           description: "Bind the service of the visitor to which port"
         },
         transportUseEncryption: {
@@ -684,6 +693,7 @@ export default {
         bindAddr: {
           label: "Bind Address",
           requireMessage: "Please enter bind address",
+          patternMessage: "Please enter a valid bind address",
           description:
             "To bind the service of the visitor to which <span class='font-black text-[#5A3DAA]'>IP</span> <br /> Only local access: <span class='font-black text-[#5A3DAA]'>127.0.0.1</span> <br /> Support LAN other devices access: <span class='font-black text-[#5A3DAA]'>0.0.0.0</span>"
         },
@@ -740,7 +750,7 @@ export default {
           label: "Fallback Timeout Ms",
           requireMessage: "Please enter fallback timeout ms",
           description:
-            "xtcp hole punching time exceeds this time will fall back to using stcp-visitor to establish a connection 单位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
+            "xtcp hole punching time exceeds this time will fall back to using stcp-visitor to establish a connection. Unit: <span class='font-black text-[#5A3DAA]'>ms</span>"
         },
         locations: {
           label: "URL Path",
@@ -773,6 +783,7 @@ export default {
     frpParameter: "Frp Parameter",
     operation: "Operation",
     select: "Select",
+    clear: "Clear",
     deleteSuccess: "Delete successfully",
     modifySuccess: "Modify successfully",
     createSuccess: "Create successfully"

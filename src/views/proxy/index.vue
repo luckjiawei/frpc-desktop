@@ -155,7 +155,7 @@ const editFormRules = reactive<FormRules>({
   type: [
     {
       required: true,
-      message: t("proxy.form.formItem.type.requireMessage"),
+      message: t("proxy.form.formItem.proxyType.requireMessage"),
       trigger: "blur"
     }
   ],
@@ -198,9 +198,7 @@ const editFormRules = reactive<FormRules>({
   visitorsModel: [
     {
       required: true,
-      message: t("proxy.form.formItem.visitorsModel.requireMessage", {
-        mode: editForm.value.type
-      }),
+      message: t("proxy.form.formItem.visitorsModel.requireMessage"),
       trigger: "blur"
     }
   ],

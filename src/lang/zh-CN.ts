@@ -571,9 +571,11 @@ export default {
     selectMode: "请选择{mode}模式",
     operation: "操作",
     select: "选择",
+    clear: "清除",
     frpParameter: "frp参数",
     deleteSuccess: "删除成功",
-    modifySuccess: "修改成功"
+    modifySuccess: "修改成功",
+    createSuccess: "创建成功"
   },
   proxy: {
     inner: "内网",
@@ -630,6 +632,9 @@ export default {
         proxyType: {
           label: "代理类型",
           requireMessage: "请选择代理类型"
+        },
+        visitorsModel: {
+          requireMessage: "请选择模式"
         },
         name: {
           label: "代理名称",

@@ -208,26 +208,26 @@ const rules = reactive<FormRules>({
   "transport.proxyURL": [
     {
       required: false,
-      message: t("config.form.proxyURL.requireMessage"),
+      message: t("config.form.transportProxyURL.requireMessage"),
       trigger: "change"
     },
     {
       pattern: /^https?\:\/\/(\w+:\w+@)?([a-zA-Z0-9.-]+)(:\d+)?$/,
-      message: t("config.form.proxyURL.patternMessage"),
+      message: t("config.form.transportProxyURL.patternMessage"),
       trigger: "blur"
     }
   ],
   "transport.heartbeatInterval": [
     {
       required: true,
-      message: t("config.form.heartbeatInterval.requireMessage"),
+      message: t("config.form.transportHeartbeatInterval.requireMessage"),
       trigger: "change"
     }
   ],
   "transport.heartbeatTimeout": [
     {
       required: true,
-      message: t("config.form.heartbeatTimeout.requireMessage"),
+      message: t("config.form.transportHeartbeatTimeout.requireMessage"),
       trigger: "change"
     }
   ],
@@ -237,7 +237,7 @@ const rules = reactive<FormRules>({
   "webServer.port": [
     {
       required: true,
-      message: t("config.form.webPort.requireMessage"),
+      message: t("config.form.webServerPort.requireMessage"),
       trigger: "change"
     }
   ],
@@ -251,14 +251,14 @@ const rules = reactive<FormRules>({
   "transport.dialServerTimeout": [
     {
       required: true,
-      message: t("config.form.dialServerTimeout.requireMessage"),
+      message: t("config.form.transportDialServerTimeout.requireMessage"),
       trigger: "change"
     }
   ],
   "transport.dialServerKeepalive": [
     {
       required: true,
-      message: t("config.form.dialServerKeepalive.requireMessage"),
+      message: t("config.form.transportDialServerKeepalive.requireMessage"),
       trigger: "change"
     }
   ],
