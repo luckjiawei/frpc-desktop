@@ -103,9 +103,7 @@ impl ServerRepository {
         let mut server = match server_opt {
             Some(s) => s,
             None => {
-                if tunnel_id == DEFAULT_TUNNEL_ID {
-                    TunnelRepository::ensure_default(conn)?;
-                } else if !matches!(
+                if !matches!(
                     TunnelRepository::find(conn, tunnel_id)?,
                     Some(t) if t.provider == PROVIDER_FRPC
                 ) {
@@ -131,9 +129,6 @@ impl ServerRepository {
         conn: &Connection,
         server: &OpenSourceFrpcDesktopServer,
     ) -> Result<()> {
-        if server.id == DEFAULT_TUNNEL_ID {
-            TunnelRepository::ensure_default(conn)?;
-        }
         Self::save_frpc_settings(conn, server)?;
         AppConfigRepository::save_system_config(conn, &server.system)?;
         Ok(())

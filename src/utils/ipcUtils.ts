@@ -5,12 +5,16 @@ import { ElMessage } from "element-plus";
 type HookHandler = (args: ApiResponse<any>) => void;
 const hookHandlers = new Map<string, Set<HookHandler>>();
 
-export const send = (router: IpcRouter, params?: any) => {
-  const channel = `${router.path}:hook`;
-  invoke<ApiResponse<any>>("ipc_send", {
+/** Read a response for this invocation without broadcasting it to route hooks. */
+export const request = <T>(router: IpcRouter, params?: any) =>
+  invoke<ApiResponse<T>>("ipc_send", {
     path: router.path,
     args: params
-  })
+  });
+
+export const send = (router: IpcRouter, params?: any) => {
+  const channel = `${router.path}:hook`;
+  request<any>(router, params)
     .then(args => {
       const handlers = hookHandlers.get(channel);
       if (handlers && handlers.size > 0) {

@@ -30,6 +30,8 @@ export default {
   layout: {
     navigation: "Main navigation",
     memory: "Memory",
+    resourceUsageHint:
+      "Frpc-Desktop and its child processes. CPU: share of total CPU capacity; memory: combined resident memory.",
     collapseMenu: "Collapse sidebar",
     expandMenu: "Expand sidebar",
     about: "About Frpc Desktop",
@@ -142,7 +144,8 @@ export default {
     autoStart: "Auto connect on startup",
     autoStartHint:
       'Also requires "Auto connect on startup" to be enabled in Settings',
-    defaultHint: "The default instance cannot be deleted",
+    empty: "No instances yet. Create an instance to get started.",
+    noFrpc: "Create an frpc instance before adding proxies.",
     log: {
       title: "{name} · Logs"
     },

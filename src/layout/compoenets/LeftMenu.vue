@@ -198,7 +198,7 @@ onUnmounted(() => {
       </el-tooltip>
     </div>
     <div class="menu-footer">
-      <div class="menu-usage">
+      <div class="menu-usage" :title="t('layout.resourceUsageHint')">
         <div class="usage-row">
           <IconifyIconOffline icon="memory-rounded" />
           <span>CPU</span>

@@ -1,46 +1,25 @@
 pub mod detector;
 pub mod logger;
+mod usage;
 pub use detector::{DetectFrpcResult, FrpcDetector};
 
-use crate::models::{ApiResponse, SystemMemoryUsage, SystemUsage};
+use crate::models::ApiResponse;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
-use sysinfo::System;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::Mutex;
+use usage::AppUsageSampler;
 
 pub struct SystemService;
 
 impl SystemService {
     pub fn start_usage_poller(app: AppHandle) {
-        tauri::async_runtime::spawn(async move {
-            let sys = Arc::new(Mutex::new(System::new_all()));
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut sampler = AppUsageSampler::new();
             loop {
-                tokio::time::sleep(Duration::from_secs(3)).await;
-                let mut system = sys.lock().await;
-                system.refresh_cpu_usage();
-                system.refresh_memory();
-
-                let cpu = system.global_cpu_usage();
-                let total_mem = system.total_memory();
-                let used_mem = system.used_memory();
-                let percentage = if total_mem > 0 {
-                    (used_mem as f32 / total_mem as f32) * 100.0
-                } else {
-                    0.0
-                };
-
-                let usage = SystemUsage {
-                    cpu,
-                    memory: SystemMemoryUsage {
-                        used: used_mem / (1024 * 1024), // MB
-                        percentage,
-                    },
-                };
-
+                std::thread::sleep(Duration::from_secs(3));
+                let usage = sampler.sample();
                 let _ = app.emit("system:watchSystemUsage", ApiResponse::success(usage));
             }
         });
