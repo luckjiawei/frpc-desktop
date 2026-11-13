@@ -32,18 +32,19 @@ impl AppUsageSampler {
 
     pub(super) fn sample(&mut self) -> SystemUsage {
         self.refresh();
-        let pids = process_tree_pids(
-            self.root_pid,
-            self.system
-                .processes()
-                .iter()
-                // sysinfo only reports thread entries on Linux; thread_kind() is
-                // available on every platform and returns None elsewhere, so this
-                // filter is a no-op on macOS and Windows. Thread CPU and memory are
-                // already accounted for by their process.
-                .filter(|(_, process)| process.thread_kind().is_none())
-                .map(|(&pid, process)| (pid, process.parent())),
-        );
+        let mut parents = Vec::with_capacity(self.system.processes().len());
+        for (&pid, process) in self.system.processes() {
+            // Only Linux and Android expose individual threads in the process map;
+            // their CPU and memory are already accounted for by their process.
+            #[cfg(any(target_os = "linux", target_os = "android"))]
+            {
+                if process.thread_kind().is_some() {
+                    continue;
+                }
+            }
+            parents.push((pid, process.parent()));
+        }
+        let pids = process_tree_pids(self.root_pid, parents);
         let mut cpu = 0.0;
         let mut memory = 0;
         for pid in pids {
