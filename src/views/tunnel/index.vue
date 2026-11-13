@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import router from "@/router";
-import { DEFAULT_TUNNEL_ID, useTunnelStore } from "@/store/tunnel";
+import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
@@ -266,9 +266,30 @@ onUnmounted(() => {
         </template>
       </el-dropdown>
     </breadcrumb>
-    <div class="app-container-breadcrumb">
+    <div v-loading="!tunnelStore.loaded" class="app-container-breadcrumb">
+      <div
+        v-if="tunnelStore.loaded && tunnelStore.tunnels.length === 0"
+        class="flex justify-center items-center p-4 w-full h-full app-panel"
+      >
+        <el-empty :description="t('tunnel.empty')">
+          <div class="flex flex-wrap gap-2 justify-center">
+            <el-button
+              v-for="provider in ['frpc', 'cloudflared'] as const"
+              :key="provider"
+              :type="provider === 'frpc' ? 'primary' : 'default'"
+              @click="handleCreate(provider)"
+            >
+              <template #icon>
+                <IconifyIconOffline icon="add" />
+              </template>
+              {{ t("tunnel.button.create") }} ·
+              {{ t(`tunnel.provider.${provider}`) }}
+            </el-button>
+          </div>
+        </el-empty>
+      </div>
       <section
-        v-loading="!tunnelStore.loaded"
+        v-else
         class="grid gap-3 pr-1 pb-1 tunnel-grid"
         :class="{ 'is-multiple': tunnelStore.hasMultiple }"
       >
@@ -423,16 +444,7 @@ onUnmounted(() => {
                     />
                     {{ t("tunnel.autoStart") }}
                   </el-dropdown-item>
-                  <el-dropdown-item
-                    command="delete"
-                    divided
-                    :disabled="tunnel.id === DEFAULT_TUNNEL_ID"
-                    :title="
-                      tunnel.id === DEFAULT_TUNNEL_ID
-                        ? t('tunnel.defaultHint')
-                        : ''
-                    "
-                  >
+                  <el-dropdown-item command="delete" divided>
                     <IconifyIconOffline class="mr-1" icon="delete-rounded" />
                     {{ t("tunnel.button.delete") }}
                   </el-dropdown-item>

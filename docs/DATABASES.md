@@ -453,14 +453,14 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 
 - 全局开关 `desktop/auto_connect_on_startup` 仍是总开关，开启时只启动 `auto_start = 1` 的实例；
 - `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 只写 `t_frpcd_servers`，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
-- 默认实例 `"1"` 不可删除，以保证不带 `tunnelId` 的 IPC 调用和旧版本仍可工作；“重置全部配置”删除其他实例并重置默认实例；
-- 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除实例时一并删除这两个目录；
+- 默认实例 `"1"` 可以删除，配置与代理按外键级联清理。迁移 004 负责首次安装和旧版单服务端数据升级时的初始化，正常启动、列表查询、读取/保存配置和启动实例均不补建已删除的实例；数据库迁移编号无需变化。允许列表为空；“重置全部配置”会重新创建默认实例并删除其他实例。全局桌面设置的读取与应用启动不依赖默认实例；
+- 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，删除时仅清理这两个文件，保留共享目录及应用日志；其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除时清理对应实例的两个目录；
 - 新建 frpc 实例时自动分配未被其他实例占用的 `webServer.port`（从 57400 起递增）；
 - 修改代理不会改变其 `server_id`，代理不能在实例之间移动。
 
 ### 11.4 回退兼容
 
-- 迁移后降级到 1.2.7 / 2.0.0：旧版本按 `id = '1'` 读写 server，默认实例仍然可用；但旧版本的代理查询不按 `server_id` 过滤，会把其他实例的代理一起显示并写入同一份 frpc 配置。降级前应删除额外实例。
+- 迁移后降级到 1.2.7 / 2.0.0：旧版本按 `id = '1'` 读写 server；保留默认实例时可继续使用，已删除时旧版本可能重建空的默认配置。旧版本的代理查询不按 `server_id` 过滤，会把其他实例的代理一起显示并写入同一份 frpc 配置。降级前应备份数据并删除额外实例。
 
 ## 12. 迁移 005：Cloudflare Tunnel（cloudflared）
 
@@ -490,7 +490,7 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 - `token` 与 frpc 的 `auth.token` 一样以明文保存（运行时需要原值），不得写入日志；启动时通过环境变量 `TUNNEL_TOKEN` 传给进程，不出现在命令行参数中；
 - 二进制解析顺序：`custom_cloudflared_path` → `cloudflared_version` 对应的下载目录 → PATH 与常见安装目录自动检测；
 - 下载的 cloudflared 保存在 `versions/cloudflared/<md5(版本名)>/cloudflared[.exe]`，与 frpc 版本目录分开；
-- 实例文件：`config/tunnels/<id>/cloudflared.yml`（每次启动重写的隔离配置，见 `docs/MULTI_TUNNEL.md`）和 `log/tunnels/<id>/cloudflared.log`，删除实例时一并删除；
+- 实例文件：`config/tunnels/<id>/cloudflared.yml`（每次启动重写的隔离配置，仅设置 `no-autoupdate: true`，通过 `--config` 显式指定以避免读取用户已有的 cloudflared 配置）和 `log/tunnels/<id>/cloudflared.log`，删除实例时一并删除；
 - “重置全部配置”删除所有非默认实例，cloudflared 明细行随之级联删除。
 
 ### 12.3 回退兼容

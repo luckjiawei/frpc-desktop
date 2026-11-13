@@ -127,7 +127,8 @@ export default {
     config: {
       title: "{name} · 配置"
     },
-    defaultHint: "默认实例不可删除",
+    empty: "暂无实例，请先新建一个实例。",
+    noFrpc: "请先新建 frpc 实例，再添加代理。",
     provider: {
       frpc: "frpc",
       cloudflared: "Cloudflare Tunnel",

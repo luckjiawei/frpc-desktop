@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
+import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { refDebounced, useDebounceFn } from "@vueuse/core";
@@ -28,6 +29,10 @@ defineOptions({
 
 const { t } = useI18n();
 const tunnelStore = useTunnelStore();
+const selectedTunnelId = computed(() => {
+  const tunnel = tunnelStore.currentTunnel;
+  return tunnelStore.loaded && tunnel?.provider === "frpc" ? tunnel.id : "";
+});
 
 const hostPattern =
   /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
@@ -422,9 +427,10 @@ const getProxyMappingAddress = (proxy: FrpcProxy) => {
 };
 
 const handleSubmit = async () => {
-  if (!editFormRef.value) return;
+  const tunnelId = selectedTunnelId.value;
+  if (!editFormRef.value || !tunnelId) return;
   editFormRef.value.validate(valid => {
-    if (valid) {
+    if (valid && tunnelId === selectedTunnelId.value) {
       if (handleRangePort()) {
         const lc = handleGetPortCount(editForm.value.localPort);
         const rc = handleGetPortCount(editForm.value.remotePort);
@@ -455,7 +461,7 @@ const handleSubmit = async () => {
       if (data._id) {
         send(ipcRouters.PROXY.modifyProxy, data);
       } else {
-        data.serverId = tunnelStore.currentTunnelId;
+        data.serverId = tunnelId;
         send(ipcRouters.PROXY.createProxy, data);
       }
     }
@@ -479,28 +485,34 @@ const handleDeleteLocation = (index: number) => {
 };
 
 const handleLoadProxies = () => {
+  if (!selectedTunnelId.value) {
+    proxys.value = [];
+    loading.value.list = 0;
+    return;
+  }
   send(ipcRouters.PROXY.getAllProxies, {
-    tunnelId: tunnelStore.currentTunnelId
+    tunnelId: selectedTunnelId.value
   });
 };
 
 const handleLoadFrpcConfig = () => {
+  if (!selectedTunnelId.value) return;
   send(ipcRouters.SERVER.getServerConfig, {
-    tunnelId: tunnelStore.currentTunnelId
+    tunnelId: selectedTunnelId.value
   });
 };
 
-watch(
-  () => tunnelStore.currentTunnelId,
-  () => {
-    edit.value.visible = false;
-    searchKeyword.value = "";
-    currentPage.value = 1;
-    loading.value.list = 1;
-    handleLoadProxies();
-    handleLoadFrpcConfig();
-  }
-);
+watch(selectedTunnelId, () => {
+  edit.value.visible = false;
+  listPortsVisible.value = false;
+  searchKeyword.value = "";
+  currentPage.value = 1;
+  loading.value.list = 1;
+  proxys.value = [];
+  frpcConfig.value = undefined;
+  handleLoadProxies();
+  handleLoadFrpcConfig();
+});
 
 const handleDeleteProxy = (proxy: FrpcProxy) => {
   send(ipcRouters.PROXY.deleteProxy, proxy._id);
@@ -512,6 +524,7 @@ const handleResetForm = () => {
 };
 
 const handleOpenInsert = () => {
+  if (!selectedTunnelId.value) return;
   edit.value = {
     title: t("proxy.createTitle"),
     visible: true
@@ -674,7 +687,7 @@ onMounted(() => {
 
   listenerCleanups.push(
     on(ipcRouters.SERVER.getServerConfig, data => {
-      if (data && data._id === tunnelStore.currentTunnelId) {
+      if (selectedTunnelId.value && data?._id === selectedTunnelId.value) {
         frpcConfig.value = data;
       }
     })
@@ -684,10 +697,12 @@ onMounted(() => {
     on(ipcRouters.PROXY.getAllProxies, data => {
       loading.value.list = 0;
       // 切换实例时丢弃上一个实例迟到的响应
-      proxys.value = (data || []).filter(
-        (p: FrpcProxy) =>
-          !p.serverId || p.serverId === tunnelStore.currentTunnelId
-      );
+      proxys.value = selectedTunnelId.value
+        ? (data || []).filter(
+            (p: FrpcProxy) =>
+              !p.serverId || p.serverId === selectedTunnelId.value
+          )
+        : [];
     })
   );
 
@@ -797,6 +812,7 @@ onUnmounted(() => {
   <!--  <coming-soon />-->
   <div class="main">
     <ProxyToolbar
+      v-if="selectedTunnelId"
       v-model:search-keyword="searchKeyword"
       v-model:view-mode="viewMode"
       @create="handleOpenInsert"
@@ -806,8 +822,22 @@ onUnmounted(() => {
         <TunnelSwitcher />
       </template>
     </ProxyToolbar>
-    <div v-loading="loading.list > 0" class="app-container-breadcrumb">
-      <template v-if="filteredProxys && filteredProxys.length > 0">
+    <Breadcrumb v-else />
+    <div
+      v-loading="!tunnelStore.loaded || loading.list > 0"
+      class="app-container-breadcrumb"
+    >
+      <div
+        v-if="tunnelStore.loaded && !selectedTunnelId"
+        class="flex justify-center items-center p-4 w-full h-full app-panel"
+      >
+        <el-empty :description="t('tunnel.noFrpc')">
+          <el-button type="primary" @click="$router.push({ name: 'Tunnel' })">
+            {{ t("home.dashboard.manageInstances") }}
+          </el-button>
+        </el-empty>
+      </div>
+      <template v-else-if="filteredProxys && filteredProxys.length > 0">
         <el-row v-if="viewMode === 'card'" :gutter="15">
           <el-col
             v-for="proxy in paginatedProxys"

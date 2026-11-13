@@ -156,27 +156,22 @@ pub fn run() {
             } else {
                 let _ = tray_builder.build(app)?;
             }
-            let server_cfg = {
+            let system_cfg = {
                 let state = app.state::<AppState>();
                 let conn = state.db.conn();
-                let res = db::server_repo::ServerRepository::get_server_config(
-                    &conn,
-                    db::tunnel_repo::DEFAULT_TUNNEL_ID,
-                )
-                .ok();
-                res
+                db::app_config_repo::AppConfigRepository::get_system_config(&conn).ok()
             };
 
             let is_silent = std::env::args().any(|a| a == "--silent");
-            if let Some(server) = server_cfg {
+            if let Some(system) = system_cfg {
                 use tauri_plugin_autostart::ManagerExt;
-                if server.system.launch_at_startup {
+                if system.launch_at_startup {
                     let _ = app.autolaunch().enable();
                 } else {
                     let _ = app.autolaunch().disable();
                 }
 
-                if !is_silent && !server.system.silent_startup {
+                if !is_silent && !system.silent_startup {
                     #[cfg(target_os = "macos")]
                     {
                         let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
@@ -194,7 +189,7 @@ pub fn run() {
                     }
                 }
 
-                if server.system.auto_connect_on_startup {
+                if system.auto_connect_on_startup {
                     let app_handle = app.handle().clone();
                     tauri::async_runtime::spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_millis(800)).await;

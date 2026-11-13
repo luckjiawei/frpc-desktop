@@ -2,16 +2,13 @@ import { ipcRouters, listeners } from "@/core/IpcRouter";
 import { on, onListener, send } from "@/utils/ipcUtils";
 import { defineStore } from "pinia";
 
-export const DEFAULT_TUNNEL_ID = "1";
 const CURRENT_TUNNEL_STORAGE_KEY = "frpc-desktop.currentTunnelId";
 
 const readStoredTunnelId = () => {
   try {
-    return (
-      localStorage.getItem(CURRENT_TUNNEL_STORAGE_KEY) || DEFAULT_TUNNEL_ID
-    );
+    return localStorage.getItem(CURRENT_TUNNEL_STORAGE_KEY) || "";
   } catch {
-    return DEFAULT_TUNNEL_ID;
+    return "";
   }
 };
 
@@ -72,7 +69,7 @@ export const useTunnelStore = defineStore("tunnel", {
         });
         const current = this.tunnels.find(t => t.id === this.currentTunnelId);
         if (!current || current.provider !== "frpc") {
-          this.setCurrentTunnel(DEFAULT_TUNNEL_ID);
+          this.setCurrentTunnel(this.frpcTunnels[0]?.id ?? "");
         }
       });
       this.refreshTunnels();

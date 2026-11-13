@@ -7,8 +7,8 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 /// The tunnel migrated from the single-server era. It keeps the legacy
-/// `frpc.toml` / `frpc.log` paths and cannot be deleted, so older app
-/// versions and IPC calls without `tunnelId` keep working.
+/// `frpc.toml` / `frpc.log` paths and is the target of IPC calls without
+/// `tunnelId`, but can be deleted like any other tunnel.
 pub const DEFAULT_TUNNEL_ID: &str = "1";
 
 pub const PROVIDER_FRPC: &str = "frpc";
@@ -91,8 +91,8 @@ impl TunnelRepository {
         Ok(summaries)
     }
 
-    /// Re-creates the default tunnel row if it is missing (e.g. a downgraded
-    /// build removed it).
+    /// Creates the default tunnel during an explicit configuration reset.
+    /// Normal reads and writes must never restore a deleted tunnel.
     pub fn ensure_default(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT OR IGNORE INTO t_frpcd_tunnels (id, name, provider, auto_start, sort_order)
@@ -148,11 +148,8 @@ impl TunnelRepository {
         Self::find(conn, id)
     }
 
-    /// Deletes a non-default tunnel; provider settings and proxies cascade.
+    /// Deletes a tunnel; provider settings and proxies cascade.
     pub fn delete(conn: &Connection, id: &str) -> Result<bool> {
-        if id == DEFAULT_TUNNEL_ID {
-            return Ok(false);
-        }
         let affected = conn.execute("DELETE FROM t_frpcd_tunnels WHERE id = ?1", params![id])?;
         Ok(affected > 0)
     }

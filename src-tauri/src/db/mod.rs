@@ -160,7 +160,8 @@ impl DbManager {
             let _ = AppConfigRepository::save_guide_completed(&conn);
         }
 
-        // Initialize default server config if absent
+        // Initialize settings only if the migrated default tunnel still exists.
+        // get_server_config must not restore a tunnel deleted by the user.
         let _ = server_repo::ServerRepository::get_server_config(&conn, tunnel_repo::DEFAULT_TUNNEL_ID);
 
         Ok(Self {
@@ -511,8 +512,7 @@ mod tests {
         assert_eq!(renamed.name, "Branch");
         assert!(renamed.auto_start);
 
-        // The default tunnel is protected; others cascade to their settings.
-        assert!(!TunnelRepository::delete(&conn, "1").unwrap());
+        // Deleting a tunnel cascades to its settings and proxies.
         assert!(TunnelRepository::delete(&conn, &second.id).unwrap());
         assert!(ServerRepository::get_server_config(&conn, &second.id).is_err());
         assert!(ProxyRepository::get_proxies_by_server(&conn, &second.id).unwrap().is_empty());
@@ -533,6 +533,89 @@ mod tests {
         drop(conn);
         drop(db);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn deleted_default_tunnel_stays_deleted_after_restart() {
+        // Cover an empty installation and installations retaining either provider.
+        for remaining_provider in [None, Some("frpc"), Some("cloudflared")] {
+            let dir =
+                std::env::temp_dir().join(format!("frpc_delete_default_{}", uuid::Uuid::new_v4()));
+            let remaining_id;
+            {
+                let db = DbManager::init(&dir).unwrap();
+                let mut conn = db.conn();
+                assert_eq!(TunnelRepository::list(&conn).unwrap().len(), 1);
+                let server = ServerRepository::get_server_config(&conn, "1").unwrap();
+                ProxyRepository::create_proxy(
+                    &conn,
+                    FrpcProxy {
+                        server_id: "1".to_string(),
+                        name: "test-proxy".to_string(),
+                        proxy_type: "tcp".to_string(),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+                remaining_id = remaining_provider.map(|provider| {
+                    TunnelRepository::create(&mut conn, "Remaining", provider)
+                        .unwrap()
+                        .id
+                });
+                AppConfigRepository::save_language(&conn, "zh-CN").unwrap();
+
+                assert!(TunnelRepository::delete(&conn, "1").unwrap());
+                assert!(!TunnelRepository::delete(&conn, "1").unwrap());
+                assert!(ProxyRepository::get_proxies_by_server(&conn, "1")
+                    .unwrap()
+                    .is_empty());
+                assert!(ServerRepository::get_server_config(&conn, "1").is_err());
+                // A stale config drawer must not be able to recreate the instance.
+                assert!(ServerRepository::save_server_config(&conn, &server).is_err());
+                assert!(TunnelRepository::find(&conn, "1").unwrap().is_none());
+                assert_eq!(
+                    TunnelRepository::list_summaries(&conn).unwrap().len(),
+                    remaining_id.iter().count()
+                );
+            }
+
+            let db = DbManager::init(&dir).unwrap();
+            let mut conn = db.conn();
+            assert!(TunnelRepository::find(&conn, "1").unwrap().is_none());
+            assert!(ServerRepository::get_server_config(&conn, "1").is_err());
+            let summaries = TunnelRepository::list_summaries(&conn).unwrap();
+            assert_eq!(summaries.len(), remaining_id.iter().count());
+            if let Some(id) = &remaining_id {
+                assert_eq!(&summaries[0].tunnel.id, id);
+                assert_eq!(summaries[0].tunnel.provider, remaining_provider.unwrap());
+            }
+            assert_eq!(
+                AppConfigRepository::get_system_config(&conn)
+                    .unwrap()
+                    .language,
+                "zh-CN"
+            );
+            let violations: i64 = conn
+                .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })
+                .unwrap();
+            assert_eq!(violations, 0);
+
+            // Users can create instances from empty state; only an explicit reset
+            // restores the legacy default instance.
+            TunnelRepository::create(&mut conn, "New", "frpc").unwrap();
+            assert!(TunnelRepository::find(&conn, "1").unwrap().is_none());
+            ServerRepository::reset_all_config(&conn).unwrap();
+            let tunnels = TunnelRepository::list_summaries(&conn).unwrap();
+            assert_eq!(tunnels.len(), 1);
+            assert_eq!(tunnels[0].tunnel.id, "1");
+            assert!(!tunnels[0].configured);
+
+            drop(conn);
+            drop(db);
+            let _ = fs::remove_dir_all(&dir);
+        }
     }
 
     #[test]

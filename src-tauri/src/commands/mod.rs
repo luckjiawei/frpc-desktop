@@ -77,7 +77,13 @@ impl AppState {
     }
 
     fn remove_tunnel_files(&self, tunnel_id: &str) {
-        if tunnel_id == DEFAULT_TUNNEL_ID || !TunnelRepository::is_valid_id(tunnel_id) {
+        if !TunnelRepository::is_valid_id(tunnel_id) {
+            return;
+        }
+        if tunnel_id == DEFAULT_TUNNEL_ID {
+            let paths = self.tunnel_paths(tunnel_id, PROVIDER_FRPC);
+            let _ = fs::remove_file(paths.config_path);
+            let _ = fs::remove_file(paths.log_path);
             return;
         }
         let _ = fs::remove_dir_all(self.config_dir.join("tunnels").join(tunnel_id));
@@ -94,10 +100,6 @@ impl AppState {
         }
         let tunnel = {
             let conn = self.db.conn();
-            if tunnel_id == DEFAULT_TUNNEL_ID {
-                TunnelRepository::ensure_default(&conn)
-                    .map_err(|e| ("B1000".to_string(), e.to_string()))?;
-            }
             TunnelRepository::find(&conn, tunnel_id)
                 .map_err(|e| ("B1000".to_string(), e.to_string()))?
                 .ok_or(("B1008".to_string(), "Tunnel not found".to_string()))?
@@ -256,6 +258,9 @@ async fn handle_ipc_send(
             let conn = state.db.conn();
             match ServerRepository::get_server_config(&conn, &tunnel_id) {
                 Ok(cfg) => ApiResponse::success(serde_json::to_value(cfg).unwrap_or(Value::Null)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    ApiResponse::fail("B1008", "Tunnel not found")
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
@@ -269,12 +274,10 @@ async fn handle_ipc_send(
                             return ApiResponse::fail("B1008", "Tunnel not found");
                         }
                         let conn = state.db.conn();
-                        if server.id == DEFAULT_TUNNEL_ID {
-                            if let Err(e) = TunnelRepository::ensure_default(&conn) {
-                                return ApiResponse::internal_error(e.to_string());
-                            }
-                        } else if !matches!(TunnelRepository::find(&conn, &server.id), Ok(Some(_))) {
-                            return ApiResponse::fail("B1008", "Tunnel not found");
+                        match TunnelRepository::find(&conn, &server.id) {
+                            Ok(Some(t)) if t.provider == PROVIDER_FRPC => {}
+                            Ok(_) => return ApiResponse::fail("B1008", "Tunnel not found"),
+                            Err(e) => return ApiResponse::internal_error(e.to_string()),
                         }
                         match ServerRepository::save_frpc_settings(&conn, &server) {
                             Ok(()) => ApiResponse::success(serde_json::to_value(&server).unwrap_or(Value::Null)),
@@ -522,7 +525,6 @@ async fn handle_ipc_send(
         // --- TUNNEL ---
         "tunnel/list" => {
             let conn = state.db.conn();
-            let _ = TunnelRepository::ensure_default(&conn);
             match TunnelRepository::list_summaries(&conn) {
                 Ok(list) => ApiResponse::success(serde_json::to_value(list).unwrap_or(Value::Null)),
                 Err(e) => ApiResponse::internal_error(e.to_string()),
@@ -563,9 +565,6 @@ async fn handle_ipc_send(
         }
         "tunnel/delete" => {
             let tunnel_id = tunnel_id_or_return!(args);
-            if tunnel_id == DEFAULT_TUNNEL_ID {
-                return ApiResponse::fail("B1009", "The default tunnel cannot be deleted");
-            }
             state.runtime.stop(app, &tunnel_id).await;
             let deleted = {
                 let conn = state.db.conn();
