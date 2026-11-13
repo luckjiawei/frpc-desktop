@@ -63,6 +63,10 @@ npm run tauri:dev    # run the desktop app in development mode
 npm run tauri:build  # build installers for the current platform
 ```
 
+## Resource usage
+
+The sidebar reports the combined CPU and resident memory of Frpc-Desktop and its descendant processes, including frpc and cloudflared instances started by the app. Values refresh every three seconds. CPU usage is normalized to total machine capacity (0–100%); memory is the sum of process resident memory, so shared pages may be counted more than once. On macOS, WebKit helper processes hosted by system services are outside this process tree and are not included.
+
 ## Common Issues
 
 ### Upgrading from 1.x

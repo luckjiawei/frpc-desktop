@@ -37,8 +37,10 @@ impl AppUsageSampler {
             self.system
                 .processes()
                 .iter()
-                // Linux also exposes individual threads in the process map.
-                // Their CPU and memory are already accounted for by their process.
+                // sysinfo only reports thread entries on Linux; thread_kind() is
+                // available on every platform and returns None elsewhere, so this
+                // filter is a no-op on macOS and Windows. Thread CPU and memory are
+                // already accounted for by their process.
                 .filter(|(_, process)| process.thread_kind().is_none())
                 .map(|(&pid, process)| (pid, process.parent())),
         );
@@ -121,16 +123,27 @@ mod tests {
         // disappearance without counting the test runner's own memory.
         sampler.root_pid = Pid::from_u32(child.id());
         sampler.sample();
-        let was_present = sampler.system.process(sampler.root_pid).is_some();
+        let start_time = sampler
+            .system
+            .process(sampler.root_pid)
+            .expect("the spawned child should be sampled")
+            .start_time();
         let stopped = child.kill();
         let exited = child.wait();
         stopped.unwrap();
         exited.unwrap();
         let after_exit = sampler.sample();
-        assert!(was_present);
-        assert!(sampler.system.process(sampler.root_pid).is_none());
-        assert_eq!(after_exit.memory.used, 0);
-        assert_eq!(after_exit.cpu, 0.0);
+        // Compare identity rather than assuming the numeric PID stays unused:
+        // the OS may recycle it for an unrelated process before this sample.
+        let still_original = sampler
+            .system
+            .process(sampler.root_pid)
+            .is_some_and(|process| process.start_time() == start_time);
+        assert!(!still_original);
+        if sampler.system.process(sampler.root_pid).is_none() {
+            assert_eq!(after_exit.memory.used, 0);
+            assert_eq!(after_exit.cpu, 0.0);
+        }
     }
 
     #[test]
