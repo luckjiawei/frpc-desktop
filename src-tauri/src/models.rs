@@ -458,7 +458,9 @@ pub struct TunnelStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemMemoryUsage {
+    /// Combined resident memory of the app process tree, in MiB.
     pub used: u64,
+    /// Process-tree resident memory as a percentage of physical system memory.
     pub percentage: f32,
 }
 

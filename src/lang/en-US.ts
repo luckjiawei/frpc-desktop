@@ -29,6 +29,8 @@ export default {
   layout: {
     navigation: "Main navigation",
     memory: "Memory",
+    resourceUsageHint:
+      "Frpc-Desktop and its child processes. CPU: share of total CPU capacity; memory: combined resident memory.",
     collapseMenu: "Collapse sidebar",
     expandMenu: "Expand sidebar",
     about: "About Frpc Desktop",
