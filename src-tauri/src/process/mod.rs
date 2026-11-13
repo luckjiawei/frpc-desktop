@@ -225,17 +225,22 @@ impl RuntimeManager {
     ) where
         R: tokio::io::AsyncRead + Unpin + Send + 'static,
     {
-        let instances = self.instances.clone();
+        let runtime = self.clone();
         let id = tunnel_id.to_string();
         tauri::async_runtime::spawn(async move {
             while let Ok(Some(line)) = lines.next_line().await {
-                Self::write_log_line(&log_path, &line);
+                if !runtime
+                    .write_log_line(&id, generation, &log_path, &line)
+                    .await
+                {
+                    continue;
+                }
                 let signal = classify(&line);
                 if matches!(signal, LogSignal::None) {
                     continue;
                 }
                 let status = {
-                    let mut instances = instances.lock().await;
+                    let mut instances = runtime.instances.lock().await;
                     let Some(state) = instances.get_mut(&id) else {
                         continue;
                     };
@@ -263,6 +268,9 @@ impl RuntimeManager {
                 return;
             };
             let pid = state.child_pid.take();
+            // Invalidate pending output before callers can remove this instance's files.
+            // A natural exit keeps its generation so its final log lines can drain.
+            state.generation += 1;
             state.running = false;
             state.last_start_time = -1;
             state.connection_error = None;
@@ -286,10 +294,25 @@ impl RuntimeManager {
         self.instances.lock().await.remove(tunnel_id);
     }
 
-    fn write_log_line(path: &Path, line: &str) {
+    async fn write_log_line(
+        &self,
+        tunnel_id: &str,
+        generation: u64,
+        path: &Path,
+        line: &str,
+    ) -> bool {
+        // Keep the runtime lock through the write so stop/forget cannot finish
+        // before a pending log write. In particular, deleting the default
+        // tunnel preserves the shared log directory, so a late write would
+        // otherwise recreate its removed log file.
+        let instances = self.instances.lock().await;
+        if !matches!(instances.get(tunnel_id), Some(state) if state.generation == generation) {
+            return false;
+        }
         if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
             let _ = writeln!(f, "{}", line);
         }
+        true
     }
 
     fn kill_process_tree(pid: u32) {
@@ -308,5 +331,61 @@ impl RuntimeManager {
                 libc::kill(pid as i32, libc::SIGKILL);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn late_output_does_not_recreate_deleted_default_tunnel_log() {
+        let dir = std::env::temp_dir().join(format!("frpc_late_log_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("frpc.log");
+        let app_log_path = dir.join("main.log");
+        std::fs::write(&app_log_path, "app log\n").unwrap();
+        let runtime = RuntimeManager::new();
+        runtime.instances.lock().await.insert(
+            "1".to_string(),
+            InstanceState {
+                provider: "frpc".to_string(),
+                child_pid: None,
+                running: true,
+                last_start_time: 1,
+                connection_error: None,
+                generation: 1,
+            },
+        );
+
+        assert!(runtime.write_log_line("1", 1, &log_path, "active").await);
+        assert_eq!(std::fs::read_to_string(&log_path).unwrap(), "active\n");
+
+        // A natural exit keeps the generation, so its buffered output still drains.
+        runtime.instances.lock().await.get_mut("1").unwrap().running = false;
+        assert!(runtime.write_log_line("1", 1, &log_path, "exited").await);
+
+        // stop invalidates the generation before callers remove the instance's files.
+        {
+            let mut instances = runtime.instances.lock().await;
+            instances.get_mut("1").unwrap().generation += 1;
+        }
+        std::fs::remove_file(&log_path).unwrap();
+        assert!(
+            !runtime
+                .write_log_line("1", 1, &log_path, "after stop")
+                .await
+        );
+        runtime.forget("1").await;
+        assert!(
+            !runtime
+                .write_log_line("1", 1, &log_path, "after delete")
+                .await
+        );
+        assert!(!log_path.exists());
+        assert!(dir.is_dir());
+        assert_eq!(std::fs::read_to_string(&app_log_path).unwrap(), "app log\n");
+
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
