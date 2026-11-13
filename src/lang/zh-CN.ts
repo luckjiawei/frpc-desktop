@@ -307,13 +307,34 @@ export default {
   logger: {
     message: {
       openSuccess: "打开日志成功",
-      refreshSuccess: "刷新成功"
+      refreshSuccess: "刷新成功",
+      copySuccess: "已复制当前显示的日志"
     },
     content: {
-      empty: "暂无日志"
+      empty: "暂无日志",
+      noMatch: "没有匹配的日志"
     },
     search: {
       placeholder: "搜索日志内容..."
+    },
+    level: {
+      all: "全部",
+      error: "错误",
+      warn: "警告",
+      info: "信息",
+      debug: "调试"
+    },
+    filter: {
+      label: "按日志级别筛选",
+      clear: "清除筛选"
+    },
+    toolbar: {
+      wrap: "切换自动换行",
+      copy: "复制当前显示的日志"
+    },
+    status: {
+      showing: "显示 {shown} / {total} 条",
+      searching: "搜索：{keyword}"
     },
     loading: {
       text: "加载中..."

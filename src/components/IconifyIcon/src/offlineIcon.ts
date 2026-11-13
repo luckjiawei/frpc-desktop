@@ -66,6 +66,7 @@ import arrowForwardRounded from "@iconify-icons/material-symbols/arrow-forward-r
 import powerSettingsNewRounded from "@iconify-icons/material-symbols/power-settings-new-rounded";
 import playArrowRounded from "@iconify-icons/material-symbols/play-arrow-rounded";
 import stopCircleOutline from "@iconify-icons/material-symbols/stop-circle-outline";
+import WrapText from "@iconify-icons/material-symbols/wrap-text";
 
 addIcon("cloud", Cloud);
 addIcon("rocket-launch-rounded", RocketLaunchRounded);
@@ -132,3 +133,4 @@ addIcon("table-rows", tableRows);
 addIcon("label-important-rounded", labelImportantRounded);
 addIcon("open-in-new", openInNew);
 addIcon("public", publicIcon);
+addIcon("wrap-text", WrapText);

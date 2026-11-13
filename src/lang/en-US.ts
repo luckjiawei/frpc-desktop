@@ -321,13 +321,34 @@ export default {
   logger: {
     message: {
       openSuccess: "Open log successfully",
-      refreshSuccess: "Refresh successfully"
+      refreshSuccess: "Refresh successfully",
+      copySuccess: "Visible logs copied to clipboard"
     },
     content: {
-      empty: "No log"
+      empty: "No log",
+      noMatch: "No matching logs"
     },
     search: {
       placeholder: "Search logs..."
+    },
+    level: {
+      all: "All",
+      error: "Error",
+      warn: "Warning",
+      info: "Info",
+      debug: "Debug"
+    },
+    filter: {
+      label: "Filter by log level",
+      clear: "Clear filters"
+    },
+    toolbar: {
+      wrap: "Toggle line wrapping",
+      copy: "Copy visible logs"
+    },
+    status: {
+      showing: "Showing {shown} of {total}",
+      searching: "Search: {keyword}"
     },
     loading: {
       text: "Loading..."
