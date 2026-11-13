@@ -692,15 +692,29 @@ const levelLabel = (level: LogLevel) => level.toUpperCase();
   color: var(--log-text);
 }
 
-:slotted(.log-tool) {
+/* Element Plus text buttons paint `--el-fill-color-light` on hover/active; the
+   extra `is-text` class outranks that rule so the toolbar matches the icon
+   buttons next to it. */
+:slotted(.el-button.is-text.log-tool) {
+  width: 28px;
   height: 28px;
+  padding: 0;
   margin-left: 0;
   color: var(--log-muted);
+  background: transparent;
+  border-radius: 6px;
 
-  &:hover,
+  &:hover:not(.is-disabled),
+  &:active:not(.is-disabled) {
+    color: var(--log-text);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: transparent;
+  }
+
   &:focus-visible {
     color: var(--log-text);
-    background: transparent;
+    outline: 2px solid var(--el-color-primary-light-3);
+    outline-offset: 1px;
   }
 }
 
