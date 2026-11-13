@@ -1,0 +1,68 @@
+// Toast styling shared by every ElMessage usage.
+//
+// Element Plus paints each type with its own pastel fill, which turns into a
+// bright block in dark mode and looks dated in light mode. A neutral surface
+// with a typed icon stays legible in both themes and matches the app panels
+// (10px radius, hairline border, light shadow); see docs/FRONTEND_UI_STANDARDS.md
+// for the radius/shadow limits.
+.el-message {
+  --el-message-bg-color: var(--el-bg-color-overlay);
+  --el-message-border-color: var(--el-border-color-lighter);
+  --el-message-text-color: var(--el-text-color-primary);
+  --el-message-padding: 11px 16px;
+
+  gap: 10px;
+  border-radius: var(--app-radius);
+  box-shadow:
+    0 10px 30px rgba(31, 22, 64, 0.1),
+    0 2px 6px rgba(31, 22, 64, 0.06);
+
+  .el-message__content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .el-message__icon {
+    font-size: 16px;
+  }
+
+  .el-message__closeBtn {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--el-text-color-primary);
+    }
+  }
+}
+
+// Keep the surface neutral for every type and let the icon carry the meaning.
+@each $type in (primary, success, info, warning, error) {
+  .el-message.el-message--#{$type} {
+    --el-message-bg-color: var(--el-bg-color-overlay);
+    --el-message-border-color: var(--el-border-color-lighter);
+    --el-message-text-color: var(--el-text-color-primary);
+
+    .el-message__content {
+      color: var(--el-text-color-primary);
+    }
+
+    .el-message-icon--#{$type} {
+      color: var(--el-color-#{$type});
+    }
+  }
+}
+
+html.dark .el-message {
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .el-message,
+  .el-message__closeBtn {
+    transition: none;
+  }
+}
