@@ -100,6 +100,20 @@ jobs:
       - name: Build Tauri
         run: npm run tauri:build -- ${{ matrix.args }}
 
+      - name: Package Windows portable
+        if: matrix.os == 'windows-2022'
+        id: portable
+        shell: pwsh
+        run: ./scripts/package-windows-portable.ps1 -Version (Get-Content package.json -Raw | ConvertFrom-Json).version
+
+      - name: Upload Windows portable artifact
+        if: matrix.os == 'windows-2022'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Frpc-Desktop-windows-x64-portable
+          path: ${{ steps.portable.outputs.zip_path }}
+          if-no-files-found: error
+
   # tag：先创建 Release，再并发打包上传
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -152,3 +166,17 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Package Windows portable
+        if: matrix.os == 'windows-2022'
+        id: portable
+        shell: pwsh
+        run: ./scripts/package-windows-portable.ps1 -Version $env:GITHUB_REF_NAME
+
+      - name: Upload Windows portable to release
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PORTABLE_ZIP: ${{ steps.portable.outputs.zip_path }}
+        run: gh release upload "${{ github.ref_name }}" "$env:PORTABLE_ZIP" --clobber
