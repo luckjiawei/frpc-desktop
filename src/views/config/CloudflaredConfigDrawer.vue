@@ -427,17 +427,23 @@ onUnmounted(() => {
                 {{ t("tunnel.cloudflared.tab.tunnel") }}
               </span>
             </template>
-            <el-alert type="info" :closable="false" show-icon class="mb-4">
-              <template #title>
-                <span class="leading-relaxed">{{
-                  t("tunnel.cloudflared.intro")
-                }}</span>
-              </template>
-              <el-link type="primary" class="mt-1" @click="handleOpenDashboard">
-                {{ t("tunnel.cloudflared.openDashboard") }}
-                <IconifyIconOffline class="ml-1" icon="open-in-new" />
-              </el-link>
-            </el-alert>
+            <div class="mb-4">
+              <el-alert type="info" :closable="false" show-icon>
+                <template #title>
+                  <span class="leading-relaxed">{{
+                    t("tunnel.cloudflared.intro")
+                  }}</span>
+                </template>
+                <el-link
+                  type="primary"
+                  class="mt-1"
+                  @click="handleOpenDashboard"
+                >
+                  {{ t("tunnel.cloudflared.openDashboard") }}
+                  <IconifyIconOffline class="ml-1" icon="open-in-new" />
+                </el-link>
+              </el-alert>
+            </div>
             <el-form-item
               :label="t('tunnel.cloudflared.token.label')"
               prop="token"
