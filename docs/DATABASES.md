@@ -145,6 +145,9 @@ flowchart LR
 | `desktop` | `silent_startup` | `boolean` | `false` | `system.silentStartup` |
 | `desktop` | `auto_connect_on_startup` | `boolean` | `false` | `system.autoConnectOnStartup` |
 | `desktop` | `language` | `string` | `en-US` | `system.language` |
+| `desktop` | `app_log_level` | `string` | `info` | `system.appLogLevel` |
+
+`app_log_level` 可选值为 `error`、`warn`、`info`、`debug`，只控制应用自身写入 `log/main.log` 的日志级别；各实例的 frpc / cloudflared 日志级别仍保存在实例配置中，二者互不影响。开发构建未保存该配置时默认使用 `debug`，发布构建默认使用 `info`。
 
 这些默认记录的 `id` 由应用层生成 UUID。当前 `OpenSourceFrpcDesktopServer.system` 仍保留为 service 和 IPC 层的兼容结构。读取 server 配置时，由 service 查询 `desktop` 命名空间并组装成现有 `system` 对象；保存配置时，在同一事务内分别更新 server 和对应配置项。renderer 不需要感知这一拆分。
 

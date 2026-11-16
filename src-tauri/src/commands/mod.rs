@@ -425,6 +425,9 @@ async fn handle_ipc_send(
             if !matches!(config.language.as_str(), "zh-CN" | "en-US") {
                 return ApiResponse::fail("B1000", "Invalid language");
             }
+            if !crate::system::logger::is_valid_level(&config.app_log_level) {
+                return ApiResponse::fail("B1000", "Invalid app log level");
+            }
             let conn = state.db.conn();
             match AppConfigRepository::save_system_config(&conn, &config) {
                 Ok(()) => {
@@ -434,6 +437,7 @@ async fn handle_ipc_send(
                     } else {
                         let _ = app.autolaunch().disable();
                     }
+                    crate::system::logger::set_level(&config.app_log_level);
                     let _ = crate::refresh_tray_menu(app, &config.language);
                     ApiResponse::success(serde_json::to_value(&config).unwrap_or(Value::Null))
                 }

@@ -53,6 +53,7 @@ interface FrpcSystemConfiguration {
   silentStartup: boolean;
   autoConnectOnStartup: boolean;
   language: string;
+  appLogLevel: "error" | "warn" | "info" | "debug";
 }
 
 type FrpcDesktopServer = BaseEntity &

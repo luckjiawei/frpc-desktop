@@ -1,4 +1,4 @@
-use crate::models::FrpcSystemConfiguration;
+use crate::models::{default_app_log_level, FrpcSystemConfiguration};
 use rusqlite::{params, Connection, OptionalExtension, Result};
 use std::collections::HashMap;
 
@@ -44,11 +44,17 @@ impl AppConfigRepository {
             .cloned()
             .unwrap_or_else(|| "en-US".to_string());
 
+        let app_log_level = values
+            .get("app_log_level")
+            .cloned()
+            .unwrap_or_else(default_app_log_level);
+
         Ok(FrpcSystemConfiguration {
             launch_at_startup,
             silent_startup,
             auto_connect_on_startup,
             language,
+            app_log_level,
         })
     }
 
@@ -60,6 +66,13 @@ impl AppConfigRepository {
         Self::upsert(conn, "desktop", "silent_startup", "boolean", &config.silent_startup.to_string())?;
         Self::upsert(conn, "desktop", "auto_connect_on_startup", "boolean", &config.auto_connect_on_startup.to_string())?;
         Self::upsert(conn, "desktop", "language", "string", &config.language)?;
+        Self::upsert(
+            conn,
+            "desktop",
+            "app_log_level",
+            "string",
+            &config.app_log_level,
+        )?;
         Ok(())
     }
 
@@ -130,5 +143,34 @@ impl AppConfigRepository {
             params![id, namespace, key, val_type, value],
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::DbManager;
+
+    #[test]
+    fn app_log_level_defaults_and_round_trips() {
+        let dir = std::env::temp_dir().join(format!("frpc_appcfg_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let conn = db.conn();
+
+        let mut config = AppConfigRepository::get_system_config(&conn).unwrap();
+        assert_eq!(config.app_log_level, crate::models::default_app_log_level());
+
+        config.app_log_level = "warn".to_string();
+        AppConfigRepository::save_system_config(&conn, &config).unwrap();
+        assert_eq!(
+            AppConfigRepository::get_system_config(&conn)
+                .unwrap()
+                .app_log_level,
+            "warn"
+        );
+
+        drop(conn);
+        drop(db);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

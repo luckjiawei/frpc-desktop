@@ -21,8 +21,11 @@ const formData = ref<FrpcSystemConfiguration>({
   launchAtStartup: false,
   silentStartup: false,
   autoConnectOnStartup: false,
-  language: "en-US"
+  language: "en-US",
+  appLogLevel: "info"
 });
+
+const appLogLevels = ["error", "warn", "info", "debug"] as const;
 const listenerCleanups: Array<() => void> = [];
 
 const loadConfig = () => {
@@ -177,6 +180,27 @@ onUnmounted(() => {
                   <el-option label="中文" value="zh-CN" />
                   <el-option label="English" value="en-US" />
                 </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item :label="t('config.form.appLogLevel.label')">
+                <div class="flex flex-col gap-1 items-start">
+                  <el-select
+                    v-model="formData.appLogLevel"
+                    class="!w-[200px]"
+                    @change="handleChange"
+                  >
+                    <el-option
+                      v-for="level in appLogLevels"
+                      :key="level"
+                      :label="t(`logger.level.${level}`)"
+                      :value="level"
+                    />
+                  </el-select>
+                  <span class="text-xs text-text_color_secondary">
+                    {{ t("config.form.appLogLevel.tips") }}
+                  </span>
+                </div>
               </el-form-item>
             </el-col>
 

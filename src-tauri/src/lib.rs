@@ -95,6 +95,18 @@ pub fn run() {
 
             app.manage(app_state);
 
+            // The logger starts with the build default; apply the level saved
+            // in desktop settings now that the database is available.
+            {
+                let state = app.state::<AppState>();
+                let conn = state.db.conn();
+                if let Ok(config) =
+                    db::app_config_repo::AppConfigRepository::get_system_config(&conn)
+                {
+                    system::logger::set_level(&config.app_log_level);
+                }
+            }
+
             // Start background system usage poller
             SystemService::start_usage_poller(app.handle().clone());
 

@@ -520,6 +520,10 @@ export default {
       systemLanguage: {
         label: "系统语言",
         requireMessage: "请选择系统语言"
+      },
+      appLogLevel: {
+        label: "应用日志级别",
+        tips: "控制应用自身日志的详细程度；实例的 frpc / cloudflared 日志级别在各自配置中单独设置。"
       }
     },
     tab: {

@@ -442,6 +442,7 @@ mod tests {
                 silent_startup: true,
                 auto_connect_on_startup: true,
                 language: "zh-CN".to_string(),
+                app_log_level: "info".to_string(),
             },
             // Previous frpc values must not leak into the imported file.
             server_addr: "old.example.test".to_string(),

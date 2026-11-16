@@ -535,6 +535,10 @@ export default {
       systemLanguage: {
         label: "System Language",
         requireMessage: "Please select system language"
+      },
+      appLogLevel: {
+        label: "App Log Level",
+        tips: "Controls the detail of application logs. Instance frpc and cloudflared log levels are set separately in their own configuration."
       }
     },
     tab: {

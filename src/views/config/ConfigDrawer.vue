@@ -102,7 +102,8 @@ const defaultFormData: ConfigEditorData = {
     launchAtStartup: false,
     silentStartup: false,
     autoConnectOnStartup: false,
-    language: "en-US"
+    language: "en-US",
+    appLogLevel: "info"
   },
   user: ""
 };
