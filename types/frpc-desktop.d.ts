@@ -53,6 +53,7 @@ interface FrpcSystemConfiguration {
   silentStartup: boolean;
   autoConnectOnStartup: boolean;
   language: string;
+  appLogLevel: "error" | "warn" | "info" | "debug";
 }
 
 type FrpcDesktopServer = BaseEntity &
@@ -81,6 +82,13 @@ type FrpcVersion = BaseEntity & {
 type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
   system: FrpcSystemConfiguration;
 };
+
+type TomlImportResult =
+  | { canceled: true }
+  | {
+      canceled: false;
+      tunnel: Tunnel;
+    };
 
 type FrpcProxy = BaseEntity &
   FrpcProxyConfig & {

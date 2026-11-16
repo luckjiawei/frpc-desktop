@@ -105,7 +105,6 @@
   .el-dialog__footer {
     margin-top: 20px;
     padding-top: 16px;
-    border-top: 1px solid var(--app-border);
 
     .el-button {
       min-height: 32px;
@@ -115,6 +114,16 @@
       overflow-wrap: anywhere;
       line-height: 1.4;
     }
+  }
+
+  /* 对话框底部有独立分区，需要分隔线；提示框内容很短，不需要 */
+  .el-dialog__footer {
+    border-top: 1px solid var(--app-border);
+  }
+
+  .el-message-box__btns {
+    margin-top: 12px;
+    padding-top: 8px;
   }
 }
 
@@ -128,7 +137,7 @@
 
 .el-message-box {
   .el-message-box__container {
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
   }
 

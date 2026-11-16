@@ -145,6 +145,9 @@ flowchart LR
 | `desktop` | `silent_startup` | `boolean` | `false` | `system.silentStartup` |
 | `desktop` | `auto_connect_on_startup` | `boolean` | `false` | `system.autoConnectOnStartup` |
 | `desktop` | `language` | `string` | `en-US` | `system.language` |
+| `desktop` | `app_log_level` | `string` | `info` | `system.appLogLevel` |
+
+`app_log_level` 可选值为 `error`、`warn`、`info`、`debug`，只控制应用自身写入 `log/main.log` 的日志级别；各实例的 frpc / cloudflared 日志级别仍保存在实例配置中，二者互不影响。开发构建未保存该配置时默认使用 `debug`，发布构建默认使用 `info`。
 
 这些默认记录的 `id` 由应用层生成 UUID。当前 `OpenSourceFrpcDesktopServer.system` 仍保留为 service 和 IPC 层的兼容结构。读取 server 配置时，由 service 查询 `desktop` 命名空间并组装成现有 `system` 对象；保存配置时，在同一事务内分别更新 server 和对应配置项。renderer 不需要感知这一拆分。
 
@@ -452,11 +455,14 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 ### 11.3 运行规则
 
 - 全局开关 `desktop/auto_connect_on_startup` 仍是总开关，开启时只启动 `auto_start = 1` 的实例；
-- `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 只写 `t_frpcd_servers`，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
+- `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 更新 `t_frpcd_servers` 及随请求提交的实例名称、自动连接设置，不写全局桌面设置，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
 - 默认实例 `"1"` 可以删除，配置与代理按外键级联清理。迁移 004 负责首次安装和旧版单服务端数据升级时的初始化，正常启动、列表查询、读取/保存配置和启动实例均不补建已删除的实例；数据库迁移编号无需变化。允许列表为空；“重置全部配置”会重新创建默认实例并删除其他实例。全局桌面设置的读取与应用启动不依赖默认实例；
-- 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，删除时仅清理这两个文件，保留共享目录及应用日志；其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除时清理对应实例的两个目录；
+- 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，删除时仅清理这两个文件，保留共享目录及应用日志；其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除时清理对应实例的两个目录；生成配置时 `[log].to` 始终写为当前实例的日志路径，不采用 `log_json.to` 中残留或导入的其他路径，否则日志查看器读不到输出；
 - 新建 frpc 实例时自动分配未被其他实例占用的 `webServer.port`（从 57400 起递增）；
 - 修改代理不会改变其 `server_id`，代理不能在实例之间移动。
+- 实例配置抽屉的底部“保存”会把实例名称、启动时自动连接与 frpc 设置放在同一事务中提交（`server/saveConfig` 对应实现为 `ServerRepository::save_frpc_config`）；校验或写入失败时全部回滚，避免名称已改而 frpc 设置未保存。Cloudflare Tunnel 的 `cloudflared/saveConfig` 同样在单个事务中保存实例字段与 cloudflared 配置。
+- “新建实例”对话框统一提供 frpc 手动填写、TOML 导入、链接导入和 Cloudflare Tunnel 创建。TOML 导入在同一事务中创建 tunnel/server 并写入文件中的配置、代理和 Visitor（新 UUID、`server_id` 固定为新实例）。导入文件中的 `[log].to` 只做类型校验后丢弃，实例日志始终写入该实例自己的 `log/tunnels/<id>/frpc.log`。监控端口与已有实例冲突时使用新建流程分配的空闲端口。取消文件选择不创建实例；解析或任一写入失败均整体回滚，不留下空实例。
+- 链接导入由 renderer 解码 `frp://` 中的 base64 JSON，再把 JSON 字符串交给 `tunnel/importLinkConfig`；后端 `import_link_config` 在同一事务中创建 tunnel，并把链接中的 `serverAddr`、`serverPort`、`user`、`multiuser`、`auth`、`transport`、`metadatas` 合并到该实例的默认 server 配置后写入。未知字段忽略，类型或端口非法时整体回滚；错误信息不回显链接内容。导出链接只包含服务器设置并清空本机 TLS 文件路径，可在实例卡片直接复制。已有实例和全局桌面设置不变，不新增迁移，无需重启应用；导入后选择本机 frpc 程序即可启动。
 
 ### 11.4 回退兼容
 

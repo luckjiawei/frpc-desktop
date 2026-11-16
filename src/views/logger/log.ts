@@ -131,8 +131,8 @@ export const parseLogLine = (
 };
 
 /**
- * Parse a whole log file content. The newest line comes first to keep the
- * "latest on top" behaviour of the log view.
+ * Parse a whole log file content. Lines keep their original order so the log
+ * view reads top-to-bottom with the newest line at the bottom.
  */
 export const parseLogContent = (
   content: string,
@@ -141,8 +141,7 @@ export const parseLogContent = (
   return content
     .split(/\r?\n/)
     .filter(line => line.trim().length > 0)
-    .map((line, index) => parseLogLine(line, format, `line-${index}`))
-    .reverse();
+    .map((line, index) => parseLogLine(line, format, `line-${index}`));
 };
 
 /** 应用日志：`[time] [level] message` */

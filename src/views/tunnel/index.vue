@@ -1,15 +1,18 @@
 <script lang="ts" setup>
-import { useDebounceFn } from "@vueuse/core";
+import { useClipboard, useDebounceFn } from "@vueuse/core";
+import ProviderBadge from "@/components/ProviderBadge.vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import router from "@/router";
 import { useTunnelStore } from "@/store/tunnel";
-import { on, send } from "@/utils/ipcUtils";
+import { on, request, send } from "@/utils/ipcUtils";
+import { encodeConfigLink } from "@/utils/configLink";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import CloudflaredConfigDrawer from "@/views/config/CloudflaredConfigDrawer.vue";
 import ConfigDrawer from "@/views/config/ConfigDrawer.vue";
+import CreateTunnelDrawer from "./CreateTunnelDrawer.vue";
 import TunnelLogDrawer from "./TunnelLogDrawer.vue";
 import { useBulkLaunch, useTunnelStatus } from "./useTunnelStatus";
 
@@ -72,26 +75,41 @@ const handleExportConfig = useDebounceFn((tunnel: TunnelSummary) => {
   send(ipcRouters.SERVER.exportConfig, { tunnelId: tunnel.id });
 }, 300);
 
-const promptTunnelName = (title: string, inputValue = "") =>
-  ElMessageBox.prompt(t("tunnel.prompt.nameLabel"), title, {
-    inputValue,
-    inputPlaceholder: t("tunnel.prompt.namePlaceholder"),
-    inputValidator: (value: string) => {
-      const name = (value ?? "").trim();
-      return (
-        (name.length > 0 && name.length <= 64) || t("tunnel.prompt.nameInvalid")
-      );
-    },
-    confirmButtonText: t("tunnel.prompt.confirm"),
-    cancelButtonText: t("tunnel.prompt.cancel")
-  }).then(({ value }) => value.trim());
+const createDialog = reactive({
+  visible: false
+});
 
-const handleCreate = (provider: TunnelProvider) => {
-  promptTunnelName(
-    `${t("tunnel.prompt.createTitle")} · ${t(`tunnel.provider.${provider}`)}`
-  )
-    .then(name => send(ipcRouters.TUNNEL.create, { name, provider }))
-    .catch(() => {});
+const handleCreateClick = () => {
+  createDialog.visible = true;
+};
+
+const handleCreated = (tunnel: Tunnel) => {
+  tunnelStore.setCurrentTunnel(tunnel.id);
+  tunnelStore.refreshTunnels();
+  openConfig(tunnel);
+};
+
+const copyingLink = reactive<Record<string, boolean>>({});
+const { copy } = useClipboard({ legacy: true });
+
+const handleCopyLink = async (tunnel: TunnelSummary) => {
+  if (copyingLink[tunnel.id]) return;
+  copyingLink[tunnel.id] = true;
+  try {
+    const response = await request<OpenSourceFrpcDesktopServer>(
+      ipcRouters.SERVER.getServerConfig,
+      { tunnelId: tunnel.id }
+    );
+    if (response.bizCode !== "A1000" || !response.data) {
+      throw new Error(response.message);
+    }
+    await copy(encodeConfigLink(response.data));
+    ElMessage.success(t("tunnel.message.copyLinkSuccess"));
+  } catch {
+    ElMessage.error(t("tunnel.message.copyLinkFailed"));
+  } finally {
+    copyingLink[tunnel.id] = false;
+  }
 };
 
 const deleteDialog = reactive({
@@ -182,17 +200,6 @@ onMounted(() => {
     })
   );
   listenerCleanups.push(
-    on(ipcRouters.TUNNEL.create, (data: Tunnel) => {
-      ElMessage({
-        type: "success",
-        message: t("tunnel.message.createSuccess")
-      });
-      tunnelStore.refreshTunnels();
-      // 新实例还没有服务端配置，直接打开它的配置
-      openConfig(data);
-    })
-  );
-  listenerCleanups.push(
     on(
       ipcRouters.TUNNEL.delete,
       () => {
@@ -239,36 +246,12 @@ onUnmounted(() => {
           {{ t("tunnel.button.stopAll") }}
         </el-button>
       </template>
-      <el-dropdown trigger="click" @command="handleCreate">
-        <el-button type="primary">
-          <template #icon>
-            <IconifyIconOffline icon="add" />
-          </template>
-          {{ t("tunnel.button.create") }}
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item
-              v-for="provider in ['frpc', 'cloudflared'] as const"
-              :key="provider"
-              :command="provider"
-            >
-              <IconifyIconOffline
-                class="mr-2 text-lg"
-                :icon="provider === 'frpc' ? 'lan-outline' : 'public'"
-              />
-              <span class="flex flex-col py-1 leading-snug">
-                <span class="font-medium">
-                  {{ t(`tunnel.provider.${provider}`) }}
-                </span>
-                <span class="text-xs text-text_color_secondary">
-                  {{ t(`tunnel.provider.${provider}Description`) }}
-                </span>
-              </span>
-            </el-dropdown-item>
-          </el-dropdown-menu>
+      <el-button type="primary" @click="handleCreateClick">
+        <template #icon>
+          <IconifyIconOffline icon="add" />
         </template>
-      </el-dropdown>
+        {{ t("tunnel.button.create") }}
+      </el-button>
     </breadcrumb>
     <div v-loading="!tunnelStore.loaded" class="app-container-breadcrumb">
       <div
@@ -276,20 +259,12 @@ onUnmounted(() => {
         class="flex justify-center items-center p-4 w-full h-full app-panel"
       >
         <el-empty :description="t('tunnel.empty')">
-          <div class="flex flex-wrap gap-2 justify-center">
-            <el-button
-              v-for="provider in ['frpc', 'cloudflared'] as const"
-              :key="provider"
-              :type="provider === 'frpc' ? 'primary' : 'default'"
-              @click="handleCreate(provider)"
-            >
-              <template #icon>
-                <IconifyIconOffline icon="add" />
-              </template>
-              {{ t("tunnel.button.create") }} ·
-              {{ t(`tunnel.provider.${provider}`) }}
-            </el-button>
-          </div>
+          <el-button type="primary" @click="handleCreateClick">
+            <template #icon>
+              <IconifyIconOffline icon="add" />
+            </template>
+            {{ t("tunnel.button.create") }}
+          </el-button>
         </el-empty>
       </div>
       <section
@@ -312,9 +287,7 @@ onUnmounted(() => {
                 <h2 class="tunnel-name" :title="tunnel.name">
                   {{ tunnel.name }}
                 </h2>
-                <el-tag size="small" type="info" effect="plain">
-                  {{ t(`tunnel.provider.${tunnel.provider}`) }}
-                </el-tag>
+                <ProviderBadge :provider="tunnel.provider" size="small" />
               </div>
               <p class="mt-1 text-sm text-text_color_secondary">
                 {{ statusLabel(tunnel.id) }}
@@ -433,6 +406,21 @@ onUnmounted(() => {
               {{ t("config.button.exportConfig") }}
             </el-button>
             <el-button
+              v-if="tunnel.provider === 'frpc'"
+              text
+              size="small"
+              :loading="copyingLink[tunnel.id]"
+              :disabled="copyingLink[tunnel.id]"
+              :aria-label="t('tunnel.button.copyLink')"
+              :title="t('tunnel.button.copyLink')"
+              @click="handleCopyLink(tunnel)"
+            >
+              <template #icon>
+                <IconifyIconOffline icon="link" />
+              </template>
+              {{ t("tunnel.button.copyLink") }}
+            </el-button>
+            <el-button
               text
               type="danger"
               size="small"
@@ -468,19 +456,10 @@ onUnmounted(() => {
       </template>
       <div v-if="deleteDialog.tunnel" class="flex flex-col gap-4">
         <div class="delete-dialog-target">
-          <IconifyIconOffline
-            class="flex-none text-xl text-text_color_secondary"
-            :icon="
-              deleteDialog.tunnel.provider === 'frpc' ? 'lan-outline' : 'public'
-            "
-            aria-hidden="true"
-          />
           <span class="flex-1 min-w-0 font-semibold break-all">
             {{ deleteDialog.tunnel.name }}
           </span>
-          <el-tag size="small" type="info" effect="plain" class="flex-none">
-            {{ t(`tunnel.provider.${deleteDialog.tunnel.provider}`) }}
-          </el-tag>
+          <ProviderBadge :provider="deleteDialog.tunnel.provider" />
         </div>
         <p class="delete-dialog-description">
           {{
@@ -521,6 +500,10 @@ onUnmounted(() => {
     <CloudflaredConfigDrawer
       v-model="cloudflaredDrawer.visible"
       :tunnel="cloudflaredDrawer.tunnel"
+    />
+    <CreateTunnelDrawer
+      v-model="createDialog.visible"
+      @created="handleCreated"
     />
   </div>
 </template>

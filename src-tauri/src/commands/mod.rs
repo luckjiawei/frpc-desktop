@@ -185,7 +185,11 @@ fn arg_tunnel_id(args: &Option<Value>) -> Result<String, ApiResponse<Value>> {
 }
 
 fn arg_tunnel_name(args: &Option<Value>) -> Result<Option<String>, ApiResponse<Value>> {
-    match args.as_ref().and_then(|v| v.get("name")).and_then(|v| v.as_str()) {
+    match args
+        .as_ref()
+        .and_then(|v| v.get("name"))
+        .and_then(|v| v.as_str())
+    {
         None => Ok(None),
         Some(raw) => {
             let name = raw.trim();
@@ -208,7 +212,10 @@ fn arg_provider(args: &Option<Value>) -> Result<String, ApiResponse<Value>> {
     if TunnelRepository::is_supported_provider(provider) {
         Ok(provider.to_string())
     } else {
-        Err(ApiResponse::fail("B1000", format!("Unsupported provider: {}", provider)))
+        Err(ApiResponse::fail(
+            "B1000",
+            format!("Unsupported provider: {}", provider),
+        ))
     }
 }
 
@@ -267,20 +274,35 @@ async fn handle_ipc_send(
         // Saves only the tunnel's frpc settings; desktop settings are saved
         // through system/saveSystemConfig.
         "server/saveConfig" => {
+            // Instance fields travel beside the frpc settings so the drawer can
+            // save both with one action and one transaction.
+            let name = match arg_tunnel_name(&args) {
+                Ok(name) => name,
+                Err(resp) => return resp,
+            };
+            let auto_start = args
+                .as_ref()
+                .and_then(|v| v.get("autoStart"))
+                .and_then(|v| v.as_bool());
             if let Some(val) = args {
                 match serde_json::from_value::<OpenSourceFrpcDesktopServer>(val) {
                     Ok(server) => {
                         if !TunnelRepository::is_valid_id(&server.id) {
                             return ApiResponse::fail("B1008", "Tunnel not found");
                         }
-                        let conn = state.db.conn();
-                        match TunnelRepository::find(&conn, &server.id) {
-                            Ok(Some(t)) if t.provider == PROVIDER_FRPC => {}
-                            Ok(_) => return ApiResponse::fail("B1008", "Tunnel not found"),
-                            Err(e) => return ApiResponse::internal_error(e.to_string()),
-                        }
-                        match ServerRepository::save_frpc_settings(&conn, &server) {
-                            Ok(()) => ApiResponse::success(serde_json::to_value(&server).unwrap_or(Value::Null)),
+                        let mut conn = state.db.conn();
+                        match ServerRepository::save_frpc_config(
+                            &mut conn,
+                            &server,
+                            name.as_deref(),
+                            auto_start,
+                        ) {
+                            Ok(()) => ApiResponse::success(
+                                serde_json::to_value(&server).unwrap_or(Value::Null),
+                            ),
+                            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                                ApiResponse::fail("B1008", "Tunnel not found")
+                            }
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -308,9 +330,9 @@ async fn handle_ipc_send(
                         state.remove_tunnel_files(id);
                     }
                     match ServerRepository::get_server_config(&conn, DEFAULT_TUNNEL_ID) {
-                        Ok(server) => {
-                            ApiResponse::success(serde_json::to_value(server).unwrap_or(Value::Null))
-                        }
+                        Ok(server) => ApiResponse::success(
+                            serde_json::to_value(server).unwrap_or(Value::Null),
+                        ),
                         Err(e) => ApiResponse::internal_error(e.to_string()),
                     }
                 }
@@ -319,58 +341,97 @@ async fn handle_ipc_send(
         }
         "server/exportConfig" => {
             let tunnel_id = tunnel_id_or_return!(args);
-            let conn = state.db.conn();
-            let server = match ServerRepository::get_server_config(&conn, &tunnel_id) {
-                Ok(s) => s,
-                Err(e) => return ApiResponse::internal_error(e.to_string()),
+            // The SQLite guard is not Send, so keep it out of the future that
+            // awaits the file dialog below.
+            let (server, proxies) = {
+                let conn = state.db.conn();
+                let server = match ServerRepository::get_server_config(&conn, &tunnel_id) {
+                    Ok(s) => s,
+                    Err(e) => return ApiResponse::internal_error(e.to_string()),
+                };
+                let proxies = match ProxyRepository::get_proxies_by_server(&conn, &tunnel_id) {
+                    Ok(p) => p,
+                    Err(e) => return ApiResponse::internal_error(e.to_string()),
+                };
+                (server, proxies)
             };
-            let proxies = match ProxyRepository::get_proxies_by_server(&conn, &tunnel_id) {
-                Ok(p) => p,
-                Err(e) => return ApiResponse::internal_error(e.to_string()),
-            };
-            drop(conn);
             let log_path = state.tunnel_paths(&tunnel_id, PROVIDER_FRPC).log_path;
             let toml_str = ConfigGenerator::gen_toml_config(&server, &proxies, &log_path);
 
-            if let Some(path_buf) = rfd::FileDialog::new()
+            // Async dialog keeps the webview responsive; the sync FileDialog
+            // opens an app-modal loop and freezes the window until it closes.
+            let Some(file) = rfd::AsyncFileDialog::new()
                 .set_file_name("frpc.toml")
                 .add_filter("TOML Config", &["toml"])
                 .save_file()
-            {
-                if let Err(e) = fs::write(&path_buf, &toml_str) {
-                    return ApiResponse::internal_error(format!("Failed to write file: {}", e));
-                }
-                ApiResponse::success(serde_json::json!({
-                    "canceled": false,
-                    "path": path_buf.to_string_lossy()
-                }))
-            } else {
-                ApiResponse::success(serde_json::json!({
+                .await
+            else {
+                return ApiResponse::success(serde_json::json!({
                     "canceled": true,
                     "path": ""
-                }))
+                }));
+            };
+            if let Err(e) = tokio::fs::write(file.path(), &toml_str).await {
+                return ApiResponse::internal_error(format!("Failed to write file: {}", e));
             }
+            ApiResponse::success(serde_json::json!({
+                "canceled": false,
+                "path": file.path().to_string_lossy()
+            }))
         }
-        "server/importTomlConfig" => {
-            if let Some(path_buf) = rfd::FileDialog::new()
+        "tunnel/importTomlConfig" => {
+            let name = match arg_tunnel_name(&args) {
+                Ok(Some(name)) => name,
+                Ok(None) => return ApiResponse::internal_error("Missing tunnel name"),
+                Err(response) => return response,
+            };
+            let Some(file) = rfd::AsyncFileDialog::new()
                 .add_filter("TOML Config", &["toml"])
                 .pick_file()
-            {
-                match fs::read_to_string(&path_buf) {
-                    Ok(_content) => {
-                        // Import TOML
-                        ApiResponse::success(serde_json::json!({
-                            "canceled": false,
-                            "path": path_buf.to_string_lossy()
-                        }))
-                    }
-                    Err(e) => ApiResponse::internal_error(format!("Failed to read file: {}", e)),
+                .await
+            else {
+                return ApiResponse::success(serde_json::json!({ "canceled": true }));
+            };
+            let content = match tokio::fs::read_to_string(file.path()).await {
+                Ok(content) => content,
+                Err(_) => return ApiResponse::internal_error("Failed to read TOML file"),
+            };
+            let mut conn = state.db.conn();
+            match crate::db::config_import::import_toml_config(
+                &mut conn,
+                &name,
+                &content,
+                file.path().parent(),
+            ) {
+                Ok(tunnel) => ApiResponse::success(serde_json::json!({
+                    "canceled": false,
+                    "tunnel": tunnel
+                })),
+                Err(e) => ApiResponse::internal_error(e.to_string()),
+            }
+        }
+        "tunnel/importLinkConfig" => {
+            let name = match arg_tunnel_name(&args) {
+                Ok(Some(name)) => name,
+                Ok(None) => return ApiResponse::internal_error("Missing tunnel name"),
+                Err(response) => return response,
+            };
+            let Some(payload) = args
+                .as_ref()
+                .and_then(|v| v.get("payload"))
+                .and_then(|v| v.as_str())
+            else {
+                return ApiResponse::internal_error("Missing link payload");
+            };
+            let mut conn = state.db.conn();
+            match crate::db::config_import::import_link_config(&mut conn, &name, payload) {
+                Ok(tunnel) => {
+                    ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null))
                 }
-            } else {
-                ApiResponse::success(serde_json::json!({
-                    "canceled": true,
-                    "path": ""
-                }))
+                Err(e) if e.to_string() == "Invalid link content" => {
+                    ApiResponse::fail("B1009", "Invalid link content")
+                }
+                Err(e) => ApiResponse::fail("B1000", e.to_string()),
             }
         }
         "system/getSystemConfig" => {
@@ -386,10 +447,15 @@ async fn handle_ipc_send(
             };
             let config = match serde_json::from_value::<FrpcSystemConfiguration>(val) {
                 Ok(c) => c,
-                Err(e) => return ApiResponse::internal_error(format!("Invalid system payload: {}", e)),
+                Err(e) => {
+                    return ApiResponse::internal_error(format!("Invalid system payload: {}", e))
+                }
             };
             if !matches!(config.language.as_str(), "zh-CN" | "en-US") {
                 return ApiResponse::fail("B1000", "Invalid language");
+            }
+            if !crate::system::logger::is_valid_level(&config.app_log_level) {
+                return ApiResponse::fail("B1000", "Invalid app log level");
             }
             let conn = state.db.conn();
             match AppConfigRepository::save_system_config(&conn, &config) {
@@ -400,6 +466,7 @@ async fn handle_ipc_send(
                     } else {
                         let _ = app.autolaunch().disable();
                     }
+                    crate::system::logger::set_level(&config.app_log_level);
                     let _ = crate::refresh_tray_menu(app, &config.language);
                     ApiResponse::success(serde_json::to_value(&config).unwrap_or(Value::Null))
                 }
@@ -451,9 +518,9 @@ async fn handle_ipc_send(
                         }
                         let conn = state.db.conn();
                         match ProxyRepository::create_proxy(&conn, proxy) {
-                            Ok(created) => {
-                                ApiResponse::success(serde_json::to_value(created).unwrap_or(Value::Null))
-                            }
+                            Ok(created) => ApiResponse::success(
+                                serde_json::to_value(created).unwrap_or(Value::Null),
+                            ),
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -469,9 +536,9 @@ async fn handle_ipc_send(
                     Ok(proxy) => {
                         let conn = state.db.conn();
                         match ProxyRepository::modify_proxy(&conn, proxy) {
-                            Ok(updated) => {
-                                ApiResponse::success(serde_json::to_value(updated).unwrap_or(Value::Null))
-                            }
+                            Ok(updated) => ApiResponse::success(
+                                serde_json::to_value(updated).unwrap_or(Value::Null),
+                            ),
                             Err(e) => ApiResponse::internal_error(e.to_string()),
                         }
                     }
@@ -521,7 +588,9 @@ async fn handle_ipc_send(
         "proxy/getLocalPorts" => {
             let conn = state.db.conn();
             match ProxyRepository::get_local_ports(&conn) {
-                Ok(ports) => ApiResponse::success(serde_json::to_value(ports).unwrap_or(Value::Null)),
+                Ok(ports) => {
+                    ApiResponse::success(serde_json::to_value(ports).unwrap_or(Value::Null))
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
@@ -546,7 +615,9 @@ async fn handle_ipc_send(
             };
             let mut conn = state.db.conn();
             match TunnelRepository::create(&mut conn, &name, &provider) {
-                Ok(tunnel) => ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null)),
+                Ok(tunnel) => {
+                    ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null))
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
@@ -562,7 +633,9 @@ async fn handle_ipc_send(
                 .and_then(|v| v.as_bool());
             let conn = state.db.conn();
             match TunnelRepository::update(&conn, &tunnel_id, name.as_deref(), auto_start) {
-                Ok(Some(tunnel)) => ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null)),
+                Ok(Some(tunnel)) => {
+                    ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null))
+                }
                 Ok(None) => ApiResponse::fail("B1008", "Tunnel not found"),
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
@@ -598,13 +671,24 @@ async fn handle_ipc_send(
             }
         }
         "cloudflared/saveConfig" => {
+            let name = match arg_tunnel_name(&args) {
+                Ok(name) => name,
+                Err(resp) => return resp,
+            };
+            let auto_start = args
+                .as_ref()
+                .and_then(|v| v.get("autoStart"))
+                .and_then(|v| v.as_bool());
             let Some(val) = args else {
                 return ApiResponse::internal_error("Missing arguments for cloudflared/saveConfig");
             };
             let mut settings = match serde_json::from_value::<CloudflaredSettings>(val) {
                 Ok(s) => s,
                 Err(e) => {
-                    return ApiResponse::internal_error(format!("Invalid cloudflared payload: {}", e))
+                    return ApiResponse::internal_error(format!(
+                        "Invalid cloudflared payload: {}",
+                        e
+                    ))
                 }
             };
             if !TunnelRepository::is_valid_id(&settings.tunnel_id) {
@@ -615,14 +699,31 @@ async fn handle_ipc_send(
             if let Err(field) = CloudflaredRepository::validate(&settings) {
                 return ApiResponse::fail("B1000", format!("Invalid {}", field));
             }
-            let conn = state.db.conn();
-            match TunnelRepository::find(&conn, &settings.tunnel_id) {
-                Ok(Some(t)) if t.provider == PROVIDER_CLOUDFLARED => {}
-                Ok(_) => return ApiResponse::fail("B1008", "Tunnel not found"),
-                Err(e) => return ApiResponse::internal_error(e.to_string()),
-            }
-            match CloudflaredRepository::save(&conn, &settings) {
-                Ok(()) => ApiResponse::success(serde_json::json!({ "tunnelId": settings.tunnel_id })),
+            let mut conn = state.db.conn();
+            let result = (|| -> Result<(), rusqlite::Error> {
+                let tx = conn.transaction()?;
+                match TunnelRepository::find(&tx, &settings.tunnel_id)? {
+                    Some(t) if t.provider == PROVIDER_CLOUDFLARED => {}
+                    _ => return Err(rusqlite::Error::QueryReturnedNoRows),
+                }
+                CloudflaredRepository::save(&tx, &settings)?;
+                if name.is_some() || auto_start.is_some() {
+                    TunnelRepository::update(
+                        &tx,
+                        &settings.tunnel_id,
+                        name.as_deref(),
+                        auto_start,
+                    )?;
+                }
+                tx.commit()
+            })();
+            match result {
+                Ok(()) => {
+                    ApiResponse::success(serde_json::json!({ "tunnelId": settings.tunnel_id }))
+                }
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    ApiResponse::fail("B1008", "Tunnel not found")
+                }
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
@@ -633,10 +734,14 @@ async fn handle_ipc_send(
         "cloudflared/validatePath" => {
             let path_str = arg_path(&args);
             if path_str.trim().is_empty() {
-                return ApiResponse::success(serde_json::json!({ "valid": false, "error": "路径为空" }));
+                return ApiResponse::success(
+                    serde_json::json!({ "valid": false, "error": "路径为空" }),
+                );
             }
             match FrpcDetector::validate_cloudflared_path(&path_str) {
-                Ok(ver) => ApiResponse::success(serde_json::json!({ "valid": true, "version": ver })),
+                Ok(ver) => {
+                    ApiResponse::success(serde_json::json!({ "valid": true, "version": ver }))
+                }
                 Err(e) => ApiResponse::success(serde_json::json!({ "valid": false, "error": e })),
             }
         }
@@ -667,10 +772,14 @@ async fn handle_ipc_send(
         "launch/launch" => {
             let tunnel_id = tunnel_id_or_return!(args);
             match state.launch_tunnel(app, &tunnel_id).await {
-                Ok(status) => ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null)),
-                Err((code, msg)) => {
-                    ApiResponse::fail_with_data(code, msg, serde_json::json!({ "tunnelId": tunnel_id }))
+                Ok(status) => {
+                    ApiResponse::success(serde_json::to_value(status).unwrap_or(Value::Null))
                 }
+                Err((code, msg)) => ApiResponse::fail_with_data(
+                    code,
+                    msg,
+                    serde_json::json!({ "tunnelId": tunnel_id }),
+                ),
             }
         }
         "launch/launchAll" => {
@@ -696,7 +805,10 @@ async fn handle_ipc_send(
                 Ok(provider) => provider,
                 Err(resp) => return resp,
             };
-            let versions = state.version_mgr.get_catalog_versions(&state.db, &provider).await;
+            let versions = state
+                .version_mgr
+                .get_catalog_versions(&state.db, &provider)
+                .await;
             ApiResponse::success(serde_json::to_value(versions).unwrap_or(Value::Null))
         }
         "version/getDownloadedVersions" => {
@@ -797,14 +909,20 @@ async fn handle_ipc_send(
             let picked_path = if !path_str.trim().is_empty() {
                 Some(PathBuf::from(path_str))
             } else {
-                rfd::FileDialog::new()
+                rfd::AsyncFileDialog::new()
                     .add_filter("Frpc Archive", &["tar.gz", "zip", "gz"])
                     .pick_file()
+                    .await
+                    .map(|file| file.path().to_path_buf())
             };
 
             match picked_path {
                 Some(path_buf) => {
-                    match state.version_mgr.import_local_file(&state.db, &path_buf).await {
+                    match state
+                        .version_mgr
+                        .import_local_file(&state.db, &path_buf)
+                        .await
+                    {
                         Ok(_) => ApiResponse::success(serde_json::json!({ "canceled": false })),
                         Err(e) => {
                             let msg = e.to_string();
@@ -851,7 +969,8 @@ async fn handle_ipc_send(
         // --- LOG ---
         "log/getFrpLogContent" => {
             let tunnel_id = tunnel_id_or_return!(args);
-            let lines = SystemService::read_log_tail(&state.stored_tunnel_paths(&tunnel_id).log_path, 500);
+            let lines =
+                SystemService::read_log_tail(&state.stored_tunnel_paths(&tunnel_id).log_path, 500);
             ApiResponse::success(Value::String(lines.join("\n")))
         }
         "log/getAppLogContent" => {
@@ -925,21 +1044,21 @@ async fn handle_ipc_send(
             ApiResponse::success_empty()
         }
         "system/selectLocalFile" => {
-            let mut dialog = rfd::FileDialog::new();
+            // Async dialog keeps the webview responsive while the picker is open.
+            let mut dialog = rfd::AsyncFileDialog::new();
             if let Some(Value::Object(map)) = args {
                 let name = map.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 if let Some(Value::Array(exts)) = map.get("extensions") {
-                    let ext_strs: Vec<&str> =
-                        exts.iter().filter_map(|e| e.as_str()).collect();
+                    let ext_strs: Vec<&str> = exts.iter().filter_map(|e| e.as_str()).collect();
                     if !ext_strs.is_empty() {
                         dialog = dialog.add_filter(name, &ext_strs);
                     }
                 }
             }
-            if let Some(path_buf) = dialog.pick_file() {
+            if let Some(file) = dialog.pick_file().await {
                 ApiResponse::success(serde_json::json!({
                     "canceled": false,
-                    "path": path_buf.to_string_lossy()
+                    "path": file.path().to_string_lossy()
                 }))
             } else {
                 ApiResponse::success(serde_json::json!({

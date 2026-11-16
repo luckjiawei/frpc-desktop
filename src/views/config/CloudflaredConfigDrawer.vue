@@ -24,9 +24,16 @@ const props = defineProps<{
   tunnel: Pick<TunnelSummary, "id" | "name" | "autoStart"> | null;
 }>();
 
+type CloudflaredEditorData = CloudflaredSettings & {
+  instanceName: string;
+  autoStart: boolean;
+};
+
 const CLOUDFLARE_DASHBOARD_URL = "https://one.dash.cloudflare.com/";
 /** 连接器令牌是 base64（含 URL 安全字符）编码的 JSON，与后端校验一致 */
 const TOKEN_PATTERN = /^[A-Za-z0-9+/=_-]{32,4096}$/;
+/** 与应用日志级别保持一致的选项顺序与文案 */
+const logLevels = ["error", "warn", "info", "debug"] as const;
 
 const { t } = useI18n();
 const frpcDesktopStore = useFrpcDesktopStore();
@@ -38,8 +45,10 @@ const tunnelName = computed(
     ""
 );
 
-const defaultFormData = (tunnelId = ""): CloudflaredSettings => ({
+const defaultFormData = (tunnelId = ""): CloudflaredEditorData => ({
   tunnelId,
+  instanceName: "",
+  autoStart: false,
   cloudflaredVersion: null,
   customCloudflaredPath: "",
   token: "",
@@ -48,12 +57,12 @@ const defaultFormData = (tunnelId = ""): CloudflaredSettings => ({
   logLevel: "info"
 });
 
-const formData = ref<CloudflaredSettings>(defaultFormData());
+const formData = ref<CloudflaredEditorData>(defaultFormData());
 const formRef = ref<FormInstance>();
+const activeTab = ref("instance");
 const loading = ref(false);
 const saving = ref(false);
 const formDirty = ref(false);
-const instanceDirty = ref(false);
 const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
 /** 二选一的界面状态：保存时清空未选中的一项 */
@@ -62,6 +71,19 @@ let hydratingForm = true;
 const listenerCleanups: Array<() => void> = [];
 
 const rules = reactive<FormRules>({
+  instanceName: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        const name = (value ?? "").trim();
+        callback(
+          name.length > 0 && name.length <= 64
+            ? undefined
+            : new Error(t("tunnel.prompt.nameInvalid"))
+        );
+      },
+      trigger: "blur"
+    }
+  ],
   customCloudflaredPath: [
     {
       required: true,
@@ -148,10 +170,31 @@ const handleLoad = () => {
   send(ipcRouters.CLOUDFLARED.getConfig, { tunnelId: props.tunnel.id });
 };
 
+/** 校验失败时切换到对应 Tab，避免其他页签里的错误不可见 */
+const revealInvalidField = async (fields?: Record<string, unknown>) => {
+  const invalidField = formRef.value?.fields.find(
+    field => fields?.[field.propString]
+  );
+  if (!invalidField) return;
+  const tab = invalidField.$el?.closest<HTMLElement>("[data-cloudflared-tab]")
+    ?.dataset.cloudflaredTab;
+  if (tab) activeTab.value = tab;
+  await nextTick();
+  invalidField.$el?.scrollIntoView({ block: "center" });
+  invalidField.$el
+    ?.querySelector<HTMLElement>(
+      'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), [tabindex="0"]'
+    )
+    ?.focus({ preventScroll: true });
+};
+
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value || !props.tunnel) return;
-  formRef.value.validate(valid => {
-    if (!valid) return;
+  formRef.value.validate(async (valid, fields) => {
+    if (!valid) {
+      await revealInvalidField(fields);
+      return;
+    }
     const data = _.cloneDeep(formData.value);
     data.tunnelId = props.tunnel!.id;
     data.token = data.token.trim();
@@ -162,7 +205,11 @@ const handleSubmit = useDebounceFn(() => {
       data.customCloudflaredPath = "";
     }
     saving.value = true;
-    send(ipcRouters.CLOUDFLARED.saveConfig, data);
+    send(ipcRouters.CLOUDFLARED.saveConfig, {
+      ...data,
+      name: data.instanceName.trim(),
+      autoStart: data.autoStart
+    });
   });
 }, 300);
 
@@ -175,7 +222,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value && !instanceDirty.value) {
+  if (!formDirty.value) {
     done();
     return;
   }
@@ -226,11 +273,14 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
-    instanceDirty.value = false;
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
+      activeTab.value = "instance";
       formData.value = defaultFormData(props.tunnel?.id);
+      formData.value.instanceName =
+        tunnelName.value || props.tunnel?.name || "";
+      formData.value.autoStart = props.tunnel?.autoStart ?? false;
       binarySource.value = "downloaded";
       frpcDesktopStore.refreshDownloadedVersion();
       handleLoad();
@@ -247,7 +297,13 @@ onMounted(() => {
           return;
         }
         hydratingForm = true;
-        formData.value = { ...defaultFormData(data.tunnelId), ...data };
+        const { instanceName, autoStart } = formData.value;
+        formData.value = {
+          ...defaultFormData(data.tunnelId),
+          ...data,
+          instanceName,
+          autoStart
+        };
         checkAndResetVersion();
         binarySource.value = formData.value.customCloudflaredPath?.trim()
           ? "custom"
@@ -340,33 +396,8 @@ onUnmounted(() => {
       <h2 :id="titleId" :class="titleClass" :title="tunnelName">
         {{ t("tunnel.config.title", { name: tunnelName }) }}
       </h2>
-      <el-button
-        text
-        :aria-label="t('config.button.manualRefresh')"
-        :title="t('config.button.manualRefresh')"
-        @click="handleLoad"
-      >
-        <IconifyIconOffline icon="refresh-rounded" />
-      </el-button>
     </template>
     <div v-loading="loading" class="pr-2">
-      <TunnelSettings
-        v-if="drawerVisible && tunnel"
-        :key="tunnel.id"
-        v-model:dirty="instanceDirty"
-        :tunnel="tunnel"
-      />
-      <el-alert type="info" :closable="false" show-icon class="mb-4">
-        <template #title>
-          <span class="leading-relaxed">{{
-            t("tunnel.cloudflared.intro")
-          }}</span>
-        </template>
-        <el-link type="primary" class="mt-1" @click="handleOpenDashboard">
-          {{ t("tunnel.cloudflared.openDashboard") }}
-          <IconifyIconOffline class="ml-1" icon="open-in-new" />
-        </el-link>
-      </el-alert>
       <el-form
         ref="formRef"
         :model="formData"
@@ -374,139 +405,200 @@ onUnmounted(() => {
         label-position="right"
         label-width="130"
       >
-        <div class="h2">{{ t("tunnel.cloudflared.section.tunnel") }}</div>
-        <el-form-item :label="t('tunnel.cloudflared.token.label')" prop="token">
-          <el-input
-            :model-value="formData.token"
-            type="password"
-            show-password
-            autocomplete="off"
-            :placeholder="t('tunnel.cloudflared.token.placeholder')"
-            @update:model-value="handleTokenChange"
-          />
-        </el-form-item>
+        <el-tabs v-model="activeTab" class="config-tabs">
+          <el-tab-pane name="instance" data-cloudflared-tab="instance">
+            <template #label>
+              <span class="config-tab-label">
+                <IconifyIconOffline class="text-base" icon="settings" />
+                {{ t("tunnel.cloudflared.tab.instance") }}
+              </span>
+            </template>
+            <TunnelSettings
+              v-if="drawerVisible && tunnel"
+              :key="tunnel.id"
+              v-model:name="formData.instanceName"
+              v-model:auto-start="formData.autoStart"
+              :tunnel="tunnel"
+            />
+          </el-tab-pane>
 
-        <div class="h2">{{ t("tunnel.cloudflared.section.binary") }}</div>
-        <el-form-item :label="t('tunnel.cloudflared.source.label')">
-          <el-radio-group v-model="binarySource">
-            <el-radio-button value="downloaded">
-              {{ t("tunnel.cloudflared.source.downloaded") }}
-            </el-radio-button>
-            <el-radio-button value="custom">
-              {{ t("tunnel.cloudflared.source.custom") }}
-            </el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item
-          v-if="binarySource === 'downloaded'"
-          :label="t('tunnel.cloudflared.version.label')"
-        >
-          <el-select
-            v-model="formData.cloudflaredVersion"
-            class="w-full"
-            clearable
-            :placeholder="t('tunnel.cloudflared.version.placeholder')"
-            :no-data-text="t('tunnel.cloudflared.version.empty')"
-          >
-            <el-option
-              v-for="v in frpcDesktopStore.downloadedCloudflaredVersions"
-              :key="v.githubReleaseId"
-              :label="v.name"
-              :value="v.githubReleaseId"
-            />
-          </el-select>
-          <div
-            class="flex flex-wrap gap-2 justify-between items-center mt-1 w-full"
-          >
-            <span class="text-xs text-text_color_secondary">
-              {{ t("tunnel.cloudflared.version.autoHint") }}
-            </span>
-            <span class="flex gap-2">
-              <el-link
-                type="primary"
-                @click="frpcDesktopStore.refreshDownloadedVersion()"
-              >
-                <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
-                {{ t("config.button.manualRefresh") }}
-              </el-link>
-              <el-link type="primary" @click="handleGoToDownload">
-                <IconifyIconOffline class="mr-1" icon="download" />
-                {{ t("config.button.goToDownload") }}
-              </el-link>
-            </span>
-          </div>
-        </el-form-item>
-        <el-form-item
-          v-else
-          :label="t('tunnel.cloudflared.customPath.label')"
-          prop="customCloudflaredPath"
-        >
-          <div class="flex flex-wrap gap-2 items-center w-full">
-            <el-input
-              v-model="formData.customCloudflaredPath"
-              class="flex-1 min-w-[200px]"
-              clearable
-              :placeholder="t('tunnel.cloudflared.customPath.placeholder')"
-              @input="handleValidatePath"
-              @clear="handleValidatePath"
-            />
-            <el-button
-              :loading="detectingPath"
-              type="primary"
-              @click="handleDetectPath"
+          <el-tab-pane name="tunnel" data-cloudflared-tab="tunnel">
+            <template #label>
+              <span class="config-tab-label">
+                <IconifyIconOffline class="text-base" icon="cloud" />
+                {{ t("tunnel.cloudflared.tab.tunnel") }}
+              </span>
+            </template>
+            <div class="mb-4">
+              <el-alert type="info" :closable="false" show-icon>
+                <template #title>
+                  <span class="leading-relaxed">{{
+                    t("tunnel.cloudflared.intro")
+                  }}</span>
+                </template>
+                <el-link
+                  type="primary"
+                  class="mt-1"
+                  @click="handleOpenDashboard"
+                >
+                  {{ t("tunnel.cloudflared.openDashboard") }}
+                  <IconifyIconOffline class="ml-1" icon="open-in-new" />
+                </el-link>
+              </el-alert>
+            </div>
+            <el-form-item
+              :label="t('tunnel.cloudflared.token.label')"
+              prop="token"
             >
-              <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
-              {{ t("config.button.autoDetect") }}
-            </el-button>
-            <el-button @click="handleBrowse">
-              <IconifyIconOffline class="mr-1" icon="file-open-rounded" />
-              {{ t("config.button.browse") }}
-            </el-button>
-          </div>
-          <div
-            v-if="detectedVersionInfo"
-            class="flex items-center mt-1 w-full text-xs text-text_color_secondary"
-          >
-            <span class="mr-1.5">
-              {{ t("tunnel.cloudflared.customPath.detectedVersion") }}:
-            </span>
-            <el-tag size="small" type="success">
-              {{ detectedVersionInfo }}
-            </el-tag>
-          </div>
-        </el-form-item>
+              <el-input
+                :model-value="formData.token"
+                type="password"
+                show-password
+                autocomplete="off"
+                :placeholder="t('tunnel.cloudflared.token.placeholder')"
+                @update:model-value="handleTokenChange"
+              />
+            </el-form-item>
+          </el-tab-pane>
 
-        <div class="h2">{{ t("tunnel.cloudflared.section.advanced") }}</div>
-        <el-form-item :label="t('tunnel.cloudflared.protocol.label')">
-          <el-select v-model="formData.protocol" class="w-full">
-            <el-option
-              value="auto"
-              :label="t('tunnel.cloudflared.protocol.auto')"
-            />
-            <el-option value="quic" label="QUIC" />
-            <el-option value="http2" label="HTTP/2" />
-          </el-select>
-          <div class="mt-1 text-xs text-text_color_secondary">
-            {{ t("tunnel.cloudflared.protocol.tips") }}
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('tunnel.cloudflared.edgeIpVersion.label')">
-          <el-radio-group v-model="formData.edgeIpVersion">
-            <el-radio-button value="auto">
-              {{ t("tunnel.cloudflared.edgeIpVersion.auto") }}
-            </el-radio-button>
-            <el-radio-button value="4">IPv4</el-radio-button>
-            <el-radio-button value="6">IPv6</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item :label="t('tunnel.cloudflared.logLevel.label')">
-          <el-select v-model="formData.logLevel" class="w-full">
-            <el-option value="debug" label="debug" />
-            <el-option value="info" label="info" />
-            <el-option value="warn" label="warn" />
-            <el-option value="error" label="error" />
-          </el-select>
-        </el-form-item>
+          <el-tab-pane name="client" data-cloudflared-tab="client">
+            <template #label>
+              <span class="config-tab-label">
+                <IconifyIconOffline class="text-base" icon="terminal-rounded" />
+                {{ t("tunnel.cloudflared.tab.client") }}
+              </span>
+            </template>
+            <el-form-item :label="t('tunnel.cloudflared.source.label')">
+              <el-radio-group v-model="binarySource">
+                <el-radio-button value="downloaded">
+                  {{ t("tunnel.cloudflared.source.downloaded") }}
+                </el-radio-button>
+                <el-radio-button value="custom">
+                  {{ t("tunnel.cloudflared.source.custom") }}
+                </el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item
+              v-if="binarySource === 'downloaded'"
+              :label="t('tunnel.cloudflared.version.label')"
+            >
+              <el-select
+                v-model="formData.cloudflaredVersion"
+                class="w-full"
+                clearable
+                :placeholder="t('tunnel.cloudflared.version.placeholder')"
+                :no-data-text="t('tunnel.cloudflared.version.empty')"
+              >
+                <el-option
+                  v-for="v in frpcDesktopStore.downloadedCloudflaredVersions"
+                  :key="v.githubReleaseId"
+                  :label="v.name"
+                  :value="v.githubReleaseId"
+                />
+              </el-select>
+              <div
+                class="flex flex-wrap gap-2 justify-between items-center mt-1 w-full"
+              >
+                <span class="text-xs text-text_color_secondary">
+                  {{ t("tunnel.cloudflared.version.autoHint") }}
+                </span>
+                <span class="flex gap-2">
+                  <el-link
+                    type="primary"
+                    @click="frpcDesktopStore.refreshDownloadedVersion()"
+                  >
+                    <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
+                    {{ t("config.button.manualRefresh") }}
+                  </el-link>
+                  <el-link type="primary" @click="handleGoToDownload">
+                    <IconifyIconOffline class="mr-1" icon="download" />
+                    {{ t("config.button.goToDownload") }}
+                  </el-link>
+                </span>
+              </div>
+            </el-form-item>
+            <el-form-item
+              v-else
+              :label="t('tunnel.cloudflared.customPath.label')"
+              prop="customCloudflaredPath"
+            >
+              <div class="flex flex-wrap gap-2 items-center w-full">
+                <el-input
+                  v-model="formData.customCloudflaredPath"
+                  class="flex-1 min-w-[200px]"
+                  clearable
+                  :placeholder="t('tunnel.cloudflared.customPath.placeholder')"
+                  @input="handleValidatePath"
+                  @clear="handleValidatePath"
+                />
+                <el-button
+                  :loading="detectingPath"
+                  type="primary"
+                  @click="handleDetectPath"
+                >
+                  <IconifyIconOffline class="mr-1" icon="refresh-rounded" />
+                  {{ t("config.button.autoDetect") }}
+                </el-button>
+                <el-button @click="handleBrowse">
+                  <IconifyIconOffline class="mr-1" icon="file-open-rounded" />
+                  {{ t("config.button.browse") }}
+                </el-button>
+              </div>
+              <div
+                v-if="detectedVersionInfo"
+                class="flex items-center mt-1 w-full text-xs text-text_color_secondary"
+              >
+                <span class="mr-1.5">
+                  {{ t("tunnel.cloudflared.customPath.detectedVersion") }}:
+                </span>
+                <el-tag size="small" type="success">
+                  {{ detectedVersionInfo }}
+                </el-tag>
+              </div>
+            </el-form-item>
+          </el-tab-pane>
+
+          <el-tab-pane name="advanced" data-cloudflared-tab="advanced">
+            <template #label>
+              <span class="config-tab-label">
+                <IconifyIconOffline class="text-base" icon="tune-rounded" />
+                {{ t("tunnel.cloudflared.tab.advanced") }}
+              </span>
+            </template>
+            <el-form-item :label="t('tunnel.cloudflared.protocol.label')">
+              <el-select v-model="formData.protocol" class="w-full">
+                <el-option
+                  value="auto"
+                  :label="t('tunnel.cloudflared.protocol.auto')"
+                />
+                <el-option value="quic" label="QUIC" />
+                <el-option value="http2" label="HTTP/2" />
+              </el-select>
+              <div class="mt-1 text-xs text-text_color_secondary">
+                {{ t("tunnel.cloudflared.protocol.tips") }}
+              </div>
+            </el-form-item>
+            <el-form-item :label="t('tunnel.cloudflared.edgeIpVersion.label')">
+              <el-radio-group v-model="formData.edgeIpVersion">
+                <el-radio-button value="auto">
+                  {{ t("tunnel.cloudflared.edgeIpVersion.auto") }}
+                </el-radio-button>
+                <el-radio-button value="4">IPv4</el-radio-button>
+                <el-radio-button value="6">IPv6</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item :label="t('tunnel.cloudflared.logLevel.label')">
+              <el-select v-model="formData.logLevel" class="w-full">
+                <el-option
+                  v-for="level in logLevels"
+                  :key="level"
+                  :label="t(`logger.level.${level}`)"
+                  :value="level"
+                />
+              </el-select>
+            </el-form-item>
+          </el-tab-pane>
+        </el-tabs>
       </el-form>
     </div>
     <template #footer>

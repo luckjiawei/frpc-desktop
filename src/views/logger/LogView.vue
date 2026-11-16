@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useClipboard, useDebounceFn } from "@vueuse/core";
 import { ElMessage } from "element-plus";
-import { computed, defineComponent, ref } from "vue";
+import { computed, defineComponent, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { LogLevel, LogRecord } from "./log";
 
@@ -149,6 +149,55 @@ const copyVisibleLogs = () => {
 };
 
 const levelLabel = (level: LogLevel) => level.toUpperCase();
+
+/**
+ * Logs read top-to-bottom with the newest line at the bottom, so the view
+ * follows the tail after a refresh. Following pauses while the user scrolls
+ * up to read older lines and resumes once they scroll back to the bottom.
+ */
+const NEAR_BOTTOM_THRESHOLD = 24;
+
+const logBodyRef = ref<HTMLElement | null>(null);
+const followTail = ref(true);
+
+const isNearBottom = (element: HTMLElement) =>
+  element.scrollHeight - element.scrollTop - element.clientHeight <=
+  NEAR_BOTTOM_THRESHOLD;
+
+const handleScroll = () => {
+  const element = logBodyRef.value;
+  if (!element) return;
+  followTail.value = isNearBottom(element);
+};
+
+const scrollToLatest = async () => {
+  await nextTick();
+  const element = logBodyRef.value;
+  if (element) {
+    element.scrollTop = element.scrollHeight;
+  }
+};
+
+watch(
+  () => props.logRecords,
+  records => {
+    if (records.length === 0) {
+      followTail.value = true;
+      return;
+    }
+    if (followTail.value) {
+      scrollToLatest();
+    }
+  },
+  { flush: "post" }
+);
+
+// 切换自动换行会改变行高，保持在底部时继续贴住最新日志
+watch(wrapLines, () => {
+  if (followTail.value) {
+    scrollToLatest();
+  }
+});
 </script>
 
 <template>
@@ -236,6 +285,8 @@ const levelLabel = (level: LogLevel) => level.toUpperCase();
       element-loading-background="rgba(13, 17, 23, 0.72)"
       class="log-body"
       :class="{ 'is-wrapped': wrapLines }"
+      ref="logBodyRef"
+      @scroll.passive="handleScroll"
     >
       <div
         v-for="item in displayRecords"

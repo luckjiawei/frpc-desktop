@@ -1,5 +1,6 @@
 pub mod app_config_repo;
 pub mod cloudflared_repo;
+pub mod config_import;
 pub mod nedb_import;
 pub mod proxy_repo;
 pub mod server_repo;

@@ -150,9 +150,7 @@ export default {
       title: "{name} · Logs"
     },
     config: {
-      title: "{name} · Config",
-      settings: "Instance settings",
-      saveSettings: "Save instance settings"
+      title: "{name} · Config"
     },
     provider: {
       frpc: "frpc",
@@ -168,9 +166,10 @@ export default {
       routesInDashboard: "Managed in Cloudflare dashboard"
     },
     cloudflared: {
-      section: {
-        binary: "cloudflared",
+      tab: {
+        instance: "Instance",
         tunnel: "Tunnel",
+        client: "Client",
         advanced: "Advanced"
       },
       intro:
@@ -218,6 +217,30 @@ export default {
         label: "Log level"
       }
     },
+    create: {
+      title: "New Instance",
+      name: "Instance name",
+      namePlaceholder: "e.g. Office frps",
+      provider: "Instance type",
+      method: "Creation method",
+      manual: "Fill in manually",
+      manualDescription:
+        "Create the instance, then open its settings to enter the server details",
+      toml: "Import TOML",
+      tomlDescription:
+        "Create the instance, proxies and Visitors from frpc.toml",
+      link: "Import link",
+      linkDescription: "Paste a frp:// config link shared by Frpc-Desktop",
+      linkLabel: "Config link",
+      linkPlaceholder: "frp://...",
+      linkInvalid: "Invalid link. Paste a complete frp:// link",
+      tomlHint:
+        "Choose frpc.toml after clicking “Select file and create”. Canceling the file picker creates nothing.",
+      submitManual: "Create instance",
+      submitToml: "Select file and create",
+      submitLink: "Create from link",
+      failed: "Failed to create the instance"
+    },
     button: {
       create: "New Instance",
       startAll: "Start All",
@@ -225,12 +248,12 @@ export default {
       config: "Config",
       proxies: "Proxies",
       logs: "Logs",
+      copyLink: "Copy link",
       rename: "Rename",
       delete: "Delete",
       more: "More actions"
     },
     prompt: {
-      createTitle: "New Instance",
       renameTitle: "Rename Instance",
       nameLabel: "Instance name",
       namePlaceholder: "e.g. Office frps",
@@ -258,11 +281,12 @@ export default {
     },
     message: {
       createSuccess: "Instance created",
-      settingsSaved: "Instance settings saved",
+      importSuccess:
+        "Configuration imported as a new instance. No app restart is needed. Select an frpc executable before starting.",
+      copyLinkSuccess: "Config link copied. Keep it safe",
+      copyLinkFailed: "Failed to copy the config link",
       renameSuccess: "Instance renamed",
       deleteSuccess: "Instance deleted",
-      autoStartOn: "Auto connect on startup enabled",
-      autoStartOff: "Auto connect on startup disabled",
       launchAllFailed: "{count} instance(s) failed to start: {detail}",
       saveSuccess: "Saved. Restart the instance to apply changes"
     }
@@ -271,9 +295,6 @@ export default {
     description: "Coming soon"
   },
   download: {
-    button: {
-      import: "Import"
-    },
     mirror: {
       placeholder: "Download proxy"
     },
@@ -287,7 +308,6 @@ export default {
     cloudflaredUnsupported:
       "No cloudflared versions available (offline, or no build for this platform). You can install cloudflared yourself and pick the file in the instance config.",
     message: {
-      importSuccess: "Import successfully",
       deleteSuccess: "Delete successfully",
       copyDownloadLinkSuccess: "Copy download link successfully"
     },
@@ -298,19 +318,6 @@ export default {
           'Are you sure you want to delete <span class="font-bold text-primary">{name}</span> ?',
         cancel: "Cancel",
         confirm: "Delete"
-      },
-      importFailed: {
-        title: "Import failed",
-        versionExists: "Version already exists",
-        architectureNotMatch:
-          "The selected frp architecture does not match the operating system",
-        unrecognizedFile: "Unable to recognize the file"
-      },
-      importTip: {
-        title: "Import Prompt",
-        message:
-          'Only frp versions above <span class="font-bold text-primary">v0.52.0</span> and up to <span class="font-bold text-primary">v0.68.0</span> can be imported.<div class="font-bold text-primary">Do not unzip the file before importing!</div>',
-        confirm: "Got it"
       }
     },
     version: {
@@ -552,7 +559,18 @@ export default {
       systemLanguage: {
         label: "System Language",
         requireMessage: "Please select system language"
+      },
+      appLogLevel: {
+        label: "App Log Level",
+        tips: "Controls the detail of application logs. Instance frpc and cloudflared log levels are set separately in their own configuration."
       }
+    },
+    tab: {
+      instance: "Instance",
+      server: "Server",
+      transport: "Transport",
+      web: "Web Server",
+      log: "Log"
     },
     title: {
       versionSelection: "Version Selection",
@@ -568,10 +586,8 @@ export default {
       manualRefresh: "Manual Refresh",
       goToDownload: "Click here to download",
       clear: "Clear",
-      import: "Import",
       openData: "Open data folder",
       resetAll: "Reset all settings",
-      importToml: "Import TOML config",
       exportConfig: "Export config",
       saveWithShortcut: "Save (Ctrl+S / ⌘S)"
     },
@@ -587,12 +603,6 @@ export default {
         message: "Reset successfully, please restart the software",
         confirm: "Restart Now"
       },
-      importTomlConfigSuccess: {
-        title: "Prompt",
-        message:
-          "🎉 Congratulations, import successfully, please restart the software",
-        confirm: "Restart Now"
-      },
       multiuserAlert: {
         title: "Prompt",
         message:
@@ -605,25 +615,11 @@ export default {
       }
     },
     message: {
-      invalidLink: "The link is incorrect, please enter the correct link",
       openAppDataSuccess: "Open data directory successfully",
       saveSuccess: "Save successfully"
     },
     popover: {
       frpParameter: "Frp Parameter"
-    },
-    dialog: {
-      importLink: {
-        title: "Import Link"
-      },
-      copyLink: {
-        title: "Copy Link",
-        message: "Copy successfully",
-        warning: {
-          message:
-            "The content generated contains server keys and other information. Please keep it safe and the link is only available in Frpc-Desktop."
-        }
-      }
     }
   },
   proxy: {
@@ -634,7 +630,6 @@ export default {
     copyAddress: "Copy address",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
-    refresh: "Refresh proxies",
     search: "Search by name / type / IP / port / domain",
     viewMode: {
       card: "Card",
@@ -839,6 +834,7 @@ export default {
     enable: "Enable",
     disabled: "Disabled",
     enabled: "Enabled",
+    cancel: "Cancel",
     save: "Save",
     close: "Close",
     mode: "Mode",

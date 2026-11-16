@@ -1,0 +1,93 @@
+/* 抽屉和链接弹窗挂载到 body，scoped 样式无法作用到它们 */
+.config-drawer {
+  .el-drawer__header {
+    gap: 12px;
+    margin-bottom: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .el-drawer__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .el-drawer__footer {
+    padding-top: 12px;
+    border-top: 1px solid var(--app-border);
+  }
+
+  /* 配置分组使用胶囊式 Tab：比默认下划线更紧凑，长表单滚动时吸顶 */
+  .config-tabs {
+    .el-tabs__header {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      margin-bottom: 12px;
+      padding: 4px 0 12px;
+      background: var(--el-bg-color);
+    }
+
+    .el-tabs__nav-wrap::after {
+      display: none;
+    }
+
+    .el-tabs__nav {
+      display: inline-flex;
+      gap: 2px;
+      padding: 4px;
+      background: var(--app-page-bg);
+      border: 1px solid var(--app-border);
+      border-radius: var(--app-radius);
+    }
+
+    .el-tabs__active-bar {
+      display: none;
+    }
+
+    .el-tabs__item {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: var(--el-text-color-regular);
+      font-weight: 500;
+      transition:
+        color 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease;
+
+      &:hover {
+        color: var(--app-primary-text);
+      }
+
+      &.is-active {
+        color: var(--app-primary-text);
+        background: var(--app-surface);
+        border-color: var(--app-border);
+        box-shadow: var(--app-shadow);
+        font-weight: 600;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--app-primary-text);
+        outline-offset: 2px;
+      }
+    }
+
+    /* 覆盖 Element Plus 对首尾项去除内边距的规则 */
+    .el-tabs__item:nth-child(2),
+    .el-tabs__item:last-child {
+      padding-right: 12px;
+      padding-left: 12px;
+    }
+  }
+
+  .config-tab-label {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+}

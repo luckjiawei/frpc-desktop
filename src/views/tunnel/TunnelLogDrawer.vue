@@ -42,12 +42,13 @@ watch(
   () => [visible.value, props.tunnel?.id],
   ([open]) => {
     records.value = [];
+    // 抽屉打开时才自动刷新实例日志，关闭后停止轮询
+    autoRefresh.value = Boolean(open);
     if (open) {
       loadLog();
-    } else {
-      autoRefresh.value = false;
     }
-  }
+  },
+  { immediate: true }
 );
 
 onMounted(() => {
@@ -80,7 +81,7 @@ onUnmounted(() => {
   <el-drawer
     v-model="visible"
     :title="t('tunnel.log.title', { name: tunnel?.name ?? '' })"
-    size="min(760px, 85%)"
+    size="min(960px, 92%)"
     class="tunnel-log-drawer"
   >
     <log-view :log-records="records" :loading="loading">

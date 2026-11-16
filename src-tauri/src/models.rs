@@ -164,7 +164,7 @@ fn default_protocol() -> String {
     "tcp".to_string()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FrpcSystemConfiguration {
     #[serde(default)]
@@ -175,10 +175,33 @@ pub struct FrpcSystemConfiguration {
     pub auto_connect_on_startup: bool,
     #[serde(default = "default_language")]
     pub language: String,
+    /// Verbosity of the application log, independent of instance log levels.
+    #[serde(default = "default_app_log_level")]
+    pub app_log_level: String,
 }
 
 fn default_language() -> String {
     "en-US".to_string()
+}
+
+pub(crate) fn default_app_log_level() -> String {
+    if cfg!(debug_assertions) {
+        "debug".to_string()
+    } else {
+        "info".to_string()
+    }
+}
+
+impl Default for FrpcSystemConfiguration {
+    fn default() -> Self {
+        Self {
+            launch_at_startup: false,
+            silent_startup: false,
+            auto_connect_on_startup: false,
+            language: default_language(),
+            app_log_level: default_app_log_level(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
