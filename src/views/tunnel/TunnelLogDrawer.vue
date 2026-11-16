@@ -42,12 +42,13 @@ watch(
   () => [visible.value, props.tunnel?.id],
   ([open]) => {
     records.value = [];
+    // 抽屉打开时才自动刷新实例日志，关闭后停止轮询
+    autoRefresh.value = Boolean(open);
     if (open) {
       loadLog();
-    } else {
-      autoRefresh.value = false;
     }
-  }
+  },
+  { immediate: true }
 );
 
 onMounted(() => {

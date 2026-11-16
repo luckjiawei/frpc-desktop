@@ -27,7 +27,8 @@ const loadLog = () => {
   send(ipcRouters.LOG.getAppLogContent);
 };
 
-const { autoRefresh, countdown } = useLogAutoRefresh(loadLog);
+// 日志页打开即自动刷新，滚动到较早内容时只更新数据、不打断阅读位置
+const { autoRefresh, countdown } = useLogAutoRefresh(loadLog, true);
 
 const refreshLog = useDebounceFn(() => {
   manualRefresh.value = true;

@@ -3,8 +3,11 @@ import { onUnmounted, ref, watch } from "vue";
 const AUTO_REFRESH_SECONDS = 10;
 
 /** 日志自动刷新：开启后每 10 秒调用一次 reload，并提供倒计时用于展示 */
-export const useLogAutoRefresh = (reload: () => void) => {
-  const autoRefresh = ref(false);
+export const useLogAutoRefresh = (
+  reload: () => void,
+  defaultEnabled = false
+) => {
+  const autoRefresh = ref(defaultEnabled);
   const countdown = ref(AUTO_REFRESH_SECONDS);
   let timer: ReturnType<typeof setInterval> | null = null;
 
