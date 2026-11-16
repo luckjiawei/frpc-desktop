@@ -163,7 +163,8 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
-          releaseDraft: false
+          # 先保持草稿：所有平台的包与 portable ZIP 上传成功后，才由 publish 任务公开
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
 
@@ -178,5 +179,118 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           PORTABLE_ZIP: ${{ steps.portable.outputs.zip_path }}
-        run: gh release upload "${{ github.ref_name }}" "$env:PORTABLE_ZIP" --clobber
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # A moved tag can leave an older run building a commit the tag no
+          # longer points at. Skip the upload in that case so the newest run's
+          # portable ZIP is never replaced by stale bytes.
+          git fetch --quiet --force --no-tags origin "+refs/tags/${env:TAG_NAME}:refs/tags/${env:TAG_NAME}"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::Could not read tag $env:TAG_NAME from origin; refusing to upload the portable ZIP."
+            exit 1
+          }
+          $tagCommit = git rev-parse "refs/tags/$($env:TAG_NAME)^{commit}"
+          $builtCommit = git rev-parse HEAD
+          if ($tagCommit -ne $builtCommit) {
+            Write-Host "::notice::Tag $env:TAG_NAME now points at $tagCommit but this run built $builtCommit; skipping portable upload."
+            exit 0
+          }
+
+          $assetName = Split-Path -Leaf $env:PORTABLE_ZIP
+          $suffix = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $pendingName = "$assetName.pending-$suffix"
+          $retiredName = "$assetName.retired-$suffix"
+          $pendingPath = Join-Path (Split-Path -Parent $env:PORTABLE_ZIP) $pendingName
+
+          # The release is still a draft and draft releases are invisible to
+          # tag-based lookups, so resolve it through the release list.
+          $releases = gh api "repos/$env:GH_REPO/releases?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to list releases for $env:GH_REPO"
+          }
+          $release = $releases | Where-Object { $_.tag_name -eq $env:TAG_NAME } | Select-Object -First 1
+          if (-not $release) {
+            throw "Release for tag $env:TAG_NAME not found"
+          }
+
+          # Remove temporary assets left behind by earlier failed attempts so
+          # they never end up in the published release.
+          $assets = @(gh api "repos/$env:GH_REPO/releases/$($release.id)/assets?per_page=100" | ConvertFrom-Json)
+          $assets | Where-Object {
+            $_.name -like "$assetName.pending-*" -or $_.name -like "$assetName.retired-*"
+          } | ForEach-Object {
+            gh api --method DELETE "repos/$env:GH_REPO/releases/assets/$($_.id)"
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Could not remove leftover asset $($_.name)"
+            }
+          }
+
+          # 1. Upload the replacement under a temporary name first. The
+          #    published asset is not touched until this upload has succeeded.
+          Copy-Item -LiteralPath $env:PORTABLE_ZIP -Destination $pendingPath
+          gh release upload "$env:TAG_NAME" "$pendingPath" --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to upload replacement asset $pendingName"
+          }
+
+          $assets = @(gh api "repos/$env:GH_REPO/releases/$($release.id)/assets?per_page=100" | ConvertFrom-Json)
+          $existing = $assets | Where-Object { $_.name -eq $assetName } | Select-Object -First 1
+          $pending = $assets | Where-Object { $_.name -eq $pendingName } | Select-Object -First 1
+
+          # 2. Move the old asset aside, then promote the replacement into its
+          #    name. If the promotion fails, put the old asset back.
+          if ($existing) {
+            gh api --method PATCH "repos/$env:GH_REPO/releases/assets/$($existing.id)" -f "name=$retiredName"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to retire existing asset $assetName"
+            }
+          }
+          if (-not $pending) {
+            throw "Uploaded asset $pendingName not found on release $($release.id)"
+          }
+          gh api --method PATCH "repos/$env:GH_REPO/releases/assets/$($pending.id)" -f "name=$assetName"
+          if ($LASTEXITCODE -ne 0) {
+            if ($existing) {
+              gh api --method PATCH "repos/$env:GH_REPO/releases/assets/$($existing.id)" -f "name=$assetName"
+            }
+            throw "Failed to publish replacement asset $assetName"
+          }
+
+          # 3. Drop the old asset only after the replacement is live.
+          if ($existing) {
+            gh api --method DELETE "repos/$env:GH_REPO/releases/assets/$($existing.id)"
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Published $assetName but could not remove $retiredName"
+            }
+          }
+
+  # 仅当所有平台的 release 任务（含 portable ZIP 上传）都成功后，才把草稿公开
+  publish:
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          # Match the portable upload guard: a run whose tag has moved must not
+          # publish, or it would expose a release the newer run is still filling.
+          if ! git fetch --force --no-tags origin "+refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}"; then
+            echo "::warning::Tag ${TAG_NAME} no longer exists; leaving the release unpublished."
+            exit 0
+          fi
+          if [ "$(git rev-parse "refs/tags/${TAG_NAME}^{commit}")" != "${{ github.sha }}" ]; then
+            echo "::notice::Tag ${TAG_NAME} moved since this run started; leaving the release to the newer run."
+            exit 0
+          fi
+          gh release edit "${TAG_NAME}" --draft=false
