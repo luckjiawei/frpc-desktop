@@ -50,14 +50,14 @@ impl ConfigGenerator {
             toml.push_str(&format!("udpPacketSize = {}\n", server.udp_packet_size));
         }
 
-        // Log config
+        // Log config. The desktop owns the per-instance log file because the
+        // log viewer and "open log file" read it, so a stale or imported
+        // `log.to` must not redirect frpc's output elsewhere.
         toml.push_str("\n[log]\n");
-        let log_to = if !server.log.to.is_empty() {
-            &server.log.to
-        } else {
-            frpc_log_path.to_str().unwrap_or("")
-        };
-        toml.push_str(&format!("to = \"{}\"\n", log_to.replace('\\', "/")));
+        toml.push_str(&format!(
+            "to = \"{}\"\n",
+            frpc_log_path.to_string_lossy().replace('\\', "/")
+        ));
         toml.push_str(&format!("level = \"{}\"\n", server.log.level));
         toml.push_str(&format!("maxDays = {}\n", server.log.max_days));
         toml.push_str(&format!(

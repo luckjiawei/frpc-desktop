@@ -88,7 +88,11 @@ pub fn parse_toml_config(
         auth.finish()?;
     }
     if let Some(mut log) = root.table("log")? {
-        server.log.to = log.string("to", "")?;
+        // The destination is desktop-managed: every instance logs to its own
+        // path (see `AppState::tunnel_paths`). Keeping an imported `to` would
+        // point frpc at another installation's file and leave this instance's
+        // log viewer empty, so only validate the value and drop it.
+        log.string("to", "")?;
         server.log.level = log.string("level", "info")?;
         if !["trace", "debug", "info", "warn", "error"].contains(&server.log.level.as_str()) {
             bail!("Invalid field at log.level");
@@ -493,6 +497,26 @@ mod tests {
         assert!(server.transport.tls.disable_custom_tls_first_byte);
         assert_eq!(server.transport.heartbeat_interval, 30);
         assert_eq!(server.transport.heartbeat_timeout, 90);
+    }
+
+    #[test]
+    fn imported_log_destination_yields_to_the_instance_log_path() {
+        let (server, _) = parse_toml_config(
+            "serverAddr = 'example.test'\n[log]\nto = '/other/tunnel/frpc.log'\nlevel = 'debug'",
+            &current_server(),
+        )
+        .unwrap();
+        // Honoring the imported path would write frpc output somewhere this
+        // instance's log viewer never reads.
+        assert!(server.log.to.is_empty());
+        assert_eq!(server.log.level, "debug");
+        let generated = ConfigGenerator::gen_toml_config(
+            &server,
+            &[],
+            Path::new("/app/log/tunnels/example/frpc.log"),
+        );
+        assert!(generated.contains("to = \"/app/log/tunnels/example/frpc.log\""));
+        assert!(!generated.contains("/other/tunnel/frpc.log"));
     }
 
     #[test]
