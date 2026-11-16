@@ -1,8 +1,10 @@
 import i18n from "@/lang";
 import { on, send } from "@/utils/ipcUtils";
+import { renderMarkdown } from "@/utils/markdown";
 import { isNewerVersion } from "@/utils/version";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineStore } from "pinia";
+import { h } from "vue";
 import { ipcRouters } from "@/core/IpcRouter";
 import pkg from "../../package.json";
 
@@ -46,8 +48,13 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
         const lastVersion = (tagName || "").replace("v", "").toString();
         const currVersion = pkg.version;
         if (isNewerVersion(lastVersion, currVersion)) {
-          let content = this.lastRelease.body;
-          content = content.replaceAll("\n", "<br/>");
+          const content = h(
+            "div",
+            { class: "release-notes" },
+            renderMarkdown(this.lastRelease.body || "", {
+              onLinkClick: url => send(ipcRouters.SYSTEM.openUrl, { url })
+            })
+          );
           ElMessageBox.alert(
             content,
             i18n.global.t("about.update.newVersion", {
@@ -56,7 +63,6 @@ export const useFrpcDesktopStore = defineStore("frpcDesktop", {
             {
               showCancelButton: true,
               cancelButtonText: i18n.global.t("common.close"),
-              dangerouslyUseHTMLString: true,
               confirmButtonText: i18n.global.t("about.update.download")
             }
           ).then(() => {

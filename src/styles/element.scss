@@ -168,6 +168,105 @@
     p {
       line-height: 1.6;
     }
+
+    // 更新通知中的 GitHub release notes
+    .release-notes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      > :first-child {
+        margin-top: 0;
+      }
+
+      > :last-child {
+        margin-bottom: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin: 4px 0 0;
+        color: var(--el-text-color-primary);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      ul,
+      ol {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li {
+        line-height: 1.6;
+      }
+
+      code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-primary);
+        font-family: var(--app-mono);
+        font-size: 12px;
+      }
+
+      pre {
+        margin: 0;
+        padding: 10px 12px;
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--el-fill-color-light);
+
+        code {
+          padding: 0;
+          background: none;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+      }
+
+      blockquote {
+        margin: 0;
+        padding-left: 10px;
+        border-left: 3px solid var(--app-border);
+        color: var(--el-text-color-secondary);
+      }
+
+      hr {
+        margin: 2px 0;
+        border: none;
+        border-top: 1px solid var(--app-border);
+      }
+
+      a.release-notes-link {
+        color: var(--el-color-primary);
+        text-decoration: none;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+
+        &:hover {
+          text-decoration: underline;
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--el-color-primary);
+          outline-offset: 2px;
+          border-radius: 2px;
+        }
+      }
+    }
   }
 
   .el-message-box__input {
