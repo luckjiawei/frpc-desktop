@@ -6,6 +6,9 @@ const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
   embedded: false
 });
 const { t } = useI18n();
+
+/** 与应用日志级别保持一致的选项顺序与文案 */
+const logLevels = ["error", "warn", "info", "debug"] as const;
 </script>
 
 <template>
@@ -21,10 +24,12 @@ const { t } = useI18n();
       prop="log.level"
     >
       <el-select v-model="formData.log.level">
-        <el-option label="info" value="info" />
-        <el-option label="debug" value="debug" />
-        <el-option label="warn" value="warn" />
-        <el-option label="error" value="error" />
+        <el-option
+          v-for="level in logLevels"
+          :key="level"
+          :label="t(`logger.level.${level}`)"
+          :value="level"
+        />
       </el-select>
     </el-form-item>
   </el-col>

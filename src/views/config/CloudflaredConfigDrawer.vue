@@ -32,6 +32,8 @@ type CloudflaredEditorData = CloudflaredSettings & {
 const CLOUDFLARE_DASHBOARD_URL = "https://one.dash.cloudflare.com/";
 /** 连接器令牌是 base64（含 URL 安全字符）编码的 JSON，与后端校验一致 */
 const TOKEN_PATTERN = /^[A-Za-z0-9+/=_-]{32,4096}$/;
+/** 与应用日志级别保持一致的选项顺序与文案 */
+const logLevels = ["error", "warn", "info", "debug"] as const;
 
 const { t } = useI18n();
 const frpcDesktopStore = useFrpcDesktopStore();
@@ -587,10 +589,12 @@ onUnmounted(() => {
             </el-form-item>
             <el-form-item :label="t('tunnel.cloudflared.logLevel.label')">
               <el-select v-model="formData.logLevel" class="w-full">
-                <el-option value="debug" label="debug" />
-                <el-option value="info" label="info" />
-                <el-option value="warn" label="warn" />
-                <el-option value="error" label="error" />
+                <el-option
+                  v-for="level in logLevels"
+                  :key="level"
+                  :label="t(`logger.level.${level}`)"
+                  :value="level"
+                />
               </el-select>
             </el-form-item>
           </el-tab-pane>
