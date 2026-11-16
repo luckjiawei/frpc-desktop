@@ -461,7 +461,8 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 - 新建 frpc 实例时自动分配未被其他实例占用的 `webServer.port`（从 57400 起递增）；
 - 修改代理不会改变其 `server_id`，代理不能在实例之间移动。
 - 实例配置抽屉的底部“保存”会把实例名称、启动时自动连接与 frpc 设置放在同一事务中提交（`server/saveConfig` 对应实现为 `ServerRepository::save_frpc_config`）；校验或写入失败时全部回滚，避免名称已改而 frpc 设置未保存。Cloudflare Tunnel 的 `cloudflared/saveConfig` 同样在单个事务中保存实例字段与 cloudflared 配置。
-- TOML 导入从实例列表的独立入口创建新 frpc 实例：在同一事务中创建 tunnel/server 并写入文件中的配置、代理和 Visitor（新 UUID、`server_id` 固定为新实例）。监控端口与已有实例冲突时使用新建流程分配的空闲端口。取消文件选择不创建实例；解析或任一写入失败均整体回滚，不留下空实例。已有实例和全局桌面设置不变，不新增迁移，无需重启应用；导入后选择本机 frpc 程序即可启动。
+- “新建实例”对话框统一提供 frpc 手动填写、TOML 导入、链接导入和 Cloudflare Tunnel 创建。TOML 导入在同一事务中创建 tunnel/server 并写入文件中的配置、代理和 Visitor（新 UUID、`server_id` 固定为新实例）。监控端口与已有实例冲突时使用新建流程分配的空闲端口。取消文件选择不创建实例；解析或任一写入失败均整体回滚，不留下空实例。
+- 链接导入由 renderer 解码 `frp://` 中的 base64 JSON，再把 JSON 字符串交给 `tunnel/importLinkConfig`；后端 `import_link_config` 在同一事务中创建 tunnel，并把链接中的 `serverAddr`、`serverPort`、`user`、`multiuser`、`auth`、`transport`、`metadatas` 合并到该实例的默认 server 配置后写入。未知字段忽略，类型或端口非法时整体回滚；错误信息不回显链接内容。导出链接只包含服务器设置并清空本机 TLS 文件路径，可在实例卡片直接复制。已有实例和全局桌面设置不变，不新增迁移，无需重启应用；导入后选择本机 frpc 程序即可启动。
 
 ### 11.4 回退兼容
 

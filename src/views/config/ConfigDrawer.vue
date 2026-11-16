@@ -5,7 +5,6 @@ import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
-import { Base64 } from "js-base64";
 import _ from "lodash";
 import {
   computed,
@@ -313,10 +312,7 @@ const rules = reactive<FormRules>({
     }
   ]
 });
-const copyServerConfigBase64 = ref();
-const pasteServerConfigBase64 = ref();
 const formRef = ref<FormInstance>();
-const protocol = ref("frp://");
 const currSelectLocalFileType = ref();
 const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
@@ -356,14 +352,6 @@ watch(
     checkAndResetVersion();
   }
 );
-
-const visible = reactive({
-  copyServerConfig: false,
-  pasteServerConfig: false,
-  exportConfig: false
-});
-
-// const exportConfigType = ref("toml");
 
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
@@ -644,81 +632,6 @@ const handleValidateCustomPath = useDebounceFn(() => {
   send(ipcRouters.VERSION.validateFrpcPath, { path });
 }, 300);
 
-/**
- * 分享配置
- */
-const handleCopyServerConfig2Base64 = useDebounceFn(() => {
-  const {
-    _id,
-    frpcVersion,
-    customFrpcPath,
-    webServer,
-    system,
-    log,
-    udpPacketSize,
-    loginFailExit,
-    ...shareConfig
-  } = _.cloneDeep(formData.value);
-  shareConfig.transport.tls.certFile = "";
-  shareConfig.transport.tls.keyFile = "";
-  shareConfig.transport.tls.trustedCaFile = "";
-  const base64str = Base64.encode(JSON.stringify(shareConfig));
-  copyServerConfigBase64.value = protocol.value + base64str;
-  visible.copyServerConfig = true;
-}, 300);
-
-const handlePasteServerConfig4Base64 = useDebounceFn(() => {
-  visible.pasteServerConfig = true;
-}, 300);
-
-const handlePasteServerConfigBase64 = useDebounceFn(() => {
-  const tips = () => {
-    ElMessage({
-      type: "warning",
-      message: t("config.message.invalidLink")
-    });
-  };
-  if (!pasteServerConfigBase64.value.startsWith(protocol.value)) {
-    tips();
-    return;
-  }
-  const ciphertext = pasteServerConfigBase64.value.replace("frp://", "");
-  const plaintext = Base64.decode(ciphertext);
-  let serverConfig = null;
-  try {
-    serverConfig = JSON.parse(plaintext);
-  } catch {
-    tips();
-    return;
-  }
-
-  if (!serverConfig && !serverConfig.serverAddr) {
-    tips();
-    return;
-  }
-  if (!serverConfig && !serverConfig.serverPort) {
-    tips();
-    return;
-  }
-  formData.value.transport =
-    serverConfig.transport || defaultFormData.transport;
-  formData.value.auth = serverConfig.auth || defaultFormData.auth;
-  formData.value.serverAddr =
-    serverConfig.serverAddr || defaultFormData.serverAddr;
-  formData.value.serverPort =
-    serverConfig.serverPort || defaultFormData.serverPort;
-  formData.value.metadatas =
-    serverConfig.metadatas || defaultFormData.metadatas;
-  formData.value.user = serverConfig.user || defaultFormData.user;
-  handleSubmit();
-  pasteServerConfigBase64.value = "";
-  visible.pasteServerConfig = false;
-}, 300);
-
-const handleShowExportDialog = () => {
-  visible.exportConfig = true;
-};
-
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
   listenerCleanups.splice(0).forEach(off => off());
@@ -894,20 +807,8 @@ onUnmounted(() => {
                   </el-form-item>
                 </el-col>
                 <el-col :span="24">
-                  <div class="flex justify-between h2">
-                    <div>{{ t("config.title.serverConfiguration") }}</div>
-                    <div class="flex justify-center items-center">
-                      <IconifyIconOffline
-                        class="mr-2 text-xl font-bold cursor-pointer"
-                        icon="content-copy"
-                        @click="handleCopyServerConfig2Base64"
-                      />
-                      <IconifyIconOffline
-                        class="mr-2 text-xl font-bold cursor-pointer"
-                        icon="content-paste-go"
-                        @click="handlePasteServerConfig4Base64"
-                      />
-                    </div>
+                  <div class="h2">
+                    {{ t("config.title.serverConfiguration") }}
                   </div>
                 </el-col>
                 <el-col :span="24">
@@ -1779,93 +1680,6 @@ onUnmounted(() => {
         {{ t("common.save") }}
       </el-button>
     </template>
-    <!--  链接导入服务器  -->
-    <el-dialog
-      v-model="visible.copyServerConfig"
-      class="config-link-dialog"
-      append-to-body
-      :title="t('config.dialog.copyLink.title')"
-      width="min(720px, calc(100% - 32px))"
-      top="5%"
-    >
-      <el-alert
-        class="mb-4"
-        :title="t('config.dialog.copyLink.warning.message')"
-        type="warning"
-        :closable="false"
-      />
-      <el-input
-        v-model="copyServerConfigBase64"
-        class="config-link-textarea"
-        type="textarea"
-        :rows="8"
-      ></el-input>
-    </el-dialog>
-    <!--    链接导出服务器-->
-    <el-dialog
-      v-model="visible.pasteServerConfig"
-      class="config-link-dialog"
-      append-to-body
-      :title="t('config.dialog.importLink.title')"
-      width="min(720px, calc(100% - 32px))"
-      top="5%"
-    >
-      <el-input
-        v-model="pasteServerConfigBase64"
-        class="config-link-textarea"
-        type="textarea"
-        placeholder="frp://......"
-        :rows="8"
-      ></el-input>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button
-            plain
-            type="primary"
-            @click="handlePasteServerConfigBase64"
-          >
-            <IconifyIconOffline
-              class="mr-2 cursor-pointer"
-              icon="label-important-rounded"
-            />
-            {{ t("config.button.import") }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-    <!--    配置导出-->
-    <!--    <el-dialog-->
-    <!--      v-model="visibles.exportConfig"-->
-    <!--      title="导出配置"-->
-    <!--      width="500"-->
-    <!--      top="5%"-->
-    <!--    >-->
-    <!--      <el-alert-->
-    <!--        class="mb-4"-->
-    <!--        :title="`导出文件名为 frpc-desktop.${exportConfigType} 重复导出则覆盖`"-->
-    <!--        type="warning"-->
-    <!--        :closable="false"-->
-    <!--      />-->
-    <!--      <el-form>-->
-    <!--        <el-form-item label="导出类型">-->
-    <!--          <el-radio-group v-model="exportConfigType">-->
-    <!--            <el-radio-button label="toml" value="toml" />-->
-    <!--            <el-radio-button label="ini" value="ini" />-->
-    <!--          </el-radio-group>-->
-    <!--        </el-form-item>-->
-    <!--      </el-form>-->
-    <!--      <template #footer>-->
-    <!--        <div class="dialog-footer">-->
-    <!--          <el-button plain type="primary" @click="handleExportConfig">-->
-    <!--            <IconifyIconOffline-->
-    <!--              class="mr-2 cursor-pointer"-->
-    <!--              icon="downloadRounded"-->
-    <!--            />-->
-    <!--            导 出-->
-    <!--          </el-button>-->
-    <!--        </div>-->
-    <!--      </template>-->
-    <!--    </el-dialog>-->
   </el-drawer>
 </template>
 

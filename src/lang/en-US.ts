@@ -216,21 +216,43 @@ export default {
         label: "Log level"
       }
     },
+    create: {
+      title: "New Instance",
+      name: "Instance name",
+      namePlaceholder: "e.g. Office frps",
+      provider: "Instance type",
+      method: "Creation method",
+      manual: "Fill in manually",
+      manualDescription:
+        "Create the instance, then open its settings to enter the server details",
+      toml: "Import TOML",
+      tomlDescription:
+        "Create the instance, proxies and Visitors from frpc.toml",
+      link: "Import link",
+      linkDescription: "Paste a frp:// config link shared by Frpc-Desktop",
+      linkLabel: "Config link",
+      linkPlaceholder: "frp://...",
+      linkInvalid: "Invalid link. Paste a complete frp:// link",
+      tomlHint:
+        "Choose frpc.toml after clicking “Select file and create”. Canceling the file picker creates nothing.",
+      submitManual: "Create instance",
+      submitToml: "Select file and create",
+      submitLink: "Create from link",
+      failed: "Failed to create the instance"
+    },
     button: {
       create: "New Instance",
-      importToml: "Import TOML",
       startAll: "Start All",
       stopAll: "Stop All",
       config: "Config",
       proxies: "Proxies",
       logs: "Logs",
+      copyLink: "Copy link",
       rename: "Rename",
       delete: "Delete",
       more: "More actions"
     },
     prompt: {
-      createTitle: "New Instance",
-      importTitle: "Import a new instance from TOML",
       renameTitle: "Rename Instance",
       nameLabel: "Instance name",
       namePlaceholder: "e.g. Office frps",
@@ -260,7 +282,8 @@ export default {
       createSuccess: "Instance created",
       importSuccess:
         "Configuration imported as a new instance. No app restart is needed. Select an frpc executable before starting.",
-      importFailed: "Import failed: {reason}",
+      copyLinkSuccess: "Config link copied. Keep it safe",
+      copyLinkFailed: "Failed to copy the config link",
       renameSuccess: "Instance renamed",
       deleteSuccess: "Instance deleted",
       launchAllFailed: "{count} instance(s) failed to start: {detail}",
@@ -562,7 +585,6 @@ export default {
       manualRefresh: "Manual Refresh",
       goToDownload: "Click here to download",
       clear: "Clear",
-      import: "Import",
       openData: "Open data folder",
       resetAll: "Reset all settings",
       exportConfig: "Export config",
@@ -592,25 +614,11 @@ export default {
       }
     },
     message: {
-      invalidLink: "The link is incorrect, please enter the correct link",
       openAppDataSuccess: "Open data directory successfully",
       saveSuccess: "Save successfully"
     },
     popover: {
       frpParameter: "Frp Parameter"
-    },
-    dialog: {
-      importLink: {
-        title: "Import Link"
-      },
-      copyLink: {
-        title: "Copy Link",
-        message: "Copy successfully",
-        warning: {
-          message:
-            "The content generated contains server keys and other information. Please keep it safe and the link is only available in Frpc-Desktop."
-        }
-      }
     }
   },
   proxy: {
@@ -825,6 +833,7 @@ export default {
     enable: "Enable",
     disabled: "Disabled",
     enabled: "Enabled",
+    cancel: "Cancel",
     save: "Save",
     close: "Close",
     mode: "Mode",

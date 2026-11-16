@@ -205,21 +205,41 @@ export default {
         label: "日志级别"
       }
     },
+    create: {
+      title: "新建实例",
+      name: "实例名称",
+      namePlaceholder: "例如：公司 frps",
+      provider: "实例类型",
+      method: "创建方式",
+      manual: "手动填写",
+      manualDescription: "创建后打开配置，手动填写服务器信息",
+      toml: "导入 TOML",
+      tomlDescription: "从 frpc.toml 创建实例、代理和 Visitor",
+      link: "导入链接",
+      linkDescription: "粘贴 Frpc-Desktop 分享的 frp:// 配置链接",
+      linkLabel: "配置链接",
+      linkPlaceholder: "frp://...",
+      linkInvalid: "链接无效，请粘贴完整的 frp:// 链接",
+      tomlHint:
+        "点击“选择文件并创建”后选择 frpc.toml；取消文件选择不会创建实例。",
+      submitManual: "创建实例",
+      submitToml: "选择文件并创建",
+      submitLink: "从链接创建",
+      failed: "创建实例失败"
+    },
     button: {
       create: "新建实例",
-      importToml: "导入 TOML",
       startAll: "全部启动",
       stopAll: "全部停止",
       config: "配置",
       proxies: "代理",
       logs: "日志",
+      copyLink: "复制链接",
       rename: "重命名",
       delete: "删除",
       more: "更多操作"
     },
     prompt: {
-      createTitle: "新建实例",
-      importTitle: "从 TOML 导入新实例",
       renameTitle: "重命名实例",
       nameLabel: "实例名称",
       namePlaceholder: "例如：公司 frps",
@@ -247,7 +267,8 @@ export default {
       createSuccess: "实例已创建",
       importSuccess:
         "配置已导入为新实例，无需重启软件。请确认 frpc 程序后启动。",
-      importFailed: "导入失败：{reason}",
+      copyLinkSuccess: "配置链接已复制，请妥善保管",
+      copyLinkFailed: "复制配置链接失败",
       renameSuccess: "实例已重命名",
       deleteSuccess: "实例已删除",
       launchAllFailed: "{count} 个实例启动失败：{detail}",
@@ -547,7 +568,6 @@ export default {
       manualRefresh: "手动刷新",
       goToDownload: "点击这里去下载",
       clear: "清除",
-      import: "导入",
       openData: "打开数据目录",
       resetAll: "重置全部配置",
       exportConfig: "导出配置",
@@ -577,25 +597,11 @@ export default {
       }
     },
     message: {
-      invalidLink: "链接不正确 请输入正确的链接",
       openAppDataSuccess: "打开数据目录成功",
       saveSuccess: "保存成功"
     },
     popover: {
       frpParameter: "Frp参数"
-    },
-    dialog: {
-      importLink: {
-        title: "导入链接"
-      },
-      copyLink: {
-        title: "复制链接",
-        message: "复制成功",
-        warning: {
-          message:
-            "生成内容包含服务器密钥等内容 请妥善保管 且链接仅在Frpc-Desktop中可用"
-        }
-      }
     }
   },
   common: {
@@ -608,6 +614,7 @@ export default {
     enable: "启用",
     disabled: "已禁用",
     enabled: "已启用",
+    cancel: "取消",
     close: "关闭",
     save: "保存",
     mode: "模式",

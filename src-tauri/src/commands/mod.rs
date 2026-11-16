@@ -405,6 +405,30 @@ async fn handle_ipc_send(
                 Err(e) => ApiResponse::internal_error(e.to_string()),
             }
         }
+        "tunnel/importLinkConfig" => {
+            let name = match arg_tunnel_name(&args) {
+                Ok(Some(name)) => name,
+                Ok(None) => return ApiResponse::internal_error("Missing tunnel name"),
+                Err(response) => return response,
+            };
+            let Some(payload) = args
+                .as_ref()
+                .and_then(|v| v.get("payload"))
+                .and_then(|v| v.as_str())
+            else {
+                return ApiResponse::internal_error("Missing link payload");
+            };
+            let mut conn = state.db.conn();
+            match crate::db::config_import::import_link_config(&mut conn, &name, payload) {
+                Ok(tunnel) => {
+                    ApiResponse::success(serde_json::to_value(tunnel).unwrap_or(Value::Null))
+                }
+                Err(e) if e.to_string() == "Invalid link content" => {
+                    ApiResponse::fail("B1009", "Invalid link content")
+                }
+                Err(e) => ApiResponse::fail("B1000", e.to_string()),
+            }
+        }
         "system/getSystemConfig" => {
             let conn = state.db.conn();
             match AppConfigRepository::get_system_config(&conn) {

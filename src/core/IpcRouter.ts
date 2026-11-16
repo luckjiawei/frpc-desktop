@@ -120,6 +120,10 @@ export const ipcRouters: IpcRouters = {
       path: "tunnel/importTomlConfig",
       controller: "tunnelController.importTomlConfig"
     },
+    importLinkConfig: {
+      path: "tunnel/importLinkConfig",
+      controller: "tunnelController.importLinkConfig"
+    },
     update: {
       path: "tunnel/update",
       controller: "tunnelController.update"
