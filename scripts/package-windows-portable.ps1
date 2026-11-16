@@ -15,18 +15,25 @@ if (-not (Test-Path -LiteralPath $sourceExe -PathType Leaf)) {
   throw "Windows executable not found: $sourceExe"
 }
 
-if (-not (Test-Path -LiteralPath $sourceWebView2Loader -PathType Leaf)) {
-  throw "WebView2 loader not found: $sourceWebView2Loader. The portable build cannot start without it."
-}
-
 $stagingDir = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $stagingDir | Out-Null
 try {
   $portableExe = Join-Path $stagingDir 'Frpc-Desktop.exe'
-  $portableWebView2Loader = Join-Path $stagingDir 'WebView2Loader.dll'
   Copy-Item -LiteralPath $sourceExe -Destination $portableExe
-  Copy-Item -LiteralPath $sourceWebView2Loader -Destination $portableWebView2Loader
-  Compress-Archive -LiteralPath $portableExe, $portableWebView2Loader -DestinationPath $zipPath -Force
+  $portableFiles = @($portableExe)
+
+  # webview2-com-sys links WebView2LoaderStatic for MSVC targets, so current
+  # builds ship the loader inside the executable and emit no DLL. Keep bundling
+  # it if a future build does produce one, but do not fail when it is absent.
+  if (Test-Path -LiteralPath $sourceWebView2Loader -PathType Leaf) {
+    $portableWebView2Loader = Join-Path $stagingDir 'WebView2Loader.dll'
+    Copy-Item -LiteralPath $sourceWebView2Loader -Destination $portableWebView2Loader
+    $portableFiles += $portableWebView2Loader
+  } else {
+    Write-Warning "WebView2Loader.dll not found next to the executable; relying on the statically linked loader."
+  }
+
+  Compress-Archive -LiteralPath $portableFiles -DestinationPath $zipPath -Force
 } finally {
   Remove-Item -LiteralPath $stagingDir -Recurse -Force
 }

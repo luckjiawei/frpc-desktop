@@ -40,11 +40,11 @@ Get the latest packages from [Releases](https://github.com/luckjiawei/frpc-deskt
 
 | Platform | Packages |
 | --- | --- |
-| Windows | `.msi` and `.exe` installers; portable `.zip` (x64) |
+| Windows | `.msi` and `.exe` installers; portable `.zip` (standalone EXE, x64) |
 | macOS | `.dmg` (Apple Silicon and Intel) |
 | Linux | `.AppImage`, `.deb`, `.rpm` |
 
-Extract the Windows portable zip and run `Frpc-Desktop.exe`. Keep `WebView2Loader.dll` in the same folder as the executable. It requires the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download), which is normally already present on current Windows 10/11 systems.
+Extract the Windows portable zip and run `Frpc-Desktop.exe`. It requires the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download), which is normally already present on current Windows 10/11 systems.
 
 > 2.0 is a full rebuild on Tauri 2 — installers are much smaller than the 1.x Electron builds.
 

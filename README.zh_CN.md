@@ -40,11 +40,11 @@
 
 | 平台 | 软件包 |
 | --- | --- |
-| Windows | `.msi` 与 `.exe` 安装包；便携版 `.zip`（x64） |
+| Windows | `.msi` 与 `.exe` 安装包；便携版 `.zip`（独立 EXE，x64） |
 | macOS | `.dmg`（支持 Apple Silicon 与 Intel） |
 | Linux | `.AppImage`、`.deb`、`.rpm` |
 
-解压 Windows 便携版 zip 后运行 `Frpc-Desktop.exe`，`WebView2Loader.dll` 需与该可执行文件保持在同一目录。便携版需要 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download)，当前的 Windows 10/11 系统通常已预装。
+解压 Windows 便携版 zip 后运行 `Frpc-Desktop.exe`。便携版需要 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download)，当前的 Windows 10/11 系统通常已预装。
 
 > 2.0 基于 Tauri 2 全面重构，安装包体积比 1.x 的 Electron 版本小很多。
 
