@@ -47,7 +47,7 @@ const handleResetAll = () => {
     {
       type: "warning",
       confirmButtonText: t("system.alert.resetAll.confirm"),
-      confirmButtonClass: "el-button--danger",
+      confirmButtonType: "danger",
       cancelButtonText: t("system.alert.resetAll.cancel")
     }
   )
@@ -94,6 +94,7 @@ onMounted(() => {
         t("config.alert.resetConfigSuccess.message"),
         t("config.alert.resetConfigSuccess.title"),
         {
+          type: "success",
           closeOnClickModal: false,
           showClose: false,
           confirmButtonText: t("config.alert.resetConfigSuccess.confirm")

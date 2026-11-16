@@ -1,10 +1,11 @@
 <script lang="ts" setup>
+import { useDebounceFn } from "@vueuse/core";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import router from "@/router";
 import { useTunnelStore } from "@/store/tunnel";
 import { on, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { onMounted, onUnmounted, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import CloudflaredConfigDrawer from "@/views/config/CloudflaredConfigDrawer.vue";
@@ -27,7 +28,10 @@ const logDrawer = reactive({
   visible: false,
   tunnel: null as TunnelSummary | null
 });
-type ConfigTarget = Pick<TunnelSummary, "id" | "name" | "provider">;
+type ConfigTarget = Pick<
+  TunnelSummary,
+  "id" | "name" | "provider" | "autoStart"
+>;
 const configDrawer = reactive({
   visible: false,
   tunnel: null as ConfigTarget | null
@@ -36,9 +40,6 @@ const cloudflaredDrawer = reactive({
   visible: false,
   tunnel: null as ConfigTarget | null
 });
-const lastUpdateAction = ref<"rename" | "autoStartOn" | "autoStartOff">(
-  "rename"
-);
 
 const handleToggle = (tunnel: TunnelSummary) => {
   if (pending[tunnel.id]) return;
@@ -67,6 +68,10 @@ const openLog = (tunnel: TunnelSummary) => {
   logDrawer.visible = true;
 };
 
+const handleExportConfig = useDebounceFn((tunnel: TunnelSummary) => {
+  send(ipcRouters.SERVER.exportConfig, { tunnelId: tunnel.id });
+}, 300);
+
 const promptTunnelName = (title: string, inputValue = "") =>
   ElMessageBox.prompt(t("tunnel.prompt.nameLabel"), title, {
     inputValue,
@@ -89,34 +94,22 @@ const handleCreate = (provider: TunnelProvider) => {
     .catch(() => {});
 };
 
-const handleCommand = (tunnel: TunnelSummary, command: string) => {
-  if (command === "rename") {
-    promptTunnelName(t("tunnel.prompt.renameTitle"), tunnel.name)
-      .then(name => {
-        lastUpdateAction.value = "rename";
-        send(ipcRouters.TUNNEL.update, { tunnelId: tunnel.id, name });
-      })
-      .catch(() => {});
-  } else if (command === "autoStart") {
-    lastUpdateAction.value = tunnel.autoStart ? "autoStartOff" : "autoStartOn";
-    send(ipcRouters.TUNNEL.update, {
-      tunnelId: tunnel.id,
-      autoStart: !tunnel.autoStart
-    });
-  } else if (command === "delete") {
-    ElMessageBox.confirm(
-      t("tunnel.delete.message", { name: tunnel.name }),
-      t("tunnel.delete.title"),
-      {
-        type: "warning",
-        confirmButtonText: t("tunnel.delete.confirm"),
-        confirmButtonClass: "el-button--danger",
-        cancelButtonText: t("tunnel.delete.cancel")
-      }
-    )
-      .then(() => send(ipcRouters.TUNNEL.delete, { tunnelId: tunnel.id }))
-      .catch(() => {});
-  }
+const deleteDialog = reactive({
+  visible: false,
+  tunnel: null as TunnelSummary | null,
+  pending: false
+});
+
+const handleDelete = (tunnel: TunnelSummary) => {
+  if (deleteDialog.pending) return;
+  deleteDialog.tunnel = tunnel;
+  deleteDialog.visible = true;
+};
+
+const confirmDelete = () => {
+  if (!deleteDialog.tunnel || deleteDialog.pending) return;
+  deleteDialog.pending = true;
+  send(ipcRouters.TUNNEL.delete, { tunnelId: deleteDialog.tunnel.id });
 };
 
 const showLaunchError = (
@@ -139,7 +132,10 @@ const showLaunchError = (
   ElMessageBox.alert(
     t(`home.alert.${hit.key}.message`),
     t(`home.alert.${hit.key}.title`),
-    { confirmButtonText: t(`home.alert.${hit.key}.confirm`) }
+    {
+      type: "warning",
+      confirmButtonText: t(`home.alert.${hit.key}.confirm`)
+    }
   ).then(() => {
     if (hit.route === "Proxy") {
       goToProxy(id);
@@ -154,6 +150,18 @@ onMounted(() => {
   tunnelStore.refreshTunnels();
   tunnelStore.refreshStatuses();
 
+  listenerCleanups.push(
+    on(ipcRouters.SERVER.exportConfig, data => {
+      const { canceled, path } = data;
+      if (!canceled) {
+        ElMessageBox.alert(
+          t("config.alert.exportConfigSuccess.message", { path }),
+          t("config.alert.exportConfigSuccess.title"),
+          { type: "success" }
+        );
+      }
+    })
+  );
   listenerCleanups.push(
     on(
       ipcRouters.LAUNCH.launch,
@@ -185,27 +193,23 @@ onMounted(() => {
     })
   );
   listenerCleanups.push(
-    on(ipcRouters.TUNNEL.update, () => {
-      const messageKey =
-        lastUpdateAction.value === "rename"
-          ? "renameSuccess"
-          : lastUpdateAction.value;
-      ElMessage({
-        type: "success",
-        message: t(`tunnel.message.${messageKey}`)
-      });
-      tunnelStore.refreshTunnels();
-    })
-  );
-  listenerCleanups.push(
-    on(ipcRouters.TUNNEL.delete, () => {
-      ElMessage({
-        type: "success",
-        message: t("tunnel.message.deleteSuccess")
-      });
-      tunnelStore.refreshTunnels();
-      tunnelStore.refreshStatuses();
-    })
+    on(
+      ipcRouters.TUNNEL.delete,
+      () => {
+        deleteDialog.pending = false;
+        deleteDialog.visible = false;
+        ElMessage({
+          type: "success",
+          message: t("tunnel.message.deleteSuccess")
+        });
+        tunnelStore.refreshTunnels();
+        tunnelStore.refreshStatuses();
+      },
+      (_bizCode, message) => {
+        deleteDialog.pending = false;
+        ElMessage({ type: "error", message });
+      }
+    )
   );
 });
 
@@ -415,46 +419,100 @@ onUnmounted(() => {
               </template>
               {{ t("tunnel.button.logs") }}
             </el-button>
-            <el-dropdown
-              class="ml-auto"
-              trigger="click"
-              @command="(command: string) => handleCommand(tunnel, command)"
+            <el-button
+              v-if="tunnel.provider === 'frpc'"
+              text
+              size="small"
+              :aria-label="t('config.button.exportConfig')"
+              :title="t('config.button.exportConfig')"
+              @click="handleExportConfig(tunnel)"
             >
-              <el-button
-                text
-                size="small"
-                :aria-label="t('tunnel.button.more')"
-                :title="t('tunnel.button.more')"
-              >
-                <IconifyIconOffline icon="more-horiz" />
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="rename">
-                    <IconifyIconOffline class="mr-1" icon="edit" />
-                    {{ t("tunnel.button.rename") }}
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    command="autoStart"
-                    :title="t('tunnel.autoStartHint')"
-                  >
-                    <IconifyIconOffline
-                      class="mr-1"
-                      :icon="tunnel.autoStart ? 'toggle-on' : 'toggle-off'"
-                    />
-                    {{ t("tunnel.autoStart") }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <IconifyIconOffline class="mr-1" icon="delete-rounded" />
-                    {{ t("tunnel.button.delete") }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
+              <template #icon>
+                <IconifyIconOffline icon="file-save-rounded" />
               </template>
-            </el-dropdown>
+              {{ t("config.button.exportConfig") }}
+            </el-button>
+            <el-button
+              text
+              type="danger"
+              size="small"
+              @click="handleDelete(tunnel)"
+            >
+              <template #icon>
+                <IconifyIconOffline icon="delete-rounded" />
+              </template>
+              {{ t("tunnel.button.delete") }}
+            </el-button>
           </footer>
         </article>
       </section>
     </div>
+    <el-dialog
+      v-model="deleteDialog.visible"
+      :title="t('tunnel.delete.title')"
+      width="440px"
+      align-center
+      :close-on-click-modal="false"
+      :close-on-press-escape="!deleteDialog.pending"
+      :show-close="!deleteDialog.pending"
+    >
+      <template #header="{ titleId, titleClass }">
+        <div class="flex gap-3 items-center pr-6">
+          <span class="delete-dialog-icon" aria-hidden="true">
+            <IconifyIconOffline icon="delete-rounded" />
+          </span>
+          <h2 :id="titleId" :class="titleClass" class="font-semibold">
+            {{ t("tunnel.delete.title") }}
+          </h2>
+        </div>
+      </template>
+      <div v-if="deleteDialog.tunnel" class="flex flex-col gap-4">
+        <div class="delete-dialog-target">
+          <IconifyIconOffline
+            class="flex-none text-xl text-text_color_secondary"
+            :icon="
+              deleteDialog.tunnel.provider === 'frpc' ? 'lan-outline' : 'public'
+            "
+            aria-hidden="true"
+          />
+          <span class="flex-1 min-w-0 font-semibold break-all">
+            {{ deleteDialog.tunnel.name }}
+          </span>
+          <el-tag size="small" type="info" effect="plain" class="flex-none">
+            {{ t(`tunnel.provider.${deleteDialog.tunnel.provider}`) }}
+          </el-tag>
+        </div>
+        <p class="delete-dialog-description">
+          {{
+            t(
+              deleteDialog.tunnel.provider === "frpc"
+                ? "tunnel.delete.frpcDescription"
+                : "tunnel.delete.cloudflaredDescription"
+            )
+          }}
+        </p>
+        <p class="delete-dialog-warning">
+          {{ t("tunnel.delete.irreversible") }}
+        </p>
+      </div>
+      <template #footer>
+        <div class="flex flex-wrap gap-2 justify-end delete-dialog-actions">
+          <el-button
+            :disabled="deleteDialog.pending"
+            @click="deleteDialog.visible = false"
+          >
+            {{ t("tunnel.delete.cancel") }}
+          </el-button>
+          <el-button
+            type="danger"
+            :loading="deleteDialog.pending"
+            @click="confirmDelete"
+          >
+            {{ t("tunnel.delete.confirm") }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
     <TunnelLogDrawer v-model="logDrawer.visible" :tunnel="logDrawer.tunnel" />
     <ConfigDrawer
       v-model="configDrawer.visible"
@@ -468,6 +526,48 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+.delete-dialog-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--app-radius);
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  font-size: 24px;
+}
+
+.delete-dialog-target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  user-select: text;
+}
+
+.delete-dialog-description {
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+}
+
+.delete-dialog-warning {
+  color: var(--el-color-danger);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.delete-dialog-actions {
+  :deep(.el-button) {
+    margin-left: 0;
+  }
+}
+
 .tunnel-grid {
   grid-template-columns: minmax(0, 1fr);
 

@@ -78,6 +78,9 @@ const activeMenuName = computed(
     (currentRoute.value?.meta?.activeMenu as string | undefined) ??
     currentRoute.value?.name
 );
+const activeMenuIndex = computed(() =>
+  routes.value.findIndex(route => route.name === activeMenuName.value)
+);
 
 /**
  * 菜单切换
@@ -174,6 +177,12 @@ onUnmounted(() => {
       <span v-show="!collapsed">Frpc Desktop</span>
     </div>
     <div class="menu-list">
+      <span
+        v-if="activeMenuIndex >= 0"
+        class="menu-active-indicator"
+        :style="{ '--active-menu-index': activeMenuIndex }"
+        aria-hidden="true"
+      />
       <el-tooltip
         v-for="r in routes"
         :key="r.name"

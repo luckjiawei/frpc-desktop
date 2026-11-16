@@ -5,14 +5,23 @@ import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
-import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import router from "@/router";
+import TunnelSettings from "./TunnelSettings.vue";
 
 const drawerVisible = defineModel<boolean>({ required: true });
 const props = defineProps<{
-  tunnel: Pick<TunnelSummary, "id" | "name"> | null;
+  tunnel: Pick<TunnelSummary, "id" | "name" | "autoStart"> | null;
 }>();
 
 const CLOUDFLARE_DASHBOARD_URL = "https://one.dash.cloudflare.com/";
@@ -22,6 +31,12 @@ const TOKEN_PATTERN = /^[A-Za-z0-9+/=_-]{32,4096}$/;
 const { t } = useI18n();
 const frpcDesktopStore = useFrpcDesktopStore();
 const tunnelStore = useTunnelStore();
+const tunnelName = computed(
+  () =>
+    tunnelStore.tunnels.find(item => item.id === props.tunnel?.id)?.name ??
+    props.tunnel?.name ??
+    ""
+);
 
 const defaultFormData = (tunnelId = ""): CloudflaredSettings => ({
   tunnelId,
@@ -38,6 +53,7 @@ const formRef = ref<FormInstance>();
 const loading = ref(false);
 const saving = ref(false);
 const formDirty = ref(false);
+const instanceDirty = ref(false);
 const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
 /** 二选一的界面状态：保存时清空未选中的一项 */
@@ -159,7 +175,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value) {
+  if (!formDirty.value && !instanceDirty.value) {
     done();
     return;
   }
@@ -210,6 +226,7 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
+    instanceDirty.value = false;
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
@@ -320,8 +337,8 @@ onUnmounted(() => {
     :before-close="handleBeforeClose"
   >
     <template #header="{ titleId, titleClass }">
-      <h2 :id="titleId" :class="titleClass" :title="tunnel?.name ?? ''">
-        {{ t("tunnel.config.title", { name: tunnel?.name ?? "" }) }}
+      <h2 :id="titleId" :class="titleClass" :title="tunnelName">
+        {{ t("tunnel.config.title", { name: tunnelName }) }}
       </h2>
       <el-button
         text
@@ -333,6 +350,12 @@ onUnmounted(() => {
       </el-button>
     </template>
     <div v-loading="loading" class="pr-2">
+      <TunnelSettings
+        v-if="drawerVisible && tunnel"
+        :key="tunnel.id"
+        v-model:dirty="instanceDirty"
+        :tunnel="tunnel"
+      />
       <el-alert type="info" :closable="false" show-icon class="mb-4">
         <template #title>
           <span class="leading-relaxed">{{

@@ -140,7 +140,9 @@ export default {
       title: "{name} · 日志"
     },
     config: {
-      title: "{name} · 配置"
+      title: "{name} · 配置",
+      settings: "实例设置",
+      saveSettings: "保存实例设置"
     },
     empty: "暂无实例，请先新建一个实例。",
     noFrpc: "请先新建 frpc 实例，再添加代理。",
@@ -227,8 +229,11 @@ export default {
     },
     delete: {
       title: "删除实例",
-      message:
-        "确定删除实例「{name}」吗？运行中的实例会先停止，其下的代理配置会一并删除，且无法恢复。",
+      frpcDescription:
+        "删除后，该实例的配置及其下的所有代理配置将一并移除。若实例正在运行，会先停止连接。",
+      cloudflaredDescription:
+        "删除后，该实例的本地配置将被移除。若实例正在运行，会先停止连接。Cloudflare 控制台中的隧道及路由不受影响。",
+      irreversible: "此操作无法撤销，请确认后再删除。",
       confirm: "删除",
       cancel: "取消"
     },
@@ -240,6 +245,7 @@ export default {
     },
     message: {
       createSuccess: "实例已创建",
+      settingsSaved: "实例设置已保存",
       renameSuccess: "实例已重命名",
       deleteSuccess: "实例已删除",
       autoStartOn: "已开启启动时自动连接",

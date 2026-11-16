@@ -8,17 +8,26 @@ import confetti from "canvas-confetti/src/confetti.js";
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import { Base64 } from "js-base64";
 import _ from "lodash";
-import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import router from "@/router";
 import ConfigToolbar from "./ConfigToolbar.vue";
+import TunnelSettings from "./TunnelSettings.vue";
 import LogConfig from "./LogConfig.vue";
 import WebServerConfig from "./WebServerConfig.vue";
 
 const drawerVisible = defineModel<boolean>({ required: true });
 const props = defineProps<{
-  tunnel: Pick<TunnelSummary, "id" | "name"> | null;
+  tunnel: Pick<TunnelSummary, "id" | "name" | "autoStart"> | null;
 }>();
 
 // type ShareLinkConfig = {
@@ -293,7 +302,14 @@ const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
 const frpcDesktopStore = useFrpcDesktopStore();
 const tunnelStore = useTunnelStore();
+const tunnelName = computed(
+  () =>
+    tunnelStore.tunnels.find(item => item.id === props.tunnel?.id)?.name ??
+    props.tunnel?.name ??
+    ""
+);
 const formDirty = ref(false);
+const instanceDirty = ref(false);
 /**
  * frpc 来源二选一，只是界面状态：保存时清空未选中的一项。
  * 后端在 customFrpcPath 非空时优先使用它，否则使用 frpcVersion。
@@ -363,6 +379,7 @@ const handleMultiuserChange = e => {
       {
         // if you want to disable its autofocus
         autofocus: false,
+        type: "info",
         confirmButtonText: t("config.alert.multiuserAlert.confirm"),
         dangerouslyUseHTMLString: true
       }
@@ -395,7 +412,7 @@ const handleLoadSavedConfig = () => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value) {
+  if (!formDirty.value && !instanceDirty.value) {
     done();
     return;
   }
@@ -424,6 +441,7 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
+    instanceDirty.value = false;
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
@@ -564,6 +582,7 @@ onMounted(() => {
           t("config.alert.importTomlConfigSuccess.message"),
           t("config.alert.importTomlConfigSuccess.title"),
           {
+            type: "success",
             closeOnClickModal: false,
             showClose: false,
             confirmButtonText: t("config.alert.importTomlConfigSuccess.confirm")
@@ -575,17 +594,6 @@ onMounted(() => {
     })
   );
 
-  listenerCleanups.push(
-    on(ipcRouters.SERVER.exportConfig, data => {
-      const { canceled, path } = data;
-      if (!canceled) {
-        ElMessageBox.alert(
-          t("config.alert.exportConfigSuccess.message", { path }),
-          t("config.alert.exportConfigSuccess.title")
-        );
-      }
-    })
-  );
   // ElMessageBox.alert(data, `提示`);
   window.addEventListener("keydown", handleKeydown);
 });
@@ -691,14 +699,6 @@ const handleShowExportDialog = () => {
   visible.exportConfig = true;
 };
 
-const handleExportConfig = useDebounceFn(() => {
-  if (!props.tunnel) return;
-  send(ipcRouters.SERVER.exportConfig, {
-    tunnelId: props.tunnel.id
-  });
-  // visibles.exportConfig = false;
-}, 300);
-
 const handleImportConfig = () => {
   send(ipcRouters.SERVER.importTomlConfig);
 };
@@ -716,16 +716,21 @@ onUnmounted(() => {
     :before-close="handleBeforeClose"
   >
     <template #header="{ titleId, titleClass }">
-      <h2 :id="titleId" :class="titleClass" :title="tunnel?.name ?? ''">
-        {{ t("tunnel.config.title", { name: tunnel?.name ?? "" }) }}
+      <h2 :id="titleId" :class="titleClass" :title="tunnelName">
+        {{ t("tunnel.config.title", { name: tunnelName }) }}
       </h2>
       <ConfigToolbar
-        @export="handleExportConfig"
         @import="handleImportConfig"
         @refresh="handleLoadSavedConfig"
       />
     </template>
     <div v-loading="loading > 0" class="pr-2">
+      <TunnelSettings
+        v-if="drawerVisible && tunnel"
+        :key="tunnel.id"
+        v-model:dirty="instanceDirty"
+        :tunnel="tunnel"
+      />
       <div class="w-full">
         <el-form
           ref="formRef"

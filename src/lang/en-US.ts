@@ -150,7 +150,9 @@ export default {
       title: "{name} · Logs"
     },
     config: {
-      title: "{name} · Config"
+      title: "{name} · Config",
+      settings: "Instance settings",
+      saveSettings: "Save instance settings"
     },
     provider: {
       frpc: "frpc",
@@ -238,8 +240,12 @@ export default {
     },
     delete: {
       title: "Delete Instance",
-      message:
-        'Delete instance "{name}"? A running instance is stopped first, and all of its proxies are deleted. This cannot be undone.',
+      frpcDescription:
+        "This instance's configuration and all of its proxies will be removed. If running, it will be stopped first.",
+      cloudflaredDescription:
+        "This instance's local configuration will be removed. If running, it will be stopped first. Tunnels and routes in the Cloudflare dashboard are not affected.",
+      irreversible:
+        "This action cannot be undone. Please confirm before deleting.",
       confirm: "Delete",
       cancel: "Cancel"
     },
@@ -252,6 +258,7 @@ export default {
     },
     message: {
       createSuccess: "Instance created",
+      settingsSaved: "Instance settings saved",
       renameSuccess: "Instance renamed",
       deleteSuccess: "Instance deleted",
       autoStartOn: "Auto connect on startup enabled",

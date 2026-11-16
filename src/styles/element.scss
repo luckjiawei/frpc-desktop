@@ -42,3 +42,139 @@
 @use "element-plus/theme-chalk/src/tag.scss" as *;
 @use "element-plus/theme-chalk/src/text.scss" as *;
 @use "element-plus/theme-chalk/src/tooltip.scss" as *;
+
+// Shared surface and spacing for alerts, confirmations, prompts and dialogs.
+.el-message-box,
+.el-dialog {
+  --el-border-radius-base: 8px;
+  --el-messagebox-width: 440px;
+  --el-messagebox-border-radius: var(--app-radius);
+  --el-messagebox-padding-primary: 20px;
+  --el-messagebox-font-size: 16px;
+  --el-messagebox-content-font-size: 14px;
+  --el-messagebox-font-line-height: 1.6;
+  --el-dialog-border-radius: var(--app-radius);
+  --el-dialog-padding-primary: 20px;
+  --el-dialog-title-font-size: 16px;
+  --el-dialog-bg-color: var(--app-surface);
+
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow);
+
+  .el-message-box__title,
+  .el-dialog__title {
+    color: var(--el-text-color-primary);
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .el-message-box__header,
+  .el-dialog__header {
+    padding-bottom: 16px;
+  }
+
+  .el-message-box__headerbtn,
+  .el-dialog__headerbtn {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--el-fill-color-light);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .el-message-box__content,
+  .el-dialog__body {
+    color: var(--el-text-color-regular);
+    line-height: 1.6;
+    user-select: text;
+  }
+
+  .el-message-box__btns,
+  .el-dialog__footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--app-border);
+
+    .el-button {
+      min-height: 32px;
+      height: auto;
+      padding: 8px 16px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.4;
+    }
+  }
+}
+
+.el-dialog {
+  max-width: calc(100vw - 32px);
+
+  &.is-fullscreen {
+    max-width: none;
+  }
+}
+
+.el-message-box {
+  .el-message-box__container {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .el-message-box__status {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--app-radius);
+    font-size: 24px;
+
+    @each $type in (primary, success, info, warning, error) {
+      &.el-message-box-icon--#{$type} {
+        color: var(--el-color-#{$type});
+        background: var(--el-color-#{$type}-light-9);
+      }
+    }
+  }
+
+  .el-message-box__message {
+    flex: 1;
+    max-height: min(50vh, 420px);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+
+    p {
+      line-height: 1.6;
+    }
+  }
+
+  .el-message-box__input {
+    padding-top: 16px;
+
+    .el-input__wrapper {
+      min-height: 36px;
+      background: var(--el-fill-color-light);
+    }
+  }
+
+  .el-message-box__btns {
+    gap: 8px;
+
+    .el-button + .el-button {
+      margin-left: 0;
+    }
+  }
+}

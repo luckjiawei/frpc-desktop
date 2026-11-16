@@ -94,6 +94,8 @@ const handleDeleteVersion = useDebounceFn((version: FrpcVersion) => {
     t("download.alert.deleteConfirm.message", { name: version.name }),
     t("download.alert.deleteConfirm.title"),
     {
+      type: "warning",
+      confirmButtonType: "danger",
       showCancelButton: true,
       cancelButtonText: t("download.alert.deleteConfirm.cancel"),
       dangerouslyUseHTMLString: true,
@@ -181,19 +183,22 @@ onMounted(() => {
         if (bizCode === "B1002") {
           ElMessageBox.alert(
             t("download.alert.importFailed.versionExists"),
-            t("download.alert.importFailed.title")
+            t("download.alert.importFailed.title"),
+            { type: "error" }
           );
         }
         if (bizCode === "B1003") {
           ElMessageBox.alert(
             t("download.alert.importFailed.architectureNotMatch"),
-            t("download.alert.importFailed.title")
+            t("download.alert.importFailed.title"),
+            { type: "error" }
           );
         }
         if (bizCode === "B1004") {
           ElMessageBox.alert(
             t("download.alert.importFailed.unrecognizedFile"),
-            t("download.alert.importFailed.title")
+            t("download.alert.importFailed.title"),
+            { type: "error" }
           );
         }
       }
@@ -206,6 +211,7 @@ const handleImportFrp = () => {
     t("download.alert.importTip.message"),
     t("download.alert.importTip.title"),
     {
+      type: "info",
       confirmButtonText: t("download.alert.importTip.confirm"),
       dangerouslyUseHTMLString: true
     }

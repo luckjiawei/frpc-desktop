@@ -52,8 +52,8 @@ Get the latest installer from [Releases](https://github.com/luckjiawei/frpc-desk
 - **Multiple instances** — run several frpc tunnels to different frps servers at the same time.
 - **Cloudflare Tunnel** — manage cloudflared instances next to your frpc instances.
 - **New dashboard** — a read-only overview of running instances, proxies, connection errors, and bulk start/stop.
-- **Refreshed UI** — light, dark, and system themes, collapsible sidebar, and copyable addresses.
-- **Drawer configuration** — edit each instance's config and view its logs in a side drawer without leaving the page.
+- **Refreshed UI** — light, dark, and system themes, collapsible sidebar with animated menu selection, and copyable addresses. Menu animations follow the system's reduced motion preference. Alerts, confirmations (including reset and delete), and input dialogs share a theme-aware style.
+- **Drawer configuration** — edit each instance's config and view its logs in a side drawer without leaving the page. Rename instances and change auto connect on startup in the drawer's Instance settings section, then click Save instance settings. Card actions are aligned to the left, with Delete and Export config following the other actions. Export config saves the frpc instance's TOML. The delete dialog identifies the instance and explains what will be removed before confirmation.
 - **SQLite storage** — automatic, backup-safe import of existing 1.x data.
 
 ## TODO

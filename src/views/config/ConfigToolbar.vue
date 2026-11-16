@@ -3,7 +3,6 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import { useI18n } from "vue-i18n";
 
 const emit = defineEmits<{
-  export: [];
   import: [];
   refresh: [];
 }>();
@@ -27,14 +26,6 @@ const { t } = useI18n();
       @click="emit('import')"
     >
       <IconifyIconOffline icon="file-open-rounded" />
-    </el-button>
-    <el-button
-      text
-      :aria-label="t('config.button.exportConfig')"
-      :title="t('config.button.exportConfig')"
-      @click="emit('export')"
-    >
-      <IconifyIconOffline icon="file-save-rounded" />
     </el-button>
   </div>
 </template>

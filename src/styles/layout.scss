@@ -245,9 +245,13 @@ $danger-color: #f56c6c;
   }
 
   .menu-list {
+    --menu-item-height: 38px;
+    --menu-item-gap: 4px;
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--menu-item-gap);
     /* 窗口较矮时菜单区自身滚动，底部的资源占用和设置始终可见 */
     flex: 1;
     min-height: 0;
@@ -260,12 +264,33 @@ $danger-color: #f56c6c;
     }
   }
 
+  .menu-active-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    height: var(--menu-item-height);
+    border-radius: 8px;
+    background: var(--app-primary-soft);
+    pointer-events: none;
+    transform: translateY(
+      calc(
+        var(--active-menu-index) *
+          (var(--menu-item-height) + var(--menu-item-gap))
+      )
+    );
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   .menu-item {
+    position: relative;
     display: flex;
+    flex: none;
     align-items: center;
     gap: 12px;
     width: 100%;
-    height: 38px;
+    height: var(--menu-item-height);
     padding: 0 12px;
     border-radius: 8px;
     color: var(--el-text-color-regular);
@@ -279,6 +304,7 @@ $danger-color: #f56c6c;
     svg {
       font-size: 20px;
       flex: none;
+      transition: transform 0.2s ease;
     }
 
     &:hover {
@@ -292,9 +318,17 @@ $danger-color: #f56c6c;
     }
 
     &.is-active {
-      background: var(--app-primary-soft);
+      background: transparent;
       color: var(--app-primary-text);
       font-weight: 600;
+
+      svg {
+        transform: scale(1.08);
+      }
+    }
+
+    &:active svg {
+      transform: scale(0.94);
     }
   }
 
