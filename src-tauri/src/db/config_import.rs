@@ -4,6 +4,7 @@ use crate::db::server_repo::ServerRepository;
 use crate::db::tunnel_repo::{TunnelRepository, MAX_TUNNEL_NAME_LEN, PROVIDER_FRPC};
 use crate::models::Tunnel;
 use rusqlite::{params, Connection};
+use std::path::Path;
 
 fn validate_name(name: &str) -> anyhow::Result<&str> {
     let name = name.trim();
@@ -16,16 +17,18 @@ fn validate_name(name: &str) -> anyhow::Result<&str> {
 
 /// Create a new frpc instance and import its configuration in one transaction.
 /// Canceling file selection never calls this function; any failure leaves no instance.
+/// `base_dir` is the imported file's directory, used to resolve relative paths.
 pub fn import_toml_config(
     conn: &mut Connection,
     name: &str,
     content: &str,
+    base_dir: Option<&Path>,
 ) -> anyhow::Result<Tunnel> {
     let name = validate_name(name)?;
     let tx = conn.transaction()?;
     let tunnel = TunnelRepository::create_in_transaction(&tx, name, PROVIDER_FRPC)?;
     let current = ServerRepository::get_server_config(&tx, &tunnel.id)?;
-    let (mut server, proxies) = parse_toml_config(content, &current)?;
+    let (mut server, proxies) = parse_toml_config(content, &current, base_dir)?;
     if server.web_server.enable {
         let port_in_use: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM t_frpcd_servers
@@ -156,6 +159,7 @@ serverName = "private"
 bindAddr = "127.0.0.1"
 bindPort = 9000
 "#,
+            None,
         )
         .unwrap();
         assert_ne!(imported.id, "1");
@@ -186,8 +190,13 @@ bindPort = 9000
         assert_eq!(kept[0].id, existing.id);
 
         // Repeated imports also get separate instances and monitoring ports.
-        let second =
-            import_toml_config(&mut conn, "Second", "serverAddr = 'second.example.test'").unwrap();
+        let second = import_toml_config(
+            &mut conn,
+            "Second",
+            "serverAddr = 'second.example.test'",
+            None,
+        )
+        .unwrap();
         assert_ne!(second.id, imported.id);
         assert_eq!(
             ServerRepository::get_server_config(&conn, &second.id)
@@ -195,6 +204,60 @@ bindPort = 9000
                 .web_server
                 .port,
             57402
+        );
+        drop(conn);
+        drop(db);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn import_resolves_relative_certificate_paths_from_the_toml_location() {
+        let dir = std::env::temp_dir().join(format!("frpc_import_rel_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let mut conn = db.conn();
+        let source = Path::new(if cfg!(windows) {
+            r"C:\configs\site"
+        } else {
+            "/configs/site"
+        });
+        let imported = import_toml_config(
+            &mut conn,
+            "Relative",
+            r#"
+serverAddr = "example.test"
+[transport.tls]
+certFile = "certs/client.pem"
+trustedCaFile = "ca.pem"
+[[proxies]]
+name = "web"
+type = "https"
+customDomains = ["example.test"]
+[proxies.plugin]
+type = "https2http"
+localAddr = "127.0.0.1:8080"
+crtPath = "certs/plugin.pem"
+keyPath = "certs/plugin.key"
+"#,
+            Some(source),
+        )
+        .unwrap();
+        let saved = ServerRepository::get_server_config(&conn, &imported.id).unwrap();
+        assert_eq!(
+            Path::new(&saved.transport.tls.cert_file),
+            source.join("certs/client.pem")
+        );
+        assert_eq!(
+            Path::new(&saved.transport.tls.trusted_ca_file),
+            source.join("ca.pem")
+        );
+        let proxies = ProxyRepository::get_proxies_by_server(&conn, &imported.id).unwrap();
+        assert_eq!(
+            Path::new(&proxies[0].https2http_ca_file),
+            source.join("certs/plugin.pem")
+        );
+        assert_eq!(
+            Path::new(&proxies[0].https2http_key_file),
+            source.join("certs/plugin.key")
         );
         drop(conn);
         drop(db);
@@ -228,20 +291,26 @@ name = "fail"
 type = "tcp"
 localPort = 8081
 remotePort = 6001
-"#
+"#,
+            None
         )
         .is_err());
-        assert!(import_toml_config(&mut conn, "Malformed", "serverAddr = [").is_err());
+        assert!(import_toml_config(&mut conn, "Malformed", "serverAddr = [", None).is_err());
         assert!(import_toml_config(
             &mut conn,
             "Unsupported",
-            "serverAddr = 'example.test'\nincludes = ['other.toml']"
+            "serverAddr = 'example.test'\nincludes = ['other.toml']",
+            None
         )
         .is_err());
-        assert!(import_toml_config(&mut conn, " ", "serverAddr = 'example.test'").is_err());
-        assert!(
-            import_toml_config(&mut conn, &"a".repeat(65), "serverAddr = 'example.test'").is_err()
-        );
+        assert!(import_toml_config(&mut conn, " ", "serverAddr = 'example.test'", None).is_err());
+        assert!(import_toml_config(
+            &mut conn,
+            &"a".repeat(65),
+            "serverAddr = 'example.test'",
+            None
+        )
+        .is_err());
         assert_eq!(
             serde_json::to_value(TunnelRepository::list_summaries(&conn).unwrap()).unwrap(),
             before

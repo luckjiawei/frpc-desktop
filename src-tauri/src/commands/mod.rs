@@ -397,7 +397,12 @@ async fn handle_ipc_send(
                 Err(_) => return ApiResponse::internal_error("Failed to read TOML file"),
             };
             let mut conn = state.db.conn();
-            match crate::db::config_import::import_toml_config(&mut conn, &name, &content) {
+            match crate::db::config_import::import_toml_config(
+                &mut conn,
+                &name,
+                &content,
+                file.path().parent(),
+            ) {
                 Ok(tunnel) => ApiResponse::success(serde_json::json!({
                     "canceled": false,
                     "tunnel": tunnel

@@ -10,6 +10,7 @@ use crate::models::{
 };
 use anyhow::{bail, Result};
 use std::collections::HashSet;
+use std::path::{Component, Path, PathBuf};
 use toml::{Table, Value};
 
 /// Parse modern frpc TOML without performing file, network, or database I/O.
@@ -19,10 +20,14 @@ use toml::{Table, Value};
 /// that an omitted `webServer` retains the instance's allocated monitoring API.
 /// An explicit `webServer.port = 0` disables that API. New proxies have empty IDs,
 /// belong to the current tunnel, and are enabled; persistence allocates their IDs.
-/// Go-template port ranges and fields the generator cannot represent are rejected.
+/// Relative certificate paths are resolved against `base_dir` (the imported
+/// file's directory) because frpc would otherwise resolve them against its own
+/// working directory. Go-template port ranges and fields the generator cannot
+/// represent are rejected.
 pub fn parse_toml_config(
     content: &str,
     current: &OpenSourceFrpcDesktopServer,
+    base_dir: Option<&Path>,
 ) -> Result<(OpenSourceFrpcDesktopServer, Vec<FrpcProxy>)> {
     let table: Table = toml::from_str(content).map_err(|error: toml::de::Error| {
         // Displaying the original error would include the input, including secrets.
@@ -133,9 +138,9 @@ pub fn parse_toml_config(
         t.heartbeat_timeout = transport.integer("heartbeatTimeout", 90, 1, i64::MAX)?;
         if let Some(mut tls) = transport.table("tls")? {
             t.tls.enable = tls.boolean("enable", true)?;
-            t.tls.cert_file = tls.string("certFile", "")?;
-            t.tls.key_file = tls.string("keyFile", "")?;
-            t.tls.trusted_ca_file = tls.string("trustedCaFile", "")?;
+            t.tls.cert_file = resolve_config_path(tls.string("certFile", "")?, base_dir);
+            t.tls.key_file = resolve_config_path(tls.string("keyFile", "")?, base_dir);
+            t.tls.trusted_ca_file = resolve_config_path(tls.string("trustedCaFile", "")?, base_dir);
             t.tls.server_name = tls.string("serverName", "")?;
             t.tls.disable_custom_tls_first_byte = tls.boolean("disableCustomTLSFirstByte", true)?;
             tls.finish()?;
@@ -149,7 +154,7 @@ pub fn parse_toml_config(
     let mut names = HashSet::new();
     for (collection, visitor) in [("proxies", false), ("visitors", true)] {
         for mut fields in root.tables(collection)? {
-            let proxy = parse_proxy(&mut fields, visitor, &current.id)?;
+            let proxy = parse_proxy(&mut fields, visitor, &current.id, base_dir)?;
             if !names.insert(proxy.name.clone()) {
                 bail!("Duplicate name at {}.name", fields.path);
             }
@@ -161,7 +166,12 @@ pub fn parse_toml_config(
     Ok((server, proxies))
 }
 
-fn parse_proxy(fields: &mut Fields, visitor: bool, server_id: &str) -> Result<FrpcProxy> {
+fn parse_proxy(
+    fields: &mut Fields,
+    visitor: bool,
+    server_id: &str,
+    base_dir: Option<&Path>,
+) -> Result<FrpcProxy> {
     let name = fields.required_string("name")?;
     validate_nonempty(&name, &fields.field("name"))?;
     let proxy_type = fields.string("type", "tcp")?;
@@ -252,8 +262,8 @@ fn parse_proxy(fields: &mut Fields, visitor: bool, server_id: &str) -> Result<Fr
         }
         proxy.local_ip = host;
         proxy.local_port = serde_json::Value::String(port.to_string());
-        let cert = plugin.string("crtPath", "")?;
-        let key = plugin.string("keyPath", "")?;
+        let cert = resolve_config_path(plugin.string("crtPath", "")?, base_dir);
+        let key = resolve_config_path(plugin.string("keyPath", "")?, base_dir);
         if proxy.https2http {
             proxy.https2http_ca_file = cert;
             proxy.https2http_key_file = key;
@@ -305,6 +315,30 @@ fn parse_local_addr(address: &str, path: &str) -> Result<(String, i64)> {
         Some(port) => Ok((host.to_string(), port)),
         None => bail!("Invalid field at {path}"),
     }
+}
+
+/// Resolve a relative config file path against the imported file's directory.
+///
+/// frpc resolves relative paths against its own working directory, not the
+/// location of the TOML file, so keeping them unchanged would point at a file
+/// that does not exist after import. Empty values and absolute paths are left
+/// untouched; `..` components are preserved because they still need resolving.
+fn resolve_config_path(value: String, base_dir: Option<&Path>) -> String {
+    let Some(base_dir) = base_dir else {
+        return value;
+    };
+    if value.is_empty() || Path::new(&value).is_absolute() {
+        return value;
+    }
+    let joined = base_dir.join(&value);
+    // Drop `.` components so paths such as `./cert.pem` stay readable.
+    let mut normalized = PathBuf::new();
+    for component in joined.components() {
+        if !matches!(component, Component::CurDir) {
+            normalized.push(component);
+        }
+    }
+    normalized.to_string_lossy().into_owned()
 }
 
 fn validate_nonempty(value: &str, path: &str) -> Result<()> {
@@ -465,7 +499,7 @@ mod tests {
     fn minimal_import_resets_frpc_defaults_and_preserves_desktop_settings() {
         let current = current_server();
         let (server, proxies) =
-            parse_toml_config("serverAddr = 'frps.example.test'", &current).unwrap();
+            parse_toml_config("serverAddr = 'frps.example.test'", &current, None).unwrap();
         assert!(proxies.is_empty());
         assert_eq!(server.id, current.id);
         assert_eq!(server.frpc_version, current.frpc_version);
@@ -504,6 +538,7 @@ mod tests {
         let (server, _) = parse_toml_config(
             "serverAddr = 'example.test'\n[log]\nto = '/other/tunnel/frpc.log'\nlevel = 'debug'",
             &current_server(),
+            None,
         )
         .unwrap();
         // Honoring the imported path would write frpc output somewhere this
@@ -525,6 +560,7 @@ mod tests {
         let (server, _) = parse_toml_config(
             "serverAddr = 'example.test'\n[webServer]\nport = 7500",
             &current,
+            None,
         )
         .unwrap();
         assert!(server.web_server.enable);
@@ -534,6 +570,7 @@ mod tests {
         let (server, _) = parse_toml_config(
             "serverAddr = 'example.test'\n[webServer]\nport = 0",
             &current,
+            None,
         )
         .unwrap();
         assert!(!server.web_server.enable);
@@ -668,7 +705,7 @@ fallbackTo = "stcp-visitor"
 fallbackTimeoutMs = 750
 "#;
         let current = current_server();
-        let (server, proxies) = parse_toml_config(input, &current).unwrap();
+        let (server, proxies) = parse_toml_config(input, &current, None).unwrap();
         assert!(server.multiuser);
         assert_eq!(server.auth.token, "example-token");
         assert_eq!(proxies.len(), 11);
@@ -699,7 +736,7 @@ fallbackTimeoutMs = 750
         assert_eq!(proxies[10].fallback_timeout_ms, 750);
         let generated =
             ConfigGenerator::gen_toml_config(&server, &proxies, Path::new("/example/frpc.log"));
-        let (imported, imported_proxies) = parse_toml_config(&generated, &current).unwrap();
+        let (imported, imported_proxies) = parse_toml_config(&generated, &current, None).unwrap();
         let regenerated = ConfigGenerator::gen_toml_config(
             &imported,
             &imported_proxies,
@@ -733,11 +770,67 @@ localAddr = "[::1]:443"
 crtPath = "/example/cert.pem"
 keyPath = "/example/key.pem"
 "#;
-        let (_, proxies) = parse_toml_config(input, &current_server()).unwrap();
+        let (_, proxies) = parse_toml_config(input, &current_server(), None).unwrap();
         assert!(proxies[0].tls2raw);
         assert!(!proxies[0].https2http);
         assert_eq!(proxies[0].local_ip, "::1");
         assert_eq!(proxies[0].local_port, "443");
+    }
+
+    #[test]
+    fn relative_certificate_paths_resolve_against_the_imported_file() {
+        let base = Path::new(if cfg!(windows) {
+            r"C:\imports\site"
+        } else {
+            "/imports/site"
+        });
+        let absolute = Path::new(if cfg!(windows) {
+            r"C:\opt\frpc\client.key"
+        } else {
+            "/opt/frpc/client.key"
+        });
+        let input = format!(
+            r#"
+serverAddr = "example.test"
+[transport.tls]
+certFile = "certs/client.pem"
+keyFile = '{absolute}'
+trustedCaFile = "./ca.pem"
+[[proxies]]
+name = "https-example"
+type = "https"
+customDomains = ["example.test"]
+[proxies.plugin]
+type = "https2http"
+localAddr = "127.0.0.1:8082"
+crtPath = "../certs/plugin.pem"
+keyPath = "plugin.key"
+"#,
+            absolute = absolute.display()
+        );
+        let (server, proxies) = parse_toml_config(&input, &current_server(), Some(base)).unwrap();
+        assert_eq!(
+            Path::new(&server.transport.tls.cert_file),
+            base.join("certs/client.pem")
+        );
+        assert_eq!(Path::new(&server.transport.tls.key_file), absolute);
+        assert_eq!(
+            Path::new(&server.transport.tls.trusted_ca_file),
+            base.join("ca.pem")
+        );
+        assert_eq!(
+            Path::new(&proxies[0].https2http_ca_file),
+            base.join("../certs/plugin.pem")
+        );
+        assert_eq!(
+            Path::new(&proxies[0].https2http_key_file),
+            base.join("plugin.key")
+        );
+
+        // Without a known source location the path is kept as written.
+        let (server, proxies) = parse_toml_config(&input, &current_server(), None).unwrap();
+        assert_eq!(server.transport.tls.cert_file, "certs/client.pem");
+        assert_eq!(proxies[0].https2http_key_file, "plugin.key");
     }
 
     #[test]
@@ -754,7 +847,7 @@ type = "stcp"
 serverName = "example-provider"
 bindPort = 8080
 "#;
-        let (_, proxies) = parse_toml_config(input, &current_server()).unwrap();
+        let (_, proxies) = parse_toml_config(input, &current_server(), None).unwrap();
         assert_eq!(proxies[0].proxy_type, "tcp");
         assert_eq!(proxies[0].remote_port, "0");
         assert_eq!(proxies[1].bind_port, Some(8080));
@@ -775,7 +868,7 @@ bindPort = 8080
             "serverAddr = 'example.test'\nserverAddr = 'duplicate'",
         ] {
             assert!(
-                parse_toml_config(input, &current_server()).is_err(),
+                parse_toml_config(input, &current_server(), None).is_err(),
                 "unexpected acceptance"
             );
         }
@@ -810,7 +903,7 @@ bindPort = 8080
             ("[[visitors]]\nname = 'example'\ntype = 'stcp'\nserverName = 'provider'", "visitors[0].bindPort"),
         ] {
             let input = format!("serverAddr = 'example.test'\n{fragment}");
-            let error = parse_toml_config(&input, &current_server()).unwrap_err().to_string();
+            let error = parse_toml_config(&input, &current_server(), None).unwrap_err().to_string();
             assert!(error.contains(path), "missing {path} in {error}");
         }
     }
@@ -836,7 +929,7 @@ bindPort = 8080
             "[[proxies]]\nname = 'example'\ntype = 'tcp'\nlocalPort = 81\n[proxies.plugin]\ntype = 'tls2raw'\nlocalAddr = '127.0.0.1:80'",
             "[[proxies]]\nname = 'example'\ntype = 'tcp'\nlocalIP = '127.0.0.2'\nlocalPort = 80\n[proxies.plugin]\ntype = 'tls2raw'\nlocalAddr = '127.0.0.1:80'",
         ] {
-            assert!(parse_toml_config(&format!("serverAddr = 'example.test'\n{fragment}"), &current_server()).is_err(), "unexpected acceptance");
+            assert!(parse_toml_config(&format!("serverAddr = 'example.test'\n{fragment}"), &current_server(), None).is_err(), "unexpected acceptance");
         }
         for address in [
             "missing-port",
@@ -862,7 +955,7 @@ bindPort = 8080
             format!("serverAddr = '{marker}'\n[[proxies]]\nname = '{marker}'\ntype = '{marker}'"),
             format!("serverAddr = '{marker}'\n[[proxies]]\nname = '{marker}'\nlocalPort = 80\n[proxies.plugin]\ntype = '{marker}'"),
         ] {
-            let error = parse_toml_config(&input, &current_server()).unwrap_err();
+            let error = parse_toml_config(&input, &current_server(), None).unwrap_err();
             for message in [error.to_string(), format!("{error:?}"), format!("{error:#}")] {
                 assert!(!message.contains(marker));
                 assert!(!message.contains("serverAddr ="));
