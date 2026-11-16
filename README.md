@@ -116,6 +116,7 @@ Run command: `sudo xattr -cr Frpc-Desktop.app`
 
 ## Milestones
 
+- 2026-11-16: Released v2.0.2 Unified instance creation with TOML and link import, tabbed configuration drawers, an independent app log level and a Windows portable build
 - 2026-11-13: Released v2.0.1 Redesigned log viewer with level filtering, search and copy, refreshed toast styling and process resource fixes
 - 2026-11-11: Released v2.0.0 Rebuilt on Tauri 2, multiple instances, Cloudflare Tunnel, dashboard and dark mode
 - 2026-09-04: Released v1.2.7 SQLite storage, pagination and performance improvements
