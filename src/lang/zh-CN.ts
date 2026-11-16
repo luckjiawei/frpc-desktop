@@ -158,9 +158,10 @@ export default {
       routesInDashboard: "在 Cloudflare 控制台中管理"
     },
     cloudflared: {
-      section: {
-        binary: "cloudflared",
+      tab: {
+        instance: "实例",
         tunnel: "隧道",
+        client: "客户端",
         advanced: "高级"
       },
       intro:

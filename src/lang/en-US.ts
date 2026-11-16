@@ -166,9 +166,10 @@ export default {
       routesInDashboard: "Managed in Cloudflare dashboard"
     },
     cloudflared: {
-      section: {
-        binary: "cloudflared",
+      tab: {
+        instance: "Instance",
         tunnel: "Tunnel",
+        client: "Client",
         advanced: "Advanced"
       },
       intro:
