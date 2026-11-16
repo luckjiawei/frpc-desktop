@@ -105,6 +105,17 @@ impl TunnelRepository {
     /// Creates a tunnel and its provider settings in one transaction.
     pub fn create(conn: &mut Connection, name: &str, provider: &str) -> Result<Tunnel> {
         let tx = conn.transaction()?;
+        let tunnel = Self::create_in_transaction(&tx, name, provider)?;
+        tx.commit()?;
+        Ok(tunnel)
+    }
+
+    /// Shares the caller's transaction when creating from an imported config.
+    pub(crate) fn create_in_transaction(
+        tx: &Connection,
+        name: &str,
+        provider: &str,
+    ) -> Result<Tunnel> {
         let id = Uuid::new_v4().to_string();
         let next_order: i64 = tx.query_row(
             "SELECT COALESCE(MAX(sort_order), 0) + 1 FROM t_frpcd_tunnels",
@@ -120,15 +131,13 @@ impl TunnelRepository {
         if provider == PROVIDER_FRPC {
             let mut server = ServerRepository::create_default_server();
             server.id = id.clone();
-            server.web_server.port = Self::next_free_web_server_port(&tx)?;
-            ServerRepository::save_frpc_settings(&tx, &server)?;
+            server.web_server.port = Self::next_free_web_server_port(tx)?;
+            ServerRepository::save_frpc_settings(tx, &server)?;
         } else if provider == PROVIDER_CLOUDFLARED {
-            CloudflaredRepository::save(&tx, &CloudflaredSettings::new(&id))?;
+            CloudflaredRepository::save(tx, &CloudflaredSettings::new(&id))?;
         }
 
-        let tunnel = Self::find(&tx, &id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)?;
-        tx.commit()?;
-        Ok(tunnel)
+        Self::find(tx, &id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
     }
 
     pub fn update(

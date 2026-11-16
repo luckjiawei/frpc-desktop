@@ -163,62 +163,7 @@ onMounted(() => {
       frpcDesktopStore.refreshDownloadedVersion();
     })
   );
-
-  listenerCleanups.push(
-    on(
-      ipcRouters.VERSION.importLocalFrpcVersion,
-      data => {
-        const { canceled } = data;
-        if (!canceled) {
-          loading.value++;
-          ElMessage({
-            type: "success",
-            message: t("download.message.importSuccess")
-          });
-          handleLoadAllVersions();
-          frpcDesktopStore.refreshDownloadedVersion();
-        }
-      },
-      (bizCode: string, message: string) => {
-        if (bizCode === "B1002") {
-          ElMessageBox.alert(
-            t("download.alert.importFailed.versionExists"),
-            t("download.alert.importFailed.title"),
-            { type: "error" }
-          );
-        }
-        if (bizCode === "B1003") {
-          ElMessageBox.alert(
-            t("download.alert.importFailed.architectureNotMatch"),
-            t("download.alert.importFailed.title"),
-            { type: "error" }
-          );
-        }
-        if (bizCode === "B1004") {
-          ElMessageBox.alert(
-            t("download.alert.importFailed.unrecognizedFile"),
-            t("download.alert.importFailed.title"),
-            { type: "error" }
-          );
-        }
-      }
-    )
-  );
 });
-
-const handleImportFrp = () => {
-  ElMessageBox.alert(
-    t("download.alert.importTip.message"),
-    t("download.alert.importTip.title"),
-    {
-      type: "info",
-      confirmButtonText: t("download.alert.importTip.confirm"),
-      dangerouslyUseHTMLString: true
-    }
-  ).then(() => {
-    send(ipcRouters.VERSION.importLocalFrpcVersion);
-  });
-};
 
 onUnmounted(() => {
   listenerCleanups.splice(0).forEach(off => off());
@@ -226,18 +171,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="main">
-    <breadcrumb>
-      <el-button
-        v-if="provider === 'frpc'"
-        type="primary"
-        @click="handleImportFrp"
-      >
-        <template #icon>
-          <IconifyIconOffline icon="unarchive" />
-        </template>
-        {{ t("download.button.import") }}
-      </el-button>
-    </breadcrumb>
+    <breadcrumb />
     <div class="page-filter-bar">
       <el-radio-group
         v-model="provider"

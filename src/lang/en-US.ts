@@ -150,9 +150,7 @@ export default {
       title: "{name} · Logs"
     },
     config: {
-      title: "{name} · Config",
-      settings: "Instance settings",
-      saveSettings: "Save instance settings"
+      title: "{name} · Config"
     },
     provider: {
       frpc: "frpc",
@@ -220,6 +218,7 @@ export default {
     },
     button: {
       create: "New Instance",
+      importToml: "Import TOML",
       startAll: "Start All",
       stopAll: "Stop All",
       config: "Config",
@@ -231,6 +230,7 @@ export default {
     },
     prompt: {
       createTitle: "New Instance",
+      importTitle: "Import a new instance from TOML",
       renameTitle: "Rename Instance",
       nameLabel: "Instance name",
       namePlaceholder: "e.g. Office frps",
@@ -258,11 +258,11 @@ export default {
     },
     message: {
       createSuccess: "Instance created",
-      settingsSaved: "Instance settings saved",
+      importSuccess:
+        "Configuration imported as a new instance. No app restart is needed. Select an frpc executable before starting.",
+      importFailed: "Import failed: {reason}",
       renameSuccess: "Instance renamed",
       deleteSuccess: "Instance deleted",
-      autoStartOn: "Auto connect on startup enabled",
-      autoStartOff: "Auto connect on startup disabled",
       launchAllFailed: "{count} instance(s) failed to start: {detail}",
       saveSuccess: "Saved. Restart the instance to apply changes"
     }
@@ -271,9 +271,6 @@ export default {
     description: "Coming soon"
   },
   download: {
-    button: {
-      import: "Import"
-    },
     mirror: {
       placeholder: "Download proxy"
     },
@@ -287,7 +284,6 @@ export default {
     cloudflaredUnsupported:
       "No cloudflared versions available (offline, or no build for this platform). You can install cloudflared yourself and pick the file in the instance config.",
     message: {
-      importSuccess: "Import successfully",
       deleteSuccess: "Delete successfully",
       copyDownloadLinkSuccess: "Copy download link successfully"
     },
@@ -298,19 +294,6 @@ export default {
           'Are you sure you want to delete <span class="font-bold text-primary">{name}</span> ?',
         cancel: "Cancel",
         confirm: "Delete"
-      },
-      importFailed: {
-        title: "Import failed",
-        versionExists: "Version already exists",
-        architectureNotMatch:
-          "The selected frp architecture does not match the operating system",
-        unrecognizedFile: "Unable to recognize the file"
-      },
-      importTip: {
-        title: "Import Prompt",
-        message:
-          'Only frp versions above <span class="font-bold text-primary">v0.52.0</span> and up to <span class="font-bold text-primary">v0.68.0</span> can be imported.<div class="font-bold text-primary">Do not unzip the file before importing!</div>',
-        confirm: "Got it"
       }
     },
     version: {
@@ -554,6 +537,13 @@ export default {
         requireMessage: "Please select system language"
       }
     },
+    tab: {
+      instance: "Instance",
+      server: "Server",
+      transport: "Transport",
+      web: "Web Server",
+      log: "Log"
+    },
     title: {
       versionSelection: "Version Selection",
       webInterface: "Web Server",
@@ -571,7 +561,6 @@ export default {
       import: "Import",
       openData: "Open data folder",
       resetAll: "Reset all settings",
-      importToml: "Import TOML config",
       exportConfig: "Export config",
       saveWithShortcut: "Save (Ctrl+S / ⌘S)"
     },
@@ -585,12 +574,6 @@ export default {
       resetConfigSuccess: {
         title: "Prompt",
         message: "Reset successfully, please restart the software",
-        confirm: "Restart Now"
-      },
-      importTomlConfigSuccess: {
-        title: "Prompt",
-        message:
-          "🎉 Congratulations, import successfully, please restart the software",
         confirm: "Restart Now"
       },
       multiuserAlert: {
@@ -634,7 +617,6 @@ export default {
     copyAddress: "Copy address",
     visitorsName: "Visitors Name",
     noProxy: "No proxy",
-    refresh: "Refresh proxies",
     search: "Search by name / type / IP / port / domain",
     viewMode: {
       card: "Card",

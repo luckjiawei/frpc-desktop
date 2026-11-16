@@ -3,12 +3,17 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import { useI18n } from "vue-i18n";
 
 const formData = defineModel<OpenSourceFrpcDesktopServer>({ required: true });
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), {
+  embedded: false
+});
 const { t } = useI18n();
 </script>
 
 <template>
   <el-col :span="24">
-    <div class="h2">{{ t("config.title.webInterface") }}</div>
+    <div v-if="!props.embedded" class="h2">
+      {{ t("config.title.webInterface") }}
+    </div>
   </el-col>
   <el-col :span="12">
     <el-form-item

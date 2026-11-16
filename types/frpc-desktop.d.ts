@@ -82,6 +82,13 @@ type OpenSourceFrpcDesktopServer = FrpcDesktopServer & {
   system: FrpcSystemConfiguration;
 };
 
+type TomlImportResult =
+  | { canceled: true }
+  | {
+      canceled: false;
+      tunnel: Tunnel;
+    };
+
 type FrpcProxy = BaseEntity &
   FrpcProxyConfig & {
     /** 所属隧道实例 id */

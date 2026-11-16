@@ -24,6 +24,11 @@ const props = defineProps<{
   tunnel: Pick<TunnelSummary, "id" | "name" | "autoStart"> | null;
 }>();
 
+type CloudflaredEditorData = CloudflaredSettings & {
+  instanceName: string;
+  autoStart: boolean;
+};
+
 const CLOUDFLARE_DASHBOARD_URL = "https://one.dash.cloudflare.com/";
 /** 连接器令牌是 base64（含 URL 安全字符）编码的 JSON，与后端校验一致 */
 const TOKEN_PATTERN = /^[A-Za-z0-9+/=_-]{32,4096}$/;
@@ -38,8 +43,10 @@ const tunnelName = computed(
     ""
 );
 
-const defaultFormData = (tunnelId = ""): CloudflaredSettings => ({
+const defaultFormData = (tunnelId = ""): CloudflaredEditorData => ({
   tunnelId,
+  instanceName: "",
+  autoStart: false,
   cloudflaredVersion: null,
   customCloudflaredPath: "",
   token: "",
@@ -48,12 +55,11 @@ const defaultFormData = (tunnelId = ""): CloudflaredSettings => ({
   logLevel: "info"
 });
 
-const formData = ref<CloudflaredSettings>(defaultFormData());
+const formData = ref<CloudflaredEditorData>(defaultFormData());
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const saving = ref(false);
 const formDirty = ref(false);
-const instanceDirty = ref(false);
 const detectingPath = ref(false);
 const detectedVersionInfo = ref("");
 /** 二选一的界面状态：保存时清空未选中的一项 */
@@ -62,6 +68,19 @@ let hydratingForm = true;
 const listenerCleanups: Array<() => void> = [];
 
 const rules = reactive<FormRules>({
+  instanceName: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        const name = (value ?? "").trim();
+        callback(
+          name.length > 0 && name.length <= 64
+            ? undefined
+            : new Error(t("tunnel.prompt.nameInvalid"))
+        );
+      },
+      trigger: "blur"
+    }
+  ],
   customCloudflaredPath: [
     {
       required: true,
@@ -162,7 +181,11 @@ const handleSubmit = useDebounceFn(() => {
       data.customCloudflaredPath = "";
     }
     saving.value = true;
-    send(ipcRouters.CLOUDFLARED.saveConfig, data);
+    send(ipcRouters.CLOUDFLARED.saveConfig, {
+      ...data,
+      name: data.instanceName.trim(),
+      autoStart: data.autoStart
+    });
   });
 }, 300);
 
@@ -175,7 +198,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value && !instanceDirty.value) {
+  if (!formDirty.value) {
     done();
     return;
   }
@@ -226,11 +249,13 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
-    instanceDirty.value = false;
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
       formData.value = defaultFormData(props.tunnel?.id);
+      formData.value.instanceName =
+        tunnelName.value || props.tunnel?.name || "";
+      formData.value.autoStart = props.tunnel?.autoStart ?? false;
       binarySource.value = "downloaded";
       frpcDesktopStore.refreshDownloadedVersion();
       handleLoad();
@@ -247,7 +272,13 @@ onMounted(() => {
           return;
         }
         hydratingForm = true;
-        formData.value = { ...defaultFormData(data.tunnelId), ...data };
+        const { instanceName, autoStart } = formData.value;
+        formData.value = {
+          ...defaultFormData(data.tunnelId),
+          ...data,
+          instanceName,
+          autoStart
+        };
         checkAndResetVersion();
         binarySource.value = formData.value.customCloudflaredPath?.trim()
           ? "custom"
@@ -332,7 +363,7 @@ onUnmounted(() => {
 <template>
   <el-drawer
     v-model="drawerVisible"
-    size="min(760px, 92%)"
+    size="min(960px, 92%)"
     class="config-drawer"
     :before-close="handleBeforeClose"
   >
@@ -340,22 +371,8 @@ onUnmounted(() => {
       <h2 :id="titleId" :class="titleClass" :title="tunnelName">
         {{ t("tunnel.config.title", { name: tunnelName }) }}
       </h2>
-      <el-button
-        text
-        :aria-label="t('config.button.manualRefresh')"
-        :title="t('config.button.manualRefresh')"
-        @click="handleLoad"
-      >
-        <IconifyIconOffline icon="refresh-rounded" />
-      </el-button>
     </template>
     <div v-loading="loading" class="pr-2">
-      <TunnelSettings
-        v-if="drawerVisible && tunnel"
-        :key="tunnel.id"
-        v-model:dirty="instanceDirty"
-        :tunnel="tunnel"
-      />
       <el-alert type="info" :closable="false" show-icon class="mb-4">
         <template #title>
           <span class="leading-relaxed">{{
@@ -374,6 +391,13 @@ onUnmounted(() => {
         label-position="right"
         label-width="130"
       >
+        <TunnelSettings
+          v-if="drawerVisible && tunnel"
+          :key="tunnel.id"
+          v-model:name="formData.instanceName"
+          v-model:auto-start="formData.autoStart"
+          :tunnel="tunnel"
+        />
         <div class="h2">{{ t("tunnel.cloudflared.section.tunnel") }}</div>
         <el-form-item :label="t('tunnel.cloudflared.token.label')" prop="token">
           <el-input

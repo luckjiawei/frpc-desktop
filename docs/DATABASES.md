@@ -452,11 +452,13 @@ t_frpcd_tunnels（通用：名称、provider、自动启动、排序）
 ### 11.3 运行规则
 
 - 全局开关 `desktop/auto_connect_on_startup` 仍是总开关，开启时只启动 `auto_start = 1` 的实例；
-- `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 只写 `t_frpcd_servers`，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
+- `desktop` 命名空间的桌面设置与实例无关，通过 `system/getSystemConfig` / `system/saveSystemConfig` 单独读写；`server/saveConfig` 更新 `t_frpcd_servers` 及随请求提交的实例名称、自动连接设置，不写全局桌面设置，第 5 节中“保存配置时同一事务更新 server 与 app config”的做法自迁移 004 起不再使用；
 - 默认实例 `"1"` 可以删除，配置与代理按外键级联清理。迁移 004 负责首次安装和旧版单服务端数据升级时的初始化，正常启动、列表查询、读取/保存配置和启动实例均不补建已删除的实例；数据库迁移编号无需变化。允许列表为空；“重置全部配置”会重新创建默认实例并删除其他实例。全局桌面设置的读取与应用启动不依赖默认实例；
 - 实例 ID 会参与文件路径拼接，Rust 侧只接受 `"1"` 或规范 UUID；默认实例沿用 `config/frpc.toml`、`log/frpc.log`，删除时仅清理这两个文件，保留共享目录及应用日志；其他实例使用 `config/tunnels/<id>/frpc.toml`、`log/tunnels/<id>/frpc.log`，删除时清理对应实例的两个目录；
 - 新建 frpc 实例时自动分配未被其他实例占用的 `webServer.port`（从 57400 起递增）；
 - 修改代理不会改变其 `server_id`，代理不能在实例之间移动。
+- 实例配置抽屉的底部“保存”会把实例名称、启动时自动连接与 frpc 设置放在同一事务中提交（`server/saveConfig` 对应实现为 `ServerRepository::save_frpc_config`）；校验或写入失败时全部回滚，避免名称已改而 frpc 设置未保存。Cloudflare Tunnel 的 `cloudflared/saveConfig` 同样在单个事务中保存实例字段与 cloudflared 配置。
+- TOML 导入从实例列表的独立入口创建新 frpc 实例：在同一事务中创建 tunnel/server 并写入文件中的配置、代理和 Visitor（新 UUID、`server_id` 固定为新实例）。监控端口与已有实例冲突时使用新建流程分配的空闲端口。取消文件选择不创建实例；解析或任一写入失败均整体回滚，不留下空实例。已有实例和全局桌面设置不变，不新增迁移，无需重启应用；导入后选择本机 frpc 程序即可启动。
 
 ### 11.4 回退兼容
 

@@ -831,7 +831,6 @@ onUnmounted(() => {
       v-model:search-keyword="searchKeyword"
       v-model:view-mode="viewMode"
       @create="handleOpenInsert"
-      @refresh="handleLoadProxies"
     >
       <template #title-extra>
         <TunnelSwitcher />

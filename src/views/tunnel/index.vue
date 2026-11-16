@@ -3,9 +3,9 @@ import { useDebounceFn } from "@vueuse/core";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import router from "@/router";
 import { useTunnelStore } from "@/store/tunnel";
-import { on, send } from "@/utils/ipcUtils";
+import { on, request, send } from "@/utils/ipcUtils";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { onMounted, onUnmounted, reactive } from "vue";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import CloudflaredConfigDrawer from "@/views/config/CloudflaredConfigDrawer.vue";
@@ -85,6 +85,36 @@ const promptTunnelName = (title: string, inputValue = "") =>
     confirmButtonText: t("tunnel.prompt.confirm"),
     cancelButtonText: t("tunnel.prompt.cancel")
   }).then(({ value }) => value.trim());
+
+const importing = ref(false);
+const handleImportConfig = async () => {
+  if (importing.value) return;
+  importing.value = true;
+  try {
+    const name = await promptTunnelName(t("tunnel.prompt.importTitle"));
+    const response = await request<TomlImportResult>(
+      ipcRouters.TUNNEL.importTomlConfig,
+      { name }
+    );
+    if (response.bizCode !== "A1000") throw new Error(response.message);
+    const result = response.data;
+    if (!result || result.canceled !== false) return;
+    tunnelStore.setCurrentTunnel(result.tunnel.id);
+    tunnelStore.refreshTunnels();
+    openConfig(result.tunnel);
+    ElMessage.success(t("tunnel.message.importSuccess"));
+  } catch (error) {
+    if (error !== "cancel" && error !== "close") {
+      ElMessage.error(
+        t("tunnel.message.importFailed", {
+          reason: error instanceof Error ? error.message : String(error)
+        })
+      );
+    }
+  } finally {
+    importing.value = false;
+  }
+};
 
 const handleCreate = (provider: TunnelProvider) => {
   promptTunnelName(
@@ -239,6 +269,16 @@ onUnmounted(() => {
           {{ t("tunnel.button.stopAll") }}
         </el-button>
       </template>
+      <el-button
+        :loading="importing"
+        :disabled="importing"
+        @click="handleImportConfig"
+      >
+        <template #icon>
+          <IconifyIconOffline icon="file-open-rounded" />
+        </template>
+        {{ t("tunnel.button.importToml") }}
+      </el-button>
       <el-dropdown trigger="click" @command="handleCreate">
         <el-button type="primary">
           <template #icon>

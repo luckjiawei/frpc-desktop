@@ -80,7 +80,7 @@ onUnmounted(() => {
   <el-drawer
     v-model="visible"
     :title="t('tunnel.log.title', { name: tunnel?.name ?? '' })"
-    size="min(760px, 85%)"
+    size="min(960px, 92%)"
     class="tunnel-log-drawer"
   >
     <log-view :log-records="records" :loading="loading">

@@ -44,7 +44,6 @@ import switchAccessOutlineRounded from "@iconify-icons/material-symbols/switch-a
 import switchAccessRounded from "@iconify-icons/material-symbols/switch-access-rounded";
 import toggleOff from "@iconify-icons/material-symbols/toggle-off";
 import toggleOn from "@iconify-icons/material-symbols/toggle-on";
-import unarchive from "@iconify-icons/material-symbols/unarchive";
 import uploadRounded from "@iconify-icons/material-symbols/upload-rounded";
 import volunteerActivismSharp from "@iconify-icons/material-symbols/volunteer-activism-sharp";
 import searchIcon from "@iconify-icons/material-symbols/search";
@@ -106,7 +105,6 @@ addIcon("volunteer-activism-sharp", volunteerActivismSharp);
 addIcon("description", description);
 addIcon("folder-rounded", folderRounded);
 addIcon("link", link);
-addIcon("unarchive", unarchive);
 addIcon("file-save-rounded", fileSaveRounded);
 addIcon("toggle-on", toggleOn);
 addIcon("toggle-off", toggleOff);

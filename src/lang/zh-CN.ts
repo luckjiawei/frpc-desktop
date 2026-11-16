@@ -140,9 +140,7 @@ export default {
       title: "{name} · 日志"
     },
     config: {
-      title: "{name} · 配置",
-      settings: "实例设置",
-      saveSettings: "保存实例设置"
+      title: "{name} · 配置"
     },
     empty: "暂无实例，请先新建一个实例。",
     noFrpc: "请先新建 frpc 实例，再添加代理。",
@@ -209,6 +207,7 @@ export default {
     },
     button: {
       create: "新建实例",
+      importToml: "导入 TOML",
       startAll: "全部启动",
       stopAll: "全部停止",
       config: "配置",
@@ -220,6 +219,7 @@ export default {
     },
     prompt: {
       createTitle: "新建实例",
+      importTitle: "从 TOML 导入新实例",
       renameTitle: "重命名实例",
       nameLabel: "实例名称",
       namePlaceholder: "例如：公司 frps",
@@ -245,11 +245,11 @@ export default {
     },
     message: {
       createSuccess: "实例已创建",
-      settingsSaved: "实例设置已保存",
+      importSuccess:
+        "配置已导入为新实例，无需重启软件。请确认 frpc 程序后启动。",
+      importFailed: "导入失败：{reason}",
       renameSuccess: "实例已重命名",
       deleteSuccess: "实例已删除",
-      autoStartOn: "已开启启动时自动连接",
-      autoStartOff: "已关闭启动时自动连接",
       launchAllFailed: "{count} 个实例启动失败：{detail}",
       saveSuccess: "已保存，重新启动实例后生效"
     }
@@ -258,9 +258,6 @@ export default {
     description: "敬请期待"
   },
   download: {
-    button: {
-      import: "导入"
-    },
     mirror: {
       placeholder: "下载代理"
     },
@@ -274,7 +271,6 @@ export default {
     cloudflaredUnsupported:
       "暂无可用的 cloudflared 版本（网络不可用或当前平台无官方构建），可自行安装后在实例配置中选择文件。",
     message: {
-      importSuccess: "导入成功",
       deleteSuccess: "删除成功",
       copyDownloadLinkSuccess: "复制下载链接成功"
     },
@@ -285,18 +281,6 @@ export default {
           '确认要删除 <span class="font-bold text-primary">{name}</span> 吗？',
         cancel: "取消",
         confirm: "删除"
-      },
-      importFailed: {
-        title: "导入失败",
-        versionExists: "版本已存在",
-        architectureNotMatch: "所选 frp 架构与操作系统不符",
-        unrecognizedFile: "无法识别文件"
-      },
-      importTip: {
-        title: "导入提示",
-        message:
-          '仅支持导入 <span class="font-bold text-primary">v0.52.0</span> 以上、<span class="font-bold text-primary">v0.68.0</span> 及以下的版本。<div class="font-bold text-primary">导入文件不要解压！！！</div>',
-        confirm: "知道了"
       }
     },
     version: {
@@ -538,6 +522,13 @@ export default {
         requireMessage: "请选择系统语言"
       }
     },
+    tab: {
+      instance: "实例",
+      server: "服务器",
+      transport: "传输",
+      web: "Web 界面",
+      log: "日志"
+    },
     title: {
       versionSelection: "版本选择",
       webInterface: "Web 界面",
@@ -555,7 +546,6 @@ export default {
       import: "导入",
       openData: "打开数据目录",
       resetAll: "重置全部配置",
-      importToml: "导入 TOML 配置",
       exportConfig: "导出配置",
       saveWithShortcut: "保存 (Ctrl+S / ⌘S)"
     },
@@ -569,11 +559,6 @@ export default {
       resetConfigSuccess: {
         title: "提示",
         message: "重置成功 请重启软件",
-        confirm: "立即重启"
-      },
-      importTomlConfigSuccess: {
-        title: "提示",
-        message: "🎉 恭喜你，导入成功 请重启软件",
         confirm: "立即重启"
       },
       multiuserAlert: {
@@ -640,7 +625,6 @@ export default {
     copyAddress: "复制地址",
     visitorsName: "访问者名称",
     noProxy: "暂无代理",
-    refresh: "刷新代理列表",
     search: "搜索名称/类型/IP/端口/域名",
     viewMode: {
       card: "卡片",

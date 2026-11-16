@@ -34,7 +34,10 @@ impl ServerRepository {
             pprof_enable: false,
         };
         let mut meta = HashMap::new();
-        meta.insert("token".to_string(), serde_json::Value::String("".to_string()));
+        meta.insert(
+            "token".to_string(),
+            serde_json::Value::String("".to_string()),
+        );
         server.metadatas = meta;
         server
     }
@@ -69,14 +72,10 @@ impl ServerRepository {
                 let metadatas_json: String = row.get(12)?;
                 let custom_frpc_path: String = row.get(13).unwrap_or_default();
 
-                let auth: AuthConfig =
-                    crate::db::from_json_lenient(&auth_json);
-                let log: LogConfig =
-                    crate::db::from_json_lenient(&log_json);
-                let web_server: WebServerConfig =
-                    crate::db::from_json_lenient(&web_server_json);
-                let transport: TransportConfig =
-                    crate::db::from_json_lenient(&transport_json);
+                let auth: AuthConfig = crate::db::from_json_lenient(&auth_json);
+                let log: LogConfig = crate::db::from_json_lenient(&log_json);
+                let web_server: WebServerConfig = crate::db::from_json_lenient(&web_server_json);
+                let transport: TransportConfig = crate::db::from_json_lenient(&transport_json);
                 let metadatas: HashMap<String, serde_json::Value> =
                     crate::db::from_json_lenient(&metadatas_json);
 
@@ -132,6 +131,26 @@ impl ServerRepository {
         Self::save_frpc_settings(conn, server)?;
         AppConfigRepository::save_system_config(conn, &server.system)?;
         Ok(())
+    }
+
+    /// Saves frpc settings and optional instance fields in one transaction so
+    /// the drawer's single Save action cannot apply only half of the form.
+    pub fn save_frpc_config(
+        conn: &mut Connection,
+        server: &OpenSourceFrpcDesktopServer,
+        name: Option<&str>,
+        auto_start: Option<bool>,
+    ) -> Result<()> {
+        let tx = conn.transaction()?;
+        match TunnelRepository::find(&tx, &server.id)? {
+            Some(t) if t.provider == PROVIDER_FRPC => {}
+            _ => return Err(rusqlite::Error::QueryReturnedNoRows),
+        }
+        Self::save_frpc_settings(&tx, server)?;
+        if name.is_some() || auto_start.is_some() {
+            TunnelRepository::update(&tx, &server.id, name, auto_start)?;
+        }
+        tx.commit()
     }
 
     /// Saves only the `t_frpcd_servers` row; the tunnel row must exist.
@@ -201,5 +220,66 @@ impl ServerRepository {
         let default_s = Self::create_default_server();
         Self::save_server_config(conn, &default_s)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::DbManager;
+
+    #[test]
+    fn unified_save_updates_instance_and_frpc_settings_in_one_transaction() {
+        let dir = std::env::temp_dir().join(format!("frpc_save_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let mut conn = db.conn();
+        let tunnel = TunnelRepository::create(&mut conn, "Before", "frpc").unwrap();
+        let mut server = ServerRepository::get_server_config(&conn, &tunnel.id).unwrap();
+        server.server_addr = "frps.example.test".into();
+        ServerRepository::save_frpc_config(&mut conn, &server, Some(" After "), Some(false))
+            .unwrap();
+        let saved = ServerRepository::get_server_config(&conn, &tunnel.id).unwrap();
+        assert_eq!(saved.server_addr, "frps.example.test");
+        let updated = TunnelRepository::find(&conn, &tunnel.id).unwrap().unwrap();
+        assert_eq!(updated.name, " After ");
+        assert!(!updated.auto_start);
+
+        // A failure updating the tunnel must roll back the frpc settings too.
+        conn.execute_batch(
+            "CREATE TRIGGER fail_tunnel_rename BEFORE UPDATE ON t_frpcd_tunnels
+             WHEN NEW.name = 'fail' BEGIN SELECT RAISE(ABORT, 'test'); END;",
+        )
+        .unwrap();
+        server.server_addr = "changed.example.test".into();
+        assert!(
+            ServerRepository::save_frpc_config(&mut conn, &server, Some("fail"), None).is_err()
+        );
+        assert_eq!(
+            ServerRepository::get_server_config(&conn, &tunnel.id)
+                .unwrap()
+                .server_addr,
+            "frps.example.test"
+        );
+        assert_eq!(
+            TunnelRepository::find(&conn, &tunnel.id)
+                .unwrap()
+                .unwrap()
+                .name,
+            " After "
+        );
+
+        let cloudflared = TunnelRepository::create(&mut conn, "Other", "cloudflared").unwrap();
+        let mut wrong_provider = server.clone();
+        wrong_provider.id = cloudflared.id.clone();
+        assert!(
+            ServerRepository::save_frpc_config(&mut conn, &wrong_provider, None, None).is_err()
+        );
+        assert!(TunnelRepository::find(&conn, &cloudflared.id)
+            .unwrap()
+            .is_some());
+
+        drop(conn);
+        drop(db);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

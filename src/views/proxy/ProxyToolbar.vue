@@ -7,7 +7,6 @@ const searchKeyword = defineModel<string>("searchKeyword", { required: true });
 const viewMode = defineModel<"card" | "list">("viewMode", { required: true });
 const emit = defineEmits<{
   create: [];
-  refresh: [];
 }>();
 const { t } = useI18n();
 </script>
@@ -17,14 +16,6 @@ const { t } = useI18n();
     <template #title-extra>
       <slot name="title-extra" />
     </template>
-    <el-button
-      class="toolbar-icon-button"
-      :aria-label="t('proxy.refresh')"
-      :title="t('proxy.refresh')"
-      @click="emit('refresh')"
-    >
-      <IconifyIconOffline icon="refresh-rounded" />
-    </el-button>
     <el-button
       type="primary"
       :aria-label="t('proxy.createTitle')"

@@ -16,10 +16,6 @@ export const ipcRouters: IpcRouters = {
       path: "server/exportConfig",
       controller: "configController.exportConfig"
     },
-    importTomlConfig: {
-      path: "server/importTomlConfig",
-      controller: "configController.importTomlConfig"
-    },
     getLanguage: {
       path: "server/getLanguage",
       controller: "configController.getLanguage"
@@ -119,6 +115,10 @@ export const ipcRouters: IpcRouters = {
     create: {
       path: "tunnel/create",
       controller: "tunnelController.create"
+    },
+    importTomlConfig: {
+      path: "tunnel/importTomlConfig",
+      controller: "tunnelController.importTomlConfig"
     },
     update: {
       path: "tunnel/update",

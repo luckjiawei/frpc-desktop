@@ -114,16 +114,7 @@ onUnmounted(() => {
 
 <template>
   <div class="main">
-    <Breadcrumb>
-      <el-button
-        class="toolbar-icon-button"
-        :aria-label="t('config.button.manualRefresh')"
-        :title="t('config.button.manualRefresh')"
-        @click="loadConfig"
-      >
-        <IconifyIconOffline icon="refresh-rounded" />
-      </el-button>
-    </Breadcrumb>
+    <Breadcrumb />
     <div v-loading="loading" class="pr-2 app-container-breadcrumb">
       <div class="p-4 w-full app-panel">
         <el-form

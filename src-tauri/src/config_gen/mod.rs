@@ -1,6 +1,9 @@
 use crate::models::{FrpcProxy, OpenSourceFrpcDesktopServer};
 use std::path::Path;
 
+mod import;
+pub use import::parse_toml_config;
+
 pub struct ConfigGenerator;
 
 impl ConfigGenerator {
