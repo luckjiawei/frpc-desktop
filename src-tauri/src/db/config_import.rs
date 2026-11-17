@@ -98,6 +98,20 @@ pub fn import_link_config(
     if let Some(v) = value.get("transport") {
         server.transport = serde_json::from_value(v.clone())
             .map_err(|_| anyhow::anyhow!("Invalid link content"))?;
+        // frpc rejects heartbeatTimeout < heartbeatInterval, and a zero value
+        // falls back to frpc's defaults (30s/90s). Raise the timeout only when
+        // the imported pair would otherwise be rejected.
+        let interval = match server.transport.heartbeat_interval {
+            value if value > 0 => value,
+            _ => 30,
+        };
+        let timeout = match server.transport.heartbeat_timeout {
+            value if value > 0 => value,
+            _ => 90,
+        };
+        if timeout < interval {
+            server.transport.heartbeat_timeout = interval;
+        }
     }
     if let Some(v) = value.get("metadatas") {
         server.metadatas = serde_json::from_value(v.clone())
@@ -381,6 +395,39 @@ remotePort = 6001
             .query_row("SELECT COUNT(*) FROM t_frpcd_tunnels", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 2);
+
+        drop(conn);
+        drop(db);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn link_import_raises_heartbeat_timeout_below_interval() {
+        let dir = std::env::temp_dir().join(format!("frpc_link_hb_{}", uuid::Uuid::new_v4()));
+        let db = DbManager::init(&dir).unwrap();
+        let mut conn = db.conn();
+
+        for (name, payload, expected) in [
+            (
+                "Short timeout",
+                r#"{"transport": {"heartbeatInterval": 120, "heartbeatTimeout": 10}}"#,
+                120,
+            ),
+            (
+                "Missing timeout",
+                r#"{"transport": {"heartbeatInterval": 120}}"#,
+                120,
+            ),
+            (
+                "Default pair",
+                r#"{"transport": {"heartbeatInterval": 30, "heartbeatTimeout": 90}}"#,
+                90,
+            ),
+        ] {
+            let tunnel = import_link_config(&mut conn, name, payload).unwrap();
+            let server = ServerRepository::get_server_config(&conn, &tunnel.id).unwrap();
+            assert_eq!(server.transport.heartbeat_timeout, expected, "{name}");
+        }
 
         drop(conn);
         drop(db);

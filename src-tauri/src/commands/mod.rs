@@ -401,7 +401,11 @@ async fn handle_ipc_send(
             };
             let content = match tokio::fs::read_to_string(file.path()).await {
                 Ok(content) => content,
-                Err(_) => return ApiResponse::internal_error("Failed to read TOML file"),
+                Err(e) => {
+                    // Keep reader diagnostics (including paths) out of the log.
+                    log::error!("tunnel/importTomlConfig: failed to read file (B1000)");
+                    return ApiResponse::internal_error(format!("Failed to read TOML file: {}", e));
+                }
             };
             let mut conn = state.db.conn();
             match crate::db::config_import::import_toml_config(
@@ -414,7 +418,12 @@ async fn handle_ipc_send(
                     "canceled": false,
                     "tunnel": tunnel
                 })),
-                Err(e) => ApiResponse::internal_error(e.to_string()),
+                Err(e) => {
+                    // Import diagnostics may describe file contents; log only a
+                    // stable code and keep the detailed message in the response.
+                    log::warn!("tunnel/importTomlConfig: config import failed (B1000)");
+                    ApiResponse::internal_error(e.to_string())
+                }
             }
         }
         "tunnel/importLinkConfig" => {

@@ -4,6 +4,17 @@ use std::path::Path;
 mod import;
 pub use import::parse_toml_config;
 
+/// Render a stored metadata value as the string frpc's `map[string]string`
+/// expects. Strings pass through; other JSON scalars and containers are
+/// preserved in their JSON text form rather than being discarded.
+fn metadata_text(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(value) => value.clone(),
+        serde_json::Value::Null => String::new(),
+        other => other.to_string(),
+    }
+}
+
 pub struct ConfigGenerator;
 
 impl ConfigGenerator {
@@ -167,6 +178,25 @@ impl ConfigGenerator {
             "disableCustomTLSFirstByte = {}\n",
             server.transport.tls.disable_custom_tls_first_byte
         ));
+
+        // Custom metadata required by some frps plugins, such as an instance ID.
+        // frpc expects a string map, so coerce stored non-string values to text
+        // instead of dropping them. The empty default token is only a UI
+        // placeholder unless multi-user mode explicitly uses it.
+        let metadatas: toml::map::Map<String, toml::Value> = server
+            .metadatas
+            .iter()
+            .filter(|(key, value)| {
+                key.as_str() != "token" || server.multiuser || !metadata_text(value).is_empty()
+            })
+            .map(|(key, value)| (key.clone(), toml::Value::String(metadata_text(value))))
+            .collect();
+        if !metadatas.is_empty() {
+            if let Ok(rendered) = toml::to_string(&metadatas) {
+                toml.push_str("\n[metadatas]\n");
+                toml.push_str(&rendered);
+            }
+        }
 
         // 2. Normal Proxies
         let mut range_proxies = Vec::new();

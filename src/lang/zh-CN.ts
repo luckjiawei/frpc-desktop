@@ -429,6 +429,22 @@ export default {
         requireMessage: "请输入多用户令牌",
         placeholder: "请输入多用户令牌"
       },
+      metadatas: {
+        label: "自定义元数据",
+        description:
+          "通过 [metadatas] 表原样传递给 frps 的键值对；多用户模式下 token 键请在上方配置。",
+        keyPlaceholder: "键",
+        valuePlaceholder: "值",
+        valueLabel: "{key} 的值",
+        newKeyLabel: "新元数据键",
+        newValueLabel: "新元数据值",
+        add: "添加",
+        remove: "删除元数据",
+        empty: "暂无自定义元数据",
+        keyRequired: "请输入元数据键",
+        keyDuplicate: "该元数据键已存在",
+        keyReserved: "多用户模式下 token 键请在上方配置"
+      },
       authMethod: {
         label: "验证方式",
         requireMessage: "请选择验证方式",

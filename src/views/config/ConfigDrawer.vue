@@ -109,6 +109,21 @@ const defaultFormData: ConfigEditorData = {
 const formData = ref<ConfigEditorData>(_.cloneDeep(defaultFormData));
 const loading = ref(0);
 const activeTab = ref("server");
+// `metadatas.token` keeps its dedicated multi-user field above; every other
+// entry is edited through the generic key/value list.
+const newMetadata = reactive({ key: "", value: "" });
+const metadataEntries = computed(() =>
+  Object.entries(formData.value.metadatas ?? {}).filter(
+    ([key]) => !(formData.value.multiuser && key === "token")
+  )
+);
+// Metadata keys that commonly carry credentials stay masked, with an explicit
+// reveal control supplied by `show-password`.
+const sensitiveMetadataKey = /pass(word|wd|phrase)?|secret|token|key/i;
+const isSensitiveMetadataKey = (key: string) => sensitiveMetadataKey.test(key);
+const metadataDraftDirty = computed(
+  () => newMetadata.key.trim() !== "" || newMetadata.value !== ""
+);
 const rules = reactive<FormRules>({
   instanceName: [
     {
@@ -331,18 +346,27 @@ const formDirty = ref(false);
  */
 const frpcSource = ref<"downloaded" | "custom">("downloaded");
 let hydratingForm = true;
+/** Serialized form state treated as saved, used to ignore no-op mutations. */
+let cleanSnapshot = "";
+/** Snapshot captured when a save was submitted; null when no save is pending. */
+let submittedSnapshot: string | null = null;
+const serializeForm = () => JSON.stringify([formData.value, frpcSource.value]);
 const listenerCleanups: Array<() => void> = [];
 
 watch(
   formData,
   () => {
-    if (!hydratingForm) formDirty.value = true;
+    if (!hydratingForm && serializeForm() !== cleanSnapshot) {
+      formDirty.value = true;
+    }
   },
   { deep: true }
 );
 
 watch(frpcSource, () => {
-  if (!hydratingForm) formDirty.value = true;
+  if (!hydratingForm && serializeForm() !== cleanSnapshot) {
+    formDirty.value = true;
+  }
   formRef.value?.clearValidate(["frpcVersion", "customFrpcPath"]);
 });
 
@@ -352,6 +376,39 @@ watch(
     checkAndResetVersion();
   }
 );
+
+const metadataValue = (value: unknown) =>
+  typeof value === "string" ? value : value == null ? "" : String(value);
+
+const addMetadata = () => {
+  const key = newMetadata.key.trim();
+  if (!key) {
+    ElMessage.warning(t("config.form.metadatas.keyRequired"));
+    return;
+  }
+  if (formData.value.multiuser && key === "token") {
+    ElMessage.warning(t("config.form.metadatas.keyReserved"));
+    return;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(formData.value.metadatas ?? {}, key)
+  ) {
+    ElMessage.warning(t("config.form.metadatas.keyDuplicate"));
+    return;
+  }
+  formData.value.metadatas = {
+    ...(formData.value.metadatas ?? {}),
+    [key]: newMetadata.value
+  };
+  newMetadata.key = "";
+  newMetadata.value = "";
+};
+
+const removeMetadata = (key: string) => {
+  const metadatas = { ...(formData.value.metadatas ?? {}) };
+  delete metadatas[key];
+  formData.value.metadatas = metadatas;
+};
 
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
@@ -381,6 +438,12 @@ const handleSubmit = useDebounceFn(() => {
     } else {
       data.customFrpcPath = "";
     }
+    // Compare the saved form against this snapshot on success so edits made
+    // while the save was in flight still count as unsaved changes.
+    submittedSnapshot = JSON.stringify([
+      { ...formData.value, instanceName: data.instanceName.trim() },
+      frpcSource.value
+    ]);
     send(ipcRouters.SERVER.saveConfig, {
       ...data,
       name: data.instanceName.trim(),
@@ -438,7 +501,7 @@ const handleLoadSavedConfig = () => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value) {
+  if (!formDirty.value && !metadataDraftDirty.value) {
     done();
     return;
   }
@@ -467,6 +530,9 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
+    submittedSnapshot = null;
+    newMetadata.key = "";
+    newMetadata.value = "";
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
@@ -478,6 +544,7 @@ watch(
       frpcSource.value = "downloaded";
       handleLoadSavedConfig();
     }
+    cleanSnapshot = serializeForm();
   }
 );
 
@@ -515,6 +582,7 @@ onMounted(() => {
         }
       }
       loading.value = 0;
+      cleanSnapshot = serializeForm();
       formDirty.value = false;
       nextTick(() => {
         hydratingForm = false;
@@ -534,8 +602,19 @@ onMounted(() => {
         message: t("config.message.saveSuccess")
       });
       loading.value = 0;
+      const savedSnapshot = submittedSnapshot;
+      submittedSnapshot = null;
       formData.value.instanceName = formData.value.instanceName.trim();
-      formDirty.value = false;
+      const currentSnapshot = serializeForm();
+      if (savedSnapshot !== null) {
+        if (savedSnapshot === currentSnapshot) {
+          cleanSnapshot = currentSnapshot;
+          formDirty.value = false;
+        } else {
+          // Edits arrived while the save was in flight; keep warning on close.
+          formDirty.value = true;
+        }
+      }
       tunnelStore.refreshTunnels();
     })
   );
@@ -1030,6 +1109,83 @@ onUnmounted(() => {
                       :show-password="true"
                     />
                   </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <div class="metadatas-head">
+                    <div class="h2 mt-4">
+                      {{ t("config.form.metadatas.label") }}
+                    </div>
+                    <p class="metadatas-hint">
+                      {{ t("config.form.metadatas.description") }}
+                    </p>
+                  </div>
+                  <div class="metadatas-panel">
+                    <div
+                      v-for="[key, value] in metadataEntries"
+                      :key="key"
+                      class="metadatas-row"
+                    >
+                      <span class="metadatas-row__key" :title="key">
+                        {{ key }}
+                      </span>
+                      <el-input
+                        :model-value="metadataValue(value)"
+                        :placeholder="
+                          t('config.form.metadatas.valuePlaceholder')
+                        "
+                        :aria-label="
+                          t('config.form.metadatas.valueLabel', { key })
+                        "
+                        :type="
+                          isSensitiveMetadataKey(key) ? 'password' : 'text'
+                        "
+                        :show-password="isSensitiveMetadataKey(key)"
+                        @update:model-value="formData.metadatas[key] = $event"
+                      />
+                      <el-button
+                        text
+                        type="danger"
+                        class="metadatas-row__remove"
+                        :title="t('config.form.metadatas.remove')"
+                        :aria-label="t('config.form.metadatas.remove')"
+                        @click="removeMetadata(key)"
+                      >
+                        <IconifyIconOffline icon="delete-rounded" />
+                      </el-button>
+                    </div>
+                    <p
+                      v-if="metadataEntries.length === 0"
+                      class="metadatas-empty"
+                    >
+                      {{ t("config.form.metadatas.empty") }}
+                    </p>
+                    <div class="metadatas-row metadatas-row--new">
+                      <el-input
+                        v-model="newMetadata.key"
+                        :placeholder="t('config.form.metadatas.keyPlaceholder')"
+                        :aria-label="t('config.form.metadatas.newKeyLabel')"
+                        @keyup.enter="addMetadata"
+                      />
+                      <el-input
+                        v-model="newMetadata.value"
+                        :placeholder="
+                          t('config.form.metadatas.valuePlaceholder')
+                        "
+                        :aria-label="t('config.form.metadatas.newValueLabel')"
+                        :type="
+                          isSensitiveMetadataKey(newMetadata.key)
+                            ? 'password'
+                            : 'text'
+                        "
+                        :show-password="isSensitiveMetadataKey(newMetadata.key)"
+                        @keyup.enter="addMetadata"
+                      />
+                      <el-button plain type="primary" @click="addMetadata">
+                        <IconifyIconOffline class="mr-1" icon="add" />
+                        {{ t("config.form.metadatas.add") }}
+                      </el-button>
+                    </div>
+                  </div>
                 </el-col>
                 <!-- <el-col :span="24">
               <div class="h2">TLS Config</div>
@@ -1686,5 +1842,85 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .button-input {
   width: calc(100% - 68px);
+}
+
+.metadatas-head .h2 {
+  margin-bottom: 8px;
+}
+
+.metadatas-hint {
+  margin: 0 0 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.metadatas-panel {
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.metadatas-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 160px) minmax(0, 1fr) 28px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--app-border);
+  transition: background-color 0.15s ease;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:not(.metadatas-row--new):hover {
+    background: var(--el-fill-color-lighter);
+  }
+}
+
+.metadatas-row--new {
+  grid-template-columns: minmax(96px, 160px) minmax(0, 1fr) max-content;
+  background: var(--el-fill-color-light);
+
+  > .el-input {
+    min-width: 0;
+  }
+
+  > .el-button {
+    margin: 0;
+    justify-self: end;
+  }
+}
+
+.metadatas-row__key {
+  overflow: hidden;
+  color: var(--app-primary-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metadatas-row__remove {
+  justify-self: end;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.metadatas-empty {
+  margin: 0;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--app-border);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metadatas-row {
+    transition: none;
+  }
 }
 </style>
