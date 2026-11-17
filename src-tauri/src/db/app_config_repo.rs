@@ -58,13 +58,28 @@ impl AppConfigRepository {
         })
     }
 
-    pub fn save_system_config(
-        conn: &Connection,
-        config: &FrpcSystemConfiguration,
-    ) -> Result<()> {
-        Self::upsert(conn, "desktop", "launch_at_startup", "boolean", &config.launch_at_startup.to_string())?;
-        Self::upsert(conn, "desktop", "silent_startup", "boolean", &config.silent_startup.to_string())?;
-        Self::upsert(conn, "desktop", "auto_connect_on_startup", "boolean", &config.auto_connect_on_startup.to_string())?;
+    pub fn save_system_config(conn: &Connection, config: &FrpcSystemConfiguration) -> Result<()> {
+        Self::upsert(
+            conn,
+            "desktop",
+            "launch_at_startup",
+            "boolean",
+            &config.launch_at_startup.to_string(),
+        )?;
+        Self::upsert(
+            conn,
+            "desktop",
+            "silent_startup",
+            "boolean",
+            &config.silent_startup.to_string(),
+        )?;
+        Self::upsert(
+            conn,
+            "desktop",
+            "auto_connect_on_startup",
+            "boolean",
+            &config.auto_connect_on_startup.to_string(),
+        )?;
         Self::upsert(conn, "desktop", "language", "string", &config.language)?;
         Self::upsert(
             conn,

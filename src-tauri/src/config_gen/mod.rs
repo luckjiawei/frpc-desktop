@@ -83,10 +83,7 @@ impl ConfigGenerator {
                 toml.push_str(&format!("user = \"{}\"\n", server.web_server.user));
             }
             if !server.web_server.password.is_empty() {
-                toml.push_str(&format!(
-                    "password = \"{}\"\n",
-                    server.web_server.password
-                ));
+                toml.push_str(&format!("password = \"{}\"\n", server.web_server.password));
             }
             toml.push_str(&format!(
                 "pprofEnable = {}\n",
@@ -118,10 +115,7 @@ impl ConfigGenerator {
             ));
         }
         if !server.transport.proxy_url.is_empty() {
-            toml.push_str(&format!(
-                "proxyURL = \"{}\"\n",
-                server.transport.proxy_url
-            ));
+            toml.push_str(&format!("proxyURL = \"{}\"\n", server.transport.proxy_url));
         }
         if server.transport.heartbeat_interval > 0 {
             toml.push_str(&format!(
@@ -218,10 +212,7 @@ impl ConfigGenerator {
                     if proxy.proxy_type == "tcp" && proxy.tls2raw {
                         toml.push_str("\n[proxies.plugin]\n");
                         toml.push_str("type = \"tls2raw\"\n");
-                        toml.push_str(&format!(
-                            "localAddr = \"{}:{}\"\n",
-                            proxy.local_ip, local_p
-                        ));
+                        toml.push_str(&format!("localAddr = \"{}:{}\"\n", proxy.local_ip, local_p));
                         toml.push_str(&format!(
                             "crtPath = \"{}\"\n",
                             proxy.tls2raw_ca_file.replace('\\', "/")
@@ -233,8 +224,8 @@ impl ConfigGenerator {
                     }
                 }
                 "http" | "https" => {
-                    let has_plugin = proxy.proxy_type == "https"
-                        && (proxy.https2http || proxy.tls2raw);
+                    let has_plugin =
+                        proxy.proxy_type == "https" && (proxy.https2http || proxy.tls2raw);
                     if !has_plugin {
                         toml.push_str(&format!("localIP = \"{}\"\n", proxy.local_ip));
                         toml.push_str(&format!("localPort = {}\n", local_p));
@@ -248,10 +239,7 @@ impl ConfigGenerator {
                             .map(|d| format!("\"{}\"", d))
                             .collect();
                         if !domains.is_empty() {
-                            toml.push_str(&format!(
-                                "customDomains = [{}]\n",
-                                domains.join(", ")
-                            ));
+                            toml.push_str(&format!("customDomains = [{}]\n", domains.join(", ")));
                         }
                     }
 
@@ -266,10 +254,7 @@ impl ConfigGenerator {
                         .map(|l| format!("\"{}\"", l))
                         .collect();
                     if !locations.is_empty() {
-                        toml.push_str(&format!(
-                            "locations = [{}]\n",
-                            locations.join(", ")
-                        ));
+                        toml.push_str(&format!("locations = [{}]\n", locations.join(", ")));
                     }
 
                     if !proxy.host_header_rewrite.is_empty() {
@@ -281,10 +266,7 @@ impl ConfigGenerator {
 
                     if proxy.basic_auth {
                         toml.push_str(&format!("httpUser = \"{}\"\n", proxy.http_user));
-                        toml.push_str(&format!(
-                            "httpPassword = \"{}\"\n",
-                            proxy.http_password
-                        ));
+                        toml.push_str(&format!("httpPassword = \"{}\"\n", proxy.http_password));
                     }
 
                     if proxy.proxy_type == "https" {
@@ -372,10 +354,7 @@ impl ConfigGenerator {
             }
 
             if proxy.proxy_type == "xtcp" {
-                toml.push_str(&format!(
-                    "keepTunnelOpen = {}\n",
-                    proxy.keep_tunnel_open
-                ));
+                toml.push_str(&format!("keepTunnelOpen = {}\n", proxy.keep_tunnel_open));
                 if !proxy.fallback_to.is_empty() {
                     toml.push_str(&format!("fallbackTo = \"{}\"\n", proxy.fallback_to));
                     toml.push_str(&format!(

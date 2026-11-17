@@ -102,7 +102,8 @@ impl DbManager {
         )?;
 
         let applied_versions: Vec<i64> = {
-            let mut stmt = conn.prepare("SELECT version FROM t_frpcd_schema_migrations ORDER BY version")?;
+            let mut stmt =
+                conn.prepare("SELECT version FROM t_frpcd_schema_migrations ORDER BY version")?;
             let rows = stmt.query_map([], |r| r.get(0))?;
             rows.filter_map(|r| r.ok()).collect()
         };
@@ -163,7 +164,8 @@ impl DbManager {
 
         // Initialize settings only if the migrated default tunnel still exists.
         // get_server_config must not restore a tunnel deleted by the user.
-        let _ = server_repo::ServerRepository::get_server_config(&conn, tunnel_repo::DEFAULT_TUNNEL_ID);
+        let _ =
+            server_repo::ServerRepository::get_server_config(&conn, tunnel_repo::DEFAULT_TUNNEL_ID);
 
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
@@ -184,13 +186,16 @@ impl DbManager {
         let result = (|| -> anyhow::Result<()> {
             let tx = conn.transaction()?;
             tx.execute_batch(sql)?;
-            let violations: i64 = tx.query_row(
-                "SELECT COUNT(*) FROM pragma_foreign_key_check",
-                [],
-                |r| r.get(0),
-            )?;
+            let violations: i64 =
+                tx.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })?;
             if violations > 0 {
-                anyhow::bail!("Migration {} left {} foreign key violations", name, violations);
+                anyhow::bail!(
+                    "Migration {} left {} foreign key violations",
+                    name,
+                    violations
+                );
             }
             tx.execute(
                 "INSERT INTO t_frpcd_schema_migrations (version, name, applied_at) VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
@@ -230,7 +235,9 @@ mod tests {
     fn opens_electron_v1_2_7_database_without_data_loss() {
         let dir = std::env::temp_dir().join(format!("frpc_legacy_db_{}", uuid::Uuid::new_v4()));
         let db_dir = dir.join("db");
-        let version_dir = dir.join(format!("{:x}", md5::compute("frpc"))).join("v0.61.0");
+        let version_dir = dir
+            .join(format!("{:x}", md5::compute("frpc")))
+            .join("v0.61.0");
         fs::create_dir_all(&db_dir).unwrap();
         fs::create_dir_all(&version_dir).unwrap();
         let legacy_bin_name = if cfg!(target_os = "windows") {
@@ -324,14 +331,18 @@ mod tests {
         // Saving through Tauri must round-trip the Electron field names.
         ServerRepository::save_server_config(&conn, &server).unwrap();
         let transport_json: String = conn
-            .query_row("SELECT transport_json FROM t_frpcd_servers", [], |r| r.get(0))
+            .query_row("SELECT transport_json FROM t_frpcd_servers", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert!(transport_json.contains("\"proxyURL\""));
         assert!(transport_json.contains("\"connectServerLocalIP\""));
         assert!(transport_json.contains("\"disableCustomTLSFirstByte\""));
 
         let applied: i64 = conn
-            .query_row("SELECT COUNT(*) FROM t_frpcd_schema_migrations", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM t_frpcd_schema_migrations", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(applied, 5);
 
@@ -342,9 +353,16 @@ mod tests {
         assert_eq!(tunnels[0].id, "1");
         assert_eq!(tunnels[0].name, "默认");
         assert!(tunnels[0].auto_start);
-        assert_eq!(ProxyRepository::get_proxies_by_server(&conn, "1").unwrap().len(), 1);
+        assert_eq!(
+            ProxyRepository::get_proxies_by_server(&conn, "1")
+                .unwrap()
+                .len(),
+            1
+        );
         let fk_violations: i64 = conn
-            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(fk_violations, 0);
         let integrity: String = conn
@@ -405,7 +423,10 @@ mod tests {
             assert_eq!(proxies[0].status, 0);
             assert_eq!(proxies[0].custom_domains, vec!["a.example.com"]);
         }
-        assert!(AppConfigRepository::is_guide_completed(&DbManager::init(&db_dir).unwrap().conn()).unwrap());
+        assert!(
+            AppConfigRepository::is_guide_completed(&DbManager::init(&db_dir).unwrap().conn())
+                .unwrap()
+        );
         assert!(!db_dir.join("server-v2.db").exists());
         assert!(!db_dir.join("proxy-v2.db").exists());
 
@@ -416,7 +437,10 @@ mod tests {
         )
         .unwrap();
         let db = DbManager::init(&db_dir).unwrap();
-        assert_eq!(ProxyRepository::get_all_proxies(&db.conn()).unwrap().len(), 1);
+        assert_eq!(
+            ProxyRepository::get_all_proxies(&db.conn()).unwrap().len(),
+            1
+        );
 
         drop(db);
         let _ = fs::remove_dir_all(&dir);
@@ -468,7 +492,10 @@ mod tests {
         let mut second_server = ServerRepository::get_server_config(&conn, &second.id).unwrap();
         assert_eq!(second_server.id, second.id);
         // New tunnels get their own admin port.
-        assert_ne!(second_server.web_server.port, default_server.web_server.port);
+        assert_ne!(
+            second_server.web_server.port,
+            default_server.web_server.port
+        );
 
         default_server.server_addr = "home.example.com".to_string();
         second_server.server_addr = "office.example.com".to_string();
@@ -484,16 +511,22 @@ mod tests {
         ProxyRepository::create_proxy(&conn, proxy("1", "home-ssh")).unwrap();
         ProxyRepository::create_proxy(&conn, proxy(&second.id, "office-rdp")).unwrap();
         // Modifying must not move a proxy to another tunnel.
-        let mut moved = ProxyRepository::get_proxies_by_server(&conn, &second.id).unwrap().remove(0);
+        let mut moved = ProxyRepository::get_proxies_by_server(&conn, &second.id)
+            .unwrap()
+            .remove(0);
         moved.server_id = "1".to_string();
         ProxyRepository::modify_proxy(&conn, moved).unwrap();
 
         assert_eq!(
-            ServerRepository::get_server_config(&conn, "1").unwrap().server_addr,
+            ServerRepository::get_server_config(&conn, "1")
+                .unwrap()
+                .server_addr,
             "home.example.com"
         );
         assert_eq!(
-            ServerRepository::get_server_config(&conn, &second.id).unwrap().server_addr,
+            ServerRepository::get_server_config(&conn, &second.id)
+                .unwrap()
+                .server_addr,
             "office.example.com"
         );
         let home = ProxyRepository::get_proxies_by_server(&conn, "1").unwrap();
@@ -516,7 +549,9 @@ mod tests {
         // Deleting a tunnel cascades to its settings and proxies.
         assert!(TunnelRepository::delete(&conn, &second.id).unwrap());
         assert!(ServerRepository::get_server_config(&conn, &second.id).is_err());
-        assert!(ProxyRepository::get_proxies_by_server(&conn, &second.id).unwrap().is_empty());
+        assert!(ProxyRepository::get_proxies_by_server(&conn, &second.id)
+            .unwrap()
+            .is_empty());
         assert_eq!(ProxyRepository::get_all_proxies(&conn).unwrap().len(), 1);
 
         let third = TunnelRepository::create(&mut conn, "Lab", "frpc").unwrap();
@@ -527,7 +562,9 @@ mod tests {
         assert_eq!(tunnels[0].id, "1");
         assert!(ProxyRepository::get_all_proxies(&conn).unwrap().is_empty());
         assert_eq!(
-            ServerRepository::get_server_config(&conn, "1").unwrap().server_addr,
+            ServerRepository::get_server_config(&conn, "1")
+                .unwrap()
+                .server_addr,
             ""
         );
 
@@ -635,7 +672,11 @@ mod tests {
         // No frpc settings are created for (or leaked into) a cloudflared tunnel.
         assert!(ServerRepository::get_server_config(&conn, &cf.id).is_err());
         let servers: i64 = conn
-            .query_row("SELECT COUNT(*) FROM t_frpcd_servers WHERE id = ?1", [&cf.id], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM t_frpcd_servers WHERE id = ?1",
+                [&cf.id],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(servers, 0);
         assert!(CloudflaredRepository::get(&conn, "1").unwrap().is_none());
@@ -674,7 +715,11 @@ mod tests {
         TunnelRepository::create(&mut conn, "Cloudflare 2", "cloudflared").unwrap();
         ServerRepository::reset_all_config(&conn).unwrap();
         let rows: i64 = conn
-            .query_row("SELECT COUNT(*) FROM t_frpcd_cloudflared_tunnels", [], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM t_frpcd_cloudflared_tunnels",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(rows, 0);
 
@@ -741,21 +786,34 @@ mod tests {
         assert_eq!(office.name, "Office");
         assert!(office.auto_start);
         assert_eq!(
-            ServerRepository::get_server_config(&conn, &second_id).unwrap().server_addr,
+            ServerRepository::get_server_config(&conn, &second_id)
+                .unwrap()
+                .server_addr,
             "office.example.com"
         );
-        assert_eq!(ProxyRepository::get_proxies_by_server(&conn, &second_id).unwrap().len(), 1);
-        let version = VersionRepository::find_by_github_release_id(&conn, 1).unwrap().unwrap();
+        assert_eq!(
+            ProxyRepository::get_proxies_by_server(&conn, &second_id)
+                .unwrap()
+                .len(),
+            1
+        );
+        let version = VersionRepository::find_by_github_release_id(&conn, 1)
+            .unwrap()
+            .unwrap();
         assert_eq!(version.provider, "frpc");
 
         // The rebuilt table still cascades to frpc settings and proxies.
         assert!(TunnelRepository::delete(&conn, &second_id).unwrap());
-        assert!(ProxyRepository::get_proxies_by_server(&conn, &second_id).unwrap().is_empty());
+        assert!(ProxyRepository::get_proxies_by_server(&conn, &second_id)
+            .unwrap()
+            .is_empty());
         assert!(TunnelRepository::create(&mut conn, "CF", "cloudflared").is_ok());
         assert!(TunnelRepository::create(&mut conn, "Other", "ngrok").is_err());
 
         let fk_violations: i64 = conn
-            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(fk_violations, 0);
 
@@ -767,9 +825,15 @@ mod tests {
     #[test]
     fn tunnel_ids_are_safe_for_paths() {
         assert!(TunnelRepository::is_valid_id("1"));
-        assert!(TunnelRepository::is_valid_id("6f9619ff-8b86-4d01-b42d-00cf4fc964ff"));
-        assert!(!TunnelRepository::is_valid_id("6F9619FF-8B86-4D01-B42D-00CF4FC964FF"));
-        assert!(!TunnelRepository::is_valid_id("6f9619ff8b864d01b42d00cf4fc964ff"));
+        assert!(TunnelRepository::is_valid_id(
+            "6f9619ff-8b86-4d01-b42d-00cf4fc964ff"
+        ));
+        assert!(!TunnelRepository::is_valid_id(
+            "6F9619FF-8B86-4D01-B42D-00CF4FC964FF"
+        ));
+        assert!(!TunnelRepository::is_valid_id(
+            "6f9619ff8b864d01b42d00cf4fc964ff"
+        ));
         assert!(!TunnelRepository::is_valid_id("../1"));
         assert!(!TunnelRepository::is_valid_id(""));
     }
