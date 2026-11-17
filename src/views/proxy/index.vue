@@ -3,13 +3,16 @@ import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline"
 import TunnelSwitcher from "@/components/TunnelSwitcher.vue";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useTunnelStore } from "@/store/tunnel";
+import { useDiscoveryDraftStore } from "@/store/discoveryDraft";
 import { on, request, send } from "@/utils/ipcUtils";
-import { refDebounced, useDebounceFn } from "@vueuse/core";
-import { ElMessage, FormInstance, FormRules } from "element-plus";
+import { refDebounced } from "@vueuse/core";
+import { ElMessage, ElMessageBox, FormInstance, FormRules } from "element-plus";
 import _ from "lodash";
 import {
   computed,
+  nextTick,
   onActivated,
+  onDeactivated,
   onMounted,
   onUnmounted,
   reactive,
@@ -20,7 +23,6 @@ import { useI18n } from "vue-i18n";
 import { ipcRouters } from "@/core/IpcRouter";
 import commonIps from "./commonIp.json";
 import CopyableAddress from "./CopyableAddress.vue";
-import LocalPortDialog from "./LocalPortDialog.vue";
 import ProxyToolbar from "./ProxyToolbar.vue";
 
 defineOptions({
@@ -29,6 +31,7 @@ defineOptions({
 
 const { t } = useI18n();
 const tunnelStore = useTunnelStore();
+const discoveryDraftStore = useDiscoveryDraftStore();
 const selectedTunnelId = computed(() => {
   const tunnel = tunnelStore.currentTunnel;
   return tunnelStore.loaded && tunnel?.provider === "frpc" ? tunnel.id : "";
@@ -79,12 +82,8 @@ watch(
 
 const loading = ref({
   list: 1,
-  form: 0,
-  localPorts: 1
+  form: 0
 });
-
-const localPorts = ref<Array<LocalPort>>([]);
-const listPortsVisible = ref(false);
 
 const edit = ref({
   title: t("proxy.createTitle"),
@@ -426,7 +425,7 @@ const getProxyMappingAddress = (proxy: FrpcProxy) => {
 
 const handleSubmit = async () => {
   const tunnelId = selectedTunnelId.value;
-  if (!editFormRef.value || !tunnelId) return;
+  if (!editFormRef.value || !tunnelId || loading.value.form > 0) return;
   editFormRef.value.validate(valid => {
     if (valid && tunnelId === selectedTunnelId.value) {
       if (handleRangePort()) {
@@ -538,7 +537,6 @@ const handleLoadFrpcConfig = async () => {
 
 watch(selectedTunnelId, () => {
   edit.value.visible = false;
-  listPortsVisible.value = false;
   searchKeyword.value = "";
   currentPage.value = 1;
   loading.value.list = 1;
@@ -581,27 +579,6 @@ const handleProxyStatusChange = (proxy: FrpcProxy) => {
     id: proxy._id,
     status: proxy.status
   });
-};
-
-const handleLoadLocalPorts = () => {
-  loading.value.localPorts = 1;
-  // ipcRenderer.send("local.getLocalPorts");
-  send(ipcRouters.PROXY.getLocalPorts);
-};
-
-const handleSelectLocalPort = useDebounceFn((port: number) => {
-  editForm.value.localPort = port?.toString();
-  editForm.value.localIP = "127.0.0.1";
-  handleCloseLocalPortDialog();
-});
-
-const handleCloseLocalPortDialog = () => {
-  listPortsVisible.value = false;
-};
-
-const handleOpenLocalPortDialog = () => {
-  listPortsVisible.value = true;
-  handleLoadLocalPorts();
 };
 
 // const allowCopyAccessAddress = (proxy: FrpcProxy) => {
@@ -755,15 +732,29 @@ onMounted(() => {
   };
 
   listenerCleanups.push(
-    on(ipcRouters.PROXY.createProxy, () => {
-      insertOrUpdateHook(t("common.createSuccess"));
-    })
+    on(
+      ipcRouters.PROXY.createProxy,
+      () => {
+        insertOrUpdateHook(t("common.createSuccess"));
+      },
+      (_code, message) => {
+        loading.value.form = 0;
+        ElMessage.error(message);
+      }
+    )
   );
 
   listenerCleanups.push(
-    on(ipcRouters.PROXY.modifyProxy, () => {
-      insertOrUpdateHook(t("common.modifySuccess"));
-    })
+    on(
+      ipcRouters.PROXY.modifyProxy,
+      () => {
+        insertOrUpdateHook(t("common.modifySuccess"));
+      },
+      (_code, message) => {
+        loading.value.form = 0;
+        ElMessage.error(message);
+      }
+    )
   );
 
   listenerCleanups.push(
@@ -787,16 +778,103 @@ onMounted(() => {
       // edit.value.visible = false;
     })
   );
-
-  listenerCleanups.push(
-    on(ipcRouters.PROXY.getLocalPorts, data => {
-      loading.value.localPorts = 0;
-      localPorts.value = data;
-    })
-  );
 });
 
+let proxyPageActive = false;
+let applyingDiscoveryDraft = false;
+
+const applyDiscoveryDraft = async () => {
+  if (
+    !proxyPageActive ||
+    !tunnelStore.loaded ||
+    !discoveryDraftStore.pending ||
+    applyingDiscoveryDraft
+  )
+    return;
+  applyingDiscoveryDraft = true;
+  const draft = discoveryDraftStore.pending;
+  try {
+    const tunnel = tunnelStore.frpcTunnels.find(t => t.id === draft.tunnelId);
+    const validAddress =
+      /^(?:\d{1,3}\.){3}\d{1,3}$/.test(draft.targetAddress) &&
+      draft.targetAddress.split(".").every(part => Number(part) <= 255);
+    const compatibleTypes =
+      draft.transport === "tcp"
+        ? ["tcp", "http", "https", "stcp", "xtcp"]
+        : draft.transport === "udp"
+          ? ["udp", "sudp"]
+          : [];
+    if (
+      !tunnel ||
+      !validAddress ||
+      !Number.isInteger(draft.port) ||
+      draft.port < 1 ||
+      draft.port > 65535 ||
+      !compatibleTypes.includes(draft.proxyType)
+    ) {
+      discoveryDraftStore.clearDraft();
+      ElMessage.warning(t("discovery.draftInvalid"));
+      return;
+    }
+    if (loading.value.form > 0) {
+      discoveryDraftStore.clearDraft();
+      ElMessage.warning(t("discovery.draftConflict"));
+      return;
+    }
+    if (edit.value.visible) {
+      try {
+        await ElMessageBox.confirm(
+          t("discovery.discardEditMessage"),
+          t("discovery.discardEditTitle"),
+          {
+            type: "warning",
+            confirmButtonText: t("common.confirm"),
+            cancelButtonText: t("common.cancel")
+          }
+        );
+      } catch {
+        discoveryDraftStore.clearDraft();
+        return;
+      }
+    }
+    if (!proxyPageActive || discoveryDraftStore.pending !== draft) return;
+    // Revalidate the instance after the asynchronous unsaved-edit confirmation.
+    if (!tunnelStore.frpcTunnels.some(t => t.id === draft.tunnelId)) {
+      discoveryDraftStore.clearDraft();
+      ElMessage.warning(t("discovery.draftInvalid"));
+      return;
+    }
+    edit.value.visible = false;
+    tunnelStore.setCurrentTunnel(draft.tunnelId);
+    await nextTick();
+    if (!proxyPageActive) return;
+    handleResetForm();
+    editForm.value.name = draft.name.slice(0, 100);
+    editForm.value.type = draft.proxyType;
+    editForm.value.localIP = draft.targetAddress;
+    editForm.value.localPort = String(draft.port);
+    editForm.value.remotePort = "";
+    editForm.value.visitorsModel = ["stcp", "xtcp", "sudp"].includes(
+      draft.proxyType
+    )
+      ? "visitorsProvider"
+      : "";
+    discoveryDraftStore.consumeDraft();
+    handleOpenInsert();
+    ElMessage.info(t("discovery.draftReady"));
+  } finally {
+    applyingDiscoveryDraft = false;
+  }
+};
+
+watch(
+  () => tunnelStore.loaded,
+  () => void applyDiscoveryDraft()
+);
+
 onActivated(() => {
+  proxyPageActive = true;
+  void applyDiscoveryDraft();
   if (!hasActivatedOnce) {
     hasActivatedOnce = true;
     return;
@@ -817,7 +895,12 @@ const handleProxyTypeChange = e => {
   }
 };
 
+onDeactivated(() => {
+  proxyPageActive = false;
+});
+
 onUnmounted(() => {
+  proxyPageActive = false;
   proxyRequestId++;
   configRequestId++;
   listenerCleanups.splice(0).forEach(off => off());
@@ -1257,17 +1340,6 @@ onUnmounted(() => {
                     v-model="editForm.localPort"
                     placeholder="8080"
                   />
-                  <el-button
-                    plain
-                    type="primary"
-                    @click="handleOpenLocalPortDialog"
-                  >
-                    <IconifyIconOffline
-                      class="mr-2 cursor-pointer"
-                      icon="bring-your-own-ip-rounded"
-                    />
-                    {{ t("proxy.form.button.localPort") }}
-                  </el-button>
                 </div>
               </el-form-item>
             </el-col>
@@ -2223,7 +2295,12 @@ onUnmounted(() => {
                   />
                   {{ t("common.close") }}
                 </el-button>
-                <el-button plain type="primary" @click="handleSubmit">
+                <el-button
+                  plain
+                  type="primary"
+                  :loading="loading.form > 0"
+                  @click="handleSubmit"
+                >
                   <IconifyIconOffline
                     class="mr-2 cursor-pointer"
                     icon="save-rounded"
@@ -2237,13 +2314,6 @@ onUnmounted(() => {
       </el-form>
     </el-drawer>
     <!--    </el-dialog>-->
-
-    <LocalPortDialog
-      v-model="listPortsVisible"
-      :loading="loading.localPorts > 0"
-      :ports="localPorts"
-      @select="handleSelectLocalPort"
-    />
   </div>
 </template>
 

@@ -1,6 +1,116 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// Discovery is an in-memory snapshot; none of these models are persisted.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryAddress {
+    pub address: String,
+    pub family: String,
+    pub zone_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryInterfaceAddress {
+    pub address: String,
+    pub family: String,
+    pub zone_id: Option<u32>,
+    pub prefix_length: u8,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryScope {
+    pub scope_id: String,
+    pub network_version: String,
+    pub name: String,
+    pub interface_index: u32,
+    pub addresses: Vec<DiscoveryInterfaceAddress>,
+    pub prefixes: Vec<String>,
+    pub is_default: bool,
+    pub is_virtual: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryScopes {
+    pub scopes: Vec<DiscoveryScope>,
+    pub default_scope_id: Option<String>,
+    pub network_version: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredService {
+    pub id: String,
+    pub name: String,
+    pub instance_names: Vec<String>,
+    pub target_address: String,
+    pub zone_id: Option<u32>,
+    pub port: u16,
+    pub transport: String,
+    pub protocol_hint: Option<String>,
+    pub protocol_evidence: Option<String>,
+    pub sources: Vec<String>,
+    pub verification: String,
+    pub last_seen_at: String,
+    pub expires_at: Option<String>,
+    pub expired: bool,
+    pub proxy_disabled_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredDevice {
+    pub id: String,
+    pub scope_id: String,
+    pub name: String,
+    pub addresses: Vec<DiscoveryAddress>,
+    pub sources: Vec<String>,
+    pub last_seen_at: String,
+    pub services: Vec<DiscoveredService>,
+    pub expires_at: Option<String>,
+    pub expired: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverySource {
+    pub source: String,
+    pub status: String,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryBudget {
+    pub candidate_addresses: usize,
+    pub probes_started: usize,
+    pub probes_completed: usize,
+    pub rejected_addresses: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverySnapshot {
+    pub scan_id: String,
+    pub request_id: String,
+    pub scope_id: String,
+    pub network_version: String,
+    pub revision: u64,
+    pub status: String,
+    pub phase: String,
+    pub started_at: String,
+    pub updated_at: String,
+    pub devices: Vec<DiscoveredDevice>,
+    pub sources: Vec<DiscoverySource>,
+    pub budget: DiscoveryBudget,
+    pub truncated: bool,
+    pub partial: bool,
+    pub warnings: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
     #[serde(rename = "bizCode")]
@@ -27,7 +137,11 @@ impl<T> ApiResponse<T> {
     }
 
     /// A failure that still carries context, e.g. which tunnel failed.
-    pub fn fail_with_data(biz_code: impl Into<String>, message: impl Into<String>, data: T) -> Self {
+    pub fn fail_with_data(
+        biz_code: impl Into<String>,
+        message: impl Into<String>,
+        data: T,
+    ) -> Self {
         Self {
             biz_code: biz_code.into(),
             data: Some(data),
@@ -117,7 +231,11 @@ pub struct TransportTlsConfig {
     pub trusted_ca_file: String,
     #[serde(default)]
     pub server_name: String,
-    #[serde(rename = "disableCustomTLSFirstByte", alias = "disableCustomTlsFirstByte", default)]
+    #[serde(
+        rename = "disableCustomTLSFirstByte",
+        alias = "disableCustomTlsFirstByte",
+        default
+    )]
     pub disable_custom_tls_first_byte: bool,
 }
 
@@ -136,7 +254,11 @@ pub struct TransportConfig {
     pub tcp_mux_keepalive_interval: i64,
     #[serde(default = "default_protocol")]
     pub protocol: String,
-    #[serde(rename = "connectServerLocalIP", alias = "connectServerLocalIp", default)]
+    #[serde(
+        rename = "connectServerLocalIP",
+        alias = "connectServerLocalIp",
+        default
+    )]
     pub connect_server_local_ip: String,
     #[serde(rename = "proxyURL", alias = "proxyUrl", default)]
     pub proxy_url: String,

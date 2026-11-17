@@ -171,10 +171,28 @@ export const ipcRouters: IpcRouters = {
     modifyProxyStatus: {
       path: "proxy/modifyProxyStatus",
       controller: "proxyController.modifyProxyStatus"
+    }
+  },
+  DISCOVERY: {
+    getScopes: {
+      path: "discovery/getScopes",
+      controller: "discoveryController.getScopes"
     },
-    getLocalPorts: {
-      path: "proxy/getLocalPorts",
-      controller: "proxyController.getLocalPorts"
+    start: {
+      path: "discovery/start",
+      controller: "discoveryController.start"
+    },
+    activate: {
+      path: "discovery/activate",
+      controller: "discoveryController.activate"
+    },
+    getSnapshot: {
+      path: "discovery/getSnapshot",
+      controller: "discoveryController.getSnapshot"
+    },
+    stop: {
+      path: "discovery/stop",
+      controller: "discoveryController.stop"
     }
   },
   SYSTEM: {
@@ -218,6 +236,10 @@ export const ipcRouters: IpcRouters = {
 };
 
 export const listeners: Listeners = {
+  discoveryUpdated: {
+    listenerMethod: "discovery.updated",
+    channel: "discovery:updated"
+  },
   // watchFrpcLog: {
   //   listenerMethod: "logService.watchFrpcLog",
   //   channel: "log:watchFrpcLog"

@@ -60,12 +60,9 @@ impl ProxyRepository {
             let transport_json: String = row.get(29)?;
             let server_id: String = row.get(30)?;
 
-            let custom_domains: Vec<String> =
-                crate::db::from_json_lenient(&custom_domains_json);
-            let locations: Vec<String> =
-                crate::db::from_json_lenient(&locations_json);
-            let transport: FrpcProxyTransportConfig =
-                crate::db::from_json_lenient(&transport_json);
+            let custom_domains: Vec<String> = crate::db::from_json_lenient(&custom_domains_json);
+            let locations: Vec<String> = crate::db::from_json_lenient(&locations_json);
+            let transport: FrpcProxyTransportConfig = crate::db::from_json_lenient(&transport_json);
 
             let local_port = if let Ok(num) = local_port_str.parse::<i64>() {
                 serde_json::Value::Number(num.into())
@@ -149,28 +146,13 @@ impl ProxyRepository {
         Ok(())
     }
 
-    pub fn get_local_ports(conn: &Connection) -> Result<Vec<String>> {
-        let mut stmt = conn.prepare("SELECT local_port FROM t_frpcd_proxies")?;
-        let rows = stmt.query_map([], |row| {
-            let p: String = row.get(0)?;
-            Ok(p)
-        })?;
-        let mut ports = Vec::new();
-        for r in rows {
-            if let Ok(p) = r {
-                ports.push(p);
-            }
-        }
-        Ok(ports)
-    }
-
     fn save_proxy(conn: &Connection, proxy: &FrpcProxy) -> Result<()> {
-        let custom_domains_json = serde_json::to_string(&proxy.custom_domains)
-            .unwrap_or_else(|_| "[\"\"]".to_string());
-        let locations_json = serde_json::to_string(&proxy.locations)
-            .unwrap_or_else(|_| "[\"\"]".to_string());
-        let transport_json = serde_json::to_string(&proxy.transport)
-            .unwrap_or_else(|_| "{}".to_string());
+        let custom_domains_json =
+            serde_json::to_string(&proxy.custom_domains).unwrap_or_else(|_| "[\"\"]".to_string());
+        let locations_json =
+            serde_json::to_string(&proxy.locations).unwrap_or_else(|_| "[\"\"]".to_string());
+        let transport_json =
+            serde_json::to_string(&proxy.transport).unwrap_or_else(|_| "{}".to_string());
 
         let local_port_str = match &proxy.local_port {
             serde_json::Value::Number(n) => n.to_string(),
