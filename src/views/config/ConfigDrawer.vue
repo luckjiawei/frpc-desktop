@@ -117,6 +117,13 @@ const metadataEntries = computed(() =>
     ([key]) => !(formData.value.multiuser && key === "token")
   )
 );
+// Metadata keys that commonly carry credentials stay masked, with an explicit
+// reveal control supplied by `show-password`.
+const sensitiveMetadataKey = /pass(word|wd|phrase)?|secret|token|key/i;
+const isSensitiveMetadataKey = (key: string) => sensitiveMetadataKey.test(key);
+const metadataDraftDirty = computed(
+  () => newMetadata.key.trim() !== "" || newMetadata.value !== ""
+);
 const rules = reactive<FormRules>({
   instanceName: [
     {
@@ -339,18 +346,27 @@ const formDirty = ref(false);
  */
 const frpcSource = ref<"downloaded" | "custom">("downloaded");
 let hydratingForm = true;
+/** Serialized form state treated as saved, used to ignore no-op mutations. */
+let cleanSnapshot = "";
+/** Snapshot captured when a save was submitted; null when no save is pending. */
+let submittedSnapshot: string | null = null;
+const serializeForm = () => JSON.stringify([formData.value, frpcSource.value]);
 const listenerCleanups: Array<() => void> = [];
 
 watch(
   formData,
   () => {
-    if (!hydratingForm) formDirty.value = true;
+    if (!hydratingForm && serializeForm() !== cleanSnapshot) {
+      formDirty.value = true;
+    }
   },
   { deep: true }
 );
 
 watch(frpcSource, () => {
-  if (!hydratingForm) formDirty.value = true;
+  if (!hydratingForm && serializeForm() !== cleanSnapshot) {
+    formDirty.value = true;
+  }
   formRef.value?.clearValidate(["frpcVersion", "customFrpcPath"]);
 });
 
@@ -422,6 +438,12 @@ const handleSubmit = useDebounceFn(() => {
     } else {
       data.customFrpcPath = "";
     }
+    // Compare the saved form against this snapshot on success so edits made
+    // while the save was in flight still count as unsaved changes.
+    submittedSnapshot = JSON.stringify([
+      { ...formData.value, instanceName: data.instanceName.trim() },
+      frpcSource.value
+    ]);
     send(ipcRouters.SERVER.saveConfig, {
       ...data,
       name: data.instanceName.trim(),
@@ -479,7 +501,7 @@ const handleLoadSavedConfig = () => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value) {
+  if (!formDirty.value && !metadataDraftDirty.value) {
     done();
     return;
   }
@@ -508,6 +530,9 @@ watch(
   ([open]) => {
     hydratingForm = true;
     formDirty.value = false;
+    submittedSnapshot = null;
+    newMetadata.key = "";
+    newMetadata.value = "";
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
@@ -519,6 +544,7 @@ watch(
       frpcSource.value = "downloaded";
       handleLoadSavedConfig();
     }
+    cleanSnapshot = serializeForm();
   }
 );
 
@@ -556,6 +582,7 @@ onMounted(() => {
         }
       }
       loading.value = 0;
+      cleanSnapshot = serializeForm();
       formDirty.value = false;
       nextTick(() => {
         hydratingForm = false;
@@ -575,8 +602,19 @@ onMounted(() => {
         message: t("config.message.saveSuccess")
       });
       loading.value = 0;
+      const savedSnapshot = submittedSnapshot;
+      submittedSnapshot = null;
       formData.value.instanceName = formData.value.instanceName.trim();
-      formDirty.value = false;
+      const currentSnapshot = serializeForm();
+      if (savedSnapshot !== null) {
+        if (savedSnapshot === currentSnapshot) {
+          cleanSnapshot = currentSnapshot;
+          formDirty.value = false;
+        } else {
+          // Edits arrived while the save was in flight; keep warning on close.
+          formDirty.value = true;
+        }
+      }
       tunnelStore.refreshTunnels();
     })
   );
@@ -1095,8 +1133,13 @@ onUnmounted(() => {
                         :placeholder="
                           t('config.form.metadatas.valuePlaceholder')
                         "
-                        :type="key === 'token' ? 'password' : 'text'"
-                        :show-password="key === 'token'"
+                        :aria-label="
+                          t('config.form.metadatas.valueLabel', { key })
+                        "
+                        :type="
+                          isSensitiveMetadataKey(key) ? 'password' : 'text'
+                        "
+                        :show-password="isSensitiveMetadataKey(key)"
                         @update:model-value="formData.metadatas[key] = $event"
                       />
                       <el-button
@@ -1120,6 +1163,7 @@ onUnmounted(() => {
                       <el-input
                         v-model="newMetadata.key"
                         :placeholder="t('config.form.metadatas.keyPlaceholder')"
+                        :aria-label="t('config.form.metadatas.newKeyLabel')"
                         @keyup.enter="addMetadata"
                       />
                       <el-input
@@ -1127,6 +1171,13 @@ onUnmounted(() => {
                         :placeholder="
                           t('config.form.metadatas.valuePlaceholder')
                         "
+                        :aria-label="t('config.form.metadatas.newValueLabel')"
+                        :type="
+                          isSensitiveMetadataKey(newMetadata.key)
+                            ? 'password'
+                            : 'text'
+                        "
+                        :show-password="isSensitiveMetadataKey(newMetadata.key)"
                         @keyup.enter="addMetadata"
                       />
                       <el-button plain type="primary" @click="addMetadata">

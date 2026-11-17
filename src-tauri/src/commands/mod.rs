@@ -395,7 +395,8 @@ async fn handle_ipc_send(
             let content = match tokio::fs::read_to_string(file.path()).await {
                 Ok(content) => content,
                 Err(e) => {
-                    log::error!("Failed to read imported TOML file: {}", e);
+                    // Keep reader diagnostics (including paths) out of the log.
+                    log::error!("tunnel/importTomlConfig: failed to read file (B1000)");
                     return ApiResponse::internal_error(format!("Failed to read TOML file: {}", e));
                 }
             };
@@ -411,7 +412,9 @@ async fn handle_ipc_send(
                     "tunnel": tunnel
                 })),
                 Err(e) => {
-                    log::warn!("TOML config import failed: {}", e);
+                    // Import diagnostics may describe file contents; log only a
+                    // stable code and keep the detailed message in the response.
+                    log::warn!("tunnel/importTomlConfig: config import failed (B1000)");
                     ApiResponse::internal_error(e.to_string())
                 }
             }

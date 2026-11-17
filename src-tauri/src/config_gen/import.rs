@@ -134,8 +134,13 @@ pub fn parse_toml_config(
         t.proxy_url = transport.string("proxyURL", "")?;
         // The generator emits positive heartbeat settings only. In particular,
         // accepting frpc's -1 sentinel would silently re-enable heartbeats.
+        // frpc also rejects heartbeatTimeout < heartbeatInterval, so raise the
+        // timeout to the imported interval instead of rejecting the config.
         t.heartbeat_interval = transport.integer("heartbeatInterval", 30, 1, i64::MAX)?;
         t.heartbeat_timeout = transport.integer("heartbeatTimeout", 90, 1, i64::MAX)?;
+        if t.heartbeat_timeout < t.heartbeat_interval {
+            t.heartbeat_timeout = t.heartbeat_interval;
+        }
         if let Some(mut tls) = transport.table("tls")? {
             t.tls.enable = tls.boolean("enable", true)?;
             t.tls.cert_file = resolve_config_path(tls.string("certFile", "")?, base_dir);
@@ -551,6 +556,36 @@ mod tests {
     }
 
     #[test]
+    fn heartbeat_timeout_is_raised_to_the_imported_interval() {
+        let (server, _) = parse_toml_config(
+            "serverAddr = 'example.test'\n[transport]\nheartbeatInterval = 120\nheartbeatTimeout = 10",
+            &current_server(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(server.transport.heartbeat_interval, 120);
+        assert_eq!(server.transport.heartbeat_timeout, 120);
+
+        // An omitted timeout uses the 90s default, which must also be raised
+        // when the imported interval is longer.
+        let (server, _) = parse_toml_config(
+            "serverAddr = 'example.test'\n[transport]\nheartbeatInterval = 120",
+            &current_server(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(server.transport.heartbeat_timeout, 120);
+
+        let (server, _) = parse_toml_config(
+            "serverAddr = 'example.test'\n[transport]\nheartbeatInterval = 30\nheartbeatTimeout = 90",
+            &current_server(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(server.transport.heartbeat_timeout, 90);
+    }
+
+    #[test]
     fn metadatas_survive_import_and_regeneration() {
         let input = r#"
 serverAddr = "example.test"
@@ -568,6 +603,50 @@ note = "quoted \"value\""
             ConfigGenerator::gen_toml_config(&server, &proxies, Path::new("/example/frpc.log"));
         let (reimported, _) = parse_toml_config(&generated, &current, None).unwrap();
         assert_eq!(reimported.metadatas, server.metadatas);
+    }
+
+    #[test]
+    fn non_string_metadata_is_preserved_as_text() {
+        let mut server = current_server();
+        server.log.level = "info".into();
+        server.transport.protocol = "tcp".into();
+        server
+            .metadatas
+            .insert("count".into(), serde_json::json!(3));
+        server
+            .metadatas
+            .insert("enabled".into(), serde_json::json!(true));
+
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        let (reimported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
+
+        assert_eq!(reimported.metadatas["count"], "3");
+        assert_eq!(reimported.metadatas["enabled"], "true");
+    }
+
+    #[test]
+    fn empty_default_metadata_token_is_only_emitted_in_multiuser_mode() {
+        let mut server = current_server();
+        server.log.level = "info".into();
+        server.transport.protocol = "tcp".into();
+        server.multiuser = false;
+        server.user.clear();
+        server
+            .metadatas
+            .insert("token".into(), serde_json::json!(""));
+
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        let (reimported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
+        assert!(!reimported.metadatas.contains_key("token"));
+
+        server.multiuser = true;
+        server.user = "example-user".into();
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        let (reimported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
+        assert_eq!(reimported.metadatas["token"], "");
     }
 
     #[test]
