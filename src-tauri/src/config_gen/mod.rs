@@ -168,6 +168,25 @@ impl ConfigGenerator {
             server.transport.tls.disable_custom_tls_first_byte
         ));
 
+        // Custom metadata required by some frps plugins, such as an instance ID.
+        // Serialize through the TOML crate so arbitrary keys and values are
+        // quoted correctly.
+        let metadatas: toml::map::Map<String, toml::Value> = server
+            .metadatas
+            .iter()
+            .filter_map(|(key, value)| {
+                value
+                    .as_str()
+                    .map(|value| (key.clone(), toml::Value::String(value.to_string())))
+            })
+            .collect();
+        if !metadatas.is_empty() {
+            if let Ok(rendered) = toml::to_string(&metadatas) {
+                toml.push_str("\n[metadatas]\n");
+                toml.push_str(&rendered);
+            }
+        }
+
         // 2. Normal Proxies
         let mut range_proxies = Vec::new();
         for proxy in proxies {

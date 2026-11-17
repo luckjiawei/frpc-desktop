@@ -446,6 +446,19 @@ export default {
         requireMessage: "Please enter user token",
         placeholder: "Please enter user token"
       },
+      metadatas: {
+        label: "Custom Metadata",
+        description:
+          "Key/value pairs passed to frps through the [metadatas] table. In multi-user mode, token is configured above.",
+        keyPlaceholder: "Key",
+        valuePlaceholder: "Value",
+        add: "Add",
+        remove: "Remove metadata",
+        empty: "No custom metadata",
+        keyRequired: "Please enter a metadata key",
+        keyDuplicate: "This metadata key already exists",
+        keyReserved: "In multi-user mode, token is configured above"
+      },
       authMethod: {
         label: "Auth Method",
         requireMessage: "Please select auth method",
