@@ -48,6 +48,20 @@ Extract the Windows portable zip and run `Frpc-Desktop.exe`. It requires the [Mi
 
 > 2.0 is a full rebuild on Tauri 2 — installers are much smaller than the 1.x Electron builds.
 
+### Install with WinGet (Windows)
+
+If [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/) is available, run the following command in PowerShell or Command Prompt:
+
+```powershell
+winget install --id luckjiawei.frp-desktop --exact --source winget
+```
+
+To update an existing installation:
+
+```powershell
+winget upgrade --id luckjiawei.frp-desktop --exact --source winget
+```
+
 ## What's New in 2.0
 
 - **Rebuilt on Tauri 2** — smaller downloads and lower memory usage than the Electron version.

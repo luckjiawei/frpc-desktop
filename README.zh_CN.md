@@ -48,6 +48,20 @@
 
 > 2.0 基于 Tauri 2 全面重构，安装包体积比 1.x 的 Electron 版本小很多。
 
+### 通过 WinGet 安装（Windows）
+
+如果系统已安装 [WinGet](https://learn.microsoft.com/zh-cn/windows/package-manager/winget/)，可在 PowerShell 或命令提示符中运行：
+
+```powershell
+winget install --id luckjiawei.frp-desktop --exact --source winget
+```
+
+更新已安装的版本：
+
+```powershell
+winget upgrade --id luckjiawei.frp-desktop --exact --source winget
+```
+
 ## 2.0 新特性
 
 - **基于 Tauri 2 重构**：安装包更小，内存占用更低。
