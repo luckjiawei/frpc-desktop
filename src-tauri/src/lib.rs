@@ -190,11 +190,22 @@ pub fn run() {
                     }
                 });
 
-            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../../public/logo/only/32x32.png"))
-                .ok();
+            // macOS menu bar icons are template images: the alpha mask is drawn in
+            // the menu bar's own color, so the icon stays monochrome and adapts to
+            // light/dark mode. Other platforms keep the full-color logo.
+            #[cfg(target_os = "macos")]
+            let tray_icon =
+                tauri::image::Image::from_bytes(include_bytes!("../../public/logo/only/64x64.png"))
+                    .ok();
+            #[cfg(not(target_os = "macos"))]
+            let tray_icon =
+                tauri::image::Image::from_bytes(include_bytes!("../../public/logo/only/32x32.png"))
+                    .ok();
             let icon_ref = tray_icon.as_ref().or_else(|| app.default_window_icon());
 
             if let Some(icon) = icon_ref {
+                #[cfg(target_os = "macos")]
+                let tray_builder = tray_builder.icon_as_template(true);
                 let _ = tray_builder.icon(icon.clone()).build(app)?;
             } else {
                 let _ = tray_builder.build(app)?;
