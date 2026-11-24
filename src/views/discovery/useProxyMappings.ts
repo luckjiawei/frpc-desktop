@@ -31,34 +31,38 @@ export function useProxyMappings() {
   let pending: Promise<void> | null = null;
 
   const index = computed(() => {
-    const map = new Map<string, DiscoveryMapping>();
+    const map = new Map<string, DiscoveryMapping[]>();
     for (const mapping of mappings.value) {
       const key = `${normalizeHost(mapping.localIP)}:${mapping.localPort}`;
-      if (!map.has(key)) map.set(key, mapping);
+      const list = map.get(key);
+      if (list) list.push(mapping);
+      else map.set(key, [mapping]);
     }
     return map;
   });
 
   const lookup = (address: string, port: number) =>
-    index.value.get(`${normalizeHost(address)}:${port}`) || null;
+    index.value.get(`${normalizeHost(address)}:${port}`)?.[0] || null;
+
+  /** How many proxies share this exact target, so the UI can say so. */
+  const countAt = (address: string, port: number) =>
+    index.value.get(`${normalizeHost(address)}:${port}`)?.length || 0;
 
   const countFor = (device: DiscoveredDevice) =>
     device.services.filter(service => lookup(service.targetAddress, service.port))
       .length;
 
   /**
-   * Same service name and port on another address. Only a hint: the design
-   * never marks these as mapped automatically.
+   * A proxy on the same port but another host. Proxy names are user-chosen, so
+   * the name is never part of the test; the hint just points at the likely
+   * match and the row itself still shows the discovered service name.
    */
-  const similar = (address: string, port: number, name: string) => {
-    const wanted = (name || "").trim().toLowerCase();
-    if (!wanted) return null;
+  const similar = (address: string, port: number) => {
+    const host = normalizeHost(address);
     return (
       mappings.value.find(
         mapping =>
-          mapping.localPort === port &&
-          normalizeHost(mapping.localIP) !== normalizeHost(address) &&
-          (mapping.proxyName || "").trim().toLowerCase() === wanted
+          mapping.localPort === port && normalizeHost(mapping.localIP) !== host
       ) || null
     );
   };
@@ -106,5 +110,14 @@ export function useProxyMappings() {
     return pending;
   }
 
-  return { mappings, loading, loaded, load, lookup, countFor, similar };
+  return {
+    mappings,
+    loading,
+    loaded,
+    load,
+    lookup,
+    countAt,
+    countFor,
+    similar
+  };
 }

@@ -16,6 +16,22 @@ use tokio::{
 
 const BANNER_TIMEOUT: Duration = Duration::from_millis(280);
 
+/// Value for the HTTP `Host` header. IPv6 literals need brackets, and the port
+/// must not be used here: a wrong host makes some servers answer 400/501.
+fn http_authority(ip: IpAddr) -> String {
+    match ip {
+        IpAddr::V4(address) => address.to_string(),
+        IpAddr::V6(address) => format!("[{address}]"),
+    }
+}
+
+fn http_probe_request(ip: IpAddr) -> String {
+    format!(
+        "HEAD / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        http_authority(ip)
+    )
+}
+
 /// Minimal SMB2 NEGOTIATE request. The response carries the Windows build in
 /// its NTLMSSP challenge, which is the only reliable version source.
 fn smb_negotiate() -> Vec<u8> {
@@ -232,7 +248,7 @@ async fn connect(
     match stream.take_error() {
         Ok(Some(e)) if e.kind() == std::io::ErrorKind::ConnectionRefused => ("refused", empty()),
         Ok(Some(_)) => ("unreachable", empty()),
-        Ok(None) => ("tcpReachable", banner(&mut stream, port, cancel).await),
+        Ok(None) => ("tcpReachable", banner(&mut stream, ip, port, cancel).await),
         Err(_) => ("unreachable", empty()),
     }
 }
@@ -241,6 +257,7 @@ async fn connect(
 /// budget so identifying a host never turns into a port scan of its own.
 async fn banner(
     stream: &mut TcpStream,
+    ip: IpAddr,
     port: u16,
     mut cancel: watch::Receiver<bool>,
 ) -> DiscoverySignals {
@@ -250,7 +267,7 @@ async fn banner(
         return signals;
     }
     if matches!(port, 80 | 8080) {
-        let request = format!("HEAD / HTTP/1.0\r\nHost: {port}\r\nConnection: close\r\n\r\n");
+        let request = http_probe_request(ip);
         let _ = tokio::time::timeout(BANNER_TIMEOUT, stream.write_all(request.as_bytes())).await;
     } else if port == 445 {
         let _ = tokio::time::timeout(BANNER_TIMEOUT, stream.write_all(&smb_negotiate())).await;
@@ -280,7 +297,16 @@ async fn banner(
                         break;
                     }
                 }
-                if port != 445 && buffer[..read].contains(&b'\n') {
+                if matches!(port, 80 | 8080) {
+                    // Keep reading until the header block ends: a server may
+                    // split the status line and the Server header across packets.
+                    if buffer[..read]
+                        .windows(4)
+                        .any(|window| window == b"\r\n\r\n")
+                    {
+                        break;
+                    }
+                } else if port != 445 && buffer[..read].contains(&b'\n') {
                     break;
                 }
             }
@@ -452,5 +478,73 @@ mod tests {
         assert_eq!(MAX_CONNECTIONS, 512);
         assert_eq!(MAX_ADDRESSES, 64);
         assert_eq!(CONCURRENCY, 16);
+    }
+
+    #[test]
+    fn http_probe_uses_the_target_address_as_host() {
+        let request = http_probe_request("10.0.0.2".parse::<IpAddr>().unwrap());
+        assert!(request.starts_with("HEAD / HTTP/1.0\r\n"));
+        assert!(request.contains("\r\nHost: 10.0.0.2\r\n"));
+        assert!(request.ends_with("\r\n\r\n"));
+        // The port must never stand in for the host: some servers answer 400.
+        assert!(!request.contains("Host: 80"));
+        assert!(!request.contains("Host: 8080"));
+    }
+
+    #[tokio::test]
+    async fn banner_reads_the_server_header_from_a_strict_server() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        // Answers 400 without a Server header when Host is not the address,
+        // which is how a wrong Host loses the HTTP evidence.
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut buffer = [0u8; 256];
+            let read = stream.read(&mut buffer).await.unwrap();
+            let request = String::from_utf8_lossy(&buffer[..read]).to_string();
+            let host_ok = request
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("host: 127.0.0.1"));
+            if host_ok {
+                // Split the response so the probe must wait for the header end.
+                stream.write_all(b"HTTP/1.0 200 OK\r\n").await.unwrap();
+                tokio::time::sleep(Duration::from_millis(5)).await;
+                stream
+                    .write_all(b"Server: demo/1.0 (Ubuntu)\r\n\r\n")
+                    .await
+                    .unwrap();
+            } else {
+                stream
+                    .write_all(b"HTTP/1.0 400 Bad Request\r\n\r\n")
+                    .await
+                    .unwrap();
+            }
+        });
+        let mut stream = TcpStream::connect(address).await.unwrap();
+        // Keep the sender alive: a dropped sender closes the channel and the
+        // probe would treat it as a cancellation.
+        let (cancel_tx, cancel) = watch::channel(false);
+        let signals = banner(&mut stream, IpAddr::from([127, 0, 0, 1]), 80, cancel).await;
+        server.await.unwrap();
+        drop(cancel_tx);
+        assert!(
+            signals.http.is_some(),
+            "the HTTP probe lost the Server header"
+        );
+    }
+
+    #[test]
+    fn ipv6_authority_is_bracketed() {
+        assert_eq!(
+            http_authority("fe80::1".parse::<IpAddr>().unwrap()),
+            "[fe80::1]"
+        );
+        assert_eq!(
+            http_authority("127.0.0.1".parse::<IpAddr>().unwrap()),
+            "127.0.0.1"
+        );
     }
 }

@@ -71,7 +71,9 @@ const lookup = (address: string, port: number) => mappings.lookup(address, port)
 const similarProxy = (service: DiscoveredService) =>
   lookup(service.targetAddress, service.port)
     ? null
-    : mappings.similar(service.targetAddress, service.port, service.name);
+    : mappings.similar(service.targetAddress, service.port);
+const proxyCount = (service: DiscoveredService) =>
+  mappings.countAt(service.targetAddress, service.port);
 
 interface HostRow {
   device: DiscoveredDevice;
@@ -181,11 +183,17 @@ const statusTone = computed(() => {
   return "ok";
 });
 
+const osName = (device: DiscoveredDevice) =>
+  osKnown(device) ? device.os!.name! : "";
+/** Low-confidence guesses are worded as guesses, never as a finding. */
 const osText = (device: DiscoveredDevice) => {
-  const os = device.os;
-  if (!os || os.family === "unknown" || !os.name)
-    return t("discovery.lan.osUnknown");
-  return [os.name, os.version].filter(Boolean).join(" · ");
+  const name = osName(device);
+  if (!name) return t("discovery.lan.osUnknown");
+  const label =
+    device.os?.confidence === "low"
+      ? t("discovery.lan.maybeName", { name })
+      : name;
+  return [label, device.os?.version].filter(Boolean).join(" · ");
 };
 const confidenceText = (device: DiscoveredDevice) => {
   const confidence = device.os?.confidence;
@@ -504,7 +512,11 @@ const currentMapping = computed(() =>
               <h3>
                 {{
                   osKnown(host.device)
-                    ? t("discovery.lan.why", { name: osText(host.device) })
+                    ? host.device.os?.confidence === "low"
+                      ? t("discovery.lan.whyGuess", {
+                          name: osName(host.device)
+                        })
+                      : t("discovery.lan.why", { name: osName(host.device) })
                     : t("discovery.lan.whyNot")
                 }}
               </h3>
@@ -561,6 +573,9 @@ const currentMapping = computed(() =>
                         target: `${lookup(service.targetAddress, service.port)!.localIP}:${lookup(service.targetAddress, service.port)!.localPort}`
                       })
                     }}
+                    <template v-if="proxyCount(service) > 1">
+                      · {{ t("discovery.lan.moreProxies", { count: proxyCount(service) }) }}
+                    </template>
                   </span>
                 </div>
                 <div
