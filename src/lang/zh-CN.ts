@@ -3,6 +3,144 @@ export default {
     title: "Frpc Desktop",
     description: "开机自启 / 可视化配置 / 免费开源，提供便捷的使用体验。"
   },
+  discovery: {
+    restart: "重新发现",
+    stop: "停止",
+    search: "搜索设备、地址或服务",
+    interface: "网络接口",
+    chooseScope: "请选择网络接口",
+    virtual: "虚拟网卡",
+    sourceFilter: "发现来源",
+    serviceTypeFilter: "公告服务类型",
+    transportFilter: "服务传输协议",
+    preparing: "正在准备发现…",
+    searching: "正在发现设备与服务…",
+    elapsed: "{seconds}秒",
+    deviceCount: "{count} 台设备",
+    scope: "当前网络：{name}",
+    coverage:
+      "仅对选定局域网进行一轮有限发现，通过公告、邻居记录与常用 TCP 端口检查获取线索。休眠设备、被隔离的客户端或未公告的服务可能无法发现，结果仅保存在内存中。",
+    probes: "TCP 检查：{completed} / {started} · 候选地址：{addresses}",
+    noScopes: "未找到活动的局域网网卡",
+    noResults: "本轮未发现设备或服务",
+    noMatches: "没有匹配当前筛选条件的结果",
+    emptyHint:
+      "请检查网络连接。防火墙、多播过滤和无线客户端隔离可能限制发现范围。",
+    clearFilters: "清除筛选",
+    failed: "发现未能完成，请检查各来源状态后重试。",
+    networkChanged: "网络已变化，旧结果已失效，正在重新加载可用网卡。",
+    partial: "结果不完整：部分来源或检查不可用。",
+    truncated: "已达到结果数量或扫描预算上限，当前结果未覆盖所有设备与服务。",
+    device: "设备 / 地址",
+    service: "服务",
+    services: "服务数",
+    address: "目标地址",
+    port: "端口",
+    transport: "传输协议",
+    verification: "验证状态",
+    action: "操作",
+    lastSeen: "最近发现",
+    unknown: "未知",
+    unnamedService: "未命名服务",
+    noServices: "没有匹配的服务，仅有设备记录时无法创建代理。",
+    neighborHint: "邻居记录，当前可达性未知",
+    portHint: "可能是 {protocol}（端口提示）",
+    announcedProtocol: "公告协议：{protocol}",
+    announced: "已公告服务",
+    createProxy: "创建代理",
+    createInstance: "创建实例",
+    instance: "frpc 实例",
+    proxyType: "代理类型",
+    continue: "继续配置代理",
+    draftInvalid:
+      "发现草稿已失效，请检查实例、地址和兼容的代理类型后重新选择服务。",
+    draftConflict: "已有待处理的发现草稿，请先前往代理页面完成或放弃该草稿。",
+    discardEditTitle: "放弃未保存的代理修改？",
+    discardEditMessage: "打开发现的服务会放弃当前未保存的代理修改，是否继续？",
+    draftReady:
+      "已载入发现草稿，请检查目标地址及远端配置后主动保存。代理尚未保存或启动。",
+    navigationFailed: "无法打开代理配置，草稿仍待处理，请前往代理页面继续。",
+    creation: {
+      stale: "当前结果已失效或正在刷新，请等待新结果后再创建代理。",
+      ipv6: "IPv6 仅用于展示发现结果。地址与网卡作用域在 frpc 全链路验证完成前，暂不支持创建代理。",
+      expired: "该公告已过期或被撤销，请重新发现后再创建代理。",
+      review:
+        "这里只创建临时草稿，请在代理配置中确认远端端口或域名，再自行保存和启动代理。",
+      unverified:
+        "服务公告和 TCP 检查不保证应用健康或转发可用，UDP 可达性未检查。"
+    },
+    status: {
+      pending: "等待启动",
+      running: "发现中",
+      completed: "本轮完成",
+      stopped: "已停止",
+      timedOut: "已达时限",
+      failed: "发现失败",
+      networkChanged: "网络已变化"
+    },
+    phase: {
+      pending: "准备中",
+      collecting: "收集公告与邻居记录",
+      probing: "检查 TCP 连接",
+      finished: "已保留本轮快照"
+    },
+    sources: {
+      mdns: "mDNS / DNS-SD",
+      ssdp: "SSDP",
+      neighbor: "邻居表",
+      tcpProbe: "TCP 检查",
+      tcp: "TCP 检查",
+      other: "其他来源"
+    },
+    sourceStatus: {
+      pending: "等待中",
+      running: "收集中",
+      completed: "已完成",
+      unavailable: "不可用"
+    },
+    verificationStatus: {
+      notChecked: "可达性未检查",
+      tcpReachable: "TCP 可连接",
+      refused: "TCP 连接被拒绝",
+      timeout: "TCP 检查超时",
+      unreachable: "网络不可达"
+    },
+    reasons: {
+      busy: "另一个发现任务正在释放资源，请稍后重试。",
+      networkChanged: "网络连续变化，请检查连接后重新发现。",
+      unavailable: "发现暂不可用，请检查网络及权限后重试。",
+      invalidArguments: "发现范围已失效，请重新发现以加载可用网卡。",
+      notFound: "本轮发现已过期，请重新发现以获取最新结果。",
+      activationExpired: "本轮发现未及时启动，请重新发现。",
+      forbidden: "当前窗口无法访问此发现任务，请重新发现。",
+      recoveryFailed: "无法恢复发现进度，已停止本轮发现，请重试。"
+    },
+    warnings: {
+      deviceLimit: "已达到设备数量上限，部分设备未展示。",
+      serviceLimit: "已达到服务数量上限，部分服务未展示。",
+      snapshotLimit: "已达到结果体积上限，本轮快照已截断。",
+      candidateLimit: "仅检查了有限数量的候选地址。",
+      probeLimit: "已达到 TCP 检查预算，其余端口未检查。",
+      sourceLimit: "部分发现来源已达到记录数量上限。",
+      sourceUnavailable: "一个或多个发现来源不可用。",
+      addressFamilyUnavailable: "该来源无法在选定网卡上发现所有地址族。",
+      activationExpired: "任务在启动前已过期，请重新发现。",
+      networkChanged: "发现期间网络发生变化，旧结果已失效。",
+      probeUnavailable: "部分 TCP 检查无法在选定网卡上执行。",
+      socketUnavailable: "无法打开发现套接字，请检查网络权限与多播支持。",
+      sendFailed: "无法在该网卡上发送发现请求。",
+      receiveFailed: "无法在该网卡上接收发现响应。",
+      commandUnavailable: "当前平台的系统邻居查询不可用。",
+      commandFailed: "系统邻居查询失败。",
+      outputLimit: "系统邻居查询结果超过大小限制。",
+      commandTimedOut: "系统邻居查询超时。",
+      interfaceUnavailable: "选定网卡当前不可用。",
+      stopped: "发现已停止，未检查的项目保持未知。",
+      cancelled: "部分发现来源在完成前被取消。",
+      sourceLimited:
+        "部分发现来源或检查受限，权限、多播可用性或系统支持可能影响覆盖范围。"
+    }
+  },
   router: {
     home: {
       title: "仪表盘"
@@ -12,6 +150,9 @@ export default {
     },
     proxy: {
       title: "代理"
+    },
+    discovery: {
+      title: "局域网发现"
     },
     download: {
       title: "下载"
@@ -631,6 +772,7 @@ export default {
     enable: "启用",
     disabled: "已禁用",
     enabled: "已启用",
+    confirm: "确定",
     cancel: "取消",
     close: "关闭",
     save: "保存",
@@ -665,20 +807,6 @@ export default {
       copyFailed: "复制失败",
       portCountMismatch: "请确保内网端口和外网端口数量一致"
     },
-    dialog: {
-      listPorts: {
-        title: "内网端口",
-        description: "内网端口列表",
-        table: {
-          columns: {
-            protocol: "协议",
-            ip: "IP",
-            port: "端口",
-            operation: "操作"
-          }
-        }
-      }
-    },
 
     form: {
       title: {
@@ -693,7 +821,6 @@ export default {
         none: "无插件"
       },
       button: {
-        localPort: "本机端口",
         generateName: "生成"
       },
       formItem: {

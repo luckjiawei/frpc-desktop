@@ -40,6 +40,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/proxy/index.vue")
       },
       {
+        path: "/discovery",
+        name: "Discovery",
+        meta: {
+          title: "router.discovery.title",
+          icon: "lan-outline",
+          keepAlive: false
+        },
+        component: () => import("@/views/discovery/index.vue")
+      },
+      {
         path: "/download",
         name: "Download",
         meta: {

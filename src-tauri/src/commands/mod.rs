@@ -8,6 +8,7 @@ use crate::db::tunnel_repo::{
 };
 use crate::db::version_repo::VersionRepository;
 use crate::db::DbManager;
+use crate::discovery::DiscoveryManager;
 use crate::downloader::VersionManager;
 use crate::models::{
     ApiResponse, CloudflaredSettings, FrpcProxy, FrpcSystemConfiguration,
@@ -24,6 +25,7 @@ use tauri::{AppHandle, Emitter, State};
 pub struct AppState {
     pub db: DbManager,
     pub runtime: RuntimeManager,
+    pub discovery: std::sync::Arc<DiscoveryManager>,
     pub version_mgr: VersionManager,
     pub app_data_dir: PathBuf,
     pub config_dir: PathBuf,
@@ -259,6 +261,91 @@ async fn handle_ipc_send(
     args: Option<Value>,
 ) -> ApiResponse<Value> {
     match path {
+        "discovery/getScopes" => ApiResponse::success(
+            serde_json::to_value(state.discovery.scopes()).unwrap_or(Value::Null),
+        ),
+        "discovery/start" => {
+            let request_id = args
+                .as_ref()
+                .and_then(|v| v.get("requestId"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            let scope_id = args
+                .as_ref()
+                .and_then(|v| v.get("scopeId"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            let network_version = args
+                .as_ref()
+                .and_then(|v| v.get("networkVersion"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            match state
+                .discovery
+                .start(request_id, scope_id, network_version)
+                .await
+            {
+                Ok(snapshot) => {
+                    ApiResponse::success(serde_json::to_value(snapshot).unwrap_or(Value::Null))
+                }
+                Err(reason) => ApiResponse::fail_with_data(
+                    "B1000",
+                    "Discovery could not start",
+                    serde_json::json!({"reason": reason}),
+                ),
+            }
+        }
+        "discovery/activate" => {
+            let scan_id = args
+                .as_ref()
+                .and_then(|v| v.get("scanId"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            match state.discovery.activate(app.clone(), scan_id).await {
+                Ok(snapshot) => {
+                    ApiResponse::success(serde_json::to_value(snapshot).unwrap_or(Value::Null))
+                }
+                Err(reason) => ApiResponse::fail_with_data(
+                    "B1000",
+                    "Discovery could not activate",
+                    serde_json::json!({"reason": reason}),
+                ),
+            }
+        }
+        "discovery/getSnapshot" => {
+            let scan_id = args
+                .as_ref()
+                .and_then(|v| v.get("scanId"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            match state.discovery.snapshot(scan_id).await {
+                Ok(snapshot) => {
+                    ApiResponse::success(serde_json::to_value(snapshot).unwrap_or(Value::Null))
+                }
+                Err(reason) => ApiResponse::fail_with_data(
+                    "B1000",
+                    "Discovery snapshot unavailable",
+                    serde_json::json!({"reason": reason}),
+                ),
+            }
+        }
+        "discovery/stop" => {
+            let scan_id = args
+                .as_ref()
+                .and_then(|v| v.get("scanId"))
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            match state.discovery.stop(app.clone(), scan_id).await {
+                Ok(snapshot) => {
+                    ApiResponse::success(serde_json::to_value(snapshot).unwrap_or(Value::Null))
+                }
+                Err(reason) => ApiResponse::fail_with_data(
+                    "B1000",
+                    "Discovery task unavailable",
+                    serde_json::json!({"reason": reason}),
+                ),
+            }
+        }
         // --- SERVER ---
         "server/getServerConfig" => {
             let tunnel_id = tunnel_id_or_return!(args);
@@ -601,16 +688,6 @@ async fn handle_ipc_send(
                 ApiResponse::internal_error("Invalid payload for modifyProxyStatus")
             }
         }
-        "proxy/getLocalPorts" => {
-            let conn = state.db.conn();
-            match ProxyRepository::get_local_ports(&conn) {
-                Ok(ports) => {
-                    ApiResponse::success(serde_json::to_value(ports).unwrap_or(Value::Null))
-                }
-                Err(e) => ApiResponse::internal_error(e.to_string()),
-            }
-        }
-
         // --- TUNNEL ---
         "tunnel/list" => {
             let conn = state.db.conn();

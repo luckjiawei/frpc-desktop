@@ -40,15 +40,6 @@ declare global {
   };
 
   /**
-   * 本地端口类型
-   */
-  type LocalPort = {
-    protocol: string;
-    ip: string;
-    port: number;
-  };
-
-  /**
    * 版本类型
    */
   type FrpVersion = {

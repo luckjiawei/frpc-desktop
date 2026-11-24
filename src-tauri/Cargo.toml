@@ -38,3 +38,8 @@ md5 = "0.7"
 open = "5.3"
 rfd = "0.15"
 futures-util = "0.3"
+netdev = { version = "0.47", default-features = false, features = ["gateway"] }
+socket2 = { version = "0.6", features = ["all"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock"] }

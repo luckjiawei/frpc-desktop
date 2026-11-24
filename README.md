@@ -81,7 +81,7 @@ winget upgrade --id luckjiawei.frp-desktop --exact --source winget
 - [x] Portable version
 - [x] Add UDP proxy type
 - [x] Support quick sharing of frps
-- [x] Add quick local port selection
+- [x] LAN device and service discovery with proxy drafts
 - [x] Support STCP proxy type
 - [x] Download frp through mirror sites
 - [x] Support import/export of all configurations
@@ -103,6 +103,14 @@ npm ci
 npm run tauri:dev    # run the desktop app in development mode
 npm run tauri:build  # build installers for the current platform
 ```
+
+## LAN discovery
+
+Open **LAN Discovery** to automatically run one bounded discovery round on the selected network interface, even before creating an frpc instance. Devices and services are collected from mDNS/DNS-SD, SSDP announcements and the system neighbor cache. TCP checks only connect and close: announced ports are checked first, followed by common ports on discovered candidates. The app does not visit device URLs, traverse every subnet address, scan all ports, or scan public networks. Results stay in memory and scanning stops when you leave the page.
+
+You can stop, rediscover, switch interfaces, search and filter the device list. Announcement and neighbor-cache evidence are shown separately from TCP connection results. Firewalls, sleep, client isolation and multicast filtering can hide devices; an empty result does not mean the network has no services. Each round is limited to 15 seconds, 64 candidate addresses and 512 TCP attempts, with at most 16 concurrent connections and 32 attempts per second. Virtual interfaces require explicit selection. IPv6 results are displayed, but creating a proxy from them is disabled pending end-to-end validation.
+
+Choose **Create proxy** on a service and select an frpc instance. Its actual LAN address and port open in a new proxy draft; confirm the remote port or domain and save explicitly. Discovery never saves or starts a proxy automatically. The former local-port picker has been removed; manual target address and port entry remains available in Proxy Management.
 
 ## Resource usage
 

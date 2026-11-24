@@ -4,6 +4,169 @@ export default {
     description:
       "Auto start on boot / Visual configuration / Free and open source, for a better experience."
   },
+  discovery: {
+    restart: "Discover again",
+    stop: "Stop",
+    search: "Search devices, addresses or services",
+    interface: "Network interface",
+    chooseScope: "Choose a network interface",
+    virtual: "Virtual interface",
+    sourceFilter: "Discovery source",
+    serviceTypeFilter: "Announced service type",
+    transportFilter: "Service transport",
+    preparing: "Preparing discovery…",
+    searching: "Discovering devices and services…",
+    elapsed: "{seconds}s",
+    deviceCount: "{count} devices",
+    scope: "Selected network: {name}",
+    coverage:
+      "One limited scan of the selected local network. Announcements, neighbor records and common TCP checks may miss sleeping devices, isolated clients or unadvertised services. Results are kept only in memory.",
+    probes:
+      "TCP checks: {completed} / {started} · Candidate addresses: {addresses}",
+    noScopes: "No active local network interface",
+    noResults: "No devices or services found in this scan",
+    noMatches: "No results match these filters",
+    emptyHint:
+      "Check your network connection. Firewall rules, multicast filtering and client isolation can limit discovery.",
+    clearFilters: "Clear filters",
+    failed:
+      "Discovery could not complete. Check the source outcomes and try again.",
+    networkChanged:
+      "The network changed. Previous results are stale; discovery reloads the available interfaces.",
+    partial: "Partial results: some sources or checks were unavailable.",
+    truncated:
+      "Result or scan limits were reached. These results do not cover all devices or services.",
+    device: "Device / address",
+    service: "Service",
+    services: "Services",
+    address: "Target address",
+    port: "Port",
+    transport: "Transport",
+    verification: "Verification",
+    action: "Action",
+    lastSeen: "Last discovered",
+    unknown: "Unknown",
+    unnamedService: "Unnamed service",
+    noServices:
+      "No matching services. A device record alone cannot create a proxy.",
+    neighborHint: "Neighbor record; current reachability unknown",
+    portHint: "Possibly {protocol} (port hint)",
+    announcedProtocol: "Announced protocol: {protocol}",
+    announced: "Announced service",
+    createProxy: "Create proxy",
+    createInstance: "Create an instance",
+    instance: "frpc instance",
+    proxyType: "Proxy type",
+    continue: "Continue to proxy settings",
+    draftInvalid:
+      "This discovery draft is no longer valid. Check the instance, address and compatible proxy type, then select the service again.",
+    draftConflict:
+      "A discovery draft is already pending. Open the Proxy page to finish or discard it first.",
+    discardEditTitle: "Discard unsaved proxy changes?",
+    discardEditMessage:
+      "Opening the discovered service will discard your current unsaved proxy changes. Continue?",
+    draftReady:
+      "Discovery draft loaded. Review the target and remote configuration, then save explicitly. The proxy has not been saved or started.",
+    navigationFailed:
+      "Could not open proxy settings. Your draft is pending; open the Proxy page to continue.",
+    creation: {
+      stale:
+        "These results are stale or being refreshed. Wait for new results before creating a proxy.",
+      ipv6: "IPv6 is shown for discovery only. Creating proxies is disabled until address and interface scope handling is verified through frpc.",
+      expired:
+        "This announcement has expired or been withdrawn. Discover again before creating a proxy.",
+      review:
+        "Only a temporary draft is created. Review remote ports or domains in proxy settings, then save and start the proxy yourself.",
+      unverified:
+        "Announcements and TCP checks do not guarantee application health or successful forwarding. UDP reachability is not checked."
+    },
+    status: {
+      pending: "Waiting to start",
+      running: "Discovering",
+      completed: "Scan complete",
+      stopped: "Stopped",
+      timedOut: "Time limit reached",
+      failed: "Discovery failed",
+      networkChanged: "Network changed"
+    },
+    phase: {
+      pending: "Preparing",
+      collecting: "Collecting announcements and neighbor records",
+      probing: "Checking TCP connections",
+      finished: "Snapshot retained"
+    },
+    sources: {
+      mdns: "mDNS / DNS-SD",
+      ssdp: "SSDP",
+      neighbor: "Neighbor table",
+      tcpProbe: "TCP check",
+      tcp: "TCP check",
+      other: "Other source"
+    },
+    sourceStatus: {
+      pending: "Pending",
+      running: "Collecting",
+      completed: "Complete",
+      unavailable: "Unavailable"
+    },
+    verificationStatus: {
+      notChecked: "Reachability not checked",
+      tcpReachable: "TCP connection accepted",
+      refused: "TCP connection refused",
+      timeout: "TCP check timed out",
+      unreachable: "Network unreachable"
+    },
+    reasons: {
+      busy: "Another discovery task is still releasing resources. Try again shortly.",
+      networkChanged:
+        "The network changed repeatedly. Check your connection and discover again.",
+      unavailable:
+        "Discovery is unavailable. Check your network and permissions, then try again.",
+      invalidArguments:
+        "The discovery scope is no longer valid. Reload the available interfaces by discovering again.",
+      notFound: "This scan has expired. Discover again to get fresh results.",
+      activationExpired: "The scan did not start in time. Discover again.",
+      forbidden:
+        "This scan cannot be accessed from this window. Discover again.",
+      recoveryFailed:
+        "Discovery updates could not be recovered. The scan was stopped; try again."
+    },
+    warnings: {
+      deviceLimit: "The device limit was reached; some devices are omitted.",
+      serviceLimit: "The service limit was reached; some services are omitted.",
+      snapshotLimit:
+        "The result size limit was reached; this snapshot is truncated.",
+      candidateLimit:
+        "Only a limited number of candidate addresses were checked.",
+      probeLimit:
+        "The TCP check budget was reached; remaining ports were not checked.",
+      sourceLimit: "A discovery source reached its record limit.",
+      sourceUnavailable: "One or more discovery sources are unavailable.",
+      addressFamilyUnavailable:
+        "This source cannot discover every address family on the selected interface.",
+      activationExpired:
+        "The scan expired before it could start. Discover again.",
+      networkChanged:
+        "The network changed during discovery; previous results are stale.",
+      probeUnavailable:
+        "Some TCP checks could not run on the selected interface.",
+      socketUnavailable:
+        "The discovery socket could not be opened. Check network permissions and multicast support.",
+      sendFailed: "Discovery requests could not be sent on this interface.",
+      receiveFailed:
+        "Discovery responses could not be received on this interface.",
+      commandUnavailable:
+        "The system neighbor lookup is unavailable on this platform.",
+      commandFailed: "The system neighbor lookup failed.",
+      outputLimit: "The system neighbor results exceeded the size limit.",
+      commandTimedOut: "The system neighbor lookup timed out.",
+      interfaceUnavailable: "The selected network interface is unavailable.",
+      stopped: "Discovery was stopped; unchecked items remain unknown.",
+      cancelled: "Some discovery sources were cancelled before finishing.",
+      sourceLimited:
+        "A discovery source or check was limited. Permissions, multicast availability or system support may reduce coverage."
+    }
+  },
   router: {
     home: {
       title: "Dashboard"
@@ -13,6 +176,9 @@ export default {
     },
     proxy: {
       title: "Proxy"
+    },
+    discovery: {
+      title: "LAN Discovery"
     },
     download: {
       title: "Download"
@@ -653,19 +819,6 @@ export default {
     },
     modifyTitle: "Modify Proxy",
     createTitle: "Create Proxy",
-    dialog: {
-      listPorts: {
-        title: "Inner Port",
-        description: "Inner Port List",
-        table: {
-          columns: {
-            protocol: "Protocol",
-            ip: "IP",
-            port: "Port"
-          }
-        }
-      }
-    },
     form: {
       modifyTitle: "Modify Proxy",
       createTitle: "Create Proxy",
@@ -683,7 +836,6 @@ export default {
         none: "No plugin"
       },
       button: {
-        localPort: "Local Port",
         generateName: "Generate"
       },
       formItem: {
@@ -850,6 +1002,7 @@ export default {
     enable: "Enable",
     disabled: "Disabled",
     enabled: "Enabled",
+    confirm: "Confirm",
     cancel: "Cancel",
     save: "Save",
     close: "Close",

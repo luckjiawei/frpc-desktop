@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod config_gen;
 pub mod db;
+pub mod discovery;
 pub mod downloader;
 pub mod models;
 pub mod process;
@@ -86,6 +87,7 @@ pub fn run() {
             let app_state = AppState {
                 db,
                 runtime: RuntimeManager::new(),
+                discovery: std::sync::Arc::new(discovery::DiscoveryManager::new()),
                 version_mgr,
                 app_data_dir: base_dir,
                 config_dir,
@@ -228,7 +230,9 @@ pub fn run() {
                 if !is_silent && !system.silent_startup {
                     #[cfg(target_os = "macos")]
                     {
-                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Regular);
                         let _ = app.handle().set_dock_visibility(true);
                     }
                     if let Some(window) = app.get_webview_window("main") {
@@ -239,7 +243,9 @@ pub fn run() {
                     #[cfg(target_os = "macos")]
                     {
                         let _ = app.handle().set_dock_visibility(false);
-                        let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
                     }
                 }
 
@@ -252,7 +258,9 @@ pub fn run() {
                             if let Err((id, code, msg)) = result {
                                 log::warn!(
                                     "Auto connect tunnel {} on startup failed: [{}]: {}",
-                                    id, code, msg
+                                    id,
+                                    code,
+                                    msg
                                 );
                             }
                         }
@@ -261,7 +269,9 @@ pub fn run() {
             } else if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
                 {
-                    let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Regular);
+                    let _ = app
+                        .handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Regular);
                     let _ = app.handle().set_dock_visibility(true);
                 }
                 let _ = window.show();
@@ -276,8 +286,10 @@ pub fn run() {
         .run(|app_handle, event| {
             if let tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit = event {
                 let runtime = app_handle.state::<AppState>().runtime.clone();
+                let discovery = app_handle.state::<AppState>().discovery.clone();
                 let app = app_handle.clone();
                 tauri::async_runtime::block_on(async move {
+                    discovery.shutdown().await;
                     runtime.stop_all(&app).await;
                 });
             }

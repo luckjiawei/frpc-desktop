@@ -7,7 +7,7 @@ interface ApiResponse<T> {
 type IpcRouter = {
   path: string;
   controller: string;
-}
+};
 
 type Listener = {
   channel: string;
@@ -22,7 +22,8 @@ enum IpcRouterKeys {
   TUNNEL = "TUNNEL",
   CLOUDFLARED = "CLOUDFLARED",
   PROXY = "PROXY",
-  SYSTEM = "SYSTEM",
+  DISCOVERY = "DISCOVERY",
+  SYSTEM = "SYSTEM"
 }
 
 type IpcRouters = Record<
