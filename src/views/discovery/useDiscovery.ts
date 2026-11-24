@@ -173,6 +173,24 @@ export function useDiscovery() {
     apply(current, token);
   }
 
+  /** Shows the last finished round immediately; the new scan then refines it. */
+  async function restore(token: number) {
+    if (snapshot.value || !networkVersion) return;
+    try {
+      const value = await call<DiscoverySnapshot>(
+        ipcRouters.DISCOVERY.getSnapshot,
+        { scanId: "" }
+      );
+      if (disposed || token !== generation || snapshot.value) return;
+      if (value.networkVersion !== networkVersion) return;
+      snapshot.value = value;
+      if (scopes.value.some(scope => scope.scopeId === value.scopeId))
+        scopeId.value = value.scopeId;
+    } catch {
+      // No earlier round to show; the new scan starts from an empty list.
+    }
+  }
+
   async function loadScopes(token: number) {
     const value = await call<DiscoveryScopes>(ipcRouters.DISCOVERY.getScopes);
     if (disposed || token !== generation) return;
@@ -184,6 +202,7 @@ export function useDiscovery() {
       value.scopes.find(s => s.scopeId === scopeId.value)?.scopeId ||
       value.defaultScopeId ||
       "";
+    await restore(token);
     await start(token);
   }
 

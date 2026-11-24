@@ -5,6 +5,53 @@ export default {
       "Auto start on boot / Visual configuration / Free and open source, for a better experience."
   },
   discovery: {
+    lan: {
+      refresh: "Refresh",
+      subtitle: "Find services on your network and create proxies directly",
+      searching: "Discovering devices and services…",
+      stale: "Showing the previous result while rediscovering…",
+      failed: "Discovery did not finish. Check the source status below and retry.",
+      restored: "Restored {hosts} hosts and {ports} ports, {mapped} already mapped",
+      checking: "checking for changes",
+      maybeSame: "Possibly the same proxy “{name}” · {target} (address changed)",
+      updatedAt: "Updated {time}",
+      justNow: "just now",
+      minutesAgo: "{count} min ago",
+      searchPlaceholder: "Search host, address, port or service",
+      onlyUnmapped: "Unmapped only",
+      osUnknown: "Unknown system",
+      unnamedHost: "No name reported",
+      mappedOf: "{mapped}/{total} mapped",
+      portCount: "{count} ports",
+      lastSeenAt: "Seen {time}",
+      why: "Why this is {name}",
+      whyNot: "Why it could not be identified",
+      whyNote:
+        "Evidence comes from the device's own answers and is labelled by strength. A version is shown only when the device reports it.",
+      whyNotNote:
+        "When nothing can be identified the generic icon is shown; the system is never guessed from a port alone.",
+      mapped: "Mapped",
+      mappedTo: "Proxy “{name}” · {tunnel} · local {target}",
+      viewProxy: "View proxy",
+      recreateHint: "Create the proxy again with this port",
+      mappedNote:
+        "“Mapped” means an existing proxy already targets this host and port; creating another one would conflict.",
+      osNote: "System information comes from the device itself and is informational only.",
+      more: "More options",
+      confidence: {
+        high: "Reliable",
+        medium: "Likely",
+        low: "Low confidence"
+      },
+      evidence: {
+        ssh: "SSH banner",
+        http: "HTTP response",
+        smb: "SMB negotiate",
+        ssdp: "Announcement",
+        ports: "Port combination",
+        other: "Other clue"
+      }
+    },
     restart: "Discover again",
     stop: "Stop",
     search: "Search devices, addresses or services",
