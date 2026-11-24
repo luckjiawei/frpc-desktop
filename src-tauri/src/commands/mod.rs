@@ -467,7 +467,7 @@ async fn handle_ipc_send(
                     return ApiResponse::internal_error(format!("Invalid system payload: {}", e))
                 }
             };
-            if !matches!(config.language.as_str(), "zh-CN" | "en-US") {
+            if !matches!(config.language.as_str(), "zh-CN" | "zh-TW" | "en-US") {
                 return ApiResponse::fail("B1000", "Invalid language");
             }
             if !crate::system::logger::is_valid_level(&config.app_log_level) {
