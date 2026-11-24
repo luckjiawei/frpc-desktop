@@ -12,8 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub const EMBEDDED_RELEASES_JSON: &str = include_str!("../../json/frp-releases.json");
-pub const EMBEDDED_CHECKSUMS_JSON: &str =
-    include_str!("../../json/frp_all_sha256_checksums.json");
+pub const EMBEDDED_CHECKSUMS_JSON: &str = include_str!("../../json/frp_all_sha256_checksums.json");
 
 pub const PROVIDER_FRPC: &str = crate::db::tunnel_repo::PROVIDER_FRPC;
 pub const PROVIDER_CLOUDFLARED: &str = crate::db::tunnel_repo::PROVIDER_CLOUDFLARED;
@@ -228,8 +227,10 @@ impl VersionManager {
         let downloaded =
             VersionRepository::get_downloaded_versions_by_provider(conn, PROVIDER_CLOUDFLARED)
                 .unwrap_or_default();
-        let downloaded_map: HashMap<i64, FrpcVersion> =
-            downloaded.into_iter().map(|v| (v.github_release_id, v)).collect();
+        let downloaded_map: HashMap<i64, FrpcVersion> = downloaded
+            .into_iter()
+            .map(|v| (v.github_release_id, v))
+            .collect();
 
         releases
             .iter()
@@ -304,12 +305,19 @@ impl VersionManager {
         self.catalog_from_releases(conn, &releases)
     }
 
-    fn catalog_from_releases(&self, conn: &Connection, releases: &[GithubRelease]) -> Vec<FrpcVersion> {
+    fn catalog_from_releases(
+        &self,
+        conn: &Connection,
+        releases: &[GithubRelease],
+    ) -> Vec<FrpcVersion> {
         let (os_pattern, arch_pattern) = Self::get_arch_patterns();
-        let downloaded = VersionRepository::get_downloaded_versions_by_provider(conn, PROVIDER_FRPC)
-            .unwrap_or_default();
-        let downloaded_map: HashMap<i64, FrpcVersion> =
-            downloaded.into_iter().map(|v| (v.github_release_id, v)).collect();
+        let downloaded =
+            VersionRepository::get_downloaded_versions_by_provider(conn, PROVIDER_FRPC)
+                .unwrap_or_default();
+        let downloaded_map: HashMap<i64, FrpcVersion> = downloaded
+            .into_iter()
+            .map(|v| (v.github_release_id, v))
+            .collect();
 
         let mut result = Vec::new();
         for release in releases {
@@ -452,8 +460,7 @@ impl VersionManager {
         hasher.update(&buffer);
         let hash = format!("{:x}", hasher.finalize());
 
-        let checksums: HashMap<String, String> =
-            serde_json::from_str(EMBEDDED_CHECKSUMS_JSON)?;
+        let checksums: HashMap<String, String> = serde_json::from_str(EMBEDDED_CHECKSUMS_JSON)?;
         let asset_name = checksums
             .get(&hash)
             .ok_or_else(|| anyhow::anyhow!("B1004:无法识别文件"))?;
@@ -529,7 +536,10 @@ impl VersionManager {
         }
         #[cfg(target_os = "macos")]
         {
-            let _ = std::process::Command::new("xattr").arg("-c").arg(path).output();
+            let _ = std::process::Command::new("xattr")
+                .arg("-c")
+                .arg(path)
+                .output();
         }
         #[cfg(not(unix))]
         let _ = path;
@@ -554,7 +564,8 @@ impl VersionManager {
                         #[cfg(unix)]
                         {
                             use std::os::unix::fs::PermissionsExt;
-                            let _ = fs::set_permissions(&out_path, fs::Permissions::from_mode(0o755));
+                            let _ =
+                                fs::set_permissions(&out_path, fs::Permissions::from_mode(0o755));
                         }
                         #[cfg(target_os = "macos")]
                         {
@@ -582,7 +593,8 @@ impl VersionManager {
                         #[cfg(unix)]
                         {
                             use std::os::unix::fs::PermissionsExt;
-                            let _ = fs::set_permissions(&out_path, fs::Permissions::from_mode(0o755));
+                            let _ =
+                                fs::set_permissions(&out_path, fs::Permissions::from_mode(0o755));
                         }
                         #[cfg(target_os = "macos")]
                         {
@@ -642,7 +654,13 @@ mod tests {
 
         let target = catalog[0].clone();
         let ver = mgr
-            .download_version(&db, PROVIDER_CLOUDFLARED, target.github_release_id, None, |_| {})
+            .download_version(
+                &db,
+                PROVIDER_CLOUDFLARED,
+                target.github_release_id,
+                None,
+                |_| {},
+            )
             .await
             .expect("cloudflared download should succeed");
         assert_eq!(ver.provider, PROVIDER_CLOUDFLARED);
@@ -680,19 +698,28 @@ mod tests {
         assert!(!catalog.is_empty());
 
         let target_release = catalog[0].clone();
-        println!("Downloading target release: {}, id: {}", target_release.name, target_release.github_release_id);
+        println!(
+            "Downloading target release: {}, id: {}",
+            target_release.name, target_release.github_release_id
+        );
 
-        let downloaded = mgr.download_version(
-            &db,
-            PROVIDER_FRPC,
-            target_release.github_release_id,
-            Some("gh-jwinks".to_string()),
-            |pct| {
-                println!("Progress: {:.0}%", pct * 100.0);
-            }
-        ).await;
+        let downloaded = mgr
+            .download_version(
+                &db,
+                PROVIDER_FRPC,
+                target_release.github_release_id,
+                Some("gh-jwinks".to_string()),
+                |pct| {
+                    println!("Progress: {:.0}%", pct * 100.0);
+                },
+            )
+            .await;
 
-        assert!(downloaded.is_ok(), "Download should succeed: {:?}", downloaded.err());
+        assert!(
+            downloaded.is_ok(),
+            "Download should succeed: {:?}",
+            downloaded.err()
+        );
         let ver = downloaded.unwrap();
         assert!(ver.downloaded);
         let local_path = PathBuf::from(ver.local_path.unwrap());

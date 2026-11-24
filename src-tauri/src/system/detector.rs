@@ -230,10 +230,7 @@ impl FrpcDetector {
                 }
             }
 
-            if let Ok(output) = std::process::Command::new("which")
-                .arg(name)
-                .output()
-            {
+            if let Ok(output) = std::process::Command::new("which").arg(name).output() {
                 if output.status.success() {
                     let out_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
                     if !out_str.is_empty() {
@@ -305,7 +302,10 @@ mod tests {
     fn test_resolve_path() {
         let home = dirs::home_dir().unwrap();
         assert_eq!(FrpcDetector::resolve_path("~/test"), home.join("test"));
-        assert_eq!(FrpcDetector::resolve_path("/usr/bin/frpc"), PathBuf::from("/usr/bin/frpc"));
+        assert_eq!(
+            FrpcDetector::resolve_path("/usr/bin/frpc"),
+            PathBuf::from("/usr/bin/frpc")
+        );
     }
 
     #[test]

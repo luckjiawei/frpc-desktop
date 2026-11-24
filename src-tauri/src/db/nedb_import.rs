@@ -61,7 +61,11 @@ pub fn import_if_needed(conn: &mut Connection, db_dir: &Path) -> anyhow::Result<
     for path in existing {
         let backup = PathBuf::from(format!("{}.migrated-{}.bak", path.display(), timestamp));
         if let Err(e) = fs::rename(&path, &backup) {
-            log::warn!("Could not archive migrated NeDB file {:?}: {}", path.file_name(), e);
+            log::warn!(
+                "Could not archive migrated NeDB file {:?}: {}",
+                path.file_name(),
+                e
+            );
         }
     }
     log::info!("NeDB import completed");
@@ -110,7 +114,10 @@ fn load_documents(path: &Path) -> anyhow::Result<Vec<Value>> {
         }
         docs.insert(id, doc);
     }
-    Ok(order.into_iter().filter_map(|id| docs.remove(&id)).collect())
+    Ok(order
+        .into_iter()
+        .filter_map(|id| docs.remove(&id))
+        .collect())
 }
 
 fn normalize_server(doc: Value) -> OpenSourceFrpcDesktopServer {
