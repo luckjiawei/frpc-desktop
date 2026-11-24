@@ -21,6 +21,8 @@ pub struct Observation {
     pub source: &'static str,
     pub ttl: Option<u32>,
     pub service: Option<Service>,
+    /// Software banner announced by the device itself (SSDP `SERVER`).
+    pub os_hint: Option<String>,
 }
 
 pub fn text(s: &str) -> String {
@@ -83,6 +85,8 @@ pub fn observe(snapshot: &mut DiscoverySnapshot, scope: &Scope, item: Observatio
             services: Vec::new(),
             expires_at: expiry(item.ttl),
             expired: item.ttl == Some(0),
+            os: None,
+            signals: crate::models::DiscoverySignals::default(),
         });
         snapshot.devices.len() - 1
     });
@@ -92,6 +96,9 @@ pub fn observe(snapshot: &mut DiscoverySnapshot, scope: &Scope, item: Observatio
         device.name = text(&item.name);
     }
     add_source(&mut device.sources, item.source);
+    if device.signals.ssdp.is_none() {
+        device.signals.ssdp = item.os_hint.clone().filter(|hint| !hint.is_empty());
+    }
     device.last_seen_at = now();
     device.expires_at = expiry(item.ttl);
     device.expired = item.ttl == Some(0);
@@ -237,6 +244,7 @@ mod tests {
                 transport: "tcp",
                 hint: Some("ipp".into()),
             }),
+            os_hint: None,
         };
         observe(&mut snapshot, &scope, item.clone());
         observe(&mut snapshot, &scope, item.clone());

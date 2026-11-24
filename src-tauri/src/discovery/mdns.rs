@@ -302,6 +302,7 @@ async fn family(
                             source: "mdns",
                             ttl: Some(ttl),
                             service: None,
+                            os_hint: None,
                         })
                         .is_err()
                     {
@@ -347,6 +348,7 @@ async fn family(
                                     .next()
                                     .map(|s| s.trim_start_matches('_').to_string()),
                             }),
+                            os_hint: None,
                         };
                         if tx.try_send(item).is_err() {
                             limited = true;

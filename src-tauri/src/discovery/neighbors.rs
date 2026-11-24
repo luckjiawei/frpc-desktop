@@ -14,6 +14,7 @@ pub async fn collect(
             for (address, stale) in entries {
                 if tx
                     .try_send(Observation {
+                        os_hint: None,
                         address,
                         name: String::new(),
                         source: "neighbor",

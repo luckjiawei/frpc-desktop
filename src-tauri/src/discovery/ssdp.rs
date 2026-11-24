@@ -9,6 +9,7 @@ use tokio::{
 struct Advertisement {
     name: String,
     ttl: u32,
+    server: Option<String>,
 }
 fn parse(packet: &[u8]) -> Option<Advertisement> {
     if packet.len() > 8192 {
@@ -26,6 +27,7 @@ fn parse(packet: &[u8]) -> Option<Advertisement> {
     let mut name = None;
     let mut ttl = 1800;
     let mut goodbye = false;
+    let mut server = None;
     for (index, line) in lines.enumerate() {
         if line.is_empty() {
             break;
@@ -47,12 +49,14 @@ fn parse(packet: &[u8]) -> Option<Advertisement> {
                 }
             }
             "nts" if value.eq_ignore_ascii_case("ssdp:byebye") => goodbye = true,
+            "server" => server = super::os::sanitize(value, 96),
             _ => {}
         }
     }
     Some(Advertisement {
         name: name.filter(|n| !n.is_empty())?,
         ttl: if goodbye { 0 } else { ttl },
+        server,
     })
 }
 pub async fn collect(
@@ -107,6 +111,7 @@ async fn family(
                     source: "ssdp",
                     ttl: Some(ad.ttl),
                     service: None,
+                    os_hint: ad.server,
                 })
                 .is_err()
             {

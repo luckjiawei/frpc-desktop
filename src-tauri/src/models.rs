@@ -60,6 +60,36 @@ pub struct DiscoveredService {
     pub proxy_disabled_reason: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryOsEvidence {
+    pub kind: String,
+    pub value: String,
+}
+
+/// Best-effort operating system guess. `version` is only filled when the device
+/// reports it itself (never inferred from an open port), and it names the
+/// release rather than the raw build number.
+#[derive(Debug, Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryOs {
+    pub family: String,
+    pub name: Option<String>,
+    pub version: Option<String>,
+    pub confidence: String,
+    pub evidence: Vec<DiscoveryOsEvidence>,
+}
+
+/// Raw answers collected during the TCP probe. Not serialized: the UI only
+/// needs the derived `DiscoveryOs`, and raw banners can contain device names.
+#[derive(Debug, Clone, Default)]
+pub struct DiscoverySignals {
+    pub ssh: Option<String>,
+    pub http: Option<String>,
+    pub smb: Option<(u8, u8, u16)>,
+    pub ssdp: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveredDevice {
@@ -72,6 +102,9 @@ pub struct DiscoveredDevice {
     pub services: Vec<DiscoveredService>,
     pub expires_at: Option<String>,
     pub expired: bool,
+    pub os: Option<DiscoveryOs>,
+    #[serde(skip)]
+    pub signals: DiscoverySignals,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -318,7 +318,13 @@ async fn handle_ipc_send(
                 .and_then(|v| v.get("scanId"))
                 .and_then(Value::as_str)
                 .unwrap_or("");
-            match state.discovery.snapshot(scan_id).await {
+            // An empty scan id asks for the last finished round.
+            let result = if scan_id.is_empty() {
+                state.discovery.last().await
+            } else {
+                state.discovery.snapshot(scan_id).await
+            };
+            match result {
                 Ok(snapshot) => {
                     ApiResponse::success(serde_json::to_value(snapshot).unwrap_or(Value::Null))
                 }

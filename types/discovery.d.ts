@@ -50,6 +50,17 @@ type DiscoveredService = {
   expired: boolean;
   proxyDisabledReason: "ipv6LinkLocal" | "ipv6NotValidated" | "expired" | null;
 };
+type DiscoveryOsEvidence = {
+  kind: "ssh" | "http" | "smb" | "ssdp" | "ports" | string;
+  value: string;
+};
+type DiscoveryOs = {
+  family: "windows" | "macos" | "ubuntu" | "debian" | "linux" | "unknown" | string;
+  name: string | null;
+  version: string | null;
+  confidence: "high" | "medium" | "low" | string;
+  evidence: DiscoveryOsEvidence[];
+};
 type DiscoveredDevice = {
   id: string;
   scopeId: string;
@@ -60,6 +71,7 @@ type DiscoveredDevice = {
   services: DiscoveredService[];
   expiresAt: string | null;
   expired: boolean;
+  os: DiscoveryOs | null;
 };
 type DiscoverySnapshot = {
   scanId: string;

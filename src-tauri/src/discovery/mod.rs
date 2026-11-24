@@ -2,6 +2,7 @@ pub mod interfaces;
 mod mdns;
 mod merge;
 mod neighbors;
+mod os;
 mod probe;
 mod sockets;
 mod ssdp;
@@ -201,6 +202,16 @@ impl DiscoveryManager {
             run_scan(weak, worker_app, worker_task).await;
         }));
         let snapshot = task.snapshot.lock().await.clone();
+        Ok(snapshot)
+    }
+    /// Last finished scan, so returning to the page can show earlier results
+    /// before the new round reports anything.
+    pub async fn last(&self) -> Result<DiscoverySnapshot, &'static str> {
+        let task = self.task.lock().await.as_ref().cloned().ok_or("notFound")?;
+        let snapshot = task.snapshot.lock().await.clone();
+        if matches!(snapshot.status.as_str(), "pending" | "running") {
+            return Err("busy");
+        }
         Ok(snapshot)
     }
     pub async fn snapshot(&self, scan_id: &str) -> Result<DiscoverySnapshot, &'static str> {
@@ -416,6 +427,13 @@ async fn run_scan(manager: std::sync::Weak<DiscoveryManager>, app: AppHandle, ta
         }
     } else if tokio::time::Instant::now() >= deadline {
         timed_out = true;
+    }
+    {
+        let mut snapshot = task.snapshot.lock().await;
+        for device in &mut snapshot.devices {
+            os::finalize(device);
+        }
+        touch(&mut snapshot);
     }
     task.cancel.send_replace(true);
     let _ = monitor.await;

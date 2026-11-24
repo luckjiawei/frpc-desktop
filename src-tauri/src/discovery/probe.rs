@@ -1,5 +1,5 @@
-use super::{interfaces::Scope, sockets};
-use crate::models::{DiscoveryBudget, DiscoverySnapshot};
+use super::{interfaces::Scope, os, sockets};
+use crate::models::{DiscoveryBudget, DiscoverySignals, DiscoverySnapshot};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use std::{
     collections::HashSet,
@@ -8,10 +8,47 @@ use std::{
     time::Duration,
 };
 use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
     sync::{watch, Mutex, Semaphore},
     time::Instant,
 };
+
+const BANNER_TIMEOUT: Duration = Duration::from_millis(280);
+
+/// Minimal SMB2 NEGOTIATE request. The response carries the Windows build in
+/// its NTLMSSP challenge, which is the only reliable version source.
+fn smb_negotiate() -> Vec<u8> {
+    let dialects: [u16; 5] = [0x0202, 0x0210, 0x0300, 0x0302, 0x0311];
+    let body_len = 36 + dialects.len() * 2;
+    let total = 64 + body_len;
+    let mut packet = Vec::with_capacity(4 + total);
+    packet.extend_from_slice(&[0, (total >> 16) as u8, (total >> 8) as u8, total as u8]);
+    packet.extend_from_slice(b"\xfeSMB");
+    packet.extend_from_slice(&64u16.to_le_bytes());
+    packet.extend_from_slice(&0u16.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&0u16.to_le_bytes());
+    packet.extend_from_slice(&1u16.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&0u64.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&0u64.to_le_bytes());
+    packet.extend_from_slice(&[0u8; 16]);
+    packet.extend_from_slice(&36u16.to_le_bytes());
+    packet.extend_from_slice(&(dialects.len() as u16).to_le_bytes());
+    packet.extend_from_slice(&1u16.to_le_bytes());
+    packet.extend_from_slice(&0u16.to_le_bytes());
+    packet.extend_from_slice(&0u32.to_le_bytes());
+    packet.extend_from_slice(&[0u8; 16]);
+    packet.extend_from_slice(&0u64.to_le_bytes());
+    for dialect in dialects {
+        packet.extend_from_slice(&dialect.to_le_bytes());
+    }
+    packet
+}
 
 const CONCURRENCY: usize = 16;
 const MAX_ADDRESSES: usize = 64;
@@ -79,9 +116,9 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
         let sem = sem.clone();
         async move {
             let permit = sem.acquire_owned().await.ok()?;
-            let result = connect(&scope, ip, port, cancel).await;
+            let (result, signals) = connect(&scope, ip, port, cancel).await;
             drop(permit);
-            Some((idx, ip, port, result))
+            Some((idx, ip, port, result, signals))
         }
     };
     let mut next_allowed = Instant::now();
@@ -99,9 +136,17 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
         futures.push(launch(idx, ip, port, cancel.clone()));
         snapshot.lock().await.budget.probes_started += 1;
         while futures.len() >= CONCURRENCY {
-            if let Some(Some((_, ip, port, result))) = futures.next().await {
+            if let Some(Some((_, ip, port, result, signals))) = futures.next().await {
                 let mut snapshot = snapshot.lock().await;
-                record(&mut snapshot, ip, port, result, &service_targets, &scope);
+                record(
+                    &mut snapshot,
+                    ip,
+                    port,
+                    result,
+                    signals,
+                    &service_targets,
+                    &scope,
+                );
                 snapshot.budget.probes_completed += 1;
             }
         }
@@ -110,9 +155,17 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
             break;
         }
     }
-    while let Some(Some((_, ip, port, result))) = futures.next().await {
+    while let Some(Some((_, ip, port, result, signals))) = futures.next().await {
         let mut snapshot = snapshot.lock().await;
-        record(&mut snapshot, ip, port, result, &service_targets, &scope);
+        record(
+            &mut snapshot,
+            ip,
+            port,
+            result,
+            signals,
+            &service_targets,
+            &scope,
+        );
         snapshot.budget.probes_completed += 1;
     }
     if cancelled {
@@ -126,12 +179,13 @@ async fn connect(
     ip: IpAddr,
     port: u16,
     mut cancel: watch::Receiver<bool>,
-) -> &'static str {
+) -> (&'static str, DiscoverySignals) {
+    let empty = DiscoverySignals::default;
     if !scope.allows(ip) {
-        return "unreachable";
+        return ("unreachable", empty());
     }
     let Some(source) = scope.source(ip) else {
-        return "unreachable";
+        return ("unreachable", empty());
     };
     let ipv6 = ip.is_ipv6();
     let domain = if ipv6 {
@@ -142,13 +196,13 @@ async fn connect(
     let socket =
         match socket2::Socket::new(domain, socket2::Type::STREAM, Some(socket2::Protocol::TCP)) {
             Ok(s) => s,
-            Err(_) => return "unreachable",
+            Err(_) => return ("unreachable", empty()),
         };
     if sockets::bind_interface(&socket, scope, ipv6).is_err()
         || socket.bind(&source.into()).is_err()
         || socket.set_nonblocking(true).is_err()
     {
-        return "unreachable";
+        return ("unreachable", empty());
     }
     let target: SocketAddr = scope.socket_address(ip, port);
     if let Err(error) = socket.connect(&target.into()) {
@@ -157,30 +211,98 @@ async fn connect(
             && error.raw_os_error() != Some(libc::EINPROGRESS)
         {
             return if error.kind() == std::io::ErrorKind::ConnectionRefused {
-                "refused"
+                ("refused", empty())
             } else {
-                "unreachable"
+                ("unreachable", empty())
             };
         }
     }
-    let stream = match TcpStream::from_std(socket.into()) {
+    let mut stream = match TcpStream::from_std(socket.into()) {
         Ok(s) => s,
-        Err(_) => return "unreachable",
+        Err(_) => return ("unreachable", empty()),
     };
     let outcome = tokio::select! {
-        _ = tokio::time::sleep(Duration::from_millis(500)) => return "timeout",
-        _ = cancel.changed() => return "unreachable",
+        _ = tokio::time::sleep(Duration::from_millis(500)) => return ("timeout", empty()),
+        _ = cancel.changed() => return ("unreachable", empty()),
         result = stream.writable() => result,
     };
     if outcome.is_err() {
-        return "unreachable";
+        return ("unreachable", empty());
     }
     match stream.take_error() {
-        Ok(Some(e)) if e.kind() == std::io::ErrorKind::ConnectionRefused => "refused",
-        Ok(Some(_)) => "unreachable",
-        Ok(None) => "tcpReachable",
-        Err(_) => "unreachable",
+        Ok(Some(e)) if e.kind() == std::io::ErrorKind::ConnectionRefused => ("refused", empty()),
+        Ok(Some(_)) => ("unreachable", empty()),
+        Ok(None) => ("tcpReachable", banner(&mut stream, port, cancel).await),
+        Err(_) => ("unreachable", empty()),
     }
+}
+
+/// Reads at most one short answer per reachable port. Bounded by the probe
+/// budget so identifying a host never turns into a port scan of its own.
+async fn banner(
+    stream: &mut TcpStream,
+    port: u16,
+    mut cancel: watch::Receiver<bool>,
+) -> DiscoverySignals {
+    let mut signals = DiscoverySignals::default();
+    let interesting = matches!(port, 22 | 80 | 445 | 8080);
+    if !interesting || *cancel.borrow() {
+        return signals;
+    }
+    if matches!(port, 80 | 8080) {
+        let request = format!("HEAD / HTTP/1.0\r\nHost: {port}\r\nConnection: close\r\n\r\n");
+        let _ = tokio::time::timeout(BANNER_TIMEOUT, stream.write_all(request.as_bytes())).await;
+    } else if port == 445 {
+        let _ = tokio::time::timeout(BANNER_TIMEOUT, stream.write_all(&smb_negotiate())).await;
+    }
+    let mut buffer = vec![0u8; 4096];
+    let mut read = 0usize;
+    let deadline = tokio::time::Instant::now() + BANNER_TIMEOUT;
+    while read < buffer.len() {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        let outcome = tokio::select! {
+            _ = cancel.changed() => break,
+            result = tokio::time::timeout(remaining, stream.read(&mut buffer[read..])) => result,
+        };
+        match outcome {
+            Ok(Ok(0)) | Err(_) => break,
+            Ok(Ok(count)) => {
+                read += count;
+                if port == 445 && read >= 4 {
+                    let declared = 4
+                        + ((usize::from(buffer[1]) << 16)
+                            | (usize::from(buffer[2]) << 8)
+                            | usize::from(buffer[3]));
+                    if read >= declared.min(buffer.len()) {
+                        break;
+                    }
+                }
+                if port != 445 && buffer[..read].contains(&b'\n') {
+                    break;
+                }
+            }
+            Ok(Err(_)) => break,
+        }
+    }
+    if read == 0 {
+        return signals;
+    }
+    match port {
+        22 => {
+            let text = String::from_utf8_lossy(&buffer[..read]);
+            signals.ssh = text.lines().next().and_then(|line| os::sanitize(line, 120));
+        }
+        80 | 8080 => {
+            let text = String::from_utf8_lossy(&buffer[..read]);
+            signals.http = os::parse_http_server(&text);
+        }
+        445 => signals.smb = os::parse_smb_version(&buffer[..read]),
+        _ => {}
+    }
+    signals
 }
 
 fn record(
@@ -188,9 +310,28 @@ fn record(
     ip: IpAddr,
     port: u16,
     result: &'static str,
+    signals: DiscoverySignals,
     announced: &HashSet<(IpAddr, u16)>,
     scope: &Scope,
 ) {
+    if signals.ssh.is_some() || signals.http.is_some() || signals.smb.is_some() {
+        if let Some(device) = snapshot.devices.iter_mut().find(|device| {
+            device
+                .addresses
+                .iter()
+                .any(|address| address.address.parse::<IpAddr>().ok() == Some(ip))
+        }) {
+            if signals.ssh.is_some() {
+                device.signals.ssh = signals.ssh;
+            }
+            if signals.http.is_some() {
+                device.signals.http = signals.http;
+            }
+            if signals.smb.is_some() {
+                device.signals.smb = signals.smb;
+            }
+        }
+    }
     if let Some(service) = snapshot
         .devices
         .iter_mut()
@@ -232,6 +373,8 @@ fn record(
                     services: vec![],
                     expires_at: None,
                     expired: false,
+                    os: None,
+                    signals: DiscoverySignals::default(),
                 });
                 snapshot.devices.len() - 1
             }
