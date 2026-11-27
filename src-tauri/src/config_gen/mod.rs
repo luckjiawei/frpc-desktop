@@ -15,6 +15,40 @@ fn metadata_text(value: &serde_json::Value) -> String {
     }
 }
 
+/// Escape a value for a TOML basic string. Every user-supplied string that is
+/// interpolated into the generated file goes through this function, so a quote
+/// or backslash can never break out of its value and newlines stay on one line.
+fn toml_escape(value: impl AsRef<str>) -> String {
+    let mut escaped = String::with_capacity(value.as_ref().len());
+    for character in value.as_ref().chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            control if (control as u32) < 0x20 || control == '\u{7f}' => {
+                escaped.push_str(&format!("\\u{:04X}", control as u32));
+            }
+            other => escaped.push(other),
+        }
+    }
+    escaped
+}
+
+/// Render a TOML key, quoting it only when it is not a bare key.
+fn toml_key(key: &str) -> String {
+    let bare = !key.is_empty()
+        && key.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
+        });
+    if bare {
+        key.to_string()
+    } else {
+        format!("\"{}\"", toml_escape(&key))
+    }
+}
+
 pub struct ConfigGenerator;
 
 impl ConfigGenerator {
@@ -49,12 +83,15 @@ impl ConfigGenerator {
         let mut toml = String::new();
 
         // 1. Common Server Config
-        toml.push_str(&format!("serverAddr = \"{}\"\n", server.server_addr));
+        toml.push_str(&format!(
+            "serverAddr = \"{}\"\n",
+            toml_escape(&server.server_addr)
+        ));
         toml.push_str(&format!("serverPort = {}\n", server.server_port));
         toml.push_str(&format!("loginFailExit = {}\n", server.login_fail_exit));
 
         if server.multiuser && !server.user.is_empty() {
-            toml.push_str(&format!("user = \"{}\"\n", server.user));
+            toml.push_str(&format!("user = \"{}\"\n", toml_escape(&server.user)));
         }
 
         if server.udp_packet_size > 0 {
@@ -67,9 +104,9 @@ impl ConfigGenerator {
         toml.push_str("\n[log]\n");
         toml.push_str(&format!(
             "to = \"{}\"\n",
-            frpc_log_path.to_string_lossy().replace('\\', "/")
+            toml_escape(&frpc_log_path.to_string_lossy().replace('\\', "/"))
         ));
-        toml.push_str(&format!("level = \"{}\"\n", server.log.level));
+        toml.push_str(&format!("level = \"{}\"\n", toml_escape(&server.log.level)));
         toml.push_str(&format!("maxDays = {}\n", server.log.max_days));
         toml.push_str(&format!(
             "disablePrintColor = {}\n",
@@ -79,24 +116,74 @@ impl ConfigGenerator {
         // Auth config
         if !server.auth.method.is_empty() && server.auth.method != "none" {
             toml.push_str("\n[auth]\n");
-            toml.push_str(&format!("method = \"{}\"\n", server.auth.method));
-            if !server.auth.token.is_empty() {
-                toml.push_str(&format!("token = \"{}\"\n", server.auth.token));
+            toml.push_str(&format!(
+                "method = \"{}\"\n",
+                toml_escape(&server.auth.method)
+            ));
+            // A token left over from a previous mode belongs to token auth only.
+            if server.auth.method != "oidc" && !server.auth.token.is_empty() {
+                toml.push_str(&format!(
+                    "token = \"{}\"\n",
+                    toml_escape(&server.auth.token)
+                ));
+            }
+            if server.auth.method == "oidc" {
+                let oidc = &server.auth.oidc;
+                let mut lines = String::new();
+                for (key, value) in [
+                    ("clientID", oidc.client_id.as_str()),
+                    ("clientSecret", oidc.client_secret.as_str()),
+                    ("tokenEndpointURL", oidc.token_endpoint_url.as_str()),
+                    ("audience", oidc.audience.as_str()),
+                    ("scope", oidc.scope.as_str()),
+                ] {
+                    if !value.is_empty() {
+                        lines.push_str(&format!("{key} = \"{}\"\n", toml_escape(&value)));
+                    }
+                }
+                if !lines.is_empty() {
+                    toml.push_str("\n[auth.oidc]\n");
+                    toml.push_str(&lines);
+                }
+                let mut params: Vec<(&String, &String)> =
+                    oidc.additional_endpoint_params.iter().collect();
+                params.sort_by(|a, b| a.0.cmp(b.0));
+                let mut rendered = String::new();
+                for (key, value) in params {
+                    if key.is_empty() || value.is_empty() {
+                        continue;
+                    }
+                    rendered.push_str(&format!(
+                        "{} = \"{}\"\n",
+                        toml_key(key),
+                        toml_escape(&value)
+                    ));
+                }
+                if !rendered.is_empty() {
+                    toml.push_str("\n[auth.oidc.additionalEndpointParams]\n");
+                    toml.push_str(&rendered);
+                }
             }
         }
 
         // WebServer config
         if server.web_server.enable && server.web_server.port > 0 {
             toml.push_str("\n[webServer]\n");
-            toml.push_str(&format!("addr = \"{}\"\n", server.web_server.addr));
+            toml.push_str(&format!(
+                "addr = \"{}\"\n",
+                toml_escape(&server.web_server.addr)
+            ));
             toml.push_str(&format!("port = {}\n", server.web_server.port));
             if !server.web_server.user.is_empty() {
-                toml.push_str(&format!("user = \"{}\"\n", server.web_server.user));
+                toml.push_str(&format!(
+                    "user = \"{}\"\n",
+                    toml_escape(&server.web_server.user)
+                ));
             }
             if !server.web_server.password.is_empty() {
                 toml.push_str(&format!(
                     "password = \"{}\"\n",
-                    server.web_server.password
+                    toml_escape(&server.web_server.password)
                 ));
             }
             toml.push_str(&format!(
@@ -121,17 +208,20 @@ impl ConfigGenerator {
             "tcpMuxKeepaliveInterval = {}\n",
             server.transport.tcp_mux_keepalive_interval
         ));
-        toml.push_str(&format!("protocol = \"{}\"\n", server.transport.protocol));
+        toml.push_str(&format!(
+            "protocol = \"{}\"\n",
+            toml_escape(&server.transport.protocol)
+        ));
         if !server.transport.connect_server_local_ip.is_empty() {
             toml.push_str(&format!(
                 "connectServerLocalIP = \"{}\"\n",
-                server.transport.connect_server_local_ip
+                toml_escape(&server.transport.connect_server_local_ip)
             ));
         }
         if !server.transport.proxy_url.is_empty() {
             toml.push_str(&format!(
                 "proxyURL = \"{}\"\n",
-                server.transport.proxy_url
+                toml_escape(&server.transport.proxy_url)
             ));
         }
         if server.transport.heartbeat_interval > 0 {
@@ -153,25 +243,25 @@ impl ConfigGenerator {
         if !server.transport.tls.cert_file.is_empty() {
             toml.push_str(&format!(
                 "certFile = \"{}\"\n",
-                server.transport.tls.cert_file.replace('\\', "/")
+                toml_escape(&server.transport.tls.cert_file.replace('\\', "/"))
             ));
         }
         if !server.transport.tls.key_file.is_empty() {
             toml.push_str(&format!(
                 "keyFile = \"{}\"\n",
-                server.transport.tls.key_file.replace('\\', "/")
+                toml_escape(&server.transport.tls.key_file.replace('\\', "/"))
             ));
         }
         if !server.transport.tls.trusted_ca_file.is_empty() {
             toml.push_str(&format!(
                 "trustedCaFile = \"{}\"\n",
-                server.transport.tls.trusted_ca_file.replace('\\', "/")
+                toml_escape(&server.transport.tls.trusted_ca_file.replace('\\', "/"))
             ));
         }
         if !server.transport.tls.server_name.is_empty() {
             toml.push_str(&format!(
                 "serverName = \"{}\"\n",
-                server.transport.tls.server_name
+                toml_escape(&server.transport.tls.server_name)
             ));
         }
         toml.push_str(&format!(
@@ -217,16 +307,14 @@ impl ConfigGenerator {
                     _ => "8080".to_string(),
                 };
                 let template = format!(
-                    "\n{{{{- range $_, $v := parseNumberRangePair \"{}\" \"{}\" }}}}\n[[proxies]]\ntype = \"{}\"\nname = \"{}-{{{{ $v.First }}}}\"\nlocalIP = \"{}\"\nlocalPort = {{{{ $v.First }}}}\nremotePort = {{{{ $v.Second }}}}\n{{{{- end }}}}\n",
-                    local_p, remote_p, proxy.proxy_type, proxy.name, proxy.local_ip
-                );
+                    "\n{{{{- range $_, $v := parseNumberRangePair \"{}\" \"{}\" }}}}\n[[proxies]]\ntype = \"{}\"\nname = \"{}-{{{{ $v.First }}}}\"\nlocalIP = \"{}\"\nlocalPort = {{{{ $v.First }}}}\nremotePort = {{{{ $v.Second }}}}\n{{{{- end }}}}\n", toml_escape(&local_p) , toml_escape(&remote_p) , toml_escape(&proxy.proxy_type) , toml_escape(&proxy.name) , toml_escape(&proxy.local_ip) );
                 range_proxies.push(template);
                 continue;
             }
 
             toml.push_str("\n[[proxies]]\n");
-            toml.push_str(&format!("name = \"{}\"\n", proxy.name));
-            toml.push_str(&format!("type = \"{}\"\n", proxy.proxy_type));
+            toml.push_str(&format!("name = \"{}\"\n", toml_escape(&proxy.name)));
+            toml.push_str(&format!("type = \"{}\"\n", toml_escape(&proxy.proxy_type)));
 
             let local_p = match &proxy.local_port {
                 serde_json::Value::Number(n) => n.to_string(),
@@ -241,32 +329,29 @@ impl ConfigGenerator {
 
             match proxy.proxy_type.as_str() {
                 "tcp" | "udp" => {
-                    toml.push_str(&format!("localIP = \"{}\"\n", proxy.local_ip));
+                    toml.push_str(&format!("localIP = \"{}\"\n", toml_escape(&proxy.local_ip)));
                     toml.push_str(&format!("localPort = {}\n", local_p));
                     toml.push_str(&format!("remotePort = {}\n", remote_p));
 
                     if proxy.proxy_type == "tcp" && proxy.tls2raw {
                         toml.push_str("\n[proxies.plugin]\n");
                         toml.push_str("type = \"tls2raw\"\n");
-                        toml.push_str(&format!(
-                            "localAddr = \"{}:{}\"\n",
-                            proxy.local_ip, local_p
-                        ));
+                        toml.push_str(&format!("localAddr = \"{}:{}\"\n", proxy.local_ip, local_p));
                         toml.push_str(&format!(
                             "crtPath = \"{}\"\n",
-                            proxy.tls2raw_ca_file.replace('\\', "/")
+                            toml_escape(&proxy.tls2raw_ca_file.replace('\\', "/"))
                         ));
                         toml.push_str(&format!(
                             "keyPath = \"{}\"\n",
-                            proxy.tls2raw_key_file.replace('\\', "/")
+                            toml_escape(&proxy.tls2raw_key_file.replace('\\', "/"))
                         ));
                     }
                 }
                 "http" | "https" => {
-                    let has_plugin = proxy.proxy_type == "https"
-                        && (proxy.https2http || proxy.tls2raw);
+                    let has_plugin =
+                        proxy.proxy_type == "https" && (proxy.https2http || proxy.tls2raw);
                     if !has_plugin {
-                        toml.push_str(&format!("localIP = \"{}\"\n", proxy.local_ip));
+                        toml.push_str(&format!("localIP = \"{}\"\n", toml_escape(&proxy.local_ip)));
                         toml.push_str(&format!("localPort = {}\n", local_p));
                     }
 
@@ -275,45 +360,45 @@ impl ConfigGenerator {
                             .custom_domains
                             .iter()
                             .filter(|d| !d.is_empty())
-                            .map(|d| format!("\"{}\"", d))
+                            .map(|d| format!("\"{}\"", toml_escape(&d)))
                             .collect();
                         if !domains.is_empty() {
-                            toml.push_str(&format!(
-                                "customDomains = [{}]\n",
-                                domains.join(", ")
-                            ));
+                            toml.push_str(&format!("customDomains = [{}]\n", domains.join(", ")));
                         }
                     }
 
                     if !proxy.subdomain.is_empty() {
-                        toml.push_str(&format!("subdomain = \"{}\"\n", proxy.subdomain));
+                        toml.push_str(&format!(
+                            "subdomain = \"{}\"\n",
+                            toml_escape(&proxy.subdomain)
+                        ));
                     }
 
                     let locations: Vec<String> = proxy
                         .locations
                         .iter()
                         .filter(|l| !l.is_empty())
-                        .map(|l| format!("\"{}\"", l))
+                        .map(|l| format!("\"{}\"", toml_escape(&l)))
                         .collect();
                     if !locations.is_empty() {
-                        toml.push_str(&format!(
-                            "locations = [{}]\n",
-                            locations.join(", ")
-                        ));
+                        toml.push_str(&format!("locations = [{}]\n", locations.join(", ")));
                     }
 
                     if !proxy.host_header_rewrite.is_empty() {
                         toml.push_str(&format!(
                             "hostHeaderRewrite = \"{}\"\n",
-                            proxy.host_header_rewrite
+                            toml_escape(&proxy.host_header_rewrite)
                         ));
                     }
 
                     if proxy.basic_auth {
-                        toml.push_str(&format!("httpUser = \"{}\"\n", proxy.http_user));
+                        toml.push_str(&format!(
+                            "httpUser = \"{}\"\n",
+                            toml_escape(&proxy.http_user)
+                        ));
                         toml.push_str(&format!(
                             "httpPassword = \"{}\"\n",
-                            proxy.http_password
+                            toml_escape(&proxy.http_password)
                         ));
                     }
 
@@ -327,11 +412,11 @@ impl ConfigGenerator {
                             ));
                             toml.push_str(&format!(
                                 "crtPath = \"{}\"\n",
-                                proxy.tls2raw_ca_file.replace('\\', "/")
+                                toml_escape(&proxy.tls2raw_ca_file.replace('\\', "/"))
                             ));
                             toml.push_str(&format!(
                                 "keyPath = \"{}\"\n",
-                                proxy.tls2raw_key_file.replace('\\', "/")
+                                toml_escape(&proxy.tls2raw_key_file.replace('\\', "/"))
                             ));
                         } else if proxy.https2http {
                             toml.push_str("\n[proxies.plugin]\n");
@@ -342,19 +427,22 @@ impl ConfigGenerator {
                             ));
                             toml.push_str(&format!(
                                 "crtPath = \"{}\"\n",
-                                proxy.https2http_ca_file.replace('\\', "/")
+                                toml_escape(&proxy.https2http_ca_file.replace('\\', "/"))
                             ));
                             toml.push_str(&format!(
                                 "keyPath = \"{}\"\n",
-                                proxy.https2http_key_file.replace('\\', "/")
+                                toml_escape(&proxy.https2http_key_file.replace('\\', "/"))
                             ));
                         }
                     }
                 }
                 "stcp" | "xtcp" | "sudp" => {
-                    toml.push_str(&format!("localIP = \"{}\"\n", proxy.local_ip));
+                    toml.push_str(&format!("localIP = \"{}\"\n", toml_escape(&proxy.local_ip)));
                     toml.push_str(&format!("localPort = {}\n", local_p));
-                    toml.push_str(&format!("secretKey = \"{}\"\n", proxy.secret_key));
+                    toml.push_str(&format!(
+                        "secretKey = \"{}\"\n",
+                        toml_escape(&proxy.secret_key)
+                    ));
                 }
                 _ => {}
             }
@@ -376,7 +464,7 @@ impl ConfigGenerator {
                 if !proxy.transport.proxy_protocol_version.is_empty() {
                     toml.push_str(&format!(
                         "proxyProtocolVersion = \"{}\"\n",
-                        proxy.transport.proxy_protocol_version
+                        toml_escape(&proxy.transport.proxy_protocol_version)
                     ));
                 }
             }
@@ -389,25 +477,37 @@ impl ConfigGenerator {
             }
 
             toml.push_str("\n[[visitors]]\n");
-            toml.push_str(&format!("name = \"{}\"\n", proxy.name));
-            toml.push_str(&format!("type = \"{}\"\n", proxy.proxy_type));
-            toml.push_str(&format!("serverName = \"{}\"\n", proxy.server_name));
-            toml.push_str(&format!("secretKey = \"{}\"\n", proxy.secret_key));
-            toml.push_str(&format!("bindAddr = \"{}\"\n", proxy.bind_addr));
+            toml.push_str(&format!("name = \"{}\"\n", toml_escape(&proxy.name)));
+            toml.push_str(&format!("type = \"{}\"\n", toml_escape(&proxy.proxy_type)));
+            toml.push_str(&format!(
+                "serverName = \"{}\"\n",
+                toml_escape(&proxy.server_name)
+            ));
+            toml.push_str(&format!(
+                "secretKey = \"{}\"\n",
+                toml_escape(&proxy.secret_key)
+            ));
+            toml.push_str(&format!(
+                "bindAddr = \"{}\"\n",
+                toml_escape(&proxy.bind_addr)
+            ));
             if let Some(port) = proxy.bind_port {
                 toml.push_str(&format!("bindPort = {}\n", port));
             }
             if !proxy.server_user.is_empty() {
-                toml.push_str(&format!("serverUser = \"{}\"\n", proxy.server_user));
+                toml.push_str(&format!(
+                    "serverUser = \"{}\"\n",
+                    toml_escape(&proxy.server_user)
+                ));
             }
 
             if proxy.proxy_type == "xtcp" {
-                toml.push_str(&format!(
-                    "keepTunnelOpen = {}\n",
-                    proxy.keep_tunnel_open
-                ));
+                toml.push_str(&format!("keepTunnelOpen = {}\n", proxy.keep_tunnel_open));
                 if !proxy.fallback_to.is_empty() {
-                    toml.push_str(&format!("fallbackTo = \"{}\"\n", proxy.fallback_to));
+                    toml.push_str(&format!(
+                        "fallbackTo = \"{}\"\n",
+                        toml_escape(&proxy.fallback_to)
+                    ));
                     toml.push_str(&format!(
                         "fallbackTimeoutMs = {}\n",
                         proxy.fallback_timeout_ms

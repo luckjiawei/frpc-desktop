@@ -27,7 +27,11 @@ impl<T> ApiResponse<T> {
     }
 
     /// A failure that still carries context, e.g. which tunnel failed.
-    pub fn fail_with_data(biz_code: impl Into<String>, message: impl Into<String>, data: T) -> Self {
+    pub fn fail_with_data(
+        biz_code: impl Into<String>,
+        message: impl Into<String>,
+        data: T,
+    ) -> Self {
         Self {
             biz_code: biz_code.into(),
             data: Some(data),
@@ -74,6 +78,26 @@ fn default_max_days() -> i64 {
     3
 }
 
+/// OIDC client settings, supported by frpc since v0.52.0. The JSON keys keep
+/// frpc's spelling (`clientID`, `tokenEndpointURL`) so the stored blob, the
+/// generated TOML and the TypeScript type all use the same names.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OidcConfig {
+    #[serde(default, rename = "clientID")]
+    pub client_id: String,
+    #[serde(default)]
+    pub client_secret: String,
+    #[serde(default, rename = "tokenEndpointURL")]
+    pub token_endpoint_url: String,
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default)]
+    pub scope: String,
+    #[serde(default)]
+    pub additional_endpoint_params: HashMap<String, String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthConfig {
@@ -81,6 +105,8 @@ pub struct AuthConfig {
     pub method: String,
     #[serde(default)]
     pub token: String,
+    #[serde(default)]
+    pub oidc: OidcConfig,
 }
 
 fn default_web_enable() -> bool {
@@ -117,7 +143,11 @@ pub struct TransportTlsConfig {
     pub trusted_ca_file: String,
     #[serde(default)]
     pub server_name: String,
-    #[serde(rename = "disableCustomTLSFirstByte", alias = "disableCustomTlsFirstByte", default)]
+    #[serde(
+        rename = "disableCustomTLSFirstByte",
+        alias = "disableCustomTlsFirstByte",
+        default
+    )]
     pub disable_custom_tls_first_byte: bool,
 }
 
@@ -136,7 +166,11 @@ pub struct TransportConfig {
     pub tcp_mux_keepalive_interval: i64,
     #[serde(default = "default_protocol")]
     pub protocol: String,
-    #[serde(rename = "connectServerLocalIP", alias = "connectServerLocalIp", default)]
+    #[serde(
+        rename = "connectServerLocalIP",
+        alias = "connectServerLocalIp",
+        default
+    )]
     pub connect_server_local_ip: String,
     #[serde(rename = "proxyURL", alias = "proxyUrl", default)]
     pub proxy_url: String,

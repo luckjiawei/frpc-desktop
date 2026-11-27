@@ -449,11 +449,48 @@ export default {
         label: "验证方式",
         requireMessage: "请选择验证方式",
         none: "无",
-        token: "令牌"
+        token: "令牌",
+        oidc: "OIDC 登录"
       },
       authToken: {
         label: "令牌",
         requireMessage: "请输入令牌"
+      },
+      authOidc: {
+        versionTooOld:
+          "当前实例使用的 frpc {version} 低于 0.52.0，不支持 OIDC 认证，请先升级 frpc。",
+        versionUnknown:
+          "无法确认当前 frpc 版本；OIDC 认证需要 frpc 0.52.0 及以上。",
+        clientID: {
+          label: "Client ID",
+          placeholder: "OIDC 客户端 ID，通常为注册用户名"
+        },
+        clientIDRequireMessage: "请输入 Client ID",
+        clientSecret: {
+          label: "Client Secret",
+          placeholder: "OIDC 客户端密钥"
+        },
+        clientSecretRequireMessage: "请输入 Client Secret",
+        tokenEndpointURL: {
+          label: "Token Endpoint URL",
+          placeholder: "https://example.com/oidc/token.php"
+        },
+        tokenEndpointURLRequireMessage: "请输入 Token Endpoint URL",
+        tokenEndpointURLPatternMessage: "请输入以 http:// 或 https:// 开头的地址",
+        audience: {
+          label: "Audience",
+          placeholder: "选填，例如 afrp.net"
+        },
+        scope: {
+          label: "Scope",
+          placeholder: "选填，例如 afrp"
+        },
+        additionalEndpointParams: {
+          label: "额外端点参数",
+          description:
+            "写入 auth.oidc.additionalEndpointParams，随令牌请求一起提交。",
+          empty: "暂无额外端点参数"
+        }
       },
       logLevel: {
         label: "日志级别",

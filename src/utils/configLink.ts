@@ -19,7 +19,22 @@ export const encodeConfigLink = (server: OpenSourceFrpcDesktopServer) => {
     user: server.user,
     serverAddr: server.serverAddr,
     serverPort: server.serverPort,
-    auth: server.auth,
+    auth: server.auth
+      ? {
+          ...server.auth,
+          // OIDC client secrets are per installation and must never travel in
+          // a share link; token auth keeps its existing behaviour.
+          oidc: {
+            clientID: server.auth.oidc?.clientID ?? "",
+            clientSecret: "",
+            tokenEndpointURL: server.auth.oidc?.tokenEndpointURL ?? "",
+            audience: server.auth.oidc?.audience ?? "",
+            scope: server.auth.oidc?.scope ?? "",
+            additionalEndpointParams:
+              server.auth.oidc?.additionalEndpointParams ?? {}
+          }
+        }
+      : server.auth,
     transport: {
       ...server.transport,
       tls: {

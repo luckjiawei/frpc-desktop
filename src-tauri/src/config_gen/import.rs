@@ -58,6 +58,7 @@ pub fn parse_toml_config(
         auth: AuthConfig {
             method: "token".to_string(),
             token: String::new(),
+            oidc: Default::default(),
         },
         log: LogConfig {
             to: String::new(),
@@ -86,10 +87,36 @@ pub fn parse_toml_config(
     };
     if let Some(mut auth) = root.table("auth")? {
         server.auth.method = auth.string("method", "token")?;
-        if server.auth.method != "token" {
-            bail!("Unsupported field value at auth.method");
+        match server.auth.method.as_str() {
+            "token" => {
+                server.auth.token = auth.string("token", "")?;
+            }
+            "oidc" => {
+                // frpc >= 0.52.0. Every field is optional in the TOML, but the
+                // three that frpc cannot authenticate without must be present
+                // so a broken file is reported instead of being saved silently.
+                if let Some(mut oidc) = auth.table("oidc")? {
+                    server.auth.oidc.client_id = oidc.string("clientID", "")?;
+                    server.auth.oidc.client_secret = oidc.string("clientSecret", "")?;
+                    server.auth.oidc.token_endpoint_url = oidc.string("tokenEndpointURL", "")?;
+                    server.auth.oidc.audience = oidc.string("audience", "")?;
+                    server.auth.oidc.scope = oidc.string("scope", "")?;
+                    if let Some(mut params) = oidc.table("additionalEndpointParams")? {
+                        server.auth.oidc.additional_endpoint_params =
+                            params.string_map_strings()?;
+                    }
+                    oidc.finish()?;
+                }
+                validate_nonempty(&server.auth.oidc.client_id, "auth.oidc.clientID")?;
+                validate_nonempty(&server.auth.oidc.client_secret, "auth.oidc.clientSecret")?;
+                validate_http_url(
+                    &server.auth.oidc.token_endpoint_url,
+                    "auth.oidc.tokenEndpointURL",
+                )?;
+            }
+            "none" => {}
+            _ => bail!("Unsupported field value at auth.method"),
         }
-        server.auth.token = auth.string("token", "")?;
         auth.finish()?;
     }
     if let Some(mut log) = root.table("log")? {
@@ -348,6 +375,16 @@ fn resolve_config_path(value: String, base_dir: Option<&Path>) -> String {
     normalized.to_string_lossy().into_owned()
 }
 
+fn validate_http_url(value: &str, path: &str) -> Result<()> {
+    let rest = value
+        .strip_prefix("https://")
+        .or_else(|| value.strip_prefix("http://"));
+    if rest.map_or(true, |rest| rest.is_empty() || rest.starts_with('/')) {
+        bail!("Invalid field at {path}");
+    }
+    Ok(())
+}
+
 fn validate_nonempty(value: &str, path: &str) -> Result<()> {
     if value.trim().is_empty() || value != value.trim() || value.chars().any(char::is_control) {
         bail!("Invalid field at {path}");
@@ -468,6 +505,21 @@ impl Fields {
         Ok(map)
     }
 
+    /// Consumes every remaining entry as a string value, like `string_map`,
+    /// but for maps that are stored as plain strings.
+    fn string_map_strings(&mut self) -> Result<HashMap<String, String>> {
+        let mut map = HashMap::new();
+        for (key, value) in std::mem::take(&mut self.values) {
+            match value {
+                Value::String(value) => {
+                    map.insert(key, value);
+                }
+                _ => bail!("Expected string in {}", self.path),
+            }
+        }
+        Ok(map)
+    }
+
     fn finish(&self) -> Result<()> {
         if !self.values.is_empty() {
             // Unknown keys themselves can contain secrets. Only report the known
@@ -512,6 +564,7 @@ mod tests {
             auth: AuthConfig {
                 method: "token".to_string(),
                 token: "old-example-token".to_string(),
+                oidc: Default::default(),
             },
             ..Default::default()
         }
@@ -1035,7 +1088,6 @@ bindPort = 8080
             "[[visitors]]\nname = 'example'\ntype = 'stcp'\nserverName = ''",
             "[[proxies]]\nname = 'duplicate'\nlocalPort = 80\n[[proxies]]\nname = 'duplicate'\nlocalPort = 81",
             "[[proxies]]\nname = 'example'\nlocalPort = 80\n[proxies.transport]\nbandwidthLimit = '1MB'",
-            "[auth]\nmethod = 'oidc'",
             "includes = ['example.toml']",
             "[metadatas]\nexample = 1",
             "[[proxies]]\nname = 'example'\n[proxies.plugin]\ntype = 'http_proxy'\nlocalAddr = '127.0.0.1:80'",
@@ -1078,4 +1130,450 @@ bindPort = 8080
             }
         }
     }
+    fn oidc_server() -> OpenSourceFrpcDesktopServer {
+        let mut server = current_server();
+        server.server_addr = "us.afrp.net".to_string();
+        server.server_port = 7000;
+        server.multiuser = true;
+        server.user = "注册用户名".to_string();
+        server.log.level = "info".to_string();
+        server.transport.protocol = "tcp".to_string();
+        server.auth = AuthConfig {
+            method: "oidc".to_string(),
+            token: String::new(),
+            oidc: crate::models::OidcConfig {
+                client_id: "注册用户名".to_string(),
+                client_secret: "example-client-secret".to_string(),
+                token_endpoint_url: "https://www.afrp.net/oidc/token.php".to_string(),
+                audience: "afrp.net".to_string(),
+                scope: "afrp".to_string(),
+                additional_endpoint_params: HashMap::from([(
+                    "client_type".to_string(),
+                    "frpc-desktop".to_string(),
+                )]),
+            },
+        };
+        server
+    }
+
+    #[test]
+    fn oidc_generation_and_import_roundtrip_the_documented_keys() {
+        let server = oidc_server();
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        let parsed: toml::Value = toml::from_str(&generated).unwrap();
+        let oidc = parsed["auth"]["oidc"].as_table().unwrap();
+        assert_eq!(parsed["auth"]["method"].as_str(), Some("oidc"));
+        assert_eq!(oidc["clientID"].as_str(), Some("注册用户名"));
+        assert_eq!(oidc["clientSecret"].as_str(), Some("example-client-secret"));
+        assert_eq!(
+            oidc["tokenEndpointURL"].as_str(),
+            Some("https://www.afrp.net/oidc/token.php")
+        );
+        assert_eq!(oidc["audience"].as_str(), Some("afrp.net"));
+        assert_eq!(oidc["scope"].as_str(), Some("afrp"));
+        assert_eq!(
+            oidc["additionalEndpointParams"]["client_type"].as_str(),
+            Some("frpc-desktop")
+        );
+
+        let (imported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
+        assert_eq!(imported.auth.method, "oidc");
+        assert_eq!(imported.auth.oidc.client_id, "注册用户名");
+        assert_eq!(imported.auth.oidc.client_secret, "example-client-secret");
+        assert_eq!(
+            imported.auth.oidc.token_endpoint_url,
+            "https://www.afrp.net/oidc/token.php"
+        );
+        assert_eq!(imported.auth.oidc.audience, "afrp.net");
+        assert_eq!(imported.auth.oidc.scope, "afrp");
+        assert_eq!(
+            imported.auth.oidc.additional_endpoint_params["client_type"],
+            "frpc-desktop"
+        );
+    }
+
+    #[test]
+    fn imports_the_afrp_dotted_document_example() {
+        let input = r#"serverAddr = "us.afrp.net"
+serverPort = 7000
+user = "注册用户名"
+
+auth.method = "oidc"
+auth.oidc.clientID = "注册用户名"
+auth.oidc.clientSecret = "secret-value"
+auth.oidc.tokenEndpointURL = "https://www.afrp.net/oidc/token.php"
+auth.oidc.audience = "afrp.net"
+auth.oidc.scope = "afrp"
+auth.oidc.additionalEndpointParams.client_type = "frpc-desktop"
+metadatas = { client_type = "frpc-desktop" }"#;
+        let (server, _) = parse_toml_config(input, &current_server(), None).unwrap();
+        assert_eq!(server.server_addr, "us.afrp.net");
+        assert_eq!(server.server_port, 7000);
+        assert_eq!(server.user, "注册用户名");
+        assert_eq!(server.auth.method, "oidc");
+        assert_eq!(server.auth.oidc.client_id, "注册用户名");
+        assert_eq!(server.auth.oidc.client_secret, "secret-value");
+        assert_eq!(
+            server.auth.oidc.token_endpoint_url,
+            "https://www.afrp.net/oidc/token.php"
+        );
+        assert_eq!(server.auth.oidc.audience, "afrp.net");
+        assert_eq!(server.auth.oidc.scope, "afrp");
+        assert_eq!(
+            server.auth.oidc.additional_endpoint_params["client_type"],
+            "frpc-desktop"
+        );
+        assert_eq!(server.metadatas["client_type"], "frpc-desktop");
+    }
+
+    #[test]
+    fn oidc_import_requires_the_client_fields_and_an_http_url() {
+        for input in [
+            r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientSecret = "s"
+tokenEndpointURL = "https://example.test/token""#,
+            r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+tokenEndpointURL = "https://example.test/token""#,
+            r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+clientSecret = "s""#,
+            r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+clientSecret = "s"
+tokenEndpointURL = "ftp://example.test/token""#,
+            r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+clientSecret = "s"
+tokenEndpointURL = "example.test/token""#,
+        ] {
+            let error = parse_toml_config(input, &current_server(), None)
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("auth.oidc"),
+                "unexpected error for missing or invalid field: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn oidc_import_rejects_an_unsupported_auth_method() {
+        let input = "serverAddr = 'example.test'\n[auth]\nmethod = 'jwt'";
+        let error = parse_toml_config(input, &current_server(), None).unwrap_err();
+        assert_eq!(error.to_string(), "Unsupported field value at auth.method");
+    }
+
+    #[test]
+    fn oidc_and_every_other_string_are_toml_escaped() {
+        let mut server = oidc_server();
+        server.server_addr = "frps.ex\"ample.test".to_string();
+        server.web_server.password = "quote\" slash\\ tab\t newline\n".to_string();
+        server.auth.oidc.client_secret = "secret\"with\\backslash\tand\nnewline".to_string();
+        let mut proxy = FrpcProxy {
+            name: "na\"me\\with\tcontrols".to_string(),
+            proxy_type: "tcp".to_string(),
+            local_ip: "127.0.0.1".to_string(),
+            local_port: serde_json::json!(80),
+            remote_port: serde_json::json!(6080),
+            status: 1,
+            ..Default::default()
+        };
+        proxy.http_password = String::new();
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[proxy], Path::new("/example/frpc.log"));
+        let parsed: toml::Value = toml::from_str(&generated).unwrap();
+        assert_eq!(parsed["serverAddr"].as_str(), Some("frps.ex\"ample.test"));
+        assert_eq!(
+            parsed["webServer"]["password"].as_str(),
+            Some("quote\" slash\\ tab\t newline\n")
+        );
+        assert_eq!(
+            parsed["auth"]["oidc"]["clientSecret"].as_str(),
+            Some("secret\"with\\backslash\tand\nnewline")
+        );
+        assert_eq!(
+            parsed["proxies"][0]["name"].as_str(),
+            Some("na\"me\\with\tcontrols")
+        );
+        // Escaped values stay on their own line; a raw newline would split the
+        // assignment and make the document invalid.
+        assert_eq!(
+            generated
+                .lines()
+                .filter(|line| line.starts_with("clientSecret = "))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn stored_auth_json_is_backward_compatible_and_uses_frpc_key_names() {
+        // Records written before this change have no `oidc` key at all.
+        let old: AuthConfig =
+            serde_json::from_str(r#"{"method":"token","token":"existing"}"#).unwrap();
+        assert_eq!(old.method, "token");
+        assert_eq!(old.oidc.client_id, "");
+        assert!(old.oidc.additional_endpoint_params.is_empty());
+
+        let stored = serde_json::to_value(oidc_server().auth).unwrap();
+        assert_eq!(stored["oidc"]["clientID"], "注册用户名");
+        assert_eq!(
+            stored["oidc"]["tokenEndpointURL"],
+            "https://www.afrp.net/oidc/token.php"
+        );
+        assert_eq!(
+            stored["oidc"]["additionalEndpointParams"]["client_type"],
+            "frpc-desktop"
+        );
+        let restored: AuthConfig = serde_json::from_value(stored).unwrap();
+        assert_eq!(restored.oidc.client_secret, "example-client-secret");
+        assert_eq!(restored.oidc.scope, "afrp");
+    }
+
+    #[test]
+    fn empty_oidc_fields_are_not_emitted() {
+        let mut server = oidc_server();
+        server.auth.oidc.audience = String::new();
+        server.auth.oidc.scope = String::new();
+        server.auth.oidc.additional_endpoint_params.clear();
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        assert!(!generated.contains("audience"));
+        assert!(!generated.contains("scope"));
+        assert!(!generated.contains("additionalEndpointParams"));
+        assert!(generated.contains("clientID"));
+        assert!(generated.contains("tokenEndpointURL"));
+    }
+
+    #[test]
+    fn token_and_none_generation_is_byte_for_byte_unchanged() {
+        let mut token_server = current_server();
+        token_server.server_addr = "frps.example.test".to_string();
+        token_server.server_port = 7000;
+        token_server.login_fail_exit = true;
+        token_server.multiuser = true;
+        token_server.user = "alice".to_string();
+        token_server.udp_packet_size = 1400;
+        token_server.auth = AuthConfig {
+            method: "token".to_string(),
+            token: "token-value".to_string(),
+            oidc: Default::default(),
+        };
+        token_server.log = LogConfig {
+            to: String::new(),
+            level: "warn".to_string(),
+            max_days: 7,
+            disable_print_color: true,
+        };
+        token_server.web_server = WebServerConfig {
+            enable: true,
+            addr: "127.0.0.1".to_string(),
+            port: 7400,
+            user: "admin".to_string(),
+            password: "pass".to_string(),
+            pprof_enable: true,
+        };
+        token_server.transport.dial_server_timeout = 12;
+        token_server.transport.dial_server_keepalive = 7200;
+        token_server.transport.pool_count = 2;
+        token_server.transport.tcp_mux = true;
+        token_server.transport.tcp_mux_keepalive_interval = 30;
+        token_server.transport.heartbeat_interval = 30;
+        token_server.transport.heartbeat_timeout = 90;
+        token_server.transport.protocol = "websocket".to_string();
+        token_server.transport.connect_server_local_ip = "127.0.0.1".to_string();
+        token_server.transport.proxy_url = "socks5://127.0.0.1:1080".to_string();
+        token_server.transport.tls = TransportTlsConfig {
+            enable: true,
+            cert_file: "/certs/client.crt".to_string(),
+            key_file: "/certs/client.key".to_string(),
+            trusted_ca_file: "/certs/ca.crt".to_string(),
+            server_name: "frps.example.test".to_string(),
+            disable_custom_tls_first_byte: true,
+        };
+        token_server.metadatas.insert(
+            "id".to_string(),
+            serde_json::Value::String("abc".to_string()),
+        );
+        let proxies = vec![
+            FrpcProxy {
+                name: "ssh".to_string(),
+                proxy_type: "tcp".to_string(),
+                local_ip: "127.0.0.1".to_string(),
+                local_port: serde_json::json!(22),
+                remote_port: serde_json::json!(6000),
+                status: 1,
+                ..Default::default()
+            },
+            FrpcProxy {
+                name: "web".to_string(),
+                proxy_type: "http".to_string(),
+                local_ip: "127.0.0.1".to_string(),
+                local_port: serde_json::json!(8080),
+                custom_domains: vec!["a.example".to_string(), "b.example".to_string()],
+                locations: vec!["/".to_string()],
+                host_header_rewrite: "a.example".to_string(),
+                basic_auth: true,
+                http_user: "u".to_string(),
+                http_password: "p".to_string(),
+                status: 1,
+                ..Default::default()
+            },
+        ];
+        let token_generated =
+            ConfigGenerator::gen_toml_config(&token_server, &proxies, Path::new("/logs/frpc.log"));
+        assert_eq!(token_generated, TOKEN_SNAPSHOT);
+
+        let mut none_server = token_server.clone();
+        none_server.auth = AuthConfig {
+            method: "none".to_string(),
+            token: String::new(),
+            oidc: Default::default(),
+        };
+        let none_generated =
+            ConfigGenerator::gen_toml_config(&none_server, &proxies, Path::new("/logs/frpc.log"));
+        assert_eq!(none_generated, NONE_SNAPSHOT);
+    }
+
+    const TOKEN_SNAPSHOT: &str = r#"serverAddr = "frps.example.test"
+serverPort = 7000
+loginFailExit = true
+user = "alice"
+udpPacketSize = 1400
+
+[log]
+to = "/logs/frpc.log"
+level = "warn"
+maxDays = 7
+disablePrintColor = true
+
+[auth]
+method = "token"
+token = "token-value"
+
+[webServer]
+addr = "127.0.0.1"
+port = 7400
+user = "admin"
+password = "pass"
+pprofEnable = true
+
+[transport]
+dialServerTimeout = 12
+dialServerKeepalive = 7200
+poolCount = 2
+tcpMux = true
+tcpMuxKeepaliveInterval = 30
+protocol = "websocket"
+connectServerLocalIP = "127.0.0.1"
+proxyURL = "socks5://127.0.0.1:1080"
+heartbeatInterval = 30
+heartbeatTimeout = 90
+
+[transport.tls]
+enable = true
+certFile = "/certs/client.crt"
+keyFile = "/certs/client.key"
+trustedCaFile = "/certs/ca.crt"
+serverName = "frps.example.test"
+disableCustomTLSFirstByte = true
+
+[metadatas]
+id = "abc"
+
+[[proxies]]
+name = "ssh"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 22
+remotePort = 6000
+
+[[proxies]]
+name = "web"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 8080
+customDomains = ["a.example", "b.example"]
+locations = ["/"]
+hostHeaderRewrite = "a.example"
+httpUser = "u"
+httpPassword = "p"
+"#;
+    const NONE_SNAPSHOT: &str = r#"serverAddr = "frps.example.test"
+serverPort = 7000
+loginFailExit = true
+user = "alice"
+udpPacketSize = 1400
+
+[log]
+to = "/logs/frpc.log"
+level = "warn"
+maxDays = 7
+disablePrintColor = true
+
+[webServer]
+addr = "127.0.0.1"
+port = 7400
+user = "admin"
+password = "pass"
+pprofEnable = true
+
+[transport]
+dialServerTimeout = 12
+dialServerKeepalive = 7200
+poolCount = 2
+tcpMux = true
+tcpMuxKeepaliveInterval = 30
+protocol = "websocket"
+connectServerLocalIP = "127.0.0.1"
+proxyURL = "socks5://127.0.0.1:1080"
+heartbeatInterval = 30
+heartbeatTimeout = 90
+
+[transport.tls]
+enable = true
+certFile = "/certs/client.crt"
+keyFile = "/certs/client.key"
+trustedCaFile = "/certs/ca.crt"
+serverName = "frps.example.test"
+disableCustomTLSFirstByte = true
+
+[metadatas]
+id = "abc"
+
+[[proxies]]
+name = "ssh"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 22
+remotePort = 6000
+
+[[proxies]]
+name = "web"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 8080
+customDomains = ["a.example", "b.example"]
+locations = ["/"]
+hostHeaderRewrite = "a.example"
+httpUser = "u"
+httpPassword = "p"
+"#;
 }

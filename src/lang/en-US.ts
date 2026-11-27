@@ -466,11 +466,49 @@ export default {
         label: "Auth Method",
         requireMessage: "Please select auth method",
         none: "None",
-        token: "Token"
+        token: "Token",
+        oidc: "OIDC"
       },
       authToken: {
         label: "Token",
         requireMessage: "Please enter token"
+      },
+      authOidc: {
+        versionTooOld:
+          "This instance uses frpc {version}, older than 0.52.0. OIDC authentication is not supported; upgrade frpc first.",
+        versionUnknown:
+          "The frpc version cannot be confirmed. OIDC authentication requires frpc 0.52.0 or newer.",
+        clientID: {
+          label: "Client ID",
+          placeholder: "OIDC client ID, usually the registered user name"
+        },
+        clientIDRequireMessage: "Please enter the Client ID",
+        clientSecret: {
+          label: "Client Secret",
+          placeholder: "OIDC client secret"
+        },
+        clientSecretRequireMessage: "Please enter the Client Secret",
+        tokenEndpointURL: {
+          label: "Token Endpoint URL",
+          placeholder: "https://example.com/oidc/token.php"
+        },
+        tokenEndpointURLRequireMessage: "Please enter the Token Endpoint URL",
+        tokenEndpointURLPatternMessage:
+          "Please enter an address starting with http:// or https://",
+        audience: {
+          label: "Audience",
+          placeholder: "Optional, for example afrp.net"
+        },
+        scope: {
+          label: "Scope",
+          placeholder: "Optional, for example afrp"
+        },
+        additionalEndpointParams: {
+          label: "Additional Endpoint Parameters",
+          description:
+            "Written to auth.oidc.additionalEndpointParams and sent with the token request.",
+          empty: "No additional endpoint parameters"
+        }
       },
       logLevel: {
         label: "Log Level",
