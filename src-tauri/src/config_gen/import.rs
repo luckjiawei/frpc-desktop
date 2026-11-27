@@ -1430,6 +1430,10 @@ flag = "1""#;
             ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
         assert!(generated.contains("client_type = \"\""));
         assert!(generated.contains("flag = \"1\""));
+        // Optional fixed fields that were never set stay out of the file, which
+        // is different from an explicit empty value inside the map.
+        assert!(!generated.contains("audience"));
+        assert!(!generated.contains("scope"));
         let (reimported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
         assert_eq!(
             reimported.auth.oidc.additional_endpoint_params["client_type"],
