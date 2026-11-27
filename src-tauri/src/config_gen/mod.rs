@@ -150,7 +150,10 @@ impl ConfigGenerator {
                 params.sort_by(|a, b| a.0.cmp(b.0));
                 let mut rendered = String::new();
                 for (key, value) in params {
-                    if key.is_empty() || value.is_empty() {
+                    // An explicit empty value (for example `client_type = ""`)
+                    // is part of the map and must survive; only empty keys are
+                    // rejected, by the importer and the form.
+                    if key.is_empty() {
                         continue;
                     }
                     rendered.push_str(&format!(
@@ -336,7 +339,11 @@ impl ConfigGenerator {
                     if proxy.proxy_type == "tcp" && proxy.tls2raw {
                         toml.push_str("\n[proxies.plugin]\n");
                         toml.push_str("type = \"tls2raw\"\n");
-                        toml.push_str(&format!("localAddr = \"{}:{}\"\n", proxy.local_ip, local_p));
+                        toml.push_str(&format!(
+                            "localAddr = \"{}:{}\"\n",
+                            toml_escape(&proxy.local_ip),
+                            toml_escape(&local_p)
+                        ));
                         toml.push_str(&format!(
                             "crtPath = \"{}\"\n",
                             toml_escape(&proxy.tls2raw_ca_file.replace('\\', "/"))
@@ -408,7 +415,8 @@ impl ConfigGenerator {
                             toml.push_str("type = \"tls2raw\"\n");
                             toml.push_str(&format!(
                                 "localAddr = \"{}:{}\"\n",
-                                proxy.local_ip, local_p
+                                toml_escape(&proxy.local_ip),
+                                toml_escape(&local_p)
                             ));
                             toml.push_str(&format!(
                                 "crtPath = \"{}\"\n",
@@ -423,7 +431,8 @@ impl ConfigGenerator {
                             toml.push_str("type = \"https2http\"\n");
                             toml.push_str(&format!(
                                 "localAddr = \"{}:{}\"\n",
-                                proxy.local_ip, local_p
+                                toml_escape(&proxy.local_ip),
+                                toml_escape(&local_p)
                             ));
                             toml.push_str(&format!(
                                 "crtPath = \"{}\"\n",

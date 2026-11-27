@@ -458,9 +458,9 @@ export default {
       },
       authOidc: {
         versionTooOld:
-          "当前实例使用的 frpc {version} 低于 0.52.0，不支持 OIDC 认证，请先升级 frpc。",
+          "当前实例使用的 frpc {version} 低于 0.52.0，本应用的 OIDC 配置格式从 0.52.0 起才可用，请先升级 frpc。",
         versionUnknown:
-          "无法确认当前 frpc 版本；OIDC 认证需要 frpc 0.52.0 及以上。",
+          "无法确认当前 frpc 版本；本应用的 OIDC 配置格式需要 frpc 0.52.0 及以上。",
         clientID: {
           label: "Client ID",
           placeholder: "OIDC 客户端 ID，通常为注册用户名"
@@ -476,7 +476,8 @@ export default {
           placeholder: "https://example.com/oidc/token.php"
         },
         tokenEndpointURLRequireMessage: "请输入 Token Endpoint URL",
-        tokenEndpointURLPatternMessage: "请输入以 http:// 或 https:// 开头的地址",
+        tokenEndpointURLPatternMessage:
+          "请输入以 http:// 或 https:// 开头的地址",
         audience: {
           label: "Audience",
           placeholder: "选填，例如 afrp.net"

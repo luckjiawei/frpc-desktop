@@ -78,9 +78,12 @@ fn default_max_days() -> i64 {
     3
 }
 
-/// OIDC client settings, supported by frpc since v0.52.0. The JSON keys keep
-/// frpc's spelling (`clientID`, `tokenEndpointURL`) so the stored blob, the
-/// generated TOML and the TypeScript type all use the same names.
+/// OIDC client settings. frpc v0.52.0 carries these modern TOML fields, and
+/// the app treats 0.52.0 as its support floor for this config; that is not a
+/// claim about when OIDC authentication itself appeared.
+/// The JSON keys keep frpc's spelling (`clientID`, `tokenEndpointURL`) so the
+/// stored blob, the generated TOML and the TypeScript type all use the same
+/// names.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct OidcConfig {

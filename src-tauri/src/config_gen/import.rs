@@ -92,9 +92,10 @@ pub fn parse_toml_config(
                 server.auth.token = auth.string("token", "")?;
             }
             "oidc" => {
-                // frpc >= 0.52.0. Every field is optional in the TOML, but the
-                // three that frpc cannot authenticate without must be present
-                // so a broken file is reported instead of being saved silently.
+                // These modern TOML fields are accepted by frpc v0.52.0 and
+                // newer, this app's support floor for the config. The three
+                // fields frpc cannot authenticate without must be present so a
+                // broken file is reported instead of being saved silently.
                 if let Some(mut oidc) = auth.table("oidc")? {
                     server.auth.oidc.client_id = oidc.string("clientID", "")?;
                     server.auth.oidc.client_secret = oidc.string("clientSecret", "")?;
@@ -510,6 +511,9 @@ impl Fields {
     fn string_map_strings(&mut self) -> Result<HashMap<String, String>> {
         let mut map = HashMap::new();
         for (key, value) in std::mem::take(&mut self.values) {
+            if key.is_empty() {
+                bail!("Invalid field in {}", self.path);
+            }
             match value {
                 Value::String(value) => {
                     map.insert(key, value);
@@ -1118,6 +1122,9 @@ bindPort = 8080
         let marker = "private-config-value";
         for input in [
             format!("serverAddr = '{marker}'\n[auth]\ntoken = \"{marker}\"\ninvalid = ["),
+            format!(
+                "serverAddr = '{marker}'\n[auth]\nmethod = 'oidc'\n[auth.oidc]\nclientID = 'id'\nclientSecret = \"{marker}\"\ntokenEndpointURL = 'https://example.test/token'\nunknown = '{marker}'"
+            ),
             format!("serverAddr = '{marker}'\nserverPort = '{marker}'"),
             format!("serverAddr = '{marker}'\n'{marker}' = true"),
             format!("serverAddr = '{marker}'\n[[proxies]]\nname = '{marker}'\ntype = '{marker}'"),
@@ -1333,6 +1340,9 @@ tokenEndpointURL = "example.test/token""#,
         assert!(old.oidc.additional_endpoint_params.is_empty());
 
         let stored = serde_json::to_value(oidc_server().auth).unwrap();
+        // The stored blob (and therefore the DB row) keeps the secret; only the
+        // share link and the non-config IPC surfaces scrub it.
+        assert_eq!(stored["oidc"]["clientSecret"], "example-client-secret");
         assert_eq!(stored["oidc"]["clientID"], "注册用户名");
         assert_eq!(
             stored["oidc"]["tokenEndpointURL"],
@@ -1345,6 +1355,105 @@ tokenEndpointURL = "example.test/token""#,
         let restored: AuthConfig = serde_json::from_value(stored).unwrap();
         assert_eq!(restored.oidc.client_secret, "example-client-secret");
         assert_eq!(restored.oidc.scope, "afrp");
+    }
+
+    #[test]
+    fn plugin_local_addresses_escape_host_and_port() {
+        let mut server = current_server();
+        server.log.level = "info".to_string();
+        server.transport.protocol = "tcp".to_string();
+        let host = "127.0.0.1\"quoted\\host\ttab";
+        let port = 8080;
+        let expected = format!("{host}:{port}");
+        let proxies = vec![
+            FrpcProxy {
+                name: "tls-tcp".to_string(),
+                proxy_type: "tcp".to_string(),
+                local_ip: host.to_string(),
+                local_port: serde_json::json!(port),
+                tls2raw: true,
+                status: 1,
+                ..Default::default()
+            },
+            FrpcProxy {
+                name: "tls-https".to_string(),
+                proxy_type: "https".to_string(),
+                local_ip: host.to_string(),
+                local_port: serde_json::json!(port),
+                tls2raw: true,
+                status: 1,
+                ..Default::default()
+            },
+            FrpcProxy {
+                name: "https2http".to_string(),
+                proxy_type: "https".to_string(),
+                local_ip: host.to_string(),
+                local_port: serde_json::json!(port),
+                https2http: true,
+                status: 1,
+                ..Default::default()
+            },
+        ];
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &proxies, Path::new("/example/frpc.log"));
+        let parsed: toml::Value = toml::from_str(&generated).unwrap();
+        let rendered: Vec<&str> = parsed["proxies"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|proxy| proxy["plugin"]["localAddr"].as_str().unwrap())
+            .collect();
+        assert_eq!(rendered, vec![expected.as_str(); 3]);
+        assert_eq!(generated.matches("localAddr = ").count(), 3);
+    }
+
+    #[test]
+    fn explicit_empty_additional_parameter_values_survive() {
+        let input = r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+clientSecret = "s"
+tokenEndpointURL = "https://example.test/token"
+[auth.oidc.additionalEndpointParams]
+client_type = ""
+flag = "1""#;
+        let (server, _) = parse_toml_config(input, &current_server(), None).unwrap();
+        assert_eq!(
+            server.auth.oidc.additional_endpoint_params["client_type"],
+            ""
+        );
+        assert_eq!(server.auth.oidc.additional_endpoint_params.len(), 2);
+
+        let generated =
+            ConfigGenerator::gen_toml_config(&server, &[], Path::new("/example/frpc.log"));
+        assert!(generated.contains("client_type = \"\""));
+        assert!(generated.contains("flag = \"1\""));
+        let (reimported, _) = parse_toml_config(&generated, &current_server(), None).unwrap();
+        assert_eq!(
+            reimported.auth.oidc.additional_endpoint_params["client_type"],
+            ""
+        );
+        assert_eq!(reimported.auth.oidc.additional_endpoint_params["flag"], "1");
+    }
+
+    #[test]
+    fn empty_additional_parameter_key_is_rejected() {
+        let input = r#"serverAddr = "example.test"
+[auth]
+method = "oidc"
+[auth.oidc]
+clientID = "id"
+clientSecret = "s"
+tokenEndpointURL = "https://example.test/token"
+[auth.oidc.additionalEndpointParams]
+"" = "value-should-not-leak""#;
+        let error = parse_toml_config(input, &current_server(), None)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("auth.oidc.additionalEndpointParams"));
+        assert!(!error.contains("value-should-not-leak"));
     }
 
     #[test]

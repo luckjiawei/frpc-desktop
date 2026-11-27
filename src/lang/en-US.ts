@@ -475,9 +475,9 @@ export default {
       },
       authOidc: {
         versionTooOld:
-          "This instance uses frpc {version}, older than 0.52.0. OIDC authentication is not supported; upgrade frpc first.",
+          "This instance uses frpc {version}, older than 0.52.0. This app's OIDC config format requires frpc 0.52.0 or newer; upgrade frpc first.",
         versionUnknown:
-          "The frpc version cannot be confirmed. OIDC authentication requires frpc 0.52.0 or newer.",
+          "The frpc version cannot be confirmed. This app's OIDC config format requires frpc 0.52.0 or newer.",
         clientID: {
           label: "Client ID",
           placeholder: "OIDC client ID, usually the registered user name"

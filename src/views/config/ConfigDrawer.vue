@@ -142,9 +142,11 @@ const oidcParamDraftDirty = computed(
   () => newOidcParam.key.trim() !== "" || newOidcParam.value !== ""
 );
 
-// OIDC auth needs frpc >= 0.52.0. A custom binary cannot be version-checked
-// from the app, so it gets an explicit "unknown" warning instead of silently
-// accepting fields the binary would reject. This warns; it does not block.
+// This app's OIDC config format is supported by frpc >= 0.52.0; that is a
+// support floor for these fields, not a claim about when OIDC itself appeared.
+// A custom binary cannot be version-checked from the app, so it gets an
+// explicit "unknown" warning instead of silently accepting fields the binary
+// would reject. This warns; it does not block.
 const oidcVersionWarning = computed(() => {
   if (formData.value.auth.method !== "oidc") return "";
   if (frpcSource.value === "custom") {
