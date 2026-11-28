@@ -398,7 +398,7 @@ export default {
       customFrpcPath: {
         label: "frpc 路徑",
         placeholder: "執行檔路徑，例如 ~/.local/bin/frpc，或點選「自動偵測」",
-        tips: "指定本機已安裝的 frpc 執行檔（例如 <span class='font-black text-[#5A3DAA]'>~/.local/bin/frpc</span>、<span class='font-black text-[#5A3DAA]'>/usr/local/bin/frpc</span>），或點選「自動偵測」。",
+        tips: "指定本機已安裝的 frpc 執行檔（例如 <span class='font-black text-primary'>~/.local/bin/frpc</span>、<span class='font-black text-primary'>/usr/local/bin/frpc</span>），或點選「自動偵測」。",
         requireMessage: "請輸入 frpc 路徑，或點選「自動偵測」",
         detectedVersion: "偵測到的版本",
         autoDetectSuccess: "已自動偵測到 frpc：",
@@ -422,7 +422,7 @@ export default {
         label: "伺服器位址",
         requireMessage: "請輸入伺服器位址",
         patternMessage: "請輸入正確的伺服器位址",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>serverAddr</span> frps 服務位址，支援<span class='font-black text-[#5A3DAA]'>網域名稱</span>、<span class='font-black text-[#5A3DAA]'>IP</span>"
+        tips: "{frpParameter}：<span class='font-black text-primary'>serverAddr</span> frps 服務位址，支援<span class='font-black text-primary'>網域名稱</span>、<span class='font-black text-primary'>IP</span>"
       },
       serverPort: {
         label: "伺服器連接埠",
@@ -503,12 +503,12 @@ export default {
       transportHeartbeatInterval: {
         label: "心跳間隔",
         requireMessage: "請輸入心跳間隔",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.heartbeatInterval</span> 向伺服器傳送心跳封包的間隔。單位：<span class='font-black text-[#5A3DAA]'>秒</span>"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.heartbeatInterval</span> 向伺服器傳送心跳封包的間隔。單位：<span class='font-black text-primary'>秒</span>"
       },
       transportHeartbeatTimeout: {
         label: "心跳逾時",
         requireMessage: "請輸入心跳逾時",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.heartbeatTimeout</span> 心跳逾時時間。單位：<span class='font-black text-[#5A3DAA]'>秒</span>"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.heartbeatTimeout</span> 心跳逾時時間。單位：<span class='font-black text-primary'>秒</span>"
       },
       webServerEnable: {
         label: "Web 介面開關",
@@ -517,22 +517,22 @@ export default {
       webServerPort: {
         label: "Web 連接埠",
         requireMessage: "請輸入 Web 連接埠",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.webServerPort</span> 請確保該連接埠未被佔用，否則會導致啟動失敗"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.webServerPort</span> 請確保該連接埠未被佔用，否則會導致啟動失敗"
       },
       transportProtocol: {
         label: "傳輸協定",
         requireMessage: "請輸入傳輸協定",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.protocol</span> 與 frps 之間的通訊協定，預設為 tcp。"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.protocol</span> 與 frps 之間的通訊協定，預設為 tcp。"
       },
       transportDialServerTimeout: {
         label: "連線伺服器逾時",
         requireMessage: "請輸入連線伺服器逾時",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.dialServerTimeout</span> 與伺服器建立連線的最長等待時間，預設為 10 秒。單位：<span class='font-black text-[#5A3DAA]'>秒</span>"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.dialServerTimeout</span> 與伺服器建立連線的最長等待時間，預設為 10 秒。單位：<span class='font-black text-primary'>秒</span>"
       },
       transportDialServerKeepalive: {
         label: "連線保活",
         requireMessage: "請輸入連線伺服器保活間隔",
-        tips: '{frpParameter}：<span class="font-black text-[#5A3DAA]">transport.dialServerKeepalive</span> 當用戶端與伺服器之間一段時間沒有資料傳輸時，系統會定期傳送心跳封包以保持連線。若為負數，則停用保活探測。單位：<span class="font-black text-[#5A3DAA]">秒</span>'
+        tips: '{frpParameter}：<span class="font-black text-primary">transport.dialServerKeepalive</span> 當用戶端與伺服器之間一段時間沒有資料傳輸時，系統會定期傳送心跳封包以保持連線。若為負數，則停用保活探測。單位：<span class="font-black text-primary">秒</span>'
       },
       transportPoolCount: {
         label: "連線池數量",
@@ -541,12 +541,12 @@ export default {
       transportTcpMux: {
         label: "TCP 多工",
         requireMessage: "請輸入 TCP 多工",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.tcpMux</span> 啟用 TCP 多工以提升效能"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.tcpMux</span> 啟用 TCP 多工以提升效能"
       },
       transportTcpMuxKeepaliveInterval: {
         label: "多工保活間隔",
         requireMessage: "請輸入 TCP 多工保活間隔",
-        tips: "{frpParameter}：<span class='font-black text-[#5A3DAA]'>transport.tcpMuxKeepaliveInterval</span> 多工的保活間隔，預設為 30 秒。單位：<span class='font-black text-[#5A3DAA]'>秒</span>"
+        tips: "{frpParameter}：<span class='font-black text-primary'>transport.tcpMuxKeepaliveInterval</span> 多工的保活間隔，預設為 30 秒。單位：<span class='font-black text-primary'>秒</span>"
       },
       tlsCertFile: {
         label: "TLS 憑證檔案",
@@ -570,7 +570,12 @@ export default {
       },
       systemLanguage: {
         label: "系統語言",
-        requireMessage: "請選擇系統語言"
+        requireMessage: "請選擇系統語言",
+        options: {
+          zhCN: "簡體中文",
+          zhTW: "繁體中文",
+          enUS: "英文"
+        }
       },
       appLogLevel: {
         label: "應用程式記錄等級",
@@ -618,7 +623,7 @@ export default {
       multiuserAlert: {
         title: "提示",
         message:
-          "多使用者外掛程式需要 Frp 版本 >= <span class='font-black text-[#5A3DAA]'>v0.31.0</span>，請選擇正確的版本。",
+          "多使用者外掛程式需要 Frp 版本 >= <span class='font-black text-primary'>v0.31.0</span>，請選擇正確的版本。",
         confirm: "知道了"
       },
       exportConfigSuccess: {
@@ -763,7 +768,7 @@ export default {
           requireMessage: "請輸入綁定位址",
           patternMessage: "請輸入有效的綁定位址",
           description:
-            "將 Visitor 的服務綁定到哪個 <span class='font-black text-[#5A3DAA]'>IP</span> <br /> 僅限本機存取：<span class='font-black text-[#5A3DAA]'>127.0.0.1</span> <br /> 支援區域網路內其他裝置存取：<span class='font-black text-[#5A3DAA]'>0.0.0.0</span>"
+            "將 Visitor 的服務綁定到哪個 <span class='font-black text-primary'>IP</span> <br /> 僅限本機存取：<span class='font-black text-primary'>127.0.0.1</span> <br /> 支援區域網路內其他裝置存取：<span class='font-black text-primary'>0.0.0.0</span>"
         },
         secretKey: {
           label: "金鑰",
@@ -818,7 +823,7 @@ export default {
           label: "備援逾時（毫秒）",
           requireMessage: "請輸入備援逾時毫秒數",
           description:
-            "xtcp 打洞時間超過此時間時，會改用 stcp-visitor 建立連線。單位：<span class='font-black text-[#5A3DAA]'>毫秒</span>"
+            "xtcp 打洞時間超過此時間時，會改用 stcp-visitor 建立連線。單位：<span class='font-black text-primary'>毫秒</span>"
         },
         locations: {
           label: "URL 路徑",

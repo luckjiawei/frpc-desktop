@@ -777,7 +777,12 @@ export default {
       },
       systemLanguage: {
         label: "系统语言",
-        requireMessage: "请选择系统语言"
+        requireMessage: "请选择系统语言",
+        options: {
+          zhCN: "简体中文",
+          zhTW: "繁体中文",
+          enUS: "英文"
+        }
       },
       appLogLevel: {
         label: "应用日志级别",

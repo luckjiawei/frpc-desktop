@@ -2,6 +2,7 @@
 import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
 import { useFrpcDesktopStore } from "@/store/frpcDesktop";
+import { normalizeLanguage } from "@/lang";
 import { on, send } from "@/utils/ipcUtils";
 import { useDebounceFn } from "@vueuse/core";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -36,7 +37,12 @@ const loadConfig = () => {
 // 系统设置为全局开关，修改后立即保存
 const handleChange = useDebounceFn(() => {
   saving.value = true;
-  send(ipcRouters.SYSTEM.saveSystemConfig, { ...formData.value });
+  send(ipcRouters.SYSTEM.saveSystemConfig, {
+    ...formData.value,
+    // 回退到旧版本后，数据库里可能保存着当前版本不认识的语言；
+    // 提交前归一化，避免其它设置的保存被语言校验拒绝。
+    language: normalizeLanguage(formData.value.language)
+  });
 }, 200);
 
 const handleOpenDataFolder = useDebounceFn(() => {
@@ -61,7 +67,12 @@ const handleResetAll = () => {
 onMounted(() => {
   listenerCleanups.push(
     on(ipcRouters.SYSTEM.getSystemConfig, (data: FrpcSystemConfiguration) => {
-      if (data) formData.value = data;
+      if (data) {
+        formData.value = {
+          ...data,
+          language: normalizeLanguage(data.language)
+        };
+      }
       loading.value = false;
     })
   );
@@ -177,9 +188,18 @@ onUnmounted(() => {
                   class="!w-[200px]"
                   @change="handleChange"
                 >
-                  <el-option label="中文" value="zh-CN" />
-                  <el-option label="繁體中文" value="zh-TW" />
-                  <el-option label="English" value="en-US" />
+                  <el-option
+                    :label="t('config.form.systemLanguage.options.zhCN')"
+                    value="zh-CN"
+                  />
+                  <el-option
+                    :label="t('config.form.systemLanguage.options.zhTW')"
+                    value="zh-TW"
+                  />
+                  <el-option
+                    :label="t('config.form.systemLanguage.options.enUS')"
+                    value="en-US"
+                  />
                 </el-select>
               </el-form-item>
             </el-col>

@@ -822,7 +822,12 @@ export default {
       },
       systemLanguage: {
         label: "System Language",
-        requireMessage: "Please select system language"
+        requireMessage: "Please select system language",
+        options: {
+          zhCN: "Chinese (Simplified)",
+          zhTW: "Chinese (Traditional)",
+          enUS: "English"
+        }
       },
       appLogLevel: {
         label: "App Log Level",
