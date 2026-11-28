@@ -23,6 +23,8 @@ use tauri::Manager;
 fn tray_labels(language: &str) -> (&'static str, &'static str, &'static str, &'static str) {
     if language == "zh-CN" {
         ("显示主窗口", "全部启动", "全部停止", "退出")
+    } else if language == "zh-TW" {
+        ("顯示主視窗", "全部啟動", "全部停止", "結束")
     } else {
         ("Show Window", "Start All", "Stop All", "Quit")
     }

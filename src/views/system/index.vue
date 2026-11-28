@@ -178,6 +178,7 @@ onUnmounted(() => {
                   @change="handleChange"
                 >
                   <el-option label="中文" value="zh-CN" />
+                  <el-option label="繁體中文" value="zh-TW" />
                   <el-option label="English" value="en-US" />
                 </el-select>
               </el-form-item>

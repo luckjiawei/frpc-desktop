@@ -2,6 +2,7 @@
 import { ElConfigProvider } from "element-plus";
 import en from "element-plus/dist/locale/en.mjs";
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
+import zhTw from "element-plus/dist/locale/zh-tw.mjs";
 import { defineComponent } from "vue";
 import { useFrpcDesktopStore } from "./store/frpcDesktop";
 
@@ -12,7 +13,10 @@ export default defineComponent({
   },
   computed: {
     currentLocale() {
-      return useFrpcDesktopStore().frpcDesktopLanguage === "zh-CN" ? zhCn : en;
+      const language = useFrpcDesktopStore().frpcDesktopLanguage;
+      if (language === "zh-CN") return zhCn;
+      if (language === "zh-TW") return zhTw;
+      return en;
     }
   }
 });

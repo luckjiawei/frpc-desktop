@@ -1,9 +1,11 @@
 import { createI18n } from "vue-i18n";
 import enUS from "./en-US";
 import zhCN from "./zh-CN";
+import zhTW from "./zh-TW";
 
 const messages = {
   "zh-CN": zhCN,
+  "zh-TW": zhTW,
   "en-US": enUS
 };
 
