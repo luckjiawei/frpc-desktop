@@ -1,9 +1,10 @@
 use super::{interfaces::Scope, os, sockets};
 use crate::models::{DiscoveryBudget, DiscoverySignals, DiscoverySnapshot};
 use futures_util::stream::{FuturesUnordered, StreamExt};
+use netdev::ipnet::IpNet;
 use std::{
     collections::HashSet,
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
@@ -67,14 +68,54 @@ fn smb_negotiate() -> Vec<u8> {
 }
 
 const CONCURRENCY: usize = 16;
+const EXTRA_CONCURRENCY: usize = 48;
 const MAX_ADDRESSES: usize = 64;
 const MAX_CONNECTIONS: usize = 512;
+const MAX_EXTRA_ADDRESSES: usize = 256;
+const MAX_EXTRA_CONNECTIONS: usize = 3072;
+const PROBE_INTERVAL: Duration = Duration::from_millis(32);
+// Worst case is MAX_EXTRA_ADDRESSES * PORTS.len() + MAX_ADDRESSES * PORTS.len()
+// (~2560 connections). At 12 ms the launch budget is ~31 s and 48 concurrent
+// 500 ms timeouts add no further delay, so the sweep still finishes inside the
+// 45 s extra window (5.5 s collection + probing).
+const EXTRA_PROBE_INTERVAL: Duration = Duration::from_millis(12);
 const PORTS: [u16; 8] = [22, 80, 443, 445, 3389, 5900, 8080, 8443];
+
+/// Host addresses in the explicitly configured extra ranges. Only reachable
+/// hosts that answer on a common port become visible, but that keeps the sweep
+/// bounded and comparable to the normal probe phase.
+fn extra_addresses(scope: &Scope, snapshot: &mut DiscoverySnapshot) -> Vec<IpAddr> {
+    let mut result = Vec::new();
+    let mut limited = false;
+    'outer: for network in &scope.extra_networks {
+        let IpNet::V4(network) = network else {
+            continue;
+        };
+        let start = u32::from(network.network());
+        let end = u32::from(network.broadcast());
+        let (first, last) = if network.prefix_len() >= 31 {
+            (start, end)
+        } else {
+            (start + 1, end - 1)
+        };
+        for value in first..=last {
+            if result.len() >= MAX_EXTRA_ADDRESSES {
+                limited = true;
+                break 'outer;
+            }
+            result.push(IpAddr::V4(Ipv4Addr::from(value)));
+        }
+    }
+    if limited {
+        super::merge::truncated(snapshot, "extraAddressLimit");
+    }
+    result
+}
 
 // The snapshot mutex is only held while reading targets and recording a
 // result, so stop/getSnapshot stay responsive during the probe phase.
 pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watch::Receiver<bool>) {
-    let candidates: Vec<IpAddr> = {
+    let (candidates, extra) = {
         let mut snapshot = snapshot.lock().await;
         let mut candidates: Vec<IpAddr> = snapshot
             .devices
@@ -83,14 +124,15 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
             .collect();
         candidates.sort_by_key(|ip| ip.to_string());
         candidates.dedup();
-        snapshot.budget.candidate_addresses = candidates.len();
         if candidates.len() > MAX_ADDRESSES {
             candidates.truncate(MAX_ADDRESSES);
             super::merge::truncated(&mut snapshot, "candidateLimit");
         }
-        candidates
+        let extra = extra_addresses(&scope, &mut snapshot);
+        snapshot.budget.candidate_addresses = candidates.len() + extra.len();
+        (candidates, extra)
     };
-    if candidates.is_empty() {
+    if candidates.is_empty() && extra.is_empty() {
         return;
     }
 
@@ -122,10 +164,28 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
             tasks.truncate(MAX_CONNECTIONS);
             super::merge::truncated(&mut snapshot, "probeLimit");
         }
+        // Always keep the explicitly requested ranges: they are the reason the
+        // user opted into a longer window.
+        'extra: for ip in &extra {
+            for port in PORTS {
+                if tasks.len() >= MAX_EXTRA_CONNECTIONS {
+                    super::merge::truncated(&mut snapshot, "probeLimit");
+                    break 'extra;
+                }
+                if unique.insert((*ip, port)) {
+                    tasks.push((*ip, port));
+                }
+            }
+        }
         (tasks, service_targets)
     };
     let total = tasks.len();
-    let sem = Arc::new(Semaphore::new(CONCURRENCY));
+    let (concurrency, interval) = if scope.extra_networks.is_empty() {
+        (CONCURRENCY, PROBE_INTERVAL)
+    } else {
+        (EXTRA_CONCURRENCY, EXTRA_PROBE_INTERVAL)
+    };
+    let sem = Arc::new(Semaphore::new(concurrency));
     let mut futures = FuturesUnordered::new();
     let launch = |idx: usize, ip: IpAddr, port: u16, cancel: watch::Receiver<bool>| {
         let scope = scope.clone();
@@ -148,10 +208,10 @@ pub async fn run(scope: Scope, snapshot: &Mutex<DiscoverySnapshot>, cancel: watc
         if Instant::now() < next_allowed {
             tokio::select! { _ = tokio::time::sleep_until(next_allowed) => {}, _ = wait_cancel(cancel.clone()) => { cancelled = true; break; } }
         }
-        next_allowed = Instant::now() + Duration::from_millis(32);
+        next_allowed = Instant::now() + interval;
         futures.push(launch(idx, ip, port, cancel.clone()));
         snapshot.lock().await.budget.probes_started += 1;
-        while futures.len() >= CONCURRENCY {
+        while futures.len() >= concurrency {
             if let Some(Some((_, ip, port, result, signals))) = futures.next().await {
                 let mut snapshot = snapshot.lock().await;
                 record(
@@ -478,6 +538,28 @@ mod tests {
         assert_eq!(MAX_CONNECTIONS, 512);
         assert_eq!(MAX_ADDRESSES, 64);
         assert_eq!(CONCURRENCY, 16);
+        assert_eq!(MAX_EXTRA_ADDRESSES, 256);
+        assert_eq!(MAX_EXTRA_CONNECTIONS, 3072);
+        assert_eq!(EXTRA_CONCURRENCY, 48);
+        assert_eq!(EXTRA_PROBE_INTERVAL, Duration::from_millis(12));
+    }
+
+    #[test]
+    fn extra_networks_enumerate_hosts_up_to_the_cap() {
+        let mut scope = crate::discovery::interfaces::test_scope();
+        scope.extra_networks = vec!["192.168.200.0/24".parse().unwrap()];
+        let mut snapshot = super::super::new_snapshot("test", &scope);
+        let addresses = extra_addresses(&scope, &mut snapshot);
+        assert_eq!(addresses.len(), 254);
+        assert_eq!(addresses.first().unwrap().to_string(), "192.168.200.1");
+        assert_eq!(addresses.last().unwrap().to_string(), "192.168.200.254");
+        assert!(!snapshot.truncated);
+
+        scope.extra_networks = vec!["10.0.0.0/16".parse().unwrap()];
+        let mut snapshot = super::super::new_snapshot("test", &scope);
+        let addresses = extra_addresses(&scope, &mut snapshot);
+        assert_eq!(addresses.len(), MAX_EXTRA_ADDRESSES);
+        assert!(snapshot.truncated);
     }
 
     #[test]

@@ -13,13 +13,15 @@ use tokio::{
     time::Instant,
 };
 
-const BASE_TYPES: [&str; 7] = [
+const BASE_TYPES: [&str; 8] = [
     "_http._tcp.local.",
     "_https._tcp.local.",
     "_ssh._tcp.local.",
     "_smb._tcp.local.",
     "_ipp._tcp.local.",
     "_ipps._tcp.local.",
+    // Apple publishes hardware model identifiers (e.g. `model=iPhone14,2`).
+    "_device-info._tcp.local.",
     "_services._dns-sd._udp.local.",
 ];
 const MAX_RECORDS: usize = 2048;
@@ -29,6 +31,7 @@ enum Data {
     Address(IpAddr),
     Ptr(String),
     Srv { port: u16, target: String },
+    Txt(Vec<String>),
 }
 #[derive(Clone, Debug)]
 struct Record {
@@ -146,10 +149,27 @@ fn parse(packet: &[u8]) -> Result<Vec<Record>, ()> {
                     let port = u16_at(packet, cursor + 4)?;
                     let mut pos = cursor + 6;
                     let target = name(packet, &mut pos)?;
-                    if pos != end || port == 0 {
+                    // Apple's `_device-info._tcp` uses SRV port 0, so a zero
+                    // port is valid and must not reject the whole packet.
+                    if pos != end {
                         return Err(());
                     }
                     Some(Data::Srv { port, target })
+                }
+                16 if len > 0 => {
+                    let mut pos = cursor;
+                    let mut strings = Vec::new();
+                    while pos < end && strings.len() < 16 {
+                        let size = usize::from(*packet.get(pos).ok_or(())?);
+                        pos += 1;
+                        let stop = pos
+                            .checked_add(size)
+                            .filter(|stop| *stop <= end)
+                            .ok_or(())?;
+                        strings.push(String::from_utf8_lossy(&packet[pos..stop]).into_owned());
+                        pos = stop;
+                    }
+                    Some(Data::Txt(strings))
                 }
                 _ => None,
             }
@@ -194,6 +214,24 @@ fn service_type(value: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
         && matches!(labels[1], "_tcp" | "_udp")
         && labels[2] == "local"
+}
+
+/// Extracts `model=` from the TXT record that shares the instance name with an
+/// Apple `_device-info._tcp` service.
+fn txt_model(cache: &HashMap<String, (Record, Instant)>, owner: &str) -> Option<String> {
+    cache.values().find_map(|(record, _)| {
+        if record.name != owner {
+            return None;
+        }
+        let Data::Txt(strings) = &record.data else {
+            return None;
+        };
+        strings
+            .iter()
+            .find_map(|value| value.strip_prefix("model="))
+            .map(|model| model.trim().to_string())
+            .filter(|model| !model.is_empty())
+    })
 }
 
 pub async fn collect(
@@ -265,6 +303,10 @@ async fn family(
                 Data::Srv { target, .. } if target.ends_with(".local.") => {
                     requests.push((target.clone(), 1));
                     requests.push((target.clone(), 28));
+                    // The Apple model lives in the instance's TXT record.
+                    if record.name.ends_with("._device-info._tcp.local.") {
+                        requests.push((record.name.clone(), 16));
+                    }
                 }
                 _ => {}
             }
@@ -303,6 +345,7 @@ async fn family(
                             ttl: Some(ttl),
                             service: None,
                             os_hint: None,
+                            model: None,
                         })
                         .is_err()
                     {
@@ -314,6 +357,11 @@ async fn family(
                         service_type(kind) && record.name.ends_with(&format!(".{kind}"))
                     }) else {
                         continue;
+                    };
+                    let model = if kind.as_str() == "_device-info._tcp.local." {
+                        txt_model(&cache, &record.name)
+                    } else {
+                        None
                     };
                     for (address_record, address_expiry) in
                         cache.values().filter(|(r, _)| r.name == *target)
@@ -349,6 +397,7 @@ async fn family(
                                     .map(|s| s.trim_start_matches('_').to_string()),
                             }),
                             os_hint: None,
+                            model: model.clone(),
                         };
                         if tx.try_send(item).is_err() {
                             limited = true;
@@ -391,5 +440,38 @@ mod tests {
         assert!(!service_type("_http._tcp.example.com."));
         assert!(!service_type("instance._http._tcp.local."));
         assert!(query("external.example.", 1).is_none());
+    }
+
+    #[test]
+    fn txt_model_is_extracted_and_zero_port_srv_is_accepted() {
+        // A TXT record carrying the Apple model.
+        let mut packet = query("host.local.", 1).unwrap();
+        packet[2] = 0x84;
+        packet[7] = 1;
+        packet.extend_from_slice(&[0xc0, 12, 0, 16, 0, 1, 0, 0, 0, 120, 0, 17, 16]);
+        packet.extend_from_slice(b"model=iPhone14,2");
+        let record = parse(&packet).unwrap().remove(0);
+        assert!(
+            matches!(&record.data, Data::Txt(strings) if strings == &vec!["model=iPhone14,2".to_string()])
+        );
+        let mut cache = HashMap::new();
+        cache.insert("k".to_string(), (record, Instant::now()));
+        assert_eq!(
+            txt_model(&cache, "host.local.").as_deref(),
+            Some("iPhone14,2")
+        );
+
+        // `_device-info._tcp` uses SRV port 0; it must not reject the packet.
+        let mut packet = query("host.local.", 1).unwrap();
+        packet[2] = 0x84;
+        packet[7] = 1;
+        packet.extend_from_slice(&[
+            0xc0, 12, 0, 33, 0, 1, 0, 0, 0, 120, 0, 18, 0, 0, 0, 0, 0, 0, 4, b'h', b'o', b's',
+            b't', 5, b'l', b'o', b'c', b'a', b'l', 0,
+        ]);
+        let records = parse(&packet).unwrap();
+        assert!(
+            matches!(&records[0].data, Data::Srv { port: 0, target } if target == "host.local.")
+        );
     }
 }

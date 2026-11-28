@@ -88,6 +88,8 @@ pub struct DiscoverySignals {
     pub http: Option<String>,
     pub smb: Option<(u8, u8, u16)>,
     pub ssdp: Option<String>,
+    /// Apple device model from mDNS `_device-info._tcp` (e.g. `iPhone14,2`).
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

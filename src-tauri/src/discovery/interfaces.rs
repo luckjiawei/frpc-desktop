@@ -8,6 +8,10 @@ pub struct Scope {
     pub public: DiscoveryScope,
     pub interface_name: String,
     pub networks: Vec<IpNet>,
+    /// Private IPv4 ranges explicitly requested by the user. Traffic is sent
+    /// through the selected interface, so this only helps when that interface
+    /// (or its gateway) can actually route to them.
+    pub extra_networks: Vec<IpNet>,
     pub fingerprint: String,
 }
 
@@ -91,6 +95,7 @@ pub fn enumerate() -> Vec<Scope> {
             },
             interface_name: interface.name,
             networks,
+            extra_networks: Vec::new(),
             fingerprint,
         });
     }
@@ -149,25 +154,73 @@ pub fn permitted_unicast(ip: IpAddr) -> bool {
     }
 }
 
+fn usable(network: &IpNet, ip: IpAddr) -> bool {
+    if !network.contains(&ip) {
+        return false;
+    }
+    match network {
+        IpNet::V4(n) if n.prefix_len() < 31 => {
+            ip != IpAddr::V4(n.network()) && ip != IpAddr::V4(n.broadcast())
+        }
+        _ => true,
+    }
+}
+
+pub const MAX_EXTRA_NETWORKS: usize = 4;
+pub const MIN_EXTRA_PREFIX: u8 = 16;
+
+/// Explicit extra ranges are restricted to private IPv4 so the sweep can never
+/// reach the internet. Invalid input rejects the scan instead of silently
+/// dropping a range the user asked for.
+pub fn parse_extra_networks(values: &[String]) -> Result<Vec<IpNet>, ()> {
+    if values.len() > MAX_EXTRA_NETWORKS {
+        return Err(());
+    }
+    let mut result: Vec<IpNet> = Vec::new();
+    for value in values {
+        let value = value.trim();
+        if value.is_empty() {
+            continue;
+        }
+        let IpNet::V4(network) = value.parse::<IpNet>().map_err(|_| ())?.trunc() else {
+            return Err(());
+        };
+        // Both ends must be private: a prefix such as 192.168.0.0/15 would
+        // otherwise reach public 192.169.x addresses.
+        if !network.addr().is_private()
+            || !network.broadcast().is_private()
+            || network.prefix_len() < MIN_EXTRA_PREFIX
+        {
+            return Err(());
+        }
+        let network = IpNet::V4(network);
+        if !result.contains(&network) {
+            result.push(network);
+        }
+    }
+    Ok(result)
+}
+
 impl Scope {
     pub fn allows(&self, ip: IpAddr) -> bool {
         permitted_unicast(ip)
-            && self.networks.iter().any(|n| {
-                if !n.contains(&ip) {
-                    return false;
-                }
-                match n {
-                    IpNet::V4(n) if n.prefix_len() < 31 => {
-                        ip != IpAddr::V4(n.network()) && ip != IpAddr::V4(n.broadcast())
-                    }
-                    _ => true,
-                }
-            })
+            && self
+                .networks
+                .iter()
+                .chain(self.extra_networks.iter())
+                .any(|n| usable(n, ip))
     }
     pub fn source(&self, target: IpAddr) -> Option<SocketAddr> {
+        // Targets inside an extra range have no local address of their own;
+        // they leave through the interface's primary address of that family.
         self.networks
             .iter()
             .find(|n| n.contains(&target))
+            .or_else(|| {
+                self.networks
+                    .iter()
+                    .find(|n| n.addr().is_ipv4() == target.is_ipv4())
+            })
             .map(|n| self.socket_address(n.addr(), 0))
     }
     pub fn socket_address(&self, ip: IpAddr, port: u16) -> SocketAddr {
@@ -226,6 +279,7 @@ pub fn test_scope() -> Scope {
             "fe80::1/64".parse().unwrap(),
             "fd00::1/64".parse().unwrap(),
         ],
+        extra_networks: Vec::new(),
         fingerprint: "test".into(),
     }
 }
@@ -261,6 +315,46 @@ mod tests {
             "[fe80::2%7]:22"
         );
     }
+    #[test]
+    fn extra_networks_are_private_ipv4_only() {
+        let nets = parse_extra_networks(&[
+            "192.168.200.0/24".into(),
+            "192.168.200.7/24".into(),
+            "10.20.0.0/16".into(),
+        ])
+        .unwrap();
+        assert_eq!(
+            nets,
+            vec![
+                "192.168.200.0/24".parse::<IpNet>().unwrap(),
+                "10.20.0.0/16".parse().unwrap()
+            ]
+        );
+        for bad in [
+            "8.8.8.0/24",
+            "0.0.0.0/0",
+            "10.0.0.0/8",
+            "192.168.0.0/15",
+            "172.16.0.0/10",
+            "::1/128",
+            "not-a-cidr",
+        ] {
+            assert!(parse_extra_networks(&[bad.into()]).is_err(), "{bad}");
+        }
+        assert!(parse_extra_networks(&vec!["10.0.0.0/16".to_string(); 5]).is_err());
+    }
+
+    #[test]
+    fn extra_networks_extend_allows_and_source() {
+        let mut scope = test_scope();
+        scope.extra_networks = parse_extra_networks(&["192.168.200.0/24".into()]).unwrap();
+        assert!(scope.allows("192.168.200.9".parse().unwrap()));
+        assert!(scope.source("192.168.200.9".parse().unwrap()).is_some());
+        assert!(!scope.allows("192.168.200.0".parse().unwrap()));
+        assert!(!scope.allows("192.168.200.255".parse().unwrap()));
+        assert!(!scope.allows("192.168.201.1".parse().unwrap()));
+    }
+
     #[test]
     fn system_interfaces_enumerate_with_bounded_stable_fingerprint() {
         let scopes = enumerate();

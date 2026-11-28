@@ -24,6 +24,7 @@ const alias: Record<string, string> = {
   apple: "macos",
   mac: "macos",
   osx: "macos",
+  ios: "macos",
   raspbian: "debian",
   freebsd: "linux"
 };

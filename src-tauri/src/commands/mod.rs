@@ -280,9 +280,21 @@ async fn handle_ipc_send(
                 .and_then(|v| v.get("networkVersion"))
                 .and_then(Value::as_str)
                 .unwrap_or("");
+            let extra_networks: Vec<String> = args
+                .as_ref()
+                .and_then(|v| v.get("extraNetworks"))
+                .and_then(Value::as_array)
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default();
             match state
                 .discovery
-                .start(request_id, scope_id, network_version)
+                .start(request_id, scope_id, network_version, &extra_networks)
                 .await
             {
                 Ok(snapshot) => {

@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import Breadcrumb from "@/layout/compoenets/Breadcrumb.vue";
+import IconifyIconOffline from "@/components/IconifyIcon/src/iconifyIconOffline";
 import { useTunnelStore } from "@/store/tunnel";
 import { useDiscoveryDraftStore } from "@/store/discoveryDraft";
 import { useDiscovery } from "@/views/discovery/useDiscovery";
@@ -14,6 +15,34 @@ const { t, te, locale } = useI18n();
 const router = useRouter();
 const tunnels = useTunnelStore();
 const drafts = useDiscoveryDraftStore();
+
+const EXTRA_NETWORKS_KEY = "discovery.extraNetworks";
+const storedExtraNetworks = () => {
+  try {
+    return localStorage.getItem(EXTRA_NETWORKS_KEY) || "";
+  } catch {
+    return "";
+  }
+};
+const extraNetworksInput = ref(storedExtraNetworks());
+const extraNetworks = () =>
+  extraNetworksInput.value
+    .split(/[,，\s]+/)
+    .map(value => value.trim())
+    .filter(Boolean)
+    // 支持 192.168.200.* 这种写法，等价于 192.168.200.0/24
+    .map(value =>
+      /^\d{1,3}(\.\d{1,3}){2}\.\*$/.test(value)
+        ? `${value.slice(0, -1)}0/24`
+        : value
+    );
+watch(extraNetworksInput, value => {
+  try {
+    localStorage.setItem(EXTRA_NETWORKS_KEY, value);
+  } catch {
+    // localStorage 不可用时仅保留本次会话内的输入
+  }
+});
 const {
   scopes,
   scopeId,
@@ -27,11 +56,16 @@ const {
   restart,
   selectScope,
   stop
-} = useDiscovery();
+} = useDiscovery({ extraNetworks });
+/** Applies edited extra ranges on blur instead of requiring a manual refresh. */
+function applyExtraNetworks() {
+  restart(true);
+}
 const mappings = useProxyMappings();
 
 const query = ref("");
 const onlyUnmapped = ref(false);
+const addressFilter = ref<"ipv4" | "ipv6" | null>(null);
 const advanced = ref(false);
 const openIds = ref<string[]>([]);
 const openedOnce = ref(false);
@@ -50,8 +84,43 @@ const displayWarning = (value: string) =>
     : t("discovery.warnings.sourceLimited");
 const addressText = (address: DiscoveryAddress) =>
   address.zoneId ? `${address.address}%${address.zoneId}` : address.address;
-const addressList = (device: DiscoveredDevice) =>
-  device.addresses.map(addressText).join(", ");
+/** Derived from the literal so a missing `family` field cannot hide a host. */
+const familyOf = (value: string): "ipv4" | "ipv6" =>
+  value.includes(":") ? "ipv6" : "ipv4";
+const addressList = (device: DiscoveredDevice) => {
+  const addresses = addressFilter.value
+    ? device.addresses.filter(
+        address => familyOf(address.address) === addressFilter.value
+      )
+    : device.addresses;
+  return addresses.map(addressText).join(", ");
+};
+
+const ipv6Value = (value: string) => {
+  const [head, tail] = value.toLowerCase().split("::");
+  const headParts = head ? head.split(":") : [];
+  const tailParts = tail ? tail.split(":") : [];
+  const fill = Math.max(0, 8 - headParts.length - tailParts.length);
+  return [...headParts, ...Array<string>(fill).fill("0"), ...tailParts]
+    .slice(0, 8)
+    .reduce((acc, part) => (acc << 16n) + BigInt(parseInt(part, 16) || 0), 0n);
+};
+/** Orders IPv4 numerically, then IPv6, so 10.0.0.2 follows 10.0.0.10. */
+const ipSortKey = (value: string) => {
+  if (value.includes(":")) return (6n << 128n) + ipv6Value(value);
+  const parts = value.split(".");
+  if (parts.length === 4 && parts.every(part => /^\d+$/.test(part)))
+    return (
+      (4n << 128n) +
+      BigInt(parts.reduce((acc, part) => acc * 256 + Number(part), 0))
+    );
+  return 9n << 128n;
+};
+const byAddress = (left: DiscoveredDevice, right: DiscoveredDevice) => {
+  const a = ipSortKey(left.addresses[0]?.address || "");
+  const b = ipSortKey(right.addresses[0]?.address || "");
+  return a < b ? -1 : a > b ? 1 : 0;
+};
 
 const relative = (value: string | null | undefined) => {
   if (!value) return "";
@@ -67,7 +136,8 @@ const relative = (value: string | null | undefined) => {
   });
 };
 
-const lookup = (address: string, port: number) => mappings.lookup(address, port);
+const lookup = (address: string, port: number) =>
+  mappings.lookup(address, port);
 const similarProxy = (service: DiscoveredService) =>
   lookup(service.targetAddress, service.port)
     ? null
@@ -106,25 +176,45 @@ const serviceText = (service: DiscoveredService) =>
     .join(" ")
     .toLowerCase();
 
+const matchesFamily = (device: DiscoveredDevice) =>
+  !addressFilter.value ||
+  device.addresses.some(
+    address => familyOf(address.address) === addressFilter.value
+  );
+function toggleFamily(family: "ipv4" | "ipv6") {
+  addressFilter.value = addressFilter.value === family ? null : family;
+}
+
 const hosts = computed<HostRow[]>(() => {
   const needle = query.value.trim().toLowerCase();
-  return (snapshot.value?.devices || []).flatMap(device => {
-    const hostMatches = !needle || hostText(device).includes(needle);
-    const matched = device.services.filter(
-      service => hostMatches || serviceText(service).includes(needle)
-    );
-    const mappedCount = matched.filter(service =>
-      lookup(service.targetAddress, service.port)
-    ).length;
-    const unmappedCount = matched.length - mappedCount;
-    if (onlyUnmapped.value && unmappedCount === 0) return [];
-    const services = onlyUnmapped.value
-      ? matched.filter(service => !lookup(service.targetAddress, service.port))
-      : matched;
-    return [
-      { device, services, total: matched.length, mappedCount, unmappedCount }
-    ];
-  });
+  return (snapshot.value?.devices || [])
+    .filter(matchesFamily)
+    .sort(byAddress)
+    .flatMap(device => {
+      const hostMatches = !needle || hostText(device).includes(needle);
+      const matched = device.services.filter(
+        service =>
+          (!addressFilter.value ||
+            familyOf(service.targetAddress) === addressFilter.value) &&
+          (hostMatches || serviceText(service).includes(needle))
+      );
+      // A search must hide hosts with no matching name, address or port; only
+      // keeping their cards made the search bar look inert.
+      if (!hostMatches && matched.length === 0) return [];
+      const mappedCount = matched.filter(service =>
+        lookup(service.targetAddress, service.port)
+      ).length;
+      const unmappedCount = matched.length - mappedCount;
+      if (onlyUnmapped.value && unmappedCount === 0) return [];
+      const services = onlyUnmapped.value
+        ? matched.filter(
+            service => !lookup(service.targetAddress, service.port)
+          )
+        : matched;
+      return [
+        { device, services, total: matched.length, mappedCount, unmappedCount }
+      ];
+    });
 });
 
 const totals = computed(() => {
@@ -202,21 +292,23 @@ const confidenceText = (device: DiscoveredDevice) => {
     ? t(`discovery.lan.confidence.${confidence}`)
     : "";
 };
-const evidenceLabel = (kind: string) =>
-  te(`discovery.lan.evidence.${kind}`)
-    ? t(`discovery.lan.evidence.${kind}`)
-    : t("discovery.lan.evidence.other");
-const osEvidence = (device: DiscoveredDevice) => device.os?.evidence || [];
 const osKnown = (device: DiscoveredDevice) =>
   !!device.os && device.os.family !== "unknown" && !!device.os.name;
 
+/** Announced mDNS services carry a long instance name; show just the type. */
+const serviceLabel = (service: DiscoveredService) =>
+  service.protocolEvidence === "announcement" && service.protocolHint
+    ? service.protocolHint
+    : service.name || "";
 const serviceName = (service: DiscoveredService) =>
-  service.name || t("discovery.unnamedService");
+  serviceLabel(service) || t("discovery.unnamedService");
 const hintText = (service: DiscoveredService) => {
+  // The name already shows the service type for announcements, so only the
+  // transport protocol is left to add.
+  if (service.protocolEvidence === "announcement")
+    return service.transport.toUpperCase();
   if (service.protocolHint)
-    return service.protocolEvidence === "portHint"
-      ? t("discovery.portHint", { protocol: service.protocolHint })
-      : t("discovery.announcedProtocol", { protocol: service.protocolHint });
+    return t("discovery.portHint", { protocol: service.protocolHint });
   return service.transport.toUpperCase();
 };
 
@@ -281,7 +373,7 @@ function openDraft(service: DiscoveredService, name = "") {
     "";
   proxyType.value = service.transport;
   draftName.value =
-    name || service.name || `${service.transport}-${service.port}`;
+    name || serviceLabel(service) || `${service.transport}-${service.port}`;
   dialogVisible.value = true;
 }
 function rebuild(service: DiscoveredService) {
@@ -345,22 +437,19 @@ const currentMapping = computed(() =>
       <el-button v-if="running || busy" @click="stop">
         {{ t("discovery.stop") }}
       </el-button>
+      <el-button
+        type="primary"
+        :disabled="busy"
+        :aria-label="t('discovery.lan.refresh')"
+        @click="restart(true)"
+      >
+        <template #icon>
+          <IconifyIconOffline icon="refresh-rounded" />
+        </template>
+        <span>{{ t("discovery.lan.refresh") }}</span>
+      </el-button>
     </Breadcrumb>
-    <section class="lan-card">
-      <header class="lan-head">
-        <div>
-          <h1>{{ t("router.discovery.title") }}</h1>
-          <p class="lan-sub">{{ t("discovery.lan.subtitle") }}</p>
-        </div>
-        <button class="lan-primary" :disabled="busy" @click="restart(true)">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 11a8 8 0 1 0-2.3 5.7" />
-            <path d="M20 5v6h-6" />
-          </svg>
-          <span>{{ t("discovery.lan.refresh") }}</span>
-        </button>
-      </header>
-
+    <section class="lan-card app-container-breadcrumb">
       <div class="lan-status" role="status">
         <span class="lan-dot" :class="statusTone" />
         <span>{{ statusText }}</span>
@@ -386,6 +475,34 @@ const currentMapping = computed(() =>
         </el-input>
         <button
           class="lan-chip"
+          :class="{ active: addressFilter === 'ipv4' }"
+          :aria-pressed="addressFilter === 'ipv4'"
+          @click="toggleFamily('ipv4')"
+        >
+          <svg class="lan-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18" />
+            <path d="M12 3c2.6 3 2.6 15 0 18" />
+            <path d="M12 3c-2.6 3-2.6 15 0 18" />
+          </svg>
+          <span>{{ t("discovery.lan.onlyIpv4") }}</span>
+        </button>
+        <button
+          class="lan-chip"
+          :class="{ active: addressFilter === 'ipv6' }"
+          :aria-pressed="addressFilter === 'ipv6'"
+          @click="toggleFamily('ipv6')"
+        >
+          <svg class="lan-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18" />
+            <path d="M12 3c2.6 3 2.6 15 0 18" />
+            <path d="M12 3c-2.6 3-2.6 15 0 18" />
+          </svg>
+          <span>{{ t("discovery.lan.onlyIpv6") }}</span>
+        </button>
+        <button
+          class="lan-chip"
           :class="{ active: onlyUnmapped }"
           :aria-pressed="onlyUnmapped"
           @click="onlyUnmapped = !onlyUnmapped"
@@ -396,6 +513,78 @@ const currentMapping = computed(() =>
           <span>{{ t("discovery.lan.onlyUnmapped") }}</span>
           <b>{{ unmappedTotal }}</b>
         </button>
+        <button
+          class="lan-chip lan-more"
+          :class="{ active: advanced }"
+          :aria-expanded="advanced"
+          aria-controls="discovery-advanced"
+          @click="advanced = !advanced"
+        >
+          <svg class="lan-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h9M17 18h3" />
+            <circle cx="15" cy="6" r="2" />
+            <circle cx="9" cy="12" r="2" />
+            <circle cx="15" cy="18" r="2" />
+          </svg>
+          <span>{{ t("discovery.lan.more") }}</span>
+        </button>
+      </div>
+
+      <div v-if="advanced" id="discovery-advanced" class="lan-advanced">
+        <label>
+          <span>{{ t("discovery.interface") }}</span>
+          <el-select
+            :model-value="scopeId"
+            :disabled="!scopes.length"
+            :placeholder="t('discovery.chooseScope')"
+            @change="selectScope"
+          >
+            <el-option
+              v-for="scope in scopes"
+              :key="scope.scopeId"
+              :value="scope.scopeId"
+              :label="`${scope.name} · ${scope.addresses.map(addressText).join(', ')}${scope.isVirtual ? ` (${t('discovery.virtual')})` : ''}`"
+            />
+          </el-select>
+        </label>
+        <label class="lan-extra">
+          <span>{{ t("discovery.lan.extraNetworks") }}</span>
+          <el-input
+            v-model="extraNetworksInput"
+            clearable
+            :placeholder="t('discovery.lan.extraNetworksPlaceholder')"
+            @change="applyExtraNetworks"
+          />
+        </label>
+        <p class="lan-hint">{{ t("discovery.lan.extraNetworksHint") }}</p>
+        <p class="lan-hint">{{ t("discovery.coverage") }}</p>
+        <div v-if="snapshot" class="lan-sources">
+          <span
+            v-for="outcome in snapshot.sources"
+            :key="outcome.source"
+            class="lan-source"
+            :class="outcome.status"
+          >
+            {{ displaySource(outcome.source) }} ·
+            {{ t(`discovery.sourceStatus.${outcome.status}`) }}
+          </span>
+        </div>
+        <p v-if="snapshot" class="lan-hint">
+          {{
+            t("discovery.probes", {
+              completed: snapshot.budget.probesCompleted,
+              started: snapshot.budget.probesStarted,
+              addresses: snapshot.budget.candidateAddresses
+            })
+          }}
+        </p>
+        <p
+          v-for="warning in [...new Set(snapshot?.warnings || [])]"
+          :key="warning"
+          class="lan-hint"
+        >
+          {{ displayWarning(warning) }}
+        </p>
       </div>
 
       <el-alert
@@ -427,17 +616,18 @@ const currentMapping = computed(() =>
           {{
             running || busy
               ? t("discovery.searching")
-              : query || onlyUnmapped
+              : query || onlyUnmapped || addressFilter
                 ? t("discovery.noMatches")
                 : t("discovery.noResults")
           }}
         </p>
         <p class="lan-hint">{{ t("discovery.emptyHint") }}</p>
         <el-button
-          v-if="query || onlyUnmapped"
+          v-if="query || onlyUnmapped || addressFilter"
           @click="
             query = '';
             onlyUnmapped = false;
+            addressFilter = null;
           "
         >
           {{ t("discovery.clearFilters") }}
@@ -503,36 +693,15 @@ const currentMapping = computed(() =>
             </span>
             <span class="lan-host-labels">
               {{ t("discovery.lan.portCount", { count: host.total }) }}
-              <small>{{ t("discovery.lan.lastSeenAt", { time: relative(host.device.lastSeenAt) }) }}</small>
+              <small>{{
+                t("discovery.lan.lastSeenAt", {
+                  time: relative(host.device.lastSeenAt)
+                })
+              }}</small>
             </span>
           </button>
 
           <div v-show="isOpen(host.device)" class="lan-host-body">
-            <div class="lan-evidence">
-              <h3>
-                {{
-                  osKnown(host.device)
-                    ? host.device.os?.confidence === "low"
-                      ? t("discovery.lan.whyGuess", {
-                          name: osName(host.device)
-                        })
-                      : t("discovery.lan.why", { name: osName(host.device) })
-                    : t("discovery.lan.whyNot")
-                }}
-              </h3>
-              <div v-for="item in osEvidence(host.device)" :key="item.kind + item.value">
-                <span class="lan-k">{{ evidenceLabel(item.kind) }}</span>
-                <span><code>{{ item.value }}</code></span>
-              </div>
-              <p class="lan-why">
-                {{
-                  osKnown(host.device)
-                    ? t("discovery.lan.whyNote")
-                    : t("discovery.lan.whyNotNote")
-                }}
-              </p>
-            </div>
-
             <div
               v-for="service in host.services"
               :key="service.id"
@@ -574,14 +743,16 @@ const currentMapping = computed(() =>
                       })
                     }}
                     <template v-if="proxyCount(service) > 1">
-                      · {{ t("discovery.lan.moreProxies", { count: proxyCount(service) }) }}
+                      ·
+                      {{
+                        t("discovery.lan.moreProxies", {
+                          count: proxyCount(service)
+                        })
+                      }}
                     </template>
                   </span>
                 </div>
-                <div
-                  v-else-if="similarProxy(service)"
-                  class="lan-similar"
-                >
+                <div v-else-if="similarProxy(service)" class="lan-similar">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 8h.01M11 12h1v4h1" />
@@ -596,7 +767,9 @@ const currentMapping = computed(() =>
                   </span>
                 </div>
                 <div v-else class="lan-service-hint">
-                  {{ t(`discovery.verificationStatus.${service.verification}`) }}
+                  {{
+                    t(`discovery.verificationStatus.${service.verification}`)
+                  }}
                   <template v-if="disabledReason(service)">
                     · {{ disabledReason(service) }}
                   </template>
@@ -652,58 +825,7 @@ const currentMapping = computed(() =>
         <span>{{ t("discovery.lan.mappedNote") }}</span>
       </p>
 
-      <footer class="lan-foot">
-        <span>{{ t("discovery.lan.osNote") }}</span>
-        <button class="lan-link" @click="advanced = !advanced">
-          {{ t("discovery.lan.more") }}
-        </button>
-      </footer>
-      <div v-if="advanced" class="lan-advanced">
-        <label>
-          <span>{{ t("discovery.interface") }}</span>
-          <el-select
-            :model-value="scopeId"
-            :disabled="!scopes.length"
-            :placeholder="t('discovery.chooseScope')"
-            @change="selectScope"
-          >
-            <el-option
-              v-for="scope in scopes"
-              :key="scope.scopeId"
-              :value="scope.scopeId"
-              :label="`${scope.name} · ${scope.addresses.map(addressText).join(', ')}${scope.isVirtual ? ` (${t('discovery.virtual')})` : ''}`"
-            />
-          </el-select>
-        </label>
-        <p class="lan-hint">{{ t("discovery.coverage") }}</p>
-        <div v-if="snapshot" class="lan-sources">
-          <span
-            v-for="outcome in snapshot.sources"
-            :key="outcome.source"
-            class="lan-source"
-            :class="outcome.status"
-          >
-            {{ displaySource(outcome.source) }} ·
-            {{ t(`discovery.sourceStatus.${outcome.status}`) }}
-          </span>
-        </div>
-        <p v-if="snapshot" class="lan-hint">
-          {{
-            t("discovery.probes", {
-              completed: snapshot.budget.probesCompleted,
-              started: snapshot.budget.probesStarted,
-              addresses: snapshot.budget.candidateAddresses
-            })
-          }}
-        </p>
-        <p
-          v-for="warning in [...new Set(snapshot?.warnings || [])]"
-          :key="warning"
-          class="lan-hint"
-        >
-          {{ displayWarning(warning) }}
-        </p>
-      </div>
+      <p class="lan-foot-note">{{ t("discovery.lan.osNote") }}</p>
     </section>
 
     <el-dialog
@@ -799,23 +921,18 @@ const currentMapping = computed(() =>
   border-radius: 12px;
   padding: 26px 26px 18px;
 }
-.lan-head {
+.lan-status {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  justify-content: space-between;
-  h1 {
-    margin: 0 0 6px;
-    font-size: 23px;
-    letter-spacing: -0.4px;
-  }
-}
-.lan-sub {
-  margin: 0;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 14px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  time {
+    margin-left: auto;
+    font-size: 11px;
+  }
 }
-.lan-primary,
 .lan-create {
   display: inline-flex;
   align-items: center;
@@ -854,18 +971,6 @@ const currentMapping = computed(() =>
     background: var(--el-fill-color-light);
   }
 }
-.lan-status {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 18px 0 14px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  time {
-    margin-left: auto;
-    font-size: 11px;
-  }
-}
 .lan-dot {
   width: 7px;
   height: 7px;
@@ -882,6 +987,7 @@ const currentMapping = computed(() =>
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
   margin-bottom: 14px;
 }
 .lan-search {
@@ -1037,46 +1143,6 @@ const currentMapping = computed(() =>
 .lan-host-body {
   padding: 0 16px 12px 62px;
 }
-.lan-evidence {
-  margin: 2px 0 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
-  border-radius: 7px;
-  padding: 10px 12px;
-  font-size: 12px;
-  h3 {
-    margin: 0 0 7px;
-    font-size: 11px;
-    font-weight: 650;
-    color: var(--el-text-color-secondary);
-  }
-  > div {
-    display: grid;
-    grid-template-columns: 78px minmax(0, 1fr);
-    gap: 8px;
-    padding: 3px 0;
-    color: var(--el-text-color-regular);
-  }
-  code {
-    font-family: var(--el-font-family-mono, monospace);
-    font-size: 11px;
-    background: var(--el-fill-color);
-    border-radius: 3px;
-    padding: 0 4px;
-    overflow-wrap: anywhere;
-  }
-}
-.lan-k {
-  color: var(--el-text-color-secondary);
-}
-.lan-why {
-  display: block;
-  margin: 6px 0 0;
-  padding-top: 6px;
-  border-top: 1px dashed var(--el-border-color);
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
 .lan-port {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) auto;
@@ -1227,27 +1293,11 @@ const currentMapping = computed(() =>
     stroke-linecap: round;
   }
 }
-.lan-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-top: 14px;
-  margin-top: 6px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-.lan-link {
-  border: 0;
-  background: transparent;
-  color: var(--el-color-primary);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
+.lan-more {
+  margin-left: auto;
 }
 .lan-advanced {
-  margin-top: 10px;
+  margin-bottom: 14px;
   padding: 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 7px;
@@ -1259,6 +1309,17 @@ const currentMapping = computed(() =>
     flex-wrap: wrap;
     margin-bottom: 6px;
   }
+  .lan-extra .el-input {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+}
+.lan-foot-note {
+  margin: 10px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 .lan-sources {
   display: flex;

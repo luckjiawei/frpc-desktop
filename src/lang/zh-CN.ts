@@ -6,10 +6,9 @@ export default {
   discovery: {
     lan: {
       refresh: "更新结果",
-      subtitle: "找到设备上的服务，直接创建代理",
       searching: "正在发现设备与服务…",
       stale: "显示上次结果，正在重新发现…",
-      failed: "发现未能完成，请查看下方来源状态后重试。",
+      failed: "发现未能完成，请展开“更多选项”查看来源状态后重试。",
       restored: "已恢复 {hosts} 台主机、{ports} 个端口，其中 {mapped} 个已映射",
       checking: "正在检查变化",
       maybeSame: "可能是同一代理「{name}」· {target}（地址已变化）",
@@ -18,6 +17,8 @@ export default {
       minutesAgo: "{count} 分钟前",
       searchPlaceholder: "搜索主机、地址、端口或服务",
       onlyUnmapped: "只看未映射",
+      onlyIpv4: "只看 IPv4",
+      onlyIpv6: "只看 IPv6",
       osUnknown: "系统未知",
       maybeName: "可能是 {name}",
       moreProxies: "共 {count} 个代理",
@@ -25,11 +26,6 @@ export default {
       mappedOf: "已映射 {mapped}/{total}",
       portCount: "{count} 个端口",
       lastSeenAt: "上次发现：{time}",
-      why: "为什么判断是 {name}",
-      whyGuess: "为什么猜是 {name}",
-      whyNot: "为什么没判断出来",
-      whyNote: "判断依据来自设备自己的应答，可信度按证据强弱标注；版本号只在该设备主动报告时显示。",
-      whyNotNote: "识别不出就显示未知设备图标，不根据端口猜系统。",
       mapped: "已映射",
       mappedTo: "代理「{name}」· {tunnel} · 本地 {target}",
       viewProxy: "查看代理",
@@ -37,18 +33,14 @@ export default {
       mappedNote: "“已映射”表示这台主机的这个端口已经有一条代理配置指向它，重复创建会产生冲突。",
       osNote: "系统信息来自设备自身应答，仅供参考。",
       more: "更多选项",
+      extraNetworks: "额外网段",
+      extraNetworksPlaceholder: "例如 192.168.200.0/24 或 192.168.200.*",
+      extraNetworksHint:
+        "仅支持私有 IPv4 网段，最多 4 个。修改后会通过当前网卡自动重新探测；扫描时间可能更长。",
       confidence: {
         high: "较可靠",
         medium: "推测",
         low: "低可信"
-      },
-      evidence: {
-        ssh: "SSH 应答",
-        http: "网页应答",
-        smb: "SMB 协商",
-        ssdp: "设备公告",
-        ports: "端口组合",
-        other: "其他线索"
       }
     },
     restart: "重新发现",
@@ -92,7 +84,6 @@ export default {
     noServices: "没有匹配的服务，仅有设备记录时无法创建代理。",
     neighborHint: "邻居记录，当前可达性未知",
     portHint: "可能是 {protocol}（端口提示）",
-    announcedProtocol: "公告协议：{protocol}",
     announced: "已公告服务",
     createProxy: "创建代理",
     createInstance: "创建实例",
@@ -157,6 +148,8 @@ export default {
       networkChanged: "网络连续变化，请检查连接后重新发现。",
       unavailable: "发现暂不可用，请检查网络及权限后重试。",
       invalidArguments: "发现范围已失效，请重新发现以加载可用网卡。",
+      invalidNetworks:
+        "额外网段无效：仅支持私有 IPv4，最多 4 个，前缀不小于 /16。",
       notFound: "本轮发现已过期，请重新发现以获取最新结果。",
       activationExpired: "本轮发现未及时启动，请重新发现。",
       forbidden: "当前窗口无法访问此发现任务，请重新发现。",
@@ -167,6 +160,7 @@ export default {
       serviceLimit: "已达到服务数量上限，部分服务未展示。",
       snapshotLimit: "已达到结果体积上限，本轮快照已截断。",
       candidateLimit: "仅检查了有限数量的候选地址。",
+      extraAddressLimit: "额外网段地址过多，仅检查了前 256 个地址。",
       probeLimit: "已达到 TCP 检查预算，其余端口未检查。",
       sourceLimit: "部分发现来源已达到记录数量上限。",
       sourceUnavailable: "一个或多个发现来源不可用。",
@@ -199,7 +193,7 @@ export default {
       title: "代理"
     },
     discovery: {
-      title: "局域网发现"
+      title: "发现"
     },
     download: {
       title: "下载"

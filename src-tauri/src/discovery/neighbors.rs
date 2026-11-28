@@ -20,6 +20,7 @@ pub async fn collect(
                         source: "neighbor",
                         ttl: if stale { Some(0) } else { None },
                         service: None,
+                        model: None,
                     })
                     .is_err()
                 {

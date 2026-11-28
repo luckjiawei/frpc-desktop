@@ -25,6 +25,7 @@ use tokio::{
 use uuid::Uuid;
 
 const TOTAL_WINDOW: Duration = Duration::from_secs(15);
+const EXTRA_WINDOW: Duration = Duration::from_secs(45);
 const ACTIVATION_WINDOW: Duration = Duration::from_secs(15);
 const EVENT_PERIOD: Duration = Duration::from_millis(500);
 const CHANNEL_CAPACITY: usize = 2048;
@@ -98,10 +99,13 @@ impl DiscoveryManager {
         request_id: &str,
         scope_id_value: &str,
         version: &str,
+        extra_networks: &[String],
     ) -> Result<DiscoverySnapshot, &'static str> {
         if !valid_request_id(request_id) {
             return Err("invalidArguments");
         }
+        let extra_networks =
+            interfaces::parse_extra_networks(extra_networks).map_err(|_| "invalidNetworks")?;
         let current = self.scopes();
         if version != current.network_version {
             return Err("networkChanged");
@@ -121,6 +125,7 @@ impl DiscoveryManager {
         }
         scope.public.scope_id = scope_id_value.into();
         scope.public.network_version = version.into();
+        scope.extra_networks = extra_networks;
         let scope = scope.clone();
         let mut slot = self.task.lock().await;
         if slot.as_ref().is_some_and(|task| {
@@ -337,7 +342,12 @@ async fn monitor_network(task: Arc<ScanTask>) {
     }
 }
 async fn run_scan(manager: std::sync::Weak<DiscoveryManager>, app: AppHandle, task: Arc<ScanTask>) {
-    let deadline = tokio::time::Instant::now() + TOTAL_WINDOW;
+    let window = if task.scope.extra_networks.is_empty() {
+        TOTAL_WINDOW
+    } else {
+        EXTRA_WINDOW
+    };
+    let deadline = tokio::time::Instant::now() + window;
     let (tx, mut rx) = mpsc::channel::<Observation>(CHANNEL_CAPACITY);
     let mut cancel = task.cancel.subscribe();
     let monitor = tokio::spawn(monitor_network(task.clone()));
@@ -527,6 +537,7 @@ mod tests {
         assert_eq!(snapshot.budget.candidate_addresses, 0);
         assert_eq!(snapshot.status, "pending");
         assert_eq!(TOTAL_WINDOW, Duration::from_secs(15));
+        assert_eq!(EXTRA_WINDOW, Duration::from_secs(45));
         assert_eq!(EVENT_PERIOD, Duration::from_millis(500));
         assert_eq!(ACTIVATION_WINDOW, Duration::from_secs(15));
     }

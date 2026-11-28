@@ -17,7 +17,7 @@ const requestId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `request-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export function useDiscovery() {
+export function useDiscovery(options: { extraNetworks?: () => string[] } = {}) {
   const scopes = ref<DiscoveryScope[]>([]);
   const scopeId = ref("");
   const snapshot = ref<DiscoverySnapshot | null>(null);
@@ -131,7 +131,8 @@ export function useDiscovery() {
     const value = await call<DiscoverySnapshot>(ipcRouters.DISCOVERY.start, {
       requestId: requestId(),
       scopeId: scopeId.value,
-      networkVersion
+      networkVersion,
+      extraNetworks: options.extraNetworks?.() ?? []
     });
     active = {
       scanId: value.scanId,

@@ -112,6 +112,7 @@ async fn family(
                     ttl: Some(ad.ttl),
                     service: None,
                     os_hint: ad.server,
+                    model: None,
                 })
                 .is_err()
             {

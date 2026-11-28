@@ -7,10 +7,10 @@ export default {
   discovery: {
     lan: {
       refresh: "Refresh",
-      subtitle: "Find services on your network and create proxies directly",
       searching: "Discovering devices and services…",
       stale: "Showing the previous result while rediscovering…",
-      failed: "Discovery did not finish. Check the source status below and retry.",
+      failed:
+        "Discovery did not finish. Expand “More options” to check the source status, then retry.",
       restored: "Restored {hosts} hosts and {ports} ports, {mapped} already mapped",
       checking: "checking for changes",
       maybeSame: "Possibly the same proxy “{name}” · {target} (address changed)",
@@ -19,6 +19,8 @@ export default {
       minutesAgo: "{count} min ago",
       searchPlaceholder: "Search host, address, port or service",
       onlyUnmapped: "Unmapped only",
+      onlyIpv4: "IPv4 only",
+      onlyIpv6: "IPv6 only",
       osUnknown: "Unknown system",
       maybeName: "Possibly {name}",
       moreProxies: "{count} proxies",
@@ -26,13 +28,6 @@ export default {
       mappedOf: "{mapped}/{total} mapped",
       portCount: "{count} ports",
       lastSeenAt: "Seen {time}",
-      why: "Why this is {name}",
-      whyGuess: "Why it might be {name}",
-      whyNot: "Why it could not be identified",
-      whyNote:
-        "Evidence comes from the device's own answers and is labelled by strength. A version is shown only when the device reports it.",
-      whyNotNote:
-        "When nothing can be identified the generic icon is shown; the system is never guessed from a port alone.",
       mapped: "Mapped",
       mappedTo: "Proxy “{name}” · {tunnel} · local {target}",
       viewProxy: "View proxy",
@@ -41,18 +36,14 @@ export default {
         "“Mapped” means an existing proxy already targets this host and port; creating another one would conflict.",
       osNote: "System information comes from the device itself and is informational only.",
       more: "More options",
+      extraNetworks: "Extra networks",
+      extraNetworksPlaceholder: "e.g. 192.168.200.0/24 or 192.168.200.*",
+      extraNetworksHint:
+        "Private IPv4 only, up to 4 ranges. Edited ranges are re-probed through the selected interface automatically. Scans may take longer.",
       confidence: {
         high: "Reliable",
         medium: "Likely",
         low: "Low confidence"
-      },
-      evidence: {
-        ssh: "SSH banner",
-        http: "HTTP response",
-        smb: "SMB negotiate",
-        ssdp: "Announcement",
-        ports: "Port combination",
-        other: "Other clue"
       }
     },
     restart: "Discover again",
@@ -101,7 +92,6 @@ export default {
       "No matching services. A device record alone cannot create a proxy.",
     neighborHint: "Neighbor record; current reachability unknown",
     portHint: "Possibly {protocol} (port hint)",
-    announcedProtocol: "Announced protocol: {protocol}",
     announced: "Announced service",
     createProxy: "Create proxy",
     createInstance: "Create an instance",
@@ -174,6 +164,8 @@ export default {
         "Discovery is unavailable. Check your network and permissions, then try again.",
       invalidArguments:
         "The discovery scope is no longer valid. Reload the available interfaces by discovering again.",
+      invalidNetworks:
+        "Invalid extra networks: private IPv4 only, up to 4 ranges, prefix /16 or narrower.",
       notFound: "This scan has expired. Discover again to get fresh results.",
       activationExpired: "The scan did not start in time. Discover again.",
       forbidden:
@@ -188,6 +180,8 @@ export default {
         "The result size limit was reached; this snapshot is truncated.",
       candidateLimit:
         "Only a limited number of candidate addresses were checked.",
+      extraAddressLimit:
+        "Too many extra network addresses; only the first 256 were checked.",
       probeLimit:
         "The TCP check budget was reached; remaining ports were not checked.",
       sourceLimit: "A discovery source reached its record limit.",
@@ -228,7 +222,7 @@ export default {
       title: "Proxy"
     },
     discovery: {
-      title: "LAN Discovery"
+      title: "Discovery"
     },
     download: {
       title: "Download"

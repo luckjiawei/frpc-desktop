@@ -23,6 +23,8 @@ pub struct Observation {
     pub service: Option<Service>,
     /// Software banner announced by the device itself (SSDP `SERVER`).
     pub os_hint: Option<String>,
+    /// Apple device model from mDNS `_device-info._tcp` (e.g. `iPhone14,2`).
+    pub model: Option<String>,
 }
 
 pub fn text(s: &str) -> String {
@@ -98,6 +100,9 @@ pub fn observe(snapshot: &mut DiscoverySnapshot, scope: &Scope, item: Observatio
     add_source(&mut device.sources, item.source);
     if device.signals.ssdp.is_none() {
         device.signals.ssdp = item.os_hint.clone().filter(|hint| !hint.is_empty());
+    }
+    if device.signals.model.is_none() {
+        device.signals.model = item.model.clone().filter(|model| !model.is_empty());
     }
     device.last_seen_at = now();
     device.expires_at = expiry(item.ttl);
@@ -245,6 +250,7 @@ mod tests {
                 hint: Some("ipp".into()),
             }),
             os_hint: None,
+            model: None,
         };
         observe(&mut snapshot, &scope, item.clone());
         observe(&mut snapshot, &scope, item.clone());
