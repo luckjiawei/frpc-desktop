@@ -58,7 +58,15 @@ const defaultFormData: ConfigEditorData = {
   serverPort: 7000,
   auth: {
     method: "",
-    token: ""
+    token: "",
+    oidc: {
+      clientID: "",
+      clientSecret: "",
+      tokenEndpointURL: "",
+      audience: "",
+      scope: "",
+      additionalEndpointParams: {}
+    }
   },
   log: {
     to: "",
@@ -124,6 +132,38 @@ const isSensitiveMetadataKey = (key: string) => sensitiveMetadataKey.test(key);
 const metadataDraftDirty = computed(
   () => newMetadata.key.trim() !== "" || newMetadata.value !== ""
 );
+// `auth.oidc.additionalEndpointParams` uses the same key/value editor as
+// metadatas, with its own draft so the two panels never share input state.
+const newOidcParam = reactive({ key: "", value: "" });
+const oidcParamEntries = computed(() =>
+  Object.entries(formData.value.auth.oidc?.additionalEndpointParams ?? {})
+);
+const oidcParamDraftDirty = computed(
+  () => newOidcParam.key.trim() !== "" || newOidcParam.value !== ""
+);
+
+// This app's OIDC config format is supported by frpc >= 0.52.0; that is a
+// support floor for these fields, not a claim about when OIDC itself appeared.
+// A custom binary cannot be version-checked from the app, so it gets an
+// explicit "unknown" warning instead of silently accepting fields the binary
+// would reject. This warns; it does not block.
+const oidcVersionWarning = computed(() => {
+  if (formData.value.auth.method !== "oidc") return "";
+  if (frpcSource.value === "custom") {
+    return t("config.form.authOidc.versionUnknown");
+  }
+  const version = frpcDesktopStore.downloadedVersions.find(
+    item => item.githubReleaseId === formData.value.frpcVersion
+  )?.name;
+  const match = version?.match(/(\d+)\.(\d+)/);
+  if (!match) return t("config.form.authOidc.versionUnknown");
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  if (major === 0 && minor < 52) {
+    return t("config.form.authOidc.versionTooOld", { version });
+  }
+  return "";
+});
 const rules = reactive<FormRules>({
   instanceName: [
     {
@@ -209,6 +249,32 @@ const rules = reactive<FormRules>({
     {
       required: true,
       message: t("config.form.authToken.requireMessage"),
+      trigger: "blur"
+    }
+  ],
+  "auth.oidc.clientID": [
+    {
+      required: true,
+      message: t("config.form.authOidc.clientIDRequireMessage"),
+      trigger: "blur"
+    }
+  ],
+  "auth.oidc.clientSecret": [
+    {
+      required: true,
+      message: t("config.form.authOidc.clientSecretRequireMessage"),
+      trigger: "blur"
+    }
+  ],
+  "auth.oidc.tokenEndpointURL": [
+    {
+      required: true,
+      message: t("config.form.authOidc.tokenEndpointURLRequireMessage"),
+      trigger: "blur"
+    },
+    {
+      pattern: /^https?:\/\/[^\s]+$/,
+      message: t("config.form.authOidc.tokenEndpointURLPatternMessage"),
       trigger: "blur"
     }
   ],
@@ -410,6 +476,33 @@ const removeMetadata = (key: string) => {
   formData.value.metadatas = metadatas;
 };
 
+const addOidcParam = () => {
+  const key = newOidcParam.key.trim();
+  if (!key) {
+    ElMessage.warning(t("config.form.metadatas.keyRequired"));
+    return;
+  }
+  const params = formData.value.auth.oidc.additionalEndpointParams ?? {};
+  if (Object.prototype.hasOwnProperty.call(params, key)) {
+    ElMessage.warning(t("config.form.metadatas.keyDuplicate"));
+    return;
+  }
+  formData.value.auth.oidc.additionalEndpointParams = {
+    ...params,
+    [key]: newOidcParam.value
+  };
+  newOidcParam.key = "";
+  newOidcParam.value = "";
+};
+
+const removeOidcParam = (key: string) => {
+  const params = {
+    ...(formData.value.auth.oidc.additionalEndpointParams ?? {})
+  };
+  delete params[key];
+  formData.value.auth.oidc.additionalEndpointParams = params;
+};
+
 const handleSubmit = useDebounceFn(() => {
   if (!formRef.value) return;
   formRef.value.validate(async (valid, fields) => {
@@ -501,7 +594,11 @@ const handleLoadSavedConfig = () => {
 };
 
 const handleBeforeClose = (done: () => void) => {
-  if (!formDirty.value && !metadataDraftDirty.value) {
+  if (
+    !formDirty.value &&
+    !metadataDraftDirty.value &&
+    !oidcParamDraftDirty.value
+  ) {
     done();
     return;
   }
@@ -533,6 +630,8 @@ watch(
     submittedSnapshot = null;
     newMetadata.key = "";
     newMetadata.value = "";
+    newOidcParam.key = "";
+    newOidcParam.value = "";
     formRef.value?.clearValidate();
     detectedVersionInfo.value = "";
     if (open) {
@@ -563,6 +662,9 @@ onMounted(() => {
           instanceName,
           autoStart
         };
+        if (!formData.value.auth.oidc) {
+          formData.value.auth.oidc = _.cloneDeep(defaultFormData.auth.oidc);
+        }
         Object.keys(defaultFormData).forEach(key => {
           if (
             formData.value[key] === undefined ||
@@ -978,6 +1080,10 @@ onUnmounted(() => {
                         :label="t('config.form.authMethod.token')"
                         value="token"
                       ></el-option>
+                      <el-option
+                        :label="t('config.form.authMethod.oidc')"
+                        value="oidc"
+                      ></el-option>
                       <!--                  <el-option label="多用户" value="multiuser"></el-option>-->
                     </el-select>
                   </el-form-item>
@@ -1015,6 +1121,166 @@ onUnmounted(() => {
                     />
                   </el-form-item>
                 </el-col>
+                <template v-if="formData.auth.method === 'oidc'">
+                  <el-col v-if="oidcVersionWarning" :span="24">
+                    <el-alert
+                      class="mb-2"
+                      type="warning"
+                      :closable="false"
+                      show-icon
+                      :title="oidcVersionWarning"
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item
+                      :label="t('config.form.authOidc.clientID.label')"
+                      prop="auth.oidc.clientID"
+                    >
+                      <el-input
+                        v-model="formData.auth.oidc.clientID"
+                        :placeholder="
+                          t('config.form.authOidc.clientID.placeholder')
+                        "
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item
+                      :label="t('config.form.authOidc.clientSecret.label')"
+                      prop="auth.oidc.clientSecret"
+                    >
+                      <el-input
+                        v-model="formData.auth.oidc.clientSecret"
+                        :placeholder="
+                          t('config.form.authOidc.clientSecret.placeholder')
+                        "
+                        type="password"
+                        :show-password="true"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="24">
+                    <el-form-item
+                      :label="t('config.form.authOidc.tokenEndpointURL.label')"
+                      prop="auth.oidc.tokenEndpointURL"
+                    >
+                      <el-input
+                        v-model="formData.auth.oidc.tokenEndpointURL"
+                        :placeholder="
+                          t('config.form.authOidc.tokenEndpointURL.placeholder')
+                        "
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item
+                      :label="t('config.form.authOidc.audience.label')"
+                    >
+                      <el-input
+                        v-model="formData.auth.oidc.audience"
+                        :placeholder="
+                          t('config.form.authOidc.audience.placeholder')
+                        "
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item
+                      :label="t('config.form.authOidc.scope.label')"
+                    >
+                      <el-input
+                        v-model="formData.auth.oidc.scope"
+                        :placeholder="
+                          t('config.form.authOidc.scope.placeholder')
+                        "
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="24">
+                    <div class="metadatas-head">
+                      <div class="h2 mt-4">
+                        {{
+                          t(
+                            "config.form.authOidc.additionalEndpointParams.label"
+                          )
+                        }}
+                      </div>
+                      <p class="metadatas-hint">
+                        {{
+                          t(
+                            "config.form.authOidc.additionalEndpointParams.description"
+                          )
+                        }}
+                      </p>
+                    </div>
+                    <div class="metadatas-panel">
+                      <div
+                        v-for="[key, value] in oidcParamEntries"
+                        :key="key"
+                        class="metadatas-row"
+                      >
+                        <span class="metadatas-row__key" :title="key">
+                          {{ key }}
+                        </span>
+                        <el-input
+                          :model-value="metadataValue(value)"
+                          :placeholder="
+                            t('config.form.metadatas.valuePlaceholder')
+                          "
+                          :aria-label="
+                            t('config.form.metadatas.valueLabel', { key })
+                          "
+                          @update:model-value="
+                            formData.auth.oidc.additionalEndpointParams[key] =
+                              $event
+                          "
+                        />
+                        <el-button
+                          text
+                          type="danger"
+                          class="metadatas-row__remove"
+                          :title="t('config.form.metadatas.remove')"
+                          :aria-label="t('config.form.metadatas.remove')"
+                          @click="removeOidcParam(key)"
+                        >
+                          <IconifyIconOffline icon="delete-rounded" />
+                        </el-button>
+                      </div>
+                      <p
+                        v-if="oidcParamEntries.length === 0"
+                        class="metadatas-empty"
+                      >
+                        {{
+                          t(
+                            "config.form.authOidc.additionalEndpointParams.empty"
+                          )
+                        }}
+                      </p>
+                      <div class="metadatas-row metadatas-row--new">
+                        <el-input
+                          v-model="newOidcParam.key"
+                          :placeholder="
+                            t('config.form.metadatas.keyPlaceholder')
+                          "
+                          :aria-label="t('config.form.metadatas.newKeyLabel')"
+                          @keyup.enter="addOidcParam"
+                        />
+                        <el-input
+                          v-model="newOidcParam.value"
+                          :placeholder="
+                            t('config.form.metadatas.valuePlaceholder')
+                          "
+                          :aria-label="t('config.form.metadatas.newValueLabel')"
+                          @keyup.enter="addOidcParam"
+                        />
+                        <el-button plain type="primary" @click="addOidcParam">
+                          <IconifyIconOffline class="mr-1" icon="add" />
+                          {{ t("config.form.metadatas.add") }}
+                        </el-button>
+                      </div>
+                    </div>
+                  </el-col>
+                </template>
                 <el-col :span="24">
                   <el-form-item
                     :label="t('config.form.multiuser.label')"

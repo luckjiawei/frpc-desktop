@@ -223,6 +223,29 @@ fn default_max_days() -> i64 {
     3
 }
 
+/// OIDC client settings. frpc v0.52.0 carries these modern TOML fields, and
+/// the app treats 0.52.0 as its support floor for this config; that is not a
+/// claim about when OIDC authentication itself appeared.
+/// The JSON keys keep frpc's spelling (`clientID`, `tokenEndpointURL`) so the
+/// stored blob, the generated TOML and the TypeScript type all use the same
+/// names.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OidcConfig {
+    #[serde(default, rename = "clientID")]
+    pub client_id: String,
+    #[serde(default)]
+    pub client_secret: String,
+    #[serde(default, rename = "tokenEndpointURL")]
+    pub token_endpoint_url: String,
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default)]
+    pub scope: String,
+    #[serde(default)]
+    pub additional_endpoint_params: HashMap<String, String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthConfig {
@@ -230,6 +253,8 @@ pub struct AuthConfig {
     pub method: String,
     #[serde(default)]
     pub token: String,
+    #[serde(default)]
+    pub oidc: OidcConfig,
 }
 
 fn default_web_enable() -> bool {

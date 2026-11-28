@@ -5,9 +5,19 @@ type LogConfig = {
   disablePrintColor: boolean;
 };
 
+type OidcAuthConfig = {
+  clientID: string;
+  clientSecret: string;
+  tokenEndpointURL: string;
+  audience: string;
+  scope: string;
+  additionalEndpointParams: Record<string, string>;
+};
+
 type AuthConfig = {
   method: string;
   token: string;
+  oidc: OidcAuthConfig;
 };
 
 type WebServerConfig = {
